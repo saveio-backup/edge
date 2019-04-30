@@ -1,0 +1,55 @@
+package: .
+import:
+- package: github.com/mattn/go-sqlite3
+- package: github.com/saveio/dsp-go-sdk
+  subpackages:
+  - common
+  - config
+  - store
+  - task
+- package: github.com/saveio/edge
+  subpackages:
+  - cmd
+  - cmd/flags
+  - cmd/utils
+  - common
+  - common/config
+  - dsp
+  - dsp/storage
+  - http
+  - http/base/error
+  - http/common
+  - http/rest
+  - http/rpc
+  - http/rpc/core
+  - http/util
+- package: github.com/saveio/pylons
+  subpackages:
+  - common
+  - transfer
+- package: github.com/saveio/themis-go-sdk
+  subpackages:
+  - client
+  - common
+  - usdt
+  - utils
+  - wallet
+- package: github.com/saveio/themis
+  subpackages:
+  - account
+  - cmd/common
+  - cmd/utils
+  - common
+  - common/config
+  - common/constants
+  - common/log
+  - common/password
+  - core/payload
+  - core/types
+  - crypto/keypair
+  - crypto/signature
+  - errors
+  - http/base/common
+  - http/base/error
+  - smartcontract/service/native/onifs
+- package: github.com/urfave/cli

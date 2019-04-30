@@ -1,0 +1,62 @@
+{
+  "base": {
+    "NetworkId": 0,
+    "BaseDir": ".",
+    "PortBase": 10000,
+    "LogLevel": 0,
+    "LogPath": "./Log",
+    "LocalRpcPortOffset": 338,
+    "EnableLocalRpc": true,
+    "HttpRestPortOffset": 335,
+    "HttpCertPath": "",
+    "HttpKeyPath": "",
+    "RestEnable": true,
+    "ChannelProtocol": "tcp",
+    "ChannelPortOffset": 1259,
+    "ChannelClientType": "rpc",
+    "ChannelRevealTimeout": "1000",
+    "DBPath": "./DB",
+    "PpListenAddr": "",
+    "PpBootstrap": {},
+    "ChainRestAddr": "http://127.0.0.1:20334",
+    "ChainRpcAddr": "http://127.0.0.1:20336",
+    "DspProtocol": "tcp",
+    "DspPortOffset": 4001,
+    "TrackerPortOffset": 4250,
+    "DnsNodeMaxNum": 100,
+    "SeedInterval": 10,
+    "DnsChannelDeposit": 1000000000,
+    "WalletPwd": "pwd",
+    "WalletDir": "./wallet.dat"
+  },
+  "fs": {
+    "FsRepoRoot": "./Fs",
+    "FsFileRoot": "./Downloads",
+    "FsType": 1
+  },
+  "Bootstraps": [{
+      "url": "10.0.1.250",
+      "MasterChainSupport": true,
+      "MasterChainRestPort": 30338,
+      "TrackerPort": 10250,
+      "ChannelProtocol": "tcp",
+      "ChannelPort": 10269
+    },
+    {
+      "url": "10.0.1.251",
+      "MasterChainSupport": true,
+      "MasterChainRestPort": 30338,
+      "TrackerPort": 10250,
+      "ChannelProtocol": "tcp",
+      "ChannelPort": 10269
+    },
+    {
+      "url": "10.0.1.252",
+      "MasterChainSupport": true,
+      "MasterChainRestPort": 30338,
+      "TrackerPort": 10250,
+      "ChannelProtocol": "tcp",
+      "ChannelPort": 10269
+    }
+  ]
+}
