@@ -30,3 +30,4 @@ test/node*/wallet*
 test/node*/Downloads/*
 test/node*/DB*
 test/node4/*
+edge

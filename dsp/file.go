@@ -1,6 +1,7 @@
 package dsp
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"os"
@@ -14,7 +15,9 @@ import (
 	"github.com/saveio/edge/common/config"
 	http "github.com/saveio/edge/http/common"
 	"github.com/saveio/themis/cmd/utils"
+	chainCom "github.com/saveio/themis/common"
 	"github.com/saveio/themis/common/log"
+	fs "github.com/saveio/themis/smartcontract/service/native/onifs"
 )
 
 type TransferType int
@@ -493,4 +496,60 @@ func (this *Endpoint) GetDownloadFiles(fileType http.DSP_FILE_LIST_TYPE, offset,
 		}
 	}
 	return fileInfos, nil
+}
+
+type WhiteListRule struct {
+	Addr          string
+	StartHeight   uint64
+	ExpiredHeight uint64
+}
+
+func (this *Endpoint) WhiteListOperation(fileHash string, op uint64, list []*WhiteListRule) (string, error) {
+	if len(list) == 0 {
+		return "", errors.New("empty white list")
+	}
+	li := fs.WhiteList{
+		Num:  uint64(len(list)),
+		List: make([]fs.Rule, 0, len(list)),
+	}
+	for _, l := range list {
+		address, err := chainCom.AddressFromBase58(l.Addr)
+		if err != nil {
+			return "", err
+		}
+		li.List = append(li.List, fs.Rule{
+			Addr:         address,
+			BaseHeight:   l.StartHeight,
+			ExpireHeight: l.ExpiredHeight,
+		})
+	}
+	txHash, err := this.Dsp.Chain.Native.Fs.WhiteListOp(fileHash, op, li)
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(chainCom.ToArrayReverse(txHash)), nil
+}
+
+func (this *Endpoint) GetWhitelist(fileHash string) ([]*WhiteListRule, error) {
+	if len(fileHash) == 0 {
+		return nil, errors.New("empty fileHash")
+	}
+	list, err := this.Dsp.Chain.Native.Fs.GetWhiteList(fileHash)
+	if err != nil {
+		log.Debugf("err:%s", err.Error())
+		if strings.Contains(err.Error(), "not found!") {
+			emptyList := make([]*WhiteListRule, 0)
+			return emptyList, nil
+		}
+		return nil, err
+	}
+	li := make([]*WhiteListRule, 0, list.Num)
+	for _, l := range list.List {
+		li = append(li, &WhiteListRule{
+			Addr:          l.Addr.ToBase58(),
+			StartHeight:   l.BaseHeight,
+			ExpiredHeight: l.ExpireHeight,
+		})
+	}
+	return li, nil
 }

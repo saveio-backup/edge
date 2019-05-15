@@ -25,6 +25,7 @@ type BaseConfig struct {
 	BaseDir            string `json:"BaseDir"`
 	LogPath            string `json:"LogPath"`
 	NetworkId          uint32 `json:"NetworkId"`
+	PublicIP           string `json:"PublicIP"`
 	PortBase           uint32 `json:"PortBase"`
 	LogLevel           int    `json:"LogLevel"`
 	LocalRpcPortOffset int    `json:"LocalRpcPortOffset"`
@@ -45,13 +46,15 @@ type BaseConfig struct {
 	ChainRestAddr string   `json:"ChainRestAddr"`
 	ChainRpcAddr  string   `json:"ChainRpcAddr"`
 
-	DspProtocol   string `json:"DspProtocol"`
-	DspPortOffset int    `json:"DspPortOffset"`
+	NATProxyServerAddr string `json:"NATProxyServerAddr"`
+	DspProtocol        string `json:"DspProtocol"`
+	DspPortOffset      int    `json:"DspPortOffset"`
 
-	TrackerPortOffset int    `json:"TrackerPortOffset"`
-	DnsNodeMaxNum     int    `json:"DnsNodeMaxNum"`
-	SeedInterval      int    `json:"SeedInterval"`
-	DnsChannelDeposit uint64 `json:"DnsChannelDeposit"`
+	AutoSetupDNSEnable bool   `json:"AutoSetupDNSEnable"`
+	TrackerPortOffset  int    `json:"TrackerPortOffset"`
+	DnsNodeMaxNum      int    `json:"DnsNodeMaxNum"`
+	SeedInterval       int    `json:"SeedInterval"`
+	DnsChannelDeposit  uint64 `json:"DnsChannelDeposit"`
 
 	WalletPwd string `json:"WalletPwd"`
 	WalletDir string `json:"WalletDir"`
@@ -85,6 +88,7 @@ func DefConfig() *DspConfig {
 //current default config
 var Parameters = DefConfig()
 var configDir string
+var currUsrWalAddr string
 
 func setConfigByCommandParams(dspConfig *DspConfig, ctx *cli.Context) {
 	///////////////////// protocol setting ///////////////////////////
@@ -112,7 +116,7 @@ func Init(ctx *cli.Context) {
 	if ctx.GlobalIsSet(flags.GetFlagName(flags.ConfigFlag)) {
 		configDir = ctx.String(flags.GetFlagName(flags.ConfigFlag)) + DEFAULT_CONFIG_DIR
 	} else {
-		configDir = os.Getenv("HOME") + DEFAULT_CONFIG_DIR
+		configDir = "." + DEFAULT_CONFIG_DIR
 	}
 	existed := common.FileExisted(configDir)
 	if !existed {
@@ -134,6 +138,10 @@ func Save() error {
 	return ioutil.WriteFile(configDir, data, 0666)
 }
 
+func SetCurrentUserWalletAddress(addr string) {
+	currUsrWalAddr = addr
+}
+
 // WalletDatFilePath. wallet.dat file path
 func WalletDatFilePath() string {
 	return filepath.Join(Parameters.BaseConfig.BaseDir, Parameters.BaseConfig.WalletDir)
@@ -141,31 +149,30 @@ func WalletDatFilePath() string {
 
 // ClientLevelDBPath. todo: replace level db with sqlite db
 func ClientLevelDBPath() string {
-	fmt.Printf("Parameters.BaseConfig.BaseDir:%v, dbpath %v\n", Parameters.BaseConfig.BaseDir, Parameters.BaseConfig.DBPath)
-	return filepath.Join(Parameters.BaseConfig.BaseDir, Parameters.BaseConfig.DBPath, "edge")
+	return filepath.Join(Parameters.BaseConfig.BaseDir, Parameters.BaseConfig.DBPath, currUsrWalAddr, "client")
 }
 
 // ClientSqliteDBPath.
 func ClientSqliteDBPath() string {
-	return filepath.Join(Parameters.BaseConfig.BaseDir, Parameters.BaseConfig.DBPath, "edge-sqlite.db")
+	return filepath.Join(Parameters.BaseConfig.BaseDir, Parameters.BaseConfig.DBPath, currUsrWalAddr, "oniclient-sqlite.db")
 }
 
 // DspDBPath. dsp database path
 func DspDBPath() string {
-	return filepath.Join(Parameters.BaseConfig.BaseDir, Parameters.BaseConfig.DBPath, "dsp")
+	return filepath.Join(Parameters.BaseConfig.BaseDir, Parameters.BaseConfig.DBPath, currUsrWalAddr, "dsp")
 }
 
 // ChannelDBPath. channel database path
 func ChannelDBPath() string {
-	return filepath.Join(Parameters.BaseConfig.BaseDir, Parameters.BaseConfig.DBPath, "channel")
+	return filepath.Join(Parameters.BaseConfig.BaseDir, Parameters.BaseConfig.DBPath, currUsrWalAddr, "channel")
 }
 
 // FsRepoRootPath. fs repo root path
 func FsRepoRootPath() string {
-	return filepath.Join(Parameters.BaseConfig.BaseDir, Parameters.FsConfig.FsRepoRoot)
+	return filepath.Join(Parameters.BaseConfig.BaseDir, Parameters.FsConfig.FsRepoRoot, currUsrWalAddr)
 }
 
 // FsFileRootPath. fs filestore root path
 func FsFileRootPath() string {
-	return filepath.Join(Parameters.BaseConfig.BaseDir, Parameters.FsConfig.FsFileRoot)
+	return filepath.Join(Parameters.BaseConfig.BaseDir, Parameters.FsConfig.FsFileRoot, currUsrWalAddr)
 }

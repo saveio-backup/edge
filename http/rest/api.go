@@ -376,11 +376,12 @@ func GetBalance(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePackWithErrMsg(berr.INVALID_PARAMS, err.Error())
 	}
 	type balanceResp struct {
-		Address  string
-		Name     string
-		Symbol   string
-		Decimals int
-		Balance  string
+		Address       string
+		Name          string
+		Symbol        string
+		Decimals      int
+		Balance       uint64
+		BalanceFormat string
 	}
 	usdt, err := strconv.ParseUint(balance.Usdt, 10, 64)
 	if err != nil {
@@ -388,23 +389,26 @@ func GetBalance(cmd map[string]interface{}) map[string]interface{} {
 	}
 	bals := make([]*balanceResp, 0)
 	bals = append(bals, &balanceResp{
-		Address:  addrBase58,
-		Name:     "Save Power",
-		Symbol:   "SAVE",
-		Decimals: 9,
-		Balance:  utils.FormatUsdt(usdt),
+		Address:       addrBase58,
+		Name:          "Save Power",
+		Symbol:        "SAVE",
+		Decimals:      9,
+		Balance:       usdt,
+		BalanceFormat: utils.FormatUsdt(usdt),
 	}, &balanceResp{
-		Address:  addrBase58,
-		Name:     "NEO",
-		Symbol:   "NEO",
-		Decimals: 9,
-		Balance:  "0",
+		Address:       addrBase58,
+		Name:          "NEO",
+		Symbol:        "NEO",
+		Decimals:      1,
+		Balance:       0,
+		BalanceFormat: "0",
 	}, &balanceResp{
-		Address:  addrBase58,
-		Name:     "Ontology",
-		Symbol:   "ONT",
-		Decimals: 9,
-		Balance:  "0",
+		Address:       addrBase58,
+		Name:          "Ontology",
+		Symbol:        "ONT",
+		Decimals:      1,
+		Balance:       0,
+		BalanceFormat: "0",
 	})
 	resp["Result"] = bals
 	return resp
@@ -1060,11 +1064,11 @@ func AddUserSpace(cmd map[string]interface{}) map[string]interface{} {
 	}
 	size, ok := cmd["Size"].(float64)
 	if !ok {
-		return ResponsePack(berr.INVALID_PARAMS)
+		size = 0
 	}
 	second, ok := cmd["Second"].(float64)
 	if !ok {
-		return ResponsePack(berr.INVALID_PARAMS)
+		second = 0
 	}
 	tx, err := DspService.Dsp.AddUserSpace(addr, uint64(size), uint64(second))
 	if err != nil {

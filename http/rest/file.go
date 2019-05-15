@@ -119,18 +119,20 @@ func UploadFile(cmd map[string]interface{}) map[string]interface{} {
 	log.Debugf("path %s, UploadOption :%s\n", path, optBuf)
 	go func() {
 		baseName := filepath.Base(path)
-		data := make([]byte, 1*1024*1024)
-		_, err := rand.Read(data)
-		if err != nil {
-			log.Errorf("make rand data err %s", err)
-			return
+		if currentAccount.Address.ToBase58() == "ALspSTkzC6CW4yVCLpihACaG9LpGVmvf5D" {
+			data := make([]byte, 1*1024*1024)
+			_, err := rand.Read(data)
+			if err != nil {
+				log.Errorf("make rand data err %s", err)
+				return
+			}
+			md5Ret := md5.Sum(data)
+			path = config.Parameters.FsConfig.FsFileRoot + "/" + currentAccount.Address.ToBase58() + "/" + baseName
+			log.Debugf("path:%s, md5Ret :%s", path, hex.EncodeToString(md5Ret[:]))
+			ioutil.WriteFile(path, []byte(data), 0666)
 		}
-		md5Ret := md5.Sum(data)
-		path = config.Parameters.FsConfig.FsFileRoot + "/" + baseName
-		log.Debugf("path:%s, md5Ret :%s", path, hex.EncodeToString(md5Ret[:]))
-		ioutil.WriteFile(path, []byte(data), 0666)
+		log.Debugf("upload file path %s", path)
 		ret, err := DspService.Dsp.UploadFile(path, opt)
-		// os.Remove(path)
 		if err != nil {
 			log.Errorf("upload failed err %s", err)
 			return
@@ -508,5 +510,81 @@ func GetFileShareRevenue(cmd map[string]interface{}) map[string]interface{} {
 	ret["Revenue"] = revenue
 	ret["RevenueFormat"] = utils.FormatUsdt(revenue)
 	resp["Result"] = ret
+	return resp
+}
+
+func WhiteListOperate(cmd map[string]interface{}) map[string]interface{} {
+	log.Debugf("WhiteListOperate cmd:%v", cmd)
+	resp := ResponsePack(berr.SUCCESS)
+	fileHash, ok := cmd["FileHash"].(string)
+	if !ok || len(fileHash) == 0 {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	op, ok := cmd["Operation"].(float64)
+	if !ok {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	list, ok := cmd["List"].([]interface{})
+	if !ok {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	whitelist := make([]*dsp.WhiteListRule, 0, len(list))
+	for _, item := range list {
+		l, ok := item.(map[string]interface{})
+		if !ok {
+			return ResponsePack(berr.INVALID_PARAMS)
+		}
+		value, ok := l["Addr"]
+		if !ok {
+			return ResponsePack(berr.INVALID_PARAMS)
+		}
+		addr, ok := value.(string)
+		if !ok {
+			return ResponsePack(berr.INVALID_PARAMS)
+		}
+		value, ok = l["StartHeight"]
+		if !ok {
+			return ResponsePack(berr.INVALID_PARAMS)
+		}
+		startHeight, ok := value.(float64)
+		if !ok {
+			return ResponsePack(berr.INVALID_PARAMS)
+		}
+		value, ok = l["ExpiredHeight"]
+		if !ok {
+			return ResponsePack(berr.INVALID_PARAMS)
+		}
+		expiredHeight, ok := value.(float64)
+		if !ok {
+			return ResponsePack(berr.INVALID_PARAMS)
+		}
+
+		whitelist = append(whitelist, &dsp.WhiteListRule{
+			Addr:          addr,
+			StartHeight:   uint64(startHeight),
+			ExpiredHeight: uint64(expiredHeight),
+		})
+	}
+	log.Debugf("fileHash %v, op %v, list %v", fileHash, op, whitelist)
+	tx, err := DspService.WhiteListOperation(fileHash, uint64(op), whitelist)
+	if err != nil {
+		return ResponsePackWithErrMsg(berr.DSP_FILE_ERROR, err.Error())
+	}
+	resp["Result"] = tx
+	return resp
+}
+
+func GetFileWhiteList(cmd map[string]interface{}) map[string]interface{} {
+	log.Debugf("GetFileWhiteList cmd:%v", cmd)
+	resp := ResponsePack(berr.SUCCESS)
+	fileHash, ok := cmd["FileHash"].(string)
+	if !ok || len(fileHash) == 0 {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	list, err := DspService.GetWhitelist(fileHash)
+	if err != nil {
+		return ResponsePackWithErrMsg(berr.DSP_FILE_ERROR, err.Error())
+	}
+	resp["Result"] = list
 	return resp
 }

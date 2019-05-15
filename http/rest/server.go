@@ -87,6 +87,8 @@ const (
 	DSP_FILE_DECRYPT          = "/api/v1/dsp/file/decrypt"
 	DSP_FILE_SHARE_INCOME     = "/api/v1/dsp/file/share/income/:begin/:end/:offset/:limit"
 	DSP_FILE_SHARE_REVENUE    = "/api/v1/dsp/file/share/revenue"
+	DSP_GET_FILE_WHITELIST    = "/api/v1/dsp/file/whitelist/:hash"
+	DSP_UPDATE_FILE_WHITELIST = "/api/v1/dsp/file/updatewhitelist"
 
 	GET_ALL_CHANNEL       = "/api/v1/channel"
 	OPEN_CHANNEL          = "/api/v1/channel/open/:partneraddr"
@@ -196,6 +198,7 @@ func (this *restServer) registryMethod() {
 		DSP_FILE_DOWNLOAD_INFO:    {name: "getdownloadinfo", handler: GetDownloadFileInfo},
 		DSP_FILE_SHARE_INCOME:     {name: "getfileshareincome", handler: GetFileShareIncome},
 		DSP_FILE_SHARE_REVENUE:    {name: "getfilesharerevenue", handler: GetFileShareRevenue},
+		DSP_GET_FILE_WHITELIST:    {name: "getwhitelist", handler: GetFileWhiteList},
 
 		GET_ALL_CHANNEL:       {name: "getallchannels", handler: GetAllChannels},
 		OPEN_CHANNEL:          {name: "openchannel", handler: OpenChannel},
@@ -224,15 +227,16 @@ func (this *restServer) registryMethod() {
 		IMPORT_ACCOUNT_WITH_PRIVATEKEY: {name: "importaccountwithprivatekey", handler: ImportWithPrivateKey},
 		IMPORT_ACCOUNT_WITH_WALLETFILE: {name: "importaccountwithwalletfile", handler: ImportWithWalletData},
 
-		DSP_NODE_REGISTER:     {name: "registernode", handler: RegisterNode},
-		DSP_NODE_UPDATE:       {name: "updatenode", handler: NodeUpdate},
-		DSP_ADD_USER_SPACE:    {name: "adduserspace", handler: AddUserSpace},
-		DSP_REVOKE_USER_SPACE: {name: "revokeuserspace", handler: RevokeUserSpace},
-		DSP_FILE_UPLOAD:       {name: "uploadfile", handler: UploadFile},
-		DSP_FILE_DELETE:       {name: "deletefile", handler: DeleteFile},
-		DSP_FILE_DOWNLOAD:     {name: "downloadfile", handler: DownloadFile},
-		DSP_FILE_ENCRYPT:      {name: "encryptfile", handler: EncryptFile},
-		DSP_FILE_DECRYPT:      {name: "decryptfile", handler: DecryptFile},
+		DSP_NODE_REGISTER:         {name: "registernode", handler: RegisterNode},
+		DSP_NODE_UPDATE:           {name: "updatenode", handler: NodeUpdate},
+		DSP_ADD_USER_SPACE:        {name: "adduserspace", handler: AddUserSpace},
+		DSP_REVOKE_USER_SPACE:     {name: "revokeuserspace", handler: RevokeUserSpace},
+		DSP_FILE_UPLOAD:           {name: "uploadfile", handler: UploadFile},
+		DSP_FILE_DELETE:           {name: "deletefile", handler: DeleteFile},
+		DSP_FILE_DOWNLOAD:         {name: "downloadfile", handler: DownloadFile},
+		DSP_FILE_ENCRYPT:          {name: "encryptfile", handler: EncryptFile},
+		DSP_FILE_DECRYPT:          {name: "decryptfile", handler: DecryptFile},
+		DSP_UPDATE_FILE_WHITELIST: {name: "updatewhitelist", handler: WhiteListOperate},
 
 		DEPOSIT_CHANNEL:  {name: "depositchannel", handler: DepositChannel},
 		WITHDRAW_CHANNEL: {name: "withdrawchannel", handler: WithdrawChannel},
@@ -305,6 +309,8 @@ func (this *restServer) getPath(url string) string {
 		return DSP_FILE_SHARE_INCOME
 	} else if strings.Contains(url, DSP_FILE_SHARE_REVENUE) {
 		return DSP_FILE_SHARE_REVENUE
+	} else if strings.Contains(url, strings.TrimSuffix(DSP_GET_FILE_WHITELIST, ":hash")) {
+		return DSP_GET_FILE_WHITELIST
 	}
 
 	//path for channel
@@ -409,6 +415,8 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 		req["End"] = getParam(r, "end")
 		req["Offset"] = getParam(r, "offset")
 		req["Limit"] = getParam(r, "limit")
+	case DSP_GET_FILE_WHITELIST:
+		req["FileHash"] = getParam(r, "hash")
 	default:
 	}
 

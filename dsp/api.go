@@ -2,30 +2,40 @@ package dsp
 
 import (
 	"container/list"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"os"
-	"strconv"
 	"sync"
+	"time"
 
+	"github.com/saveio/carrier/crypto"
 	dsp "github.com/saveio/dsp-go-sdk"
+	dspActorClient "github.com/saveio/dsp-go-sdk/actor/client"
 	dspCom "github.com/saveio/dsp-go-sdk/common"
 	dspCfg "github.com/saveio/dsp-go-sdk/config"
 	"github.com/saveio/dsp-go-sdk/store"
 	"github.com/saveio/edge/common"
 	"github.com/saveio/edge/common/config"
 	"github.com/saveio/edge/dsp/storage"
+	"github.com/saveio/edge/p2p/actor/req"
+	p2p_actor "github.com/saveio/edge/p2p/actor/server"
+	channelNet "github.com/saveio/edge/p2p/networks/channel"
+	dspNet "github.com/saveio/edge/p2p/networks/dsp"
 	chanCom "github.com/saveio/pylons/common"
-	saveSdk "github.com/saveio/themis-go-sdk"
+	themisSdk "github.com/saveio/themis-go-sdk"
 	"github.com/saveio/themis-go-sdk/wallet"
 	"github.com/saveio/themis/account"
+	chainCom "github.com/saveio/themis/common"
+	chainCfg "github.com/saveio/themis/common/config"
 	"github.com/saveio/themis/common/log"
+	"github.com/saveio/themis/crypto/keypair"
 	fs "github.com/saveio/themis/smartcontract/service/native/onifs"
 )
 
 type Endpoint struct {
 	Account  *account.Account
-	Chain    *saveSdk.Chain
+	Chain    *themisSdk.Chain
 	Dsp      *dsp.Dsp
 	progress sync.Map
 	db       *store.LevelDBStore
@@ -38,7 +48,7 @@ func Init(walletDir, pwd string) (*Endpoint, error) {
 		closhCh: make(chan struct{}, 1),
 	}
 	log.Debugf("walletDir: %s, %d", walletDir, len(walletDir))
-	chain := saveSdk.NewChain()
+	chain := themisSdk.NewChain()
 	chain.NewRestClient().SetAddress(config.Parameters.BaseConfig.ChainRestAddr)
 	this.Chain = chain
 	if len(walletDir) == 0 {
@@ -59,7 +69,7 @@ func Init(walletDir, pwd string) (*Endpoint, error) {
 		return nil, err
 	}
 	this.Chain.SetDefaultAccount(this.Account)
-
+	config.SetCurrentUserWalletAddress(this.Account.Address.ToBase58())
 	db, err := store.NewLevelDBStore(config.ClientLevelDBPath())
 	if err != nil {
 		log.Errorf("NewLevelDBStore err %s, config.ClientLevelDBPath():%v", err, config.ClientLevelDBPath())
@@ -77,8 +87,7 @@ func Init(walletDir, pwd string) (*Endpoint, error) {
 }
 
 func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool) error {
-	// [TODO]: use NAT to find out IP
-	channelListenAddr := fmt.Sprintf("127.0.0.1:%d", int(config.Parameters.BaseConfig.PortBase+uint32(config.Parameters.BaseConfig.ChannelPortOffset)))
+	channelListenAddr := fmt.Sprintf("%s:%d", "127.0.0.1", int(config.Parameters.BaseConfig.PortBase+uint32(config.Parameters.BaseConfig.ChannelPortOffset)))
 	dspConfig := &dspCfg.DspConfig{
 		DBPath:               config.DspDBPath(),
 		FsRepoRoot:           config.FsRepoRootPath(),
@@ -90,6 +99,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		ChannelProtocol:      config.Parameters.BaseConfig.ChannelProtocol,
 		ChannelRevealTimeout: config.Parameters.BaseConfig.ChannelRevealTimeout,
 		ChannelDBPath:        config.ChannelDBPath(),
+		AutoSetupDNSEnable:   config.Parameters.BaseConfig.AutoSetupDNSEnable,
 		DnsNodeMaxNum:        config.Parameters.BaseConfig.DnsNodeMaxNum,
 		SeedInterval:         config.Parameters.BaseConfig.SeedInterval,
 		DnsChannelDeposit:    config.Parameters.BaseConfig.DnsChannelDeposit,
@@ -98,7 +108,6 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 	log.Debugf("dspConfig.FsRepoRoot %v", dspConfig.FsRepoRoot)
 	log.Debugf("dspConfig.ChannelDBPath %v", dspConfig.ChannelDBPath)
 	log.Debugf("WalletDatFilePath %v", config.WalletDatFilePath())
-
 	//Skip init fs if Dsp doesn't start listen
 	if !startListen {
 		dspConfig.FsRepoRoot = ""
@@ -106,29 +115,65 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 	if !startChannel {
 		dspConfig.ChannelListenAddr = ""
 	}
-
+	p2pActor, err := p2p_actor.NewP2PActor()
+	if err != nil {
+		return err
+	}
 	log.Debugf("dspConfig.ChannelListenAddr :%s ,acc %v\n", dspConfig.ChannelListenAddr, endpoint.Account)
-	dspSrv := dsp.NewDsp(dspConfig, endpoint.Account)
+	dspSrv := dsp.NewDsp(dspConfig, endpoint.Account, p2pActor.GetLocalPID())
 	if dspSrv == nil {
 		return errors.New("dsp server init failed")
 	}
 	log.Debug("Create Dsp success")
-
+	endpoint.Dsp = dspSrv
 	if startListen {
+		// start dsp net
 		dspListenPort := int(config.Parameters.BaseConfig.PortBase + uint32(config.Parameters.BaseConfig.DspPortOffset))
 		if dspListenPort == 0 {
 			log.Fatal("Not configure HttpRestPort port ")
 			return nil
 		}
 
-		//[TODO] dsp-go-sdk may only need port and construct address itself
-		dspListenAddr := config.Parameters.BaseConfig.DspProtocol + "://127.0.0.1:" + strconv.Itoa(dspListenPort)
-		log.Debugf("start dsp at %s", dspListenAddr)
-		err := dspSrv.Start(dspListenAddr)
+		bPrivate := keypair.SerializePrivateKey(endpoint.Account.PrivKey())
+		bPub := keypair.SerializePublicKey(endpoint.Account.PubKey())
+		networkKey := &crypto.KeyPair{
+			PrivateKey: bPrivate,
+			PublicKey:  bPub,
+		}
+
+		dspNetwork := dspNet.NewNetwork()
+		dspNetwork.SetNetworkKey(networkKey)
+		dspNetwork.SetHandler(dspSrv.Receive)
+		dspNetwork.SetProxyServer(config.Parameters.BaseConfig.NATProxyServerAddr)
+		dspListenAddr := fmt.Sprintf("%s://%s:%d", config.Parameters.BaseConfig.DspProtocol, "127.0.0.1", dspListenPort)
+		log.Debugf("goto start dsp network")
+		err := dspNetwork.Start(dspListenAddr)
 		if err != nil {
 			return err
 		}
-		dspSrv.RegNodeEndpoint(dspSrv.CurrentAccount().Address, dspConfig.ChannelProtocol+"://"+dspConfig.ChannelListenAddr)
+		p2pActor.SetDspNetwork(dspNetwork)
+		log.Debugf("start dsp at %s", dspNetwork.PublicAddr())
+		// start channel net
+		channelNetwork := channelNet.NewP2P()
+		channelNetwork.Keys = networkKey
+		log.Debugf("privteKey:%s, pubkey:%s\n", hex.EncodeToString(bPrivate), hex.EncodeToString(bPub))
+		channelNetwork.SetProxyServer(config.Parameters.BaseConfig.NATProxyServerAddr)
+		req.SetChannelPid(dspSrv.Channel.GetChannelPid())
+		listenAddr := fmt.Sprintf("%s://%s", config.Parameters.BaseConfig.ChannelProtocol, dspConfig.ChannelListenAddr)
+		log.Debugf("goto start channel network")
+		err = channelNetwork.Start(listenAddr)
+		if err != nil {
+			return err
+		}
+		p2pActor.SetChannelNetwork(channelNetwork)
+		log.Debugf("channelNetwork.PublicAddr(): %s", channelNetwork.PublicAddr())
+		// time.Sleep(time.Duration(5) * time.Second)
+		err = dspSrv.Start()
+		if err != nil {
+			return err
+		}
+		endpoint.UpdateNodeIfNeeded()
+		dspSrv.RegNodeEndpoint(dspSrv.CurrentAccount().Address, channelNetwork.PublicAddr())
 		if startShare {
 			//[TODO] price needed to be discuss
 			dspSrv.SetUnitPriceForAllFile(dspCom.ASSET_USDT, common.DSP_DOWNLOAD_UNIT_PRICE)
@@ -143,38 +188,79 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 			return err
 		}
 	}
-	log.Info("Dsp start successed.")
-	endpoint.Dsp = dspSrv
+
 	if startListen {
+		go endpoint.SetupDNSNodeBackground()
 		go endpoint.RegisterProgressCh()
 		go endpoint.RegisterShareNotificationCh()
 	}
-	// testWalletAddr := "AGGTaoJ8Ygim7zVi5ZZqrXy8EQqgNQJxYx"
-	// if dspSrv.WalletAddress() != testWalletAddr {
-	// 	log.Warn("Start test+++++++++++=")
-	// 	// TEST
-	// 	amount := uint64(1)
-	// 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	// 	paymentId := r.Int31()
-	// 	log.Debugf("paying to , id %v", paymentId)
-	// 	dspSrv.Channel.SetHostAddr(testWalletAddr, "tcp://127.0.0.1:14001")
-	// 	err := dspSrv.Channel.MediaTransfer(paymentId, amount, testWalletAddr)
-	// 	if err != nil {
-	// 		log.Debugf("payingmentid %d, failed err %s", paymentId, err)
-	// 	} else {
-	// 		log.Debugf("payment id %d,  price:%d success", paymentId, amount)
-	// 	}
-	// 	os.Exit(1)
-	// }
+	log.Info("Dsp start successed.")
 	return nil
 }
 
-func StartDdnsNode(endpoint *Endpoint) {
+func (this *Endpoint) UpdateNodeIfNeeded() {
+	nodeInfo, err := this.NodeQuery(this.Account.Address.ToBase58())
+	if err != nil || nodeInfo == nil {
+		return
+	}
+	publicAddr := dspActorClient.P2pGetPublicAddr()
+	log.Debugf("update node info %s %s", string(nodeInfo.NodeAddr), publicAddr)
+	if string(nodeInfo.NodeAddr) == publicAddr {
+		return
+	}
+	_, err = this.NodeUpdate(publicAddr, nodeInfo.Volume, nodeInfo.ServiceTime)
+	if err != nil {
+		log.Errorf("update node addr failed, err %s", err)
+	}
+	// TODO: update to trackes
+}
 
+// SetupDNSNodeBackground. setup a dns node background when received first payments.
+func (this *Endpoint) SetupDNSNodeBackground() {
+	if config.Parameters.BaseConfig.AutoSetupDNSEnable {
+		return
+	}
+	allChannels := this.Dsp.Channel.GetAllPartners()
+	log.Debugf("setup dns node len %v", len(allChannels))
+	if len(allChannels) > 0 {
+		err := this.Dsp.SetupDNSChannels()
+		if err != nil {
+			panic(err)
+		}
+		return
+	}
+	ti := time.NewTicker(time.Second)
+	for {
+		select {
+		case <-ti.C:
+			address, err := chainCom.AddressFromBase58(this.Dsp.WalletAddress())
+			if err != nil {
+				log.Errorf("setup dns failed address decoded failed")
+				break
+			}
+			bal, err := this.Dsp.Chain.Native.Usdt.BalanceOf(address)
+			if bal == 0 || err != nil {
+				log.Errorf("setup dns failed balance is 0")
+				break
+			}
+			if bal < chainCfg.DEFAULT_GAS_PRICE*chainCfg.DEFAULT_GAS_PRICE {
+				log.Errorf("setup dns failed balance not enough %d", bal)
+				break
+			}
+			err = this.Dsp.SetupDNSChannels()
+			if err != nil {
+				break
+			}
+			return
+		case <-this.closhCh:
+			return
+		}
+	}
 }
 
 // Stop. stop endpoint instance
 func (this *Endpoint) Stop() error {
+	// TODO: stop networks
 	close(this.closhCh)
 	err := this.db.Close()
 	if err != nil {
@@ -245,7 +331,7 @@ func (this *Endpoint) NodeWithdrawProfit() (string, error) {
 	return tx, nil
 }
 
-//pylons api
+//oniChannel api
 func (this *Endpoint) OpenPaymentChannel(partnerAddr string) (chanCom.ChannelID, error) {
 	return this.Dsp.Channel.OpenChannel(partnerAddr)
 }
@@ -266,7 +352,7 @@ func (this *Endpoint) Transfer(paymentId int32, amount uint64, to string) error 
 func (this *Endpoint) GetChannelListByOwnerAddress(addr string, tokenAddr string) *list.List {
 	//[TODO] call dsp-go-sdk function to return channel list
 	//[NOTE] addr and token Addr should NOT be needed. addr mean PaymentNetworkID
-	//tokenAddr mean TokenAddress. Need comfirm the behavior when integrate dsp-go-sdk with pylons
+	//tokenAddr mean TokenAddress. Need comfirm the behavior when integrate dsp-go-sdk with oniChannel
 	return list.New()
 }
 
