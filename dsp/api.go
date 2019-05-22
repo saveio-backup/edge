@@ -167,20 +167,23 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		}
 		p2pActor.SetChannelNetwork(channelNetwork)
 		log.Debugf("channelNetwork.PublicAddr(): %s", channelNetwork.PublicAddr())
+		endpoint.UpdateNodeIfNeeded()
+		err = dspSrv.RegNodeEndpoint(dspSrv.CurrentAccount().Address, channelNetwork.PublicAddr())
+		if err != nil {
+			log.Errorf("register endpoint failed %s", err)
+			return err
+		}
 		// time.Sleep(time.Duration(5) * time.Second)
 		err = dspSrv.Start()
 		if err != nil {
 			return err
 		}
-		endpoint.UpdateNodeIfNeeded()
-		dspSrv.RegNodeEndpoint(dspSrv.CurrentAccount().Address, channelNetwork.PublicAddr())
 		if startShare {
 			//[TODO] price needed to be discuss
 			dspSrv.SetUnitPriceForAllFile(dspCom.ASSET_USDT, common.DSP_DOWNLOAD_UNIT_PRICE)
 			go dspSrv.StartShareServices()
 		}
 	}
-
 	// start channel only
 	if !startListen && startChannel {
 		err := dspSrv.StartChannelService()
@@ -346,7 +349,7 @@ func (this *Endpoint) DepositToChannel(partnerAddr string, totalDeposit uint64) 
 }
 
 func (this *Endpoint) Transfer(paymentId int32, amount uint64, to string) error {
-	return this.Dsp.Channel.DirectTransfer(paymentId, amount, to)
+	return this.Dsp.Channel.MediaTransfer(paymentId, amount, to)
 }
 
 func (this *Endpoint) GetChannelListByOwnerAddress(addr string, tokenAddr string) *list.List {

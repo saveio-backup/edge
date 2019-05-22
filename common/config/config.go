@@ -82,7 +82,39 @@ type DspConfig struct {
 }
 
 func DefConfig() *DspConfig {
-	return &DspConfig{}
+	return &DspConfig{
+		BaseConfig: BaseConfig{
+			BaseDir:              ".",
+			LogPath:              "./Log",
+			PortBase:             10000,
+			LogLevel:             0,
+			LocalRpcPortOffset:   338,
+			EnableLocalRpc:       true,
+			HttpRestPortOffset:   335,
+			RestEnable:           true,
+			ChannelPortOffset:    3004,
+			ChannelProtocol:      "udp",
+			ChannelClientType:    "rpc",
+			ChannelRevealTimeout: "250",
+			DBPath:               "./DB",
+			ChainRestAddr:        "http://127.0.0.1:20334",
+			ChainRpcAddr:         "http://127.0.0.1:20336",
+			NATProxyServerAddr:   "udp://127.0.0.1:6008",
+			DspProtocol:          "udp",
+			DspPortOffset:        4001,
+			AutoSetupDNSEnable:   true,
+			DnsNodeMaxNum:        100,
+			SeedInterval:         3600,
+			DnsChannelDeposit:    1000000000,
+			WalletPwd:            "pwd",
+			WalletDir:            "./wallet.dat",
+		},
+		FsConfig: FsConfig{
+			FsRepoRoot: "./FS",
+			FsFileRoot: "./Downloads",
+			FsType:     0,
+		},
+	}
 }
 
 //current default config
@@ -103,9 +135,6 @@ func setConfigByCommandParams(dspConfig *DspConfig, ctx *cli.Context) {
 		dspConfig.BaseConfig.DspPortOffset = ctx.Int(flags.GetFlagName(flags.ProtocolListenPortOffsetFlag))
 	}
 
-	///////////////////// tracker setting ///////////////////////////
-
-	///////////////////// channel setting ///////////////////////////
 }
 
 func SetDspConfig(ctx *cli.Context) {

@@ -2,7 +2,9 @@ package channel
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -89,6 +91,11 @@ func (this *Network) SetProxyServer(address string) {
 }
 
 func (this *Network) Start(address string) error {
+	protocolIndex := strings.Index(address, "://")
+	if protocolIndex == -1 {
+		return errors.New("invalid address")
+	}
+	protocol := address[:protocolIndex]
 	builder := network.NewBuilderWithOptions(network.WriteFlushLatency(1 * time.Millisecond))
 	if this.Keys != nil {
 		log.Debugf("channel use account key")
@@ -114,7 +121,11 @@ func (this *Network) Start(address string) error {
 	builder.AddComponent(component)
 	builder.AddComponent(keepalive.New(options...))
 	if len(this.proxyAddr) > 0 {
-		builder.AddComponent(new(proxy.ProxyComponent))
+		if protocol == "udp" {
+			builder.AddComponent(new(proxy.UDPProxyComponent))
+		} else if protocol == "kcp" {
+			builder.AddComponent(new(proxy.KCPProxyComponent))
+		}
 	}
 	var err error
 	this.P2p, err = builder.Build()
@@ -140,9 +151,16 @@ func (this *Network) Start(address string) error {
 	this.P2p.BlockUntilListening()
 	log.Debugf("will BlockUntilProxyFinish...")
 	if len(this.proxyAddr) > 0 {
-		this.P2p.BlockUntilProxyFinish()
+		if protocol == "udp" {
+			this.P2p.BlockUntilUDPProxyFinish()
+		} else if protocol == "kcp" {
+			this.P2p.BlockUntilKCPProxyFinish()
+		}
 	}
 	log.Debugf("finish BlockUntilProxyFinish...")
+	if len(this.P2p.ID.Address) == 6 {
+		return errors.New("invalid address")
+	}
 	return nil
 }
 
@@ -247,16 +265,23 @@ func (this *Network) PeerStateChange(fn func(*keepalive.PeerStateEvent)) {
 }
 func (this *Network) syncPeerState(state *keepalive.PeerStateEvent) {
 	var nodeNetworkState string
-	if state.State == keepalive.PEER_REACHABLE {
+	log.Debugf("[syncPeerState] addr: %s state: %v", state.Address, state.State)
+	switch state.State {
+	case keepalive.PEER_REACHABLE:
 		log.Debugf("[syncPeerState] addr: %s state: NetworkReachable\n", state.Address)
 		this.ActivePeers.LoadOrStore(state.Address, struct{}{})
 		nodeNetworkState = transfer.NetworkReachable
-	} else {
+		act.SetNodeNetworkState(state.Address, nodeNetworkState)
+	case keepalive.PEER_UNKNOWN:
+		log.Debugf("[syncPeerState] addr: %s state: PEER_UNKNOWN\n", state.Address)
+	case keepalive.PEER_READY:
+		log.Debugf("[syncPeerState] addr: %s state: Ready\n", state.Address)
+	case keepalive.PEER_UNREACHABLE:
 		this.ActivePeers.Delete(state.Address)
 		log.Debugf("[syncPeerState] addr: %s state: NetworkUnreachable\n", state.Address)
 		nodeNetworkState = transfer.NetworkUnreachable
+		act.SetNodeNetworkState(state.Address, nodeNetworkState)
 	}
-	act.SetNodeNetworkState(state.Address, nodeNetworkState)
 }
 
 //P2P network msg receive. transfer to actor_channel

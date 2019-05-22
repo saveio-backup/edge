@@ -1,0 +1,41 @@
+{
+    "Base": {
+        "BaseDir": ".",
+        "LogPath": "./Log",
+        "NetworkId": 0,
+        "PublicIP": "",
+        "PortBase": 10000,
+        "LogLevel": 0,
+        "LocalRpcPortOffset": 337,
+        "EnableLocalRpc": true,
+        "HttpRestPortOffset": 334,
+        "HttpCertPath": "",
+        "HttpKeyPath": "",
+        "RestEnable": true,
+        "ChannelPortOffset": 3002,
+        "ChannelProtocol": "udp",
+        "ChannelClientType": "rpc",
+        "ChannelRevealTimeout": "250",
+        "DBPath": "./DB",
+        "PpListenAddr": "",
+        "PpBootstrap": null,
+        "ChainRestAddr": "http://seed6.ont.host:15334",
+        "ChainRpcAddr": "http://seed6.ont.host:15336",
+        "NATProxyServerAddr": "udp://40.73.100.114:6008",
+        "DspProtocol": "udp",
+        "DspPortOffset": 4002,
+        "AutoSetupDNSEnable": true,
+        "TrackerPortOffset": 0,
+        "DnsNodeMaxNum": 100,
+        "SeedInterval": 3600,
+        "DnsChannelDeposit": 1000000000,
+        "WalletPwd": "pwd",
+        "WalletDir": "./wallet.dat"
+    },
+    "Fs": {
+        "FsRepoRoot": "./FS",
+        "FsFileRoot": "./Downloads",
+        "FsType": 0
+    },
+    "Bootstraps": []
+}
