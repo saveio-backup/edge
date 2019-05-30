@@ -1,7 +1,6 @@
 package dsp
 
 import (
-	"container/list"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -22,25 +21,22 @@ import (
 	p2p_actor "github.com/saveio/edge/p2p/actor/server"
 	channelNet "github.com/saveio/edge/p2p/networks/channel"
 	dspNet "github.com/saveio/edge/p2p/networks/dsp"
-	chanCom "github.com/saveio/pylons/common"
-	themisSdk "github.com/saveio/themis-go-sdk"
 	"github.com/saveio/themis-go-sdk/wallet"
 	"github.com/saveio/themis/account"
 	chainCom "github.com/saveio/themis/common"
 	chainCfg "github.com/saveio/themis/common/config"
 	"github.com/saveio/themis/common/log"
 	"github.com/saveio/themis/crypto/keypair"
-	fs "github.com/saveio/themis/smartcontract/service/native/onifs"
 )
 
 type Endpoint struct {
-	Account  *account.Account
-	Chain    *themisSdk.Chain
 	Dsp      *dsp.Dsp
+	Account  *account.Account
 	progress sync.Map
-	db       *store.LevelDBStore
+	db       *store.LevelDBStore // TODO: remove this
 	sqliteDB *storage.SQLiteStorage
 	closhCh  chan struct{}
+	p2pActor *p2p_actor.P2PActor
 }
 
 func Init(walletDir, pwd string) (*Endpoint, error) {
@@ -48,9 +44,6 @@ func Init(walletDir, pwd string) (*Endpoint, error) {
 		closhCh: make(chan struct{}, 1),
 	}
 	log.Debugf("walletDir: %s, %d", walletDir, len(walletDir))
-	chain := themisSdk.NewChain()
-	chain.NewRestClient().SetAddress(config.Parameters.BaseConfig.ChainRestAddr)
-	this.Chain = chain
 	if len(walletDir) == 0 {
 		return this, nil
 	}
@@ -68,7 +61,6 @@ func Init(walletDir, pwd string) (*Endpoint, error) {
 		log.Error("Client get default account Error, msg:", err)
 		return nil, err
 	}
-	this.Chain.SetDefaultAccount(this.Account)
 	config.SetCurrentUserWalletAddress(this.Account.Address.ToBase58())
 	db, err := store.NewLevelDBStore(config.ClientLevelDBPath())
 	if err != nil {
@@ -119,6 +111,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 	if err != nil {
 		return err
 	}
+	endpoint.p2pActor = p2pActor
 	log.Debugf("dspConfig.ChannelListenAddr :%s ,acc %v\n", dspConfig.ChannelListenAddr, endpoint.Account)
 	dspSrv := dsp.NewDsp(dspConfig, endpoint.Account, p2pActor.GetLocalPID())
 	if dspSrv == nil {
@@ -133,20 +126,19 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 			log.Fatal("Not configure HttpRestPort port ")
 			return nil
 		}
-
 		bPrivate := keypair.SerializePrivateKey(endpoint.Account.PrivKey())
 		bPub := keypair.SerializePublicKey(endpoint.Account.PubKey())
 		networkKey := &crypto.KeyPair{
 			PrivateKey: bPrivate,
 			PublicKey:  bPub,
 		}
-
+		log.Debugf("networkKey:%v", networkKey)
 		dspNetwork := dspNet.NewNetwork()
-		dspNetwork.SetNetworkKey(networkKey)
+		// dspNetwork.SetNetworkKey(networkKey)
 		dspNetwork.SetHandler(dspSrv.Receive)
 		dspNetwork.SetProxyServer(config.Parameters.BaseConfig.NATProxyServerAddr)
 		dspListenAddr := fmt.Sprintf("%s://%s:%d", config.Parameters.BaseConfig.DspProtocol, "127.0.0.1", dspListenPort)
-		log.Debugf("goto start dsp network")
+		log.Debugf("goto start dsp network %s", dspListenAddr)
 		err := dspNetwork.Start(dspListenAddr)
 		if err != nil {
 			return err
@@ -155,12 +147,12 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		log.Debugf("start dsp at %s", dspNetwork.PublicAddr())
 		// start channel net
 		channelNetwork := channelNet.NewP2P()
-		channelNetwork.Keys = networkKey
+		// channelNetwork.Keys = networkKey
 		log.Debugf("privteKey:%s, pubkey:%s\n", hex.EncodeToString(bPrivate), hex.EncodeToString(bPub))
 		channelNetwork.SetProxyServer(config.Parameters.BaseConfig.NATProxyServerAddr)
 		req.SetChannelPid(dspSrv.Channel.GetChannelPid())
 		listenAddr := fmt.Sprintf("%s://%s", config.Parameters.BaseConfig.ChannelProtocol, dspConfig.ChannelListenAddr)
-		log.Debugf("goto start channel network")
+		log.Debugf("goto start channel network %s", listenAddr)
 		err = channelNetwork.Start(listenAddr)
 		if err != nil {
 			return err
@@ -173,7 +165,8 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 			log.Errorf("register endpoint failed %s", err)
 			return err
 		}
-		// time.Sleep(time.Duration(5) * time.Second)
+		// setup filter block range before start
+		endpoint.SetFilterBlockRange()
 		err = dspSrv.Start()
 		if err != nil {
 			return err
@@ -263,9 +256,12 @@ func (this *Endpoint) SetupDNSNodeBackground() {
 
 // Stop. stop endpoint instance
 func (this *Endpoint) Stop() error {
-	// TODO: stop networks
+	err := this.p2pActor.Stop()
+	if err != nil {
+		return err
+	}
 	close(this.closhCh)
-	err := this.db.Close()
+	err = this.db.Close()
 	if err != nil {
 		return err
 	}
@@ -273,121 +269,6 @@ func (this *Endpoint) Stop() error {
 	if err != nil {
 		return err
 	}
+	this.ResetChannelProgress()
 	return this.Dsp.Stop()
-}
-
-//Dsp api
-func (this *Endpoint) RegisterNode(addr string, volume, serviceTime uint64) (string, error) {
-	tx, err := this.Dsp.RegisterNode(addr, volume, serviceTime)
-	if err != nil {
-		log.Errorf("register node err:%s", err)
-		return "", err
-	}
-	log.Infof("tx: %s", tx)
-	return tx, nil
-}
-
-func (this *Endpoint) UnregisterNode() (string, error) {
-	tx, err := this.Dsp.UnregisterNode()
-	if err != nil {
-		log.Errorf("register node err:%s", err)
-		return "", err
-	}
-	log.Infof("tx: %s", tx)
-	return tx, nil
-}
-
-func (this *Endpoint) NodeQuery(walletAddr string) (*fs.FsNodeInfo, error) {
-	info, err := this.Dsp.QueryNode(walletAddr)
-	if err != nil {
-		log.Errorf("query node err %s", err)
-		return nil, err
-	}
-	log.Infof("node info pledge %d", info.Pledge)
-	log.Infof("node info profit %d", info.Profit)
-	log.Infof("node info volume %d", info.Volume)
-	log.Infof("node info restvol %d", info.RestVol)
-	log.Infof("node info service time %d", info.ServiceTime)
-	log.Infof("node info wallet address %s", info.WalletAddr.ToBase58())
-	log.Infof("node info node address %s", info.NodeAddr)
-
-	return info, nil
-}
-
-func (this *Endpoint) NodeUpdate(addr string, volume, serviceTime uint64) (string, error) {
-	tx, err := this.Dsp.UpdateNode(addr, volume, serviceTime)
-	if err != nil {
-		log.Errorf("update node err:%s", err)
-		return "", err
-	}
-	log.Infof("tx: %s", tx)
-	return tx, nil
-}
-
-func (this *Endpoint) NodeWithdrawProfit() (string, error) {
-	tx, err := this.Dsp.NodeWithdrawProfit()
-	if err != nil {
-		log.Errorf("register node err:%s", err)
-		return "", err
-	}
-	log.Infof("tx: %s", tx)
-	return tx, nil
-}
-
-//oniChannel api
-func (this *Endpoint) OpenPaymentChannel(partnerAddr string) (chanCom.ChannelID, error) {
-	return this.Dsp.Channel.OpenChannel(partnerAddr)
-}
-
-func (this *Endpoint) ClosePaymentChannel(regAddr, tokenAddr, partnerAddr string, retryTimeout float64) {
-	//[TODO] call channel close function of dsp-go-sdk
-	return
-}
-
-func (this *Endpoint) DepositToChannel(partnerAddr string, totalDeposit uint64) error {
-	return this.Dsp.Channel.SetDeposit(partnerAddr, totalDeposit)
-}
-
-func (this *Endpoint) Transfer(paymentId int32, amount uint64, to string) error {
-	return this.Dsp.Channel.MediaTransfer(paymentId, amount, to)
-}
-
-func (this *Endpoint) GetChannelListByOwnerAddress(addr string, tokenAddr string) *list.List {
-	//[TODO] call dsp-go-sdk function to return channel list
-	//[NOTE] addr and token Addr should NOT be needed. addr mean PaymentNetworkID
-	//tokenAddr mean TokenAddress. Need comfirm the behavior when integrate dsp-go-sdk with oniChannel
-	return list.New()
-}
-
-func (this *Endpoint) QuerySpecialChannelDeposit(partnerAddr string) (uint64, error) {
-	return this.Dsp.Channel.GetTotalDepositBalance(partnerAddr)
-}
-
-func (this *Endpoint) QuerySpecialChannelAvaliable(partnerAddr string) (uint64, error) {
-	return this.Dsp.Channel.GetAvaliableBalance(partnerAddr)
-}
-
-// ChannelWithdraw. withdraw amount of asset from channel
-func (this *Endpoint) ChannelWithdraw(partnerAddr string, amount uint64) error {
-	totalWithdraw, err := this.Dsp.Channel.GetTotalWithdraw(partnerAddr)
-	if err != nil {
-		return err
-	}
-	bal := amount + totalWithdraw
-	if bal-amount != totalWithdraw {
-		return errors.New("withdraw overflow")
-	}
-	success, err := this.Dsp.Channel.Withdraw(partnerAddr, bal)
-	if err != nil {
-		return err
-	}
-	if !success {
-		return errors.New("withdraw failed")
-	}
-	return nil
-}
-
-// ChannelCooperativeSettle. settle channel cooperatively
-func (this *Endpoint) ChannelCooperativeSettle(partnerAddr string) error {
-	return this.Dsp.Channel.CooperativeSettle(partnerAddr)
 }

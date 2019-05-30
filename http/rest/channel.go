@@ -13,7 +13,7 @@ import (
 
 func GetAllChannels(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
-	acc := DspService.Chain.Native.Fs.DefAcc
+	acc := DspService.Dsp.Chain.Native.Fs.DefAcc
 	if acc == nil {
 		return ResponsePack(berr.INTERNAL_ERROR)
 	}
@@ -216,5 +216,17 @@ func TransferByChannel(cmd map[string]interface{}) map[string]interface{} {
 	}
 
 	DspService.Transfer(int32(paymentId), amount, toAddrstr)
+	return resp
+}
+
+func GetChannelInitProgress(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(berr.SUCCESS)
+	progress, err := DspService.GetFilterBlockProgress()
+	if err != nil {
+		return ResponsePackWithErrMsg(berr.DSP_INIT_ERROR, err.Error())
+	}
+	ret := make(map[string]interface{}, 0)
+	ret["Progress"] = progress
+	resp["Result"] = ret
 	return resp
 }

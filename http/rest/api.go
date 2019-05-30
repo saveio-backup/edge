@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	cutils "github.com/saveio/edge/cmd/utils"
 	"github.com/saveio/edge/common/config"
@@ -60,7 +59,7 @@ func ResponsePackWithErrMsg(errCode int64, errMsg string) map[string]interface{}
 func GetNodeVersion(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 
-	version, err := DspService.Chain.GetVersion()
+	version, err := DspService.Dsp.Chain.GetVersion()
 	if err != nil {
 		return ResponsePack(berr.INTERNAL_ERROR)
 	}
@@ -79,7 +78,7 @@ func GetNetworkId(cmd map[string]interface{}) map[string]interface{} {
 func GetBlockHeight(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 
-	height, err := DspService.Chain.GetCurrentBlockHeight()
+	height, err := DspService.Dsp.Chain.GetCurrentBlockHeight()
 	if err != nil {
 		return ResponsePack(berr.INTERNAL_ERROR)
 	}
@@ -99,7 +98,7 @@ func GetBlockHash(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 
-	hash, err := DspService.Chain.GetBlockHash(uint32(height))
+	hash, err := DspService.Dsp.Chain.GetBlockHash(uint32(height))
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
@@ -124,7 +123,7 @@ func GetBlockByHash(cmd map[string]interface{}) map[string]interface{} {
 		getTxBytes = true
 	}
 
-	block, err := DspService.Chain.GetBlockByHash(str)
+	block, err := DspService.Dsp.Chain.GetBlockByHash(str)
 	if err != nil {
 		return ResponsePack(berr.UNKNOWN_BLOCK)
 	}
@@ -156,7 +155,7 @@ func GetBlockHeightByTxHash(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 
-	height, err := DspService.Chain.GetBlockHeightByTxHash(str)
+	height, err := DspService.Dsp.Chain.GetBlockHeightByTxHash(str)
 	if err != nil {
 		return ResponsePack(berr.INTERNAL_ERROR)
 	}
@@ -178,7 +177,7 @@ func GetBlockTxsByHeight(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 
-	data, err := DspService.Chain.GetBlockTxHashesByHeight(uint32(height))
+	data, err := DspService.Dsp.Chain.GetBlockTxHashesByHeight(uint32(height))
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
@@ -210,7 +209,7 @@ func GetBlockByHeight(cmd map[string]interface{}) map[string]interface{} {
 	}
 	index := uint32(height)
 
-	block, err := DspService.Chain.GetBlockByHeight(index)
+	block, err := DspService.Dsp.Chain.GetBlockByHeight(index)
 	if err != nil || block == nil {
 		return ResponsePack(berr.UNKNOWN_BLOCK)
 	}
@@ -236,7 +235,7 @@ func GetTransactionByHash(cmd map[string]interface{}) map[string]interface{} {
 	//[TODO] need support height later ？
 	var height uint32
 
-	tx, err := DspService.Chain.GetTransaction(str)
+	tx, err := DspService.Dsp.Chain.GetTransaction(str)
 	if tx == nil {
 		return ResponsePack(berr.UNKNOWN_TRANSACTION)
 	}
@@ -272,7 +271,7 @@ func GetSmartCodeEventTxsByHeight(cmd map[string]interface{}) map[string]interfa
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 
-	eInfos, err := DspService.Chain.GetSmartContractEventByBlock(uint32(height))
+	eInfos, err := DspService.Dsp.Chain.GetSmartContractEventByBlock(uint32(height))
 	if err != nil {
 		return ResponsePack(berr.INTERNAL_ERROR)
 	}
@@ -293,7 +292,7 @@ func GetSmartCodeEventByTxHash(cmd map[string]interface{}) map[string]interface{
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 
-	notify, err := DspService.Chain.GetSmartContractEvent(str)
+	notify, err := DspService.Dsp.Chain.GetSmartContractEvent(str)
 	if err != nil {
 		return ResponsePack(berr.INTERNAL_ERROR)
 	}
@@ -313,7 +312,7 @@ func GetContractState(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 
-	smartContract, err := DspService.Chain.GetSmartContract(str)
+	smartContract, err := DspService.Dsp.Chain.GetSmartContract(str)
 	if err != nil {
 		return ResponsePack(berr.INTERNAL_ERROR)
 	}
@@ -351,7 +350,7 @@ func GetStorage(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 
-	value, err := DspService.Chain.GetStorage(str, item)
+	value, err := DspService.Dsp.Chain.GetStorage(str, item)
 
 	if err != nil {
 		return ResponsePack(berr.INTERNAL_ERROR)
@@ -422,7 +421,7 @@ func GetMerkleProof(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 
-	proof, err := DspService.Chain.GetMerkleProof(str)
+	proof, err := DspService.Dsp.Chain.GetMerkleProof(str)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
@@ -435,7 +434,7 @@ func GetMerkleProof(cmd map[string]interface{}) map[string]interface{} {
 //[TODO] need change themis hcom.GetGasPrice return gasprice and height as string
 //[TODO] or just return gasprice
 func GetGasPrice(cmd map[string]interface{}) map[string]interface{} {
-	result, err := DspService.Chain.GetGasPrice()
+	result, err := DspService.Dsp.Chain.GetGasPrice()
 	if err != nil {
 		return ResponsePack(berr.INTERNAL_ERROR)
 	}
@@ -478,7 +477,7 @@ func GetAllowance(cmd map[string]interface{}) map[string]interface{} {
 //get memory pool transaction count
 func GetMemPoolTxCount(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
-	count, err := DspService.Chain.GetMemPoolTxCount()
+	count, err := DspService.Dsp.Chain.GetMemPoolTxCount()
 	if err != nil {
 		return ResponsePack(berr.INTERNAL_ERROR)
 	}
@@ -494,7 +493,7 @@ func GetMemPoolTxState(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 
-	entryInfo, err := DspService.Chain.GetMemPoolTxState(str)
+	entryInfo, err := DspService.Dsp.Chain.GetMemPoolTxState(str)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
@@ -539,7 +538,7 @@ func GetTxByHeightAndLimit(cmd map[string]interface{}) map[string]interface{} {
 		}
 		limit = uint32(limit64)
 	}
-	currentHeight, err := DspService.Chain.GetCurrentBlockHeight()
+	currentHeight, err := DspService.Dsp.Chain.GetCurrentBlockHeight()
 	if err != nil {
 		return ResponsePack(berr.INTERNAL_ERROR)
 	}
@@ -564,13 +563,13 @@ func GetTxByHeightAndLimit(cmd map[string]interface{}) map[string]interface{} {
 
 	txs := make([]*txResp, 0)
 	for i := int32(height); i >= 0; i-- {
-		blk, err := DspService.Chain.GetBlockByHeight(uint32(i))
+		blk, err := DspService.Dsp.Chain.GetBlockByHeight(uint32(i))
 		if err != nil || blk == nil {
 			continue
 		}
 		for _, t := range blk.Transactions {
 			hash := t.Hash()
-			event, err := DspService.Chain.GetSmartContractEvent(hash.ToHexString())
+			event, err := DspService.Dsp.Chain.GetSmartContractEvent(hash.ToHexString())
 			if err != nil || event == nil {
 				continue
 			}
@@ -867,7 +866,7 @@ func RegisterDns(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 
-	tx, err := DspService.Chain.Native.Dns.DNSNodeReg([]byte(ip), []byte(port), deposit)
+	tx, err := DspService.Dsp.Chain.Native.Dns.DNSNodeReg([]byte(ip), []byte(port), deposit)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
@@ -879,7 +878,7 @@ func RegisterDns(cmd map[string]interface{}) map[string]interface{} {
 func UnRegisterDns(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 
-	tx, err := DspService.Chain.Native.Dns.UnregisterDNSNode()
+	tx, err := DspService.Dsp.Chain.Native.Dns.UnregisterDNSNode()
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
@@ -891,7 +890,7 @@ func UnRegisterDns(cmd map[string]interface{}) map[string]interface{} {
 func QuitDns(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 
-	tx, err := DspService.Chain.Native.Dns.QuitNode()
+	tx, err := DspService.Dsp.Chain.Native.Dns.QuitNode()
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
@@ -912,7 +911,7 @@ func AddPos(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 
-	tx, err := DspService.Chain.Native.Dns.AddInitPos(amount)
+	tx, err := DspService.Dsp.Chain.Native.Dns.AddInitPos(amount)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
@@ -933,7 +932,7 @@ func ReducePos(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 
-	tx, err := DspService.Chain.Native.Dns.ReduceInitPos(amount)
+	tx, err := DspService.Dsp.Chain.Native.Dns.ReduceInitPos(amount)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
@@ -945,7 +944,7 @@ func ReducePos(cmd map[string]interface{}) map[string]interface{} {
 func QueryRegInfos(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 
-	ret, err := DspService.Chain.Native.Dns.GetPeerPoolMap()
+	ret, err := DspService.Dsp.Chain.Native.Dns.GetPeerPoolMap()
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
@@ -966,7 +965,7 @@ func QueryRegInfo(cmd map[string]interface{}) map[string]interface{} {
 		pubkey = ""
 	}
 
-	ret, err := DspService.Chain.Native.Dns.GetPeerPoolItem(pubkey)
+	ret, err := DspService.Dsp.Chain.Native.Dns.GetPeerPoolItem(pubkey)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
@@ -978,7 +977,7 @@ func QueryRegInfo(cmd map[string]interface{}) map[string]interface{} {
 func QueryHostInfos(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 
-	ret, err := DspService.Chain.Native.Dns.GetAllDnsNodes()
+	ret, err := DspService.Dsp.Chain.Native.Dns.GetAllDnsNodes()
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
@@ -1005,7 +1004,7 @@ func QueryHostInfo(cmd map[string]interface{}) map[string]interface{} {
 		address = tmpaddr
 	}
 
-	ret, err := DspService.Chain.Native.Dns.GetDnsNodeByAddr(address)
+	ret, err := DspService.Dsp.Chain.Native.Dns.GetDnsNodeByAddr(address)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
@@ -1014,92 +1013,15 @@ func QueryHostInfo(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-func GetUserSpace(cmd map[string]interface{}) map[string]interface{} {
-	fmt.Println("GetUserSpace")
+func SetConfig(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
-	addr, ok := cmd["Addr"].(string)
-	if !ok {
-		return ResponsePack(berr.INVALID_PARAMS)
-	}
-	type userspace struct {
-		Used      uint64
-		Remain    uint64
-		ExpiredAt uint64
-		Balance   uint64
-	}
-	space, err := DspService.Dsp.GetUserSpace(addr)
-	if err != nil || space == nil {
-		log.Errorf("get user space err %s, space %v", err, space)
-		resp["Result"] = &userspace{
-			Used:      0,
-			Remain:    0,
-			ExpiredAt: 0,
-			Balance:   0,
+	downloadPath, ok := cmd["DownloadPath"].(string)
+	if ok {
+		err := DspService.SetConfig("DownloadPath", downloadPath)
+		if err != nil {
+			return ResponsePackWithErrMsg(berr.DSP_INTERNAL_ERROR, err.Error())
 		}
 		return resp
 	}
-	currentHeight, err := DspService.Chain.GetCurrentBlockHeight()
-	if err != nil {
-		return ResponsePack(berr.INTERNAL_ERROR)
-	}
-	interval := uint64(0)
-	if space.ExpireHeight > uint64(currentHeight) {
-		interval = space.ExpireHeight - uint64(currentHeight)
-	}
-	fmt.Printf("space.ExpireHeight %d\n", space.ExpireHeight)
-	resp["Result"] = &userspace{
-		Used:      space.Used,
-		Remain:    space.Remain,
-		ExpiredAt: uint64(time.Now().Unix()) + interval,
-		Balance:   space.Balance,
-	}
-	return resp
-}
-
-func AddUserSpace(cmd map[string]interface{}) map[string]interface{} {
-	resp := ResponsePack(berr.SUCCESS)
-	addr, ok := cmd["Addr"].(string)
-	if !ok {
-		return ResponsePack(berr.INVALID_PARAMS)
-	}
-	size, ok := cmd["Size"].(float64)
-	if !ok {
-		size = 0
-	}
-	second, ok := cmd["Second"].(float64)
-	if !ok {
-		second = 0
-	}
-	tx, err := DspService.Dsp.AddUserSpace(addr, uint64(size), uint64(second))
-	if err != nil {
-		log.Errorf("add user space err %s", err)
-		return ResponsePackWithErrMsg(berr.INTERNAL_ERROR, err.Error())
-	}
-	resp["Result"] = tx
-
-	return resp
-}
-
-func RevokeUserSpace(cmd map[string]interface{}) map[string]interface{} {
-	resp := ResponsePack(berr.SUCCESS)
-	addr, ok := cmd["Addr"].(string)
-	if !ok {
-		return ResponsePack(berr.INVALID_PARAMS)
-	}
-	size, ok := cmd["Size"].(float64)
-	if !ok {
-		size = 0
-	}
-	second, ok := cmd["Second"].(float64)
-	if !ok {
-		second = 0
-	}
-	tx, err := DspService.Dsp.RevokeUserSpace(addr, uint64(size), uint64(second))
-	if err != nil {
-		log.Errorf("add user space err %s", err)
-		return ResponsePack(berr.INTERNAL_ERROR)
-	}
-	resp["Result"] = tx
-
 	return resp
 }

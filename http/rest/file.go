@@ -1,18 +1,14 @@
 package rest
 
 import (
-	"crypto/md5"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
-	"io/ioutil"
 	"math"
-	"path/filepath"
 	"strconv"
 
 	"github.com/saveio/dsp-go-sdk/common"
 	clicom "github.com/saveio/edge/common"
-	"github.com/saveio/edge/common/config"
 	"github.com/saveio/edge/dsp"
 	berr "github.com/saveio/edge/http/base/error"
 	http "github.com/saveio/edge/http/common"
@@ -118,19 +114,6 @@ func UploadFile(cmd map[string]interface{}) map[string]interface{} {
 	optBuf, _ := json.Marshal(opt)
 	log.Debugf("path %s, UploadOption :%s\n", path, optBuf)
 	go func() {
-		baseName := filepath.Base(path)
-		if currentAccount.Address.ToBase58() == "ALspSTkzC6CW4yVCLpihACaG9LpGVmvf5D" {
-			data := make([]byte, 1*1024*1024)
-			_, err := rand.Read(data)
-			if err != nil {
-				log.Errorf("make rand data err %s", err)
-				return
-			}
-			md5Ret := md5.Sum(data)
-			path = config.Parameters.FsConfig.FsFileRoot + "/" + currentAccount.Address.ToBase58() + "/" + baseName
-			log.Debugf("path:%s, md5Ret :%s", path, hex.EncodeToString(md5Ret[:]))
-			ioutil.WriteFile(path, []byte(data), 0666)
-		}
 		log.Debugf("upload file path %s", path)
 		ret, err := DspService.Dsp.UploadFile(path, opt)
 		if err != nil {
@@ -381,9 +364,7 @@ func CalculateUploadFee(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 	log.Debugf("interval %v, times: %v, copynum:%v, wh:%v, path: %v", interval, times, copynum, wh, path)
-	// TEST:
-	fee, err := DspService.CalculateUploadFee(string("./wallet.dat"), uint64(interval), uint32(times), uint32(copynum), uint64(wh))
-	// fee, err := DspService.CalculateUploadFee(string(path), uint64(interval), uint32(times), uint32(copynum), uint64(wh))
+	fee, err := DspService.CalculateUploadFee(string(path), uint64(interval), uint32(times), uint32(copynum), uint64(wh))
 	if err != nil {
 		return ResponsePackWithErrMsg(berr.DSP_FILE_ERROR, err.Error())
 	}
@@ -586,5 +567,65 @@ func GetFileWhiteList(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePackWithErrMsg(berr.DSP_FILE_ERROR, err.Error())
 	}
 	resp["Result"] = list
+	return resp
+}
+
+func GetUserSpace(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(berr.SUCCESS)
+	addr, ok := cmd["Addr"].(string)
+	if !ok {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	userspace, err := DspService.GetUserSpace(addr)
+	if err != nil {
+		return ResponsePackWithErrMsg(berr.DSP_INTERNAL_ERROR, err.Error())
+	}
+	resp["Result"] = userspace
+	return resp
+}
+
+func SetUserSpace(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(berr.SUCCESS)
+	log.Debugf("cmd %v , type %T", cmd, cmd["Size"])
+	addr, ok := cmd["Addr"].(string)
+	if !ok {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	size, sizeOp, second, secondOp := float64(0), float64(0), float64(0), float64(0)
+	sizeMap, ok := cmd["Size"].(map[string]interface{})
+	if ok {
+		size, _ = sizeMap["Value"].(float64)
+		sizeOp, _ = sizeMap["Type"].(float64)
+	}
+	secondMap, ok := cmd["Second"].(map[string]interface{})
+	if ok {
+		second, _ = secondMap["Value"].(float64)
+		secondOp, _ = secondMap["Type"].(float64)
+	}
+	log.Debugf("size %v %v %v %v", uint64(size), uint64(sizeOp), uint64(second), uint64(secondOp))
+	tx, err := DspService.SetUserSpace(addr, uint64(size), uint64(sizeOp), uint64(second), uint64(secondOp))
+	if err != nil {
+		log.Errorf("add user space err %s", err)
+		return ResponsePackWithErrMsg(berr.INTERNAL_ERROR, err.Error())
+	}
+	resp["Result"] = tx
+	return resp
+}
+
+func GetUserSpaceRecords(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(berr.SUCCESS)
+	addr, ok := cmd["Addr"].(string)
+	if !ok {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	offset, _ := util.OptionStrToUint64(cmd["Offset"])
+	limit, _ := util.OptionStrToUint64(cmd["Limit"])
+	ret, err := DspService.GetUserspaceRecords(addr, offset, limit)
+	if err != nil {
+		return ResponsePackWithErrMsg(berr.DSP_INTERNAL_ERROR, err.Error())
+	}
+	records := make(map[string]interface{})
+	records["Records"] = ret
+	resp["Result"] = records
 	return resp
 }

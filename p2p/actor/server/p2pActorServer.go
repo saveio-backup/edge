@@ -55,6 +55,16 @@ func (this *P2PActor) Start() (*actor.PID, error) {
 	return localPid, err
 }
 
+func (this *P2PActor) Stop() error {
+	this.localPID.Stop()
+	err := this.dspNet.Stop()
+	if err != nil {
+		return err
+	}
+	this.channelNet.Stop()
+	return nil
+}
+
 func (this *P2PActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *actor.Restarting:

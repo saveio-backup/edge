@@ -106,7 +106,7 @@ func registerCandidate(ctx *cli.Context) error {
 	peerPubkey := ctx.String(flags.GetFlagName(flags.PeerPubkeyFlag))
 	initDeposit := ctx.Uint64(flags.GetFlagName(flags.InitDepositFlag))
 
-	tx, err := endpoint.Chain.Native.Governance.RegisterCandidate(peerPubkey, initDeposit)
+	tx, err := endpoint.Dsp.Chain.Native.Governance.RegisterCandidate(peerPubkey, initDeposit)
 	if err != nil {
 		PrintErrorMsg("Register candidate err:%s\n", err)
 		return nil
@@ -131,7 +131,7 @@ func unregisterCandidate(ctx *cli.Context) error {
 
 	peerPubkey := ctx.String(flags.GetFlagName(flags.PeerPubkeyFlag))
 
-	tx, err := endpoint.Chain.Native.Governance.UnRegisterCandidate(peerPubkey)
+	tx, err := endpoint.Dsp.Chain.Native.Governance.UnRegisterCandidate(peerPubkey)
 	if err != nil {
 		PrintErrorMsg("Unregister candidate err:%s\n", err)
 		return nil
@@ -180,7 +180,7 @@ func withdraw(ctx *cli.Context) error {
 		withdrawList = append(withdrawList, v)
 	}
 
-	tx, err := endpoint.Chain.Native.Governance.Withdraw(peerPubkeyList, withdrawList)
+	tx, err := endpoint.Dsp.Chain.Native.Governance.Withdraw(peerPubkeyList, withdrawList)
 	if err != nil {
 		PrintErrorMsg("Withdraw err:%s\n", err)
 		return nil
@@ -207,7 +207,7 @@ func quitNode(ctx *cli.Context) error {
 
 	peerPubkey := ctx.String(flags.GetFlagName(flags.PeerPubkeyFlag))
 
-	tx, err := endpoint.Chain.Native.Governance.QuitNode(peerPubkey)
+	tx, err := endpoint.Dsp.Chain.Native.Governance.QuitNode(peerPubkey)
 	if err != nil {
 		PrintErrorMsg("Quit candidate err:%s\n", err)
 		return nil
@@ -234,7 +234,7 @@ func addInitPos(ctx *cli.Context) error {
 	peerPubkey := ctx.String(flags.GetFlagName(flags.PeerPubkeyFlag))
 	deltaDeposit := ctx.Uint64(flags.GetFlagName(flags.DeltaDepositFlag))
 
-	tx, err := endpoint.Chain.Native.Governance.AddInitPos(peerPubkey, deltaDeposit)
+	tx, err := endpoint.Dsp.Chain.Native.Governance.AddInitPos(peerPubkey, deltaDeposit)
 	if err != nil {
 		PrintErrorMsg("Add init deposit err:%s\n", err)
 		return nil
@@ -261,7 +261,7 @@ func reduceInitPos(ctx *cli.Context) error {
 	peerPubkey := ctx.String(flags.GetFlagName(flags.PeerPubkeyFlag))
 	deltaDeposit := ctx.Uint64(flags.GetFlagName(flags.DeltaDepositFlag))
 
-	tx, err := endpoint.Chain.Native.Governance.ReduceInitPos(peerPubkey, deltaDeposit)
+	tx, err := endpoint.Dsp.Chain.Native.Governance.ReduceInitPos(peerPubkey, deltaDeposit)
 	if err != nil {
 		PrintErrorMsg("Reduce init deposit err:%s\n", err)
 		return nil

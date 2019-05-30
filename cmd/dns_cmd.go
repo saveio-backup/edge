@@ -225,7 +225,7 @@ func registerDns(ctx *cli.Context) error {
 	port := ctx.String(flags.GetFlagName(flags.DnsPortFlag))
 	initDeposit := ctx.Uint64(flags.GetFlagName(flags.InitDepositFlag))
 
-	tx, err := endpoint.Chain.Native.Dns.DNSNodeReg([]byte(ip), []byte(port), initDeposit)
+	tx, err := endpoint.Dsp.Chain.Native.Dns.DNSNodeReg([]byte(ip), []byte(port), initDeposit)
 	if err != nil {
 		PrintErrorMsg("Register candidate err:%s\n", err)
 		return nil
@@ -243,7 +243,7 @@ func unregisterDns(ctx *cli.Context) error {
 		return err
 	}
 
-	tx, err := endpoint.Chain.Native.Dns.UnregisterDNSNode()
+	tx, err := endpoint.Dsp.Chain.Native.Dns.UnregisterDNSNode()
 	if err != nil {
 		PrintErrorMsg("Unregister candidate err:%s\n", err)
 		return nil
@@ -261,7 +261,7 @@ func quitDns(ctx *cli.Context) error {
 		return err
 	}
 
-	tx, err := endpoint.Chain.Native.Dns.QuitNode()
+	tx, err := endpoint.Dsp.Chain.Native.Dns.QuitNode()
 	if err != nil {
 		PrintErrorMsg("Quit candidate err:%s\n", err)
 		return nil
@@ -287,7 +287,7 @@ func addPos(ctx *cli.Context) error {
 
 	deltaDeposit := ctx.Uint64(flags.GetFlagName(flags.DeltaDepositFlag))
 
-	tx, err := endpoint.Chain.Native.Dns.AddInitPos(deltaDeposit)
+	tx, err := endpoint.Dsp.Chain.Native.Dns.AddInitPos(deltaDeposit)
 	if err != nil {
 		PrintErrorMsg("Add init deposit err:%s\n", err)
 		return nil
@@ -313,7 +313,7 @@ func reducePos(ctx *cli.Context) error {
 
 	deltaDeposit := ctx.Uint64(flags.GetFlagName(flags.DeltaDepositFlag))
 
-	tx, err := endpoint.Chain.Native.Dns.ReduceInitPos(deltaDeposit)
+	tx, err := endpoint.Dsp.Chain.Native.Dns.ReduceInitPos(deltaDeposit)
 	if err != nil {
 		PrintErrorMsg("Reduce init deposit err:%s\n", err)
 		return nil
@@ -334,7 +334,7 @@ func getRegisterInfo(ctx *cli.Context) error {
 	DnsAllFlag := ctx.Bool(flags.GetFlagName(flags.DnsAllFlag))
 
 	if DnsAllFlag {
-		m, err := endpoint.Chain.Native.Dns.GetPeerPoolMap()
+		m, err := endpoint.Dsp.Chain.Native.Dns.GetPeerPoolMap()
 
 		if err != nil {
 			PrintErrorMsg("Get all dns register info err:%s\n", err)
@@ -354,7 +354,7 @@ func getRegisterInfo(ctx *cli.Context) error {
 		}
 	} else {
 		peerPubkey := ctx.String(flags.GetFlagName(flags.PeerPubkeyFlag))
-		item, err := endpoint.Chain.Native.Dns.GetPeerPoolItem(peerPubkey)
+		item, err := endpoint.Dsp.Chain.Native.Dns.GetPeerPoolItem(peerPubkey)
 		if err != nil {
 			PrintErrorMsg("Get dns register info err:%s\n", err)
 			return nil
@@ -379,7 +379,7 @@ func getHostInfo(ctx *cli.Context) error {
 	DnsAllFlag := ctx.Bool(flags.GetFlagName(flags.DnsAllFlag))
 
 	if DnsAllFlag {
-		infos, err := endpoint.Chain.Native.Dns.GetAllDnsNodes()
+		infos, err := endpoint.Dsp.Chain.Native.Dns.GetAllDnsNodes()
 		if err != nil {
 			PrintErrorMsg("Get all dns host info err:%s\n", err)
 			return nil
@@ -405,7 +405,7 @@ func getHostInfo(ctx *cli.Context) error {
 			}
 		}
 
-		info, err := endpoint.Chain.Native.Dns.GetDnsNodeByAddr(addr)
+		info, err := endpoint.Dsp.Chain.Native.Dns.GetDnsNodeByAddr(addr)
 		if err != nil {
 			PrintErrorMsg("Get dns host info err:%s\n", err)
 			return nil

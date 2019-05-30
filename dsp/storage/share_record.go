@@ -54,15 +54,18 @@ func (this *SQLiteStorage) FindShareRecordById(id string) (*ShareRecord, error) 
 
 // FineShareRecordsByCreatedAt. find miner record by createdat interval
 func (this *SQLiteStorage) FineShareRecordsByCreatedAt(beginedAt, endedAt, offset, limit int64) ([]*ShareRecord, error) {
-	sql := fmt.Sprintf("SELECT * FROM %s WHERE createdAt >= ? and createdAt <= ?", SHARE_RECORDS_TABLE_NAME)
+	sql := fmt.Sprintf("SELECT * FROM %s WHERE createdAt >= ? and createdAt <= ? ", SHARE_RECORDS_TABLE_NAME)
 	args := make([]interface{}, 0, 4)
 	beginT := time.Unix(beginedAt, 0)
 	endT := time.Unix(endedAt, 0)
 	args = append(args, beginT)
 	args = append(args, endT)
-	if limit != 0 && offset != 0 {
-		sql += "LIMIT ? OFFSET ?"
+	if limit != 0 {
+		sql += "LIMIT ? "
 		args = append(args, limit)
+	}
+	if offset != 0 {
+		sql += "OFFSET ? "
 		args = append(args, offset)
 	}
 	rows, err := this.Query(sql, args...)

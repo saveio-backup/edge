@@ -14,8 +14,8 @@ import (
 	"github.com/saveio/carrier/crypto/ed25519"
 	"github.com/saveio/carrier/network"
 	p2pNet "github.com/saveio/carrier/network"
-	"github.com/saveio/carrier/network/keepalive"
-	"github.com/saveio/carrier/network/proxy"
+	"github.com/saveio/carrier/network/components/keepalive"
+	"github.com/saveio/carrier/network/components/proxy"
 	"github.com/saveio/carrier/types/opcode"
 	"github.com/saveio/dsp-go-sdk/network/common"
 	"github.com/saveio/dsp-go-sdk/network/message/pb"
@@ -175,8 +175,8 @@ func (this *Network) syncPeerState(state *keepalive.PeerStateEvent) {
 	}
 }
 
-func (this *Network) Halt() error {
-	log.Debugf("[DSPNetwork] Halt")
+func (this *Network) Stop() error {
+	log.Debugf("[DSPNetwork] Stop")
 	if this.net == nil {
 		return errors.New("network is down")
 	}

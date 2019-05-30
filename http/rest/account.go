@@ -2,7 +2,6 @@ package rest
 
 import (
 	"encoding/hex"
-	"fmt"
 	"io/ioutil"
 	"os"
 
@@ -54,7 +53,7 @@ func GetCurrentAccount(cmd map[string]interface{}) map[string]interface{} {
 func NewAccount(cmd map[string]interface{}) map[string]interface{} {
 	log.Debugf("NewAccount cmd %v", cmd)
 	resp := ResponsePack(berr.SUCCESS)
-	if DspService != nil && DspService.Chain.Native.Fs.DefAcc != nil {
+	if DspService != nil && DspService.Dsp != nil && DspService.Dsp.Account != nil {
 		return ResponsePack(berr.ACCOUNT_HAS_EXISTS)
 	}
 	password, ok := cmd["Password"].(string)
@@ -122,7 +121,7 @@ func NewAccount(cmd map[string]interface{}) map[string]interface{} {
 
 func ImportWithPrivateKey(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
-	if DspService != nil && DspService.Chain.Native.Fs.DefAcc != nil {
+	if DspService != nil && DspService.Dsp.Account != nil {
 		return ResponsePack(berr.ACCOUNT_HAS_EXISTS)
 	}
 	privKeyStr, ok := cmd["PrivateKey"].(string)
@@ -175,7 +174,7 @@ func ImportWithPrivateKey(cmd map[string]interface{}) map[string]interface{} {
 
 func ImportWithWalletData(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
-	if DspService != nil && DspService.Chain.Native.Fs.DefAcc != nil {
+	if DspService != nil && DspService.Dsp.Account != nil {
 		return ResponsePack(berr.ACCOUNT_HAS_EXISTS)
 	}
 	walletStr, ok := cmd["Wallet"].(string)
@@ -193,12 +192,10 @@ func ImportWithWalletData(cmd map[string]interface{}) map[string]interface{} {
 	}
 	accData, err := wal.GetDefaultAccountData()
 	if err != nil {
-		fmt.Printf("2err:%v, wal:%v\n", err, wal)
 		return ResponsePack(berr.DEFAULT_ACCOUNT_NOT_FOUND)
 	}
 	acc, err := wal.GetDefaultAccount([]byte(password))
 	if err != nil {
-		fmt.Printf("3err:%v, wal:%v\n", err, wal)
 		return ResponsePack(berr.WRONG_PASSWORD)
 	}
 	acc2 := struct {
@@ -252,7 +249,7 @@ func Logout(cmd map[string]interface{}) map[string]interface{} {
 	log.Debugf("Logout")
 	resp := ResponsePack(berr.SUCCESS)
 	isExists := common.FileExisted(config.WalletDatFilePath())
-	if !isExists && (DspService.Dsp.CurrentAccount() != nil && DspService.Chain.Native.Fs.DefAcc != nil) {
+	if !isExists && (DspService.Dsp.CurrentAccount() != nil && DspService.Dsp.Account != nil) {
 		return ResponsePack(berr.INTERNAL_ERROR)
 	}
 	if isExists {
@@ -262,11 +259,10 @@ func Logout(cmd map[string]interface{}) map[string]interface{} {
 		}
 	}
 	// TODO: justify whether account exists
-	log.Debugf("will stopping")
 	err := DspService.Stop()
 	DspService.Dsp.Chain.Native.SetDefaultAccount(nil)
-	DspService.Chain.Native.SetDefaultAccount(nil)
-	log.Debugf("after logout DspService:%v, %v", DspService, DspService.Chain.Native.Fs.DefAcc)
+	DspService.Dsp.Chain.Native.SetDefaultAccount(nil)
+	log.Debugf("after logout DspService:%v, %v", DspService, DspService.Dsp.Account)
 	if err != nil {
 		return ResponsePack(berr.DSP_STOP_ERROR)
 	}
@@ -278,7 +274,7 @@ func startDspService(acc *account.Account) error {
 	DspService.Account = acc
 	chain := sdk.NewChain()
 	chain.NewRestClient().SetAddress(config.Parameters.BaseConfig.ChainRestAddr)
-	DspService.Chain = chain
-	DspService.Chain.SetDefaultAccount(acc)
+	DspService.Dsp.Chain = chain
+	DspService.Dsp.Chain.SetDefaultAccount(acc)
 	return dsp.StartDspNode(DspService, true, true, true)
 }

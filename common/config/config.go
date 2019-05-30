@@ -99,15 +99,15 @@ func DefConfig() *DspConfig {
 			DBPath:               "./DB",
 			ChainRestAddr:        "http://127.0.0.1:20334",
 			ChainRpcAddr:         "http://127.0.0.1:20336",
-			NATProxyServerAddr:   "udp://127.0.0.1:6008",
-			DspProtocol:          "udp",
-			DspPortOffset:        4001,
-			AutoSetupDNSEnable:   true,
-			DnsNodeMaxNum:        100,
-			SeedInterval:         3600,
-			DnsChannelDeposit:    1000000000,
-			WalletPwd:            "pwd",
-			WalletDir:            "./wallet.dat",
+			// NATProxyServerAddr:   "udp://127.0.0.1:6008",
+			DspProtocol:        "udp",
+			DspPortOffset:      4001,
+			AutoSetupDNSEnable: true,
+			DnsNodeMaxNum:      100,
+			SeedInterval:       3600,
+			DnsChannelDeposit:  1000000000,
+			WalletPwd:          "pwd",
+			WalletDir:          "./wallet.dat",
 		},
 		FsConfig: FsConfig{
 			FsRepoRoot: "./FS",
@@ -156,7 +156,7 @@ func Init(ctx *cli.Context) {
 }
 
 func Save() error {
-	data, err := json.Marshal(Parameters)
+	data, err := json.MarshalIndent(Parameters, "", "\t")
 	if err != nil {
 		return err
 	}

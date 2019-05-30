@@ -64,7 +64,7 @@ func dspInit(ctx *cli.Context) {
 		log.Error("dsp init failed: %s", err.Error())
 		os.Exit(1)
 	}
-	if endpoint.Chain.Native.Fs.DefAcc != nil {
+	if endpoint.Account != nil {
 		if err := dsp.StartDspNode(endpoint, true, true, true); err != nil {
 			log.Error(err.Error())
 			os.Exit(1)

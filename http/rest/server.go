@@ -65,14 +65,16 @@ const (
 
 	ASSET_TRANSFER_DIRECT = "/api/v1/asset/transfer/direct"
 
+	SET_CONFIG = "/api/v1/config"
+
 	DSP_NODE_REGISTER         = "/api/v1/dsp/node/register"
 	DSP_NODE_UNREGISTER       = "/api/v1/dsp/node/unregister"
 	DSP_NODE_QUERY            = "/api/v1/dsp/node/query/:addr"
 	DSP_NODE_UPDATE           = "/api/v1/dsp/node/update"
 	DSP_NODE_WITHDRAW         = "/api/v1/dsp/node/withdraw"
-	DSP_ADD_USER_SPACE        = "/api/v1/dsp/client/userspace/add"
-	DSP_REVOKE_USER_SPACE     = "/api/v1/dsp/client/userspace/revoke"
+	DSP_SET_USER_SPACE        = "/api/v1/dsp/client/userspace/set"
 	DSP_CLIENT_GET_USER_SPACE = "/api/v1/dsp/client/userspace/:addr"
+	DSP_USERSPACE_RECORDS     = "/api/v1/dsp/client/userspacerecords/:addr/:offset/:limit"
 
 	DSP_GET_UPLOAD_FILELIST   = "/api/v1/dsp/file/uploadlist/:type/:offset/:limit"
 	DSP_GET_DOWNLOAD_FILELIST = "/api/v1/dsp/file/downloadlist/:type/:offset/:limit"
@@ -90,14 +92,15 @@ const (
 	DSP_GET_FILE_WHITELIST    = "/api/v1/dsp/file/whitelist/:hash"
 	DSP_UPDATE_FILE_WHITELIST = "/api/v1/dsp/file/updatewhitelist"
 
-	GET_ALL_CHANNEL       = "/api/v1/channel"
-	OPEN_CHANNEL          = "/api/v1/channel/open/:partneraddr"
-	DEPOSIT_CHANNEL       = "/api/v1/channel/deposit"
-	WITHDRAW_CHANNEL      = "/api/v1/channel/withdraw"
-	TRANSFER_BY_CHANNEL   = "/api/v1/channel/transfer/:toaddr/:amount/:paymentid"
-	QUERY_CHANNEL_DEPOSIT = "/api/v1/channel/query/deposit/:partneraddr"
-	QUERY_CHANNEL         = "/api/v1/channel/query/detail/:partneraddr"
-	QUERY_CHANNEL_BY_ID   = "/api/v1/channel/query/:id"
+	GET_CHANNEL_INIT_PROGRESS = "/api/v1/channel/init/progress"
+	GET_ALL_CHANNEL           = "/api/v1/channel"
+	OPEN_CHANNEL              = "/api/v1/channel/open/:partneraddr"
+	DEPOSIT_CHANNEL           = "/api/v1/channel/deposit"
+	WITHDRAW_CHANNEL          = "/api/v1/channel/withdraw"
+	TRANSFER_BY_CHANNEL       = "/api/v1/channel/transfer/:toaddr/:amount/:paymentid"
+	QUERY_CHANNEL_DEPOSIT     = "/api/v1/channel/query/deposit/:partneraddr"
+	QUERY_CHANNEL             = "/api/v1/channel/query/detail/:partneraddr"
+	QUERY_CHANNEL_BY_ID       = "/api/v1/channel/query/:id"
 
 	DNS_REGISTER         = "/api/v1/dns/register"
 	DNS_BIND             = "/api/v1/dns/bind"
@@ -191,6 +194,7 @@ func (this *restServer) registryMethod() {
 		DSP_NODE_QUERY:            {name: "querynode", handler: NodeQuery},
 		DSP_NODE_WITHDRAW:         {name: "withdrawnode", handler: NodeWithdrawProfit},
 		DSP_CLIENT_GET_USER_SPACE: {name: "getuserspacesss", handler: GetUserSpace},
+		DSP_USERSPACE_RECORDS:     {name: "getuserspacerecords", handler: GetUserSpaceRecords},
 		DSP_GET_UPLOAD_FILELIST:   {name: "getuploadfilelist", handler: GetUploadFiles},
 		DSP_GET_DOWNLOAD_FILELIST: {name: "getdownloadfilelist", handler: GetDownloadFiles},
 		DSP_GET_FILE_TRANSFERLIST: {name: "gettransferlist", handler: GetTransferList},
@@ -200,12 +204,13 @@ func (this *restServer) registryMethod() {
 		DSP_FILE_SHARE_REVENUE:    {name: "getfilesharerevenue", handler: GetFileShareRevenue},
 		DSP_GET_FILE_WHITELIST:    {name: "getwhitelist", handler: GetFileWhiteList},
 
-		GET_ALL_CHANNEL:       {name: "getallchannels", handler: GetAllChannels},
-		OPEN_CHANNEL:          {name: "openchannel", handler: OpenChannel},
-		TRANSFER_BY_CHANNEL:   {name: "transferbychannel", handler: TransferByChannel},
-		QUERY_CHANNEL_DEPOSIT: {name: "querydeposit", handler: QueryChannelDeposit},
-		QUERY_CHANNEL:         {name: "querychannel", handler: QueryChannel},
-		QUERY_CHANNEL_BY_ID:   {name: "querychannelbyid", handler: QueryChannelByID},
+		GET_CHANNEL_INIT_PROGRESS: {name: "channelinitprogress", handler: GetChannelInitProgress},
+		GET_ALL_CHANNEL:           {name: "getallchannels", handler: GetAllChannels},
+		OPEN_CHANNEL:              {name: "openchannel", handler: OpenChannel},
+		TRANSFER_BY_CHANNEL:       {name: "transferbychannel", handler: TransferByChannel},
+		QUERY_CHANNEL_DEPOSIT:     {name: "querydeposit", handler: QueryChannelDeposit},
+		QUERY_CHANNEL:             {name: "querychannel", handler: QueryChannel},
+		QUERY_CHANNEL_BY_ID:       {name: "querychannelbyid", handler: QueryChannelByID},
 
 		DNS_REGISTER_DNS:     {name: "registerdns", handler: RegisterDns},
 		DNS_UNREGISTER_DNS:   {name: "unregisterdns", handler: UnRegisterDns},
@@ -229,8 +234,7 @@ func (this *restServer) registryMethod() {
 
 		DSP_NODE_REGISTER:         {name: "registernode", handler: RegisterNode},
 		DSP_NODE_UPDATE:           {name: "updatenode", handler: NodeUpdate},
-		DSP_ADD_USER_SPACE:        {name: "adduserspace", handler: AddUserSpace},
-		DSP_REVOKE_USER_SPACE:     {name: "revokeuserspace", handler: RevokeUserSpace},
+		DSP_SET_USER_SPACE:        {name: "setuserspace", handler: SetUserSpace},
 		DSP_FILE_UPLOAD:           {name: "uploadfile", handler: UploadFile},
 		DSP_FILE_DELETE:           {name: "deletefile", handler: DeleteFile},
 		DSP_FILE_DOWNLOAD:         {name: "downloadfile", handler: DownloadFile},
@@ -244,6 +248,8 @@ func (this *restServer) registryMethod() {
 		DNS_REGISTER:  {name: "registerurl", handler: RegisterUrl},
 		DNS_BIND:      {name: "bindurl", handler: BindUrl},
 		DNS_QUERYLINK: {name: "querylink", handler: QueryLink},
+
+		SET_CONFIG: {name: "setconfig", handler: SetConfig},
 	}
 	this.postMap = postMethodMap
 }
@@ -311,6 +317,8 @@ func (this *restServer) getPath(url string) string {
 		return DSP_FILE_SHARE_REVENUE
 	} else if strings.Contains(url, strings.TrimSuffix(DSP_GET_FILE_WHITELIST, ":hash")) {
 		return DSP_GET_FILE_WHITELIST
+	} else if strings.Contains(url, strings.TrimSuffix(DSP_USERSPACE_RECORDS, ":addr/:offset/:limit")) {
+		return DSP_USERSPACE_RECORDS
 	}
 
 	//path for channel
@@ -326,6 +334,8 @@ func (this *restServer) getPath(url string) string {
 		return QUERY_CHANNEL_DEPOSIT
 	} else if strings.Contains(url, strings.TrimRight(QUERY_CHANNEL_BY_ID, ":id")) {
 		return QUERY_CHANNEL_BY_ID
+	} else if strings.Contains(url, GET_CHANNEL_INIT_PROGRESS) {
+		return GET_CHANNEL_INIT_PROGRESS
 	}
 
 	//path for DNS
@@ -417,6 +427,8 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 		req["Limit"] = getParam(r, "limit")
 	case DSP_GET_FILE_WHITELIST:
 		req["FileHash"] = getParam(r, "hash")
+	case DSP_USERSPACE_RECORDS:
+		req["Addr"], req["Offset"], req["Limit"] = getParam(r, "addr"), getParam(r, "offset"), getParam(r, "limit")
 	default:
 	}
 

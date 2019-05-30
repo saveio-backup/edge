@@ -13,7 +13,10 @@ import (
 	"github.com/saveio/dsp-go-sdk/task"
 	"github.com/saveio/edge/common"
 	"github.com/saveio/edge/common/config"
+	"github.com/saveio/edge/dsp/storage"
 	http "github.com/saveio/edge/http/common"
+	chainSdkFs "github.com/saveio/themis-go-sdk/fs"
+	"github.com/saveio/themis-go-sdk/usdt"
 	"github.com/saveio/themis/cmd/utils"
 	chainCom "github.com/saveio/themis/common"
 	"github.com/saveio/themis/common/log"
@@ -388,18 +391,18 @@ type fileResp struct {
 }
 
 func (this *Endpoint) GetUploadFiles(fileType http.DSP_FILE_LIST_TYPE, offset, limit uint64) ([]*fileResp, error) {
-	fileList, err := this.Chain.Native.Fs.GetFileList()
+	fileList, err := this.Dsp.Chain.Native.Fs.GetFileList()
 	if err != nil {
 		return nil, err
 	}
-	now, err := this.Chain.GetCurrentBlockHeight()
+	now, err := this.Dsp.Chain.GetCurrentBlockHeight()
 	if err != nil {
 		return nil, err
 	}
 	files := make([]*fileResp, 0)
 	offsetCnt := uint64(0)
 	for _, hash := range fileList.List {
-		fi, err := this.Chain.Native.Fs.GetFileInfo(string(hash.Hash))
+		fi, err := this.Dsp.Chain.Native.Fs.GetFileInfo(string(hash.Hash))
 		if err != nil {
 			log.Errorf("get file info err %s", err)
 			continue
@@ -552,4 +555,138 @@ func (this *Endpoint) GetWhitelist(fileHash string) ([]*WhiteListRule, error) {
 		})
 	}
 	return li, nil
+}
+
+func (this *Endpoint) SetUserSpace(walletAddr string, size, sizeOpType, blockCount, countOpType uint64) (string, error) {
+	tx, err := this.Dsp.UpdateUserSpace(walletAddr, size, sizeOpType, blockCount, countOpType)
+	if err != nil {
+		return tx, err
+	}
+	txReHash, err := hex.DecodeString(tx)
+	if err != nil {
+		log.Errorf("decode tx string failed %s", err)
+	}
+	_, err = this.Dsp.Chain.PollForTxConfirmed(time.Duration(common.POLL_TX_COMFIRMED_TIMEOUT)*time.Second, chainCom.ToArrayReverse(txReHash))
+	if err != nil {
+		return "", err
+	}
+	event, err := this.Dsp.Chain.GetSmartContractEvent(tx)
+	log.Debugf("get event err %s, event :%v", err, event)
+	if err != nil || event == nil {
+		_, err := this.sqliteDB.InsertUserspaceRecord(tx, walletAddr, size, storage.UserspaceOperation(sizeOpType), blockCount, storage.UserspaceOperation(countOpType), 0, storage.TransferTypeNone)
+		if err != nil {
+			log.Errorf("insert userspace record err %s", err)
+			return "", err
+		}
+		return tx, nil
+	}
+	hasTransfer := false
+	for _, n := range event.Notify {
+		states, ok := n.States.([]interface{})
+		if !ok {
+			continue
+		}
+		if len(states) != 4 || states[0] != "transfer" {
+			continue
+		}
+		from := states[1].(string)
+		to := states[2].(string)
+		if n.ContractAddress != usdt.USDT_CONTRACT_ADDRESS.ToHexString() || to != chainSdkFs.FS_CONTRACT_ADDRESS.ToBase58() {
+			continue
+		}
+		hasTransfer = true
+		amount := states[3].(uint64)
+		transferType := storage.TransferTypeIn
+		if to == walletAddr {
+			transferType = storage.TransferTypeOut
+		}
+		_, err := this.sqliteDB.InsertUserspaceRecord(tx, walletAddr, size, storage.UserspaceOperation(sizeOpType), blockCount, storage.UserspaceOperation(countOpType), amount, transferType)
+		if err != nil {
+			log.Errorf("insert userspace record err %s", err)
+		}
+		log.Debugf("from %s to %s amount %d", from, to, amount)
+	}
+	if len(event.Notify) == 0 || !hasTransfer {
+		_, err := this.sqliteDB.InsertUserspaceRecord(tx, walletAddr, size, storage.UserspaceOperation(sizeOpType), blockCount, storage.UserspaceOperation(countOpType), 0, storage.TransferTypeNone)
+		if err != nil {
+			log.Errorf("insert userspace record err %s", err)
+			return "", err
+		}
+		return tx, nil
+	}
+	return tx, nil
+}
+
+type userspace struct {
+	Used      uint64
+	Remain    uint64
+	ExpiredAt uint64
+	Balance   uint64
+}
+
+func (this *Endpoint) GetUserSpace(addr string) (*userspace, error) {
+	space, err := this.Dsp.GetUserSpace(addr)
+	if err != nil || space == nil {
+		log.Errorf("get user space err %s, space %v", err, space)
+		return &userspace{
+			Used:      0,
+			Remain:    0,
+			ExpiredAt: 0,
+			Balance:   0,
+		}, nil
+	}
+	currentHeight, err := this.Dsp.Chain.GetCurrentBlockHeight()
+	if err != nil {
+		return nil, err
+	}
+	expiredAt := uint64(0)
+	updateHeight := space.UpdateHeight
+	if space.ExpireHeight > uint64(currentHeight) {
+		blk, err := this.Dsp.Chain.GetBlockByHeight(uint32(updateHeight))
+		if err != nil {
+			return nil, err
+		}
+		expiredAt = uint64(blk.Header.Timestamp) + (space.ExpireHeight - uint64(updateHeight))
+	} else {
+		space, err := this.GetUserspaceRecords(addr, 0, 1)
+		if err != nil || len(space) == 0 {
+			expiredAt = uint64(time.Now().Unix())
+		} else {
+			expiredAt = space[0].ExpiredAt
+		}
+	}
+	return &userspace{
+		Used:      space.Used,
+		Remain:    space.Remain,
+		ExpiredAt: expiredAt,
+		Balance:   space.Balance,
+	}, nil
+}
+
+type UserspaceRecordResp struct {
+	Size      uint64
+	ExpiredAt uint64
+	Cost      uint64
+}
+
+func (this *Endpoint) GetUserspaceRecords(walletAddr string, offset, limit uint64) ([]*UserspaceRecordResp, error) {
+	records, err := this.sqliteDB.SelectUserspaceRecordByWalletAddr(walletAddr, offset, limit)
+	if err != nil {
+		return nil, err
+	}
+	var resp []*UserspaceRecordResp
+	if limit == 0 {
+		resp = make([]*UserspaceRecordResp, 0)
+	} else {
+		resp = make([]*UserspaceRecordResp, 0, limit)
+	}
+
+	for _, record := range records {
+		resp = append(resp, &UserspaceRecordResp{
+			Size:      record.TotalSize,
+			ExpiredAt: record.ExpiredAt,
+			Cost:      record.Amount,
+		})
+	}
+	return resp, nil
 }

@@ -13,8 +13,8 @@ import (
 	"github.com/saveio/carrier/crypto"
 	"github.com/saveio/carrier/crypto/ed25519"
 	"github.com/saveio/carrier/network"
-	"github.com/saveio/carrier/network/keepalive"
-	"github.com/saveio/carrier/network/proxy"
+	"github.com/saveio/carrier/network/components/keepalive"
+	"github.com/saveio/carrier/network/components/proxy"
 	"github.com/saveio/carrier/types/opcode"
 	act "github.com/saveio/pylons/actor/server"
 	"github.com/saveio/pylons/network/transport/messages"
@@ -96,11 +96,13 @@ func (this *Network) Start(address string) error {
 		return errors.New("invalid address")
 	}
 	protocol := address[:protocolIndex]
+	log.Debugf("channel protocol %s", protocol)
 	builder := network.NewBuilderWithOptions(network.WriteFlushLatency(1 * time.Millisecond))
 	if this.Keys != nil {
 		log.Debugf("channel use account key")
 		builder.SetKeys(this.Keys)
 	} else {
+		log.Debugf("channel use RandomKeyPair key")
 		builder.SetKeys(ed25519.RandomKeyPair())
 	}
 
