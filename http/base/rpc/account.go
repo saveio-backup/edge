@@ -1,9 +1,9 @@
 package rpc
 
 import (
-	"github.com/exapi/log"
 	"github.com/saveio/edge/dsp"
 	"github.com/saveio/edge/http/rest"
+	"github.com/saveio/themis/common/log"
 )
 
 func GetCurrentAccount(cmd []interface{}) map[string]interface{} {
