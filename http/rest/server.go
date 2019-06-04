@@ -62,6 +62,7 @@ const (
 	IMPORT_ACCOUNT_WITH_PRIVATEKEY = "/api/v1/account/import/privatekey"
 	IMPORT_ACCOUNT_WITH_WALLETFILE = "/api/v1/account/import/walletfile"
 	EXPORT_WALLETFILE              = "/api/v1/account/export/walletfile"
+	EXPORT_WIFPRIVATEKEY           = "/api/v1/account/export/privatekey"
 
 	ASSET_TRANSFER_DIRECT = "/api/v1/asset/transfer/direct"
 
@@ -187,8 +188,9 @@ func (this *restServer) registryMethod() {
 		GET_VERSION:           {name: "getversion", handler: GetNodeVersion},
 		GET_NETWORKID:         {name: "getnetworkid", handler: GetNetworkId},
 
-		GET_CURRENT_ACCOUNT: {name: "getcurrentaccount", handler: GetCurrentAccount},
-		EXPORT_WALLETFILE:   {name: "exportwalletfile", handler: ExportWalletFile},
+		GET_CURRENT_ACCOUNT:  {name: "getcurrentaccount", handler: GetCurrentAccount},
+		EXPORT_WALLETFILE:    {name: "exportwalletfile", handler: ExportWalletFile},
+		EXPORT_WIFPRIVATEKEY: {name: "exportwifprivatekey", handler: ExportWIFPrivateKey},
 
 		DSP_NODE_UNREGISTER:       {name: "unregisternode", handler: UnregisterNode},
 		DSP_NODE_QUERY:            {name: "querynode", handler: NodeQuery},

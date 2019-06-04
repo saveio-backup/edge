@@ -1,8 +1,8 @@
 package rpc
 
 import (
+	berr "github.com/saveio/edge/http/base/error"
 	"github.com/saveio/themis/common/log"
-	berr "github.com/saveio/themis/http/base/error"
 )
 
 func SetDebugInfo(params []interface{}) map[string]interface{} {

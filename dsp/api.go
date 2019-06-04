@@ -29,6 +29,8 @@ import (
 	"github.com/saveio/themis/crypto/keypair"
 )
 
+var DspService *Endpoint
+
 type Endpoint struct {
 	Dsp      *dsp.Dsp
 	Account  *account.Account
@@ -75,6 +77,7 @@ func Init(walletDir, pwd string) (*Endpoint, error) {
 	}
 	this.sqliteDB = sqliteDB
 	log.Debug("Endpoint init successed")
+	DspService = this
 	return this, nil
 }
 
@@ -117,7 +120,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 	if dspSrv == nil {
 		return errors.New("dsp server init failed")
 	}
-	log.Debug("Create Dsp success")
+	log.Debugf("Create Dsp success %p", endpoint)
 	endpoint.Dsp = dspSrv
 	if startListen {
 		// start dsp net
@@ -256,12 +259,14 @@ func (this *Endpoint) SetupDNSNodeBackground() {
 
 // Stop. stop endpoint instance
 func (this *Endpoint) Stop() error {
-	err := this.p2pActor.Stop()
-	if err != nil {
-		return err
+	if this.p2pActor != nil {
+		err := this.p2pActor.Stop()
+		if err != nil {
+			return err
+		}
 	}
 	close(this.closhCh)
-	err = this.db.Close()
+	err := this.db.Close()
 	if err != nil {
 		return err
 	}

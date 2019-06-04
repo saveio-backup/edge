@@ -76,7 +76,7 @@ func sendRpcRequest(method string, params []interface{}) ([]byte, *OntologyError
 		return nil, NewOntologyError(fmt.Errorf("JsonRpcRequest json.Marshal error:%s", err))
 	}
 
-	addr := fmt.Sprintf(config.Parameters.BaseConfig.ChainRestAddr)
+	addr := fmt.Sprintf("http://localhost:%d", config.Parameters.BaseConfig.PortBase+uint32(config.Parameters.BaseConfig.JsonRpcPortOffset))
 	resp, err := http.Post(addr, "application/json", strings.NewReader(string(data)))
 	if err != nil {
 		return nil, NewOntologyError(err)

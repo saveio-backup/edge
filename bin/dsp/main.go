@@ -14,7 +14,8 @@ import (
 	"github.com/saveio/edge/common/config"
 	"github.com/saveio/edge/dsp"
 	"github.com/saveio/edge/http"
-	"github.com/saveio/edge/http/rpc"
+	"github.com/saveio/edge/http/jsonrpc"
+	"github.com/saveio/edge/http/localrpc"
 	"github.com/saveio/themis/common/log"
 	"github.com/urfave/cli"
 )
@@ -73,9 +74,12 @@ func dspInit(ctx *cli.Context) {
 			log.Error(err.Error())
 			os.Exit(1)
 		}
+	} else {
+		log.Infof("current wallet is empty, please create one")
 	}
 
-	initRest(endpoint)
+	initRest()
+	initJsonRpc()
 	waitToExit()
 }
 
@@ -89,13 +93,21 @@ func initLog(ctx *cli.Context) {
 	log.Info("start logging...")
 }
 
-func initRest(dp *dsp.Endpoint) {
+func initRest() {
 	if !config.Parameters.BaseConfig.RestEnable {
 		return
 	}
-	go http.StartRestServer(dp)
+	go http.StartRestServer()
 
 	log.Info("Restful init success")
+}
+
+func initJsonRpc() {
+	if !config.Parameters.BaseConfig.EnableJsonRpc {
+		return
+	}
+	go jsonrpc.StartRPCServer()
+	log.Info("JsonRpc init success")
 }
 
 func waitToExit() {
@@ -119,7 +131,7 @@ func initLocalRpc() error {
 	var err error
 	exitCh := make(chan interface{}, 0)
 	go func() {
-		err = rpc.StartLocalRpcServer()
+		err = localrpc.StartLocalRpcServer()
 		close(exitCh)
 	}()
 

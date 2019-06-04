@@ -1,23 +1,25 @@
 package dsp
 
 import (
-	"errors"
-
 	"github.com/saveio/edge/common/config"
 )
 
-func (this *Endpoint) SetConfig(key string, value interface{}) error {
+func (this *Endpoint) SetConfig(key string, value interface{}) *DspErr {
 	switch key {
 	case "DownloadPath":
 		newPath, ok := value.(string)
 		if !ok {
-			return errors.New("set config invalid value type")
+			return &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
 		}
 		config.Parameters.FsConfig.FsFileRoot = newPath
 		err := this.Dsp.UpdateConfig("FsFileRoot", config.FsFileRootPath())
 		if err != nil {
-			return err
+			return &DspErr{Code: DSP_UPDATE_CONFIG_FAILED, Error: err}
 		}
 	}
-	return config.Save()
+	err := config.Save()
+	if err != nil {
+		return &DspErr{Code: INTERNAL_ERROR, Error: err}
+	}
+	return nil
 }

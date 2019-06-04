@@ -2,7 +2,6 @@ package config
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -30,6 +29,8 @@ type BaseConfig struct {
 	LogLevel           int    `json:"LogLevel"`
 	LocalRpcPortOffset int    `json:"LocalRpcPortOffset"`
 	EnableLocalRpc     bool   `json:"EnableLocalRpc"`
+	JsonRpcPortOffset  int    `json:"JsonRpcPortOffset"`
+	EnableJsonRpc      bool   `json:"EnableJsonRpc"`
 	HttpRestPortOffset int    `json:"HttpRestPortOffset"`
 	HttpCertPath       string `json:"HttpCertPath"`
 	HttpKeyPath        string `json:"HttpKeyPath"`
@@ -81,33 +82,35 @@ type DspConfig struct {
 	BootstrapsConfig []BootstrapConfig `json:"Bootstraps"`
 }
 
-func DefConfig() *DspConfig {
+func TestnetConfig() *DspConfig {
 	return &DspConfig{
 		BaseConfig: BaseConfig{
 			BaseDir:              ".",
 			LogPath:              "./Log",
 			PortBase:             10000,
 			LogLevel:             0,
-			LocalRpcPortOffset:   338,
-			EnableLocalRpc:       true,
-			HttpRestPortOffset:   335,
+			LocalRpcPortOffset:   205,
+			EnableLocalRpc:       false,
+			JsonRpcPortOffset:    204,
+			EnableJsonRpc:        true,
+			HttpRestPortOffset:   203,
 			RestEnable:           true,
-			ChannelPortOffset:    3004,
+			ChannelPortOffset:    202,
 			ChannelProtocol:      "udp",
 			ChannelClientType:    "rpc",
 			ChannelRevealTimeout: "250",
 			DBPath:               "./DB",
-			ChainRestAddr:        "http://127.0.0.1:20334",
-			ChainRpcAddr:         "http://127.0.0.1:20336",
-			// NATProxyServerAddr:   "udp://127.0.0.1:6008",
-			DspProtocol:        "udp",
-			DspPortOffset:      4001,
-			AutoSetupDNSEnable: true,
-			DnsNodeMaxNum:      100,
-			SeedInterval:       3600,
-			DnsChannelDeposit:  1000000000,
-			WalletPwd:          "pwd",
-			WalletDir:          "./wallet.dat",
+			ChainRestAddr:        "http://221.179.156.57:15334",
+			ChainRpcAddr:         "http://221.179.156.57:15336",
+			NATProxyServerAddr:   "udp://40.73.100.114:6008",
+			DspProtocol:          "udp",
+			DspPortOffset:        201,
+			AutoSetupDNSEnable:   true,
+			DnsNodeMaxNum:        100,
+			SeedInterval:         3600,
+			DnsChannelDeposit:    1000000000,
+			WalletPwd:            "pwd",
+			WalletDir:            "./wallet.dat",
 		},
 		FsConfig: FsConfig{
 			FsRepoRoot: "./FS",
@@ -117,8 +120,8 @@ func DefConfig() *DspConfig {
 	}
 }
 
-//current default config
-var Parameters = DefConfig()
+//current testnet config config
+var Parameters = TestnetConfig()
 var configDir string
 var currUsrWalAddr string
 
@@ -149,7 +152,8 @@ func Init(ctx *cli.Context) {
 	}
 	existed := common.FileExisted(configDir)
 	if !existed {
-		panic(fmt.Sprintf("config file is not exist: %s", configDir))
+		log.Infof("config file is not exist: %s, use default config", configDir)
+		return
 	}
 	log.Debugf("configDir %s", configDir)
 	common.GetJsonObjectFromFile(configDir, Parameters)

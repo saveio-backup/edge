@@ -133,13 +133,13 @@ func openChannel(ctx *cli.Context) error {
 			PrintErrorMsg("start dsp err:%s\n", err)
 			return err
 		}
-		id, err := endpoint.OpenPaymentChannel(partnerAddr)
-		if err != nil {
-			PrintErrorMsg("open channel err: %s", err)
-			return err
-		}
+		// id, err := endpoint.OpenPaymentChannel(partnerAddr)
+		// if err != nil {
+		// 	PrintErrorMsg("open channel err: %s", err)
+		// 	return err
+		// }
 
-		PrintInfoMsg("Open channel finished. Channel Id:%d", id)
+		// PrintInfoMsg("Open channel finished. Channel Id:%d", id)
 	}
 	return nil
 }
@@ -163,15 +163,15 @@ func openChannelExt(ctx *cli.Context) error {
 		return err
 	}
 
-	partnerAddr := ctx.String(flags.GetFlagName(flags.PartnerAddressFlag))
+	// partnerAddr := ctx.String(flags.GetFlagName(flags.PartnerAddressFlag))
 
-	id, err := endpoint.OpenPaymentChannel(partnerAddr)
-	if err != nil {
-		PrintErrorMsg("open channel err: %s", err)
-		return err
-	}
+	// id, err := endpoint.OpenPaymentChannel(partnerAddr)
+	// if err != nil {
+	// 	PrintErrorMsg("open channel err: %s", err)
+	// 	return err
+	// }
 
-	PrintInfoMsg("Open channel finished. Channel Id:%d", id)
+	// PrintInfoMsg("Open channel finished. Channel Id:%d", id)
 	return nil
 }
 
@@ -251,13 +251,13 @@ func transferToSomebody(ctx *cli.Context) error {
 			PrintErrorMsg("start dsp err:%s\n", err)
 			return err
 		}
-		err = endpoint.Transfer(int32(paymentID), amount, targetAddr)
-		if err != nil {
-			PrintErrorMsg("Transfer to %s failed. err: %s", targetAddr, err)
-			return err
-		} else {
-			PrintInfoMsg("Transfer to %s successed.", targetAddr)
-		}
+		// err = endpoint.MediaTransfer(int32(paymentID), amount, targetAddr)
+		// if err != nil {
+		// 	PrintErrorMsg("Transfer to %s failed. err: %s", targetAddr, err)
+		// 	return err
+		// } else {
+		// 	PrintInfoMsg("Transfer to %s successed.", targetAddr)
+		// }
 	}
 
 	return nil
@@ -305,12 +305,12 @@ func queryChannelDeposit(ctx *cli.Context) error {
 			return err
 		}
 
-		selfAmount, err := endpoint.QuerySpecialChannelDeposit(partnerAddr)
-		if err != nil {
-			PrintErrorMsg("query channel deposit err: %s", err)
-			return err
-		}
-		PrintInfoMsg("Our amount: %v", selfAmount)
+		// selfAmount, err := endpoint.QuerySpecialChannelDeposit(partnerAddr)
+		// if err != nil {
+		// 	PrintErrorMsg("query channel deposit err: %s", err)
+		// 	return err
+		// }
+		// PrintInfoMsg("Our amount: %v", selfAmount)
 	}
 	return nil
 }
@@ -321,25 +321,25 @@ func withdrawChannel(ctx *cli.Context) error {
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
-	partnerAddr := ctx.String(flags.GetFlagName(flags.PartnerAddressFlag))
-	amount := ctx.Uint64(flags.GetFlagName(flags.AmountFlag))
-	endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
-	if err != nil {
-		PrintErrorMsg("init dsp err:%s\n", err)
-		return err
-	}
-	err = dsp.StartDspNode(endpoint, false, false, true)
-	if err != nil {
-		PrintErrorMsg("start dsp err:%s\n", err)
-		return err
-	}
+	// partnerAddr := ctx.String(flags.GetFlagName(flags.PartnerAddressFlag))
+	// amount := ctx.Uint64(flags.GetFlagName(flags.AmountFlag))
+	// endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
+	// if err != nil {
+	// 	PrintErrorMsg("init dsp err:%s\n", err)
+	// 	return err
+	// }
+	// err = dsp.StartDspNode(endpoint, false, false, true)
+	// if err != nil {
+	// 	PrintErrorMsg("start dsp err:%s\n", err)
+	// 	return err
+	// }
 
-	err = endpoint.ChannelWithdraw(partnerAddr, amount)
-	if err != nil {
-		PrintErrorMsg("withdraw channel err: %s", err)
-		return err
-	}
-	PrintInfoMsg("withdraw channel amount: %v success", amount)
+	// err = endpoint.ChannelWithdraw(partnerAddr, amount)
+	// if err != nil {
+	// 	PrintErrorMsg("withdraw channel err: %s", err)
+	// 	return err
+	// }
+	// PrintInfoMsg("withdraw channel amount: %v success", amount)
 	return nil
 }
 
@@ -349,23 +349,23 @@ func cooperativeSettle(ctx *cli.Context) error {
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
-	partnerAddr := ctx.String(flags.GetFlagName(flags.PartnerAddressFlag))
-	endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
-	if err != nil {
-		PrintErrorMsg("init dsp err:%s\n", err)
-		return err
-	}
-	err = dsp.StartDspNode(endpoint, false, false, true)
-	if err != nil {
-		PrintErrorMsg("start dsp err:%s\n", err)
-		return err
-	}
+	// partnerAddr := ctx.String(flags.GetFlagName(flags.PartnerAddressFlag))
+	// endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
+	// if err != nil {
+	// 	PrintErrorMsg("init dsp err:%s\n", err)
+	// 	return err
+	// }
+	// err = dsp.StartDspNode(endpoint, false, false, true)
+	// if err != nil {
+	// 	PrintErrorMsg("start dsp err:%s\n", err)
+	// 	return err
+	// }
 
-	err = endpoint.ChannelCooperativeSettle(partnerAddr)
-	if err != nil {
-		PrintErrorMsg("cooperative settle channel err: %s", err)
-		return err
-	}
-	PrintInfoMsg("Cooperative settle success")
+	// err = endpoint.ChannelCooperativeSettle(partnerAddr)
+	// if err != nil {
+	// 	PrintErrorMsg("cooperative settle channel err: %s", err)
+	// 	return err
+	// }
+	// PrintInfoMsg("Cooperative settle success")
 	return nil
 }

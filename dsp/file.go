@@ -1,9 +1,11 @@
 package dsp
 
 import (
+	"crypto/rand"
 	"encoding/hex"
-	"errors"
+	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -12,16 +14,32 @@ import (
 	dspCom "github.com/saveio/dsp-go-sdk/common"
 	"github.com/saveio/dsp-go-sdk/task"
 	"github.com/saveio/edge/common"
+	clicom "github.com/saveio/edge/common"
 	"github.com/saveio/edge/common/config"
 	"github.com/saveio/edge/dsp/storage"
-	http "github.com/saveio/edge/http/common"
 	chainSdkFs "github.com/saveio/themis-go-sdk/fs"
 	"github.com/saveio/themis-go-sdk/usdt"
 	"github.com/saveio/themis/cmd/utils"
 	chainCom "github.com/saveio/themis/common"
 	"github.com/saveio/themis/common/log"
+	"github.com/saveio/themis/smartcontract/service/native/onifs"
 	fs "github.com/saveio/themis/smartcontract/service/native/onifs"
 )
+
+type DspFileListType int
+
+const (
+	DspFileListTypeAll DspFileListType = iota
+	DspFileListTypeImage
+	DspFileListTypeDoc
+	DspFileListTypeVideo
+	DspFileListTypeMusic
+)
+
+type DeleteFileResp struct {
+	Tx         string
+	IsUploaded bool
+}
 
 type TransferType int
 
@@ -66,6 +84,211 @@ type transfer struct {
 type transferlistResp struct {
 	IsTransfering bool
 	Transfers     []*transfer
+}
+
+type downloadFileInfo struct {
+	Hash      string
+	Name      string
+	Ext       string
+	Size      uint64
+	Fee       uint64
+	FeeFormat string
+}
+
+type fileShareIncome struct {
+	Name         string
+	Profit       uint64
+	ProfitFormat string
+	SharedAt     uint64
+}
+
+type FileShareIncomeResp struct {
+	TotalIncome       uint64
+	TotalIncomeFormat string
+	Incomes           []*fileShareIncome
+}
+
+type fileResp struct {
+	Hash          string
+	Name          string
+	Url           string
+	Size          uint64
+	DownloadCount uint64
+	ExpiredAt     uint64
+	UpdatedAt     uint64
+	Profit        uint64
+	Privilege     uint64
+}
+
+type downloadFilesInfo struct {
+	Hash          string
+	Name          string
+	Url           string
+	Size          uint64
+	DownloadCount uint64
+	DownloadAt    uint64
+	LastShareAt   uint64
+	Profit        uint64
+}
+
+type WhiteListRule struct {
+	Addr          string
+	StartHeight   uint64
+	ExpiredHeight uint64
+}
+
+type userspace struct {
+	Used      uint64
+	Remain    uint64
+	ExpiredAt uint64
+	Balance   uint64
+}
+
+type UserspaceRecordResp struct {
+	Size       uint64
+	ExpiredAt  uint64
+	Cost       uint64
+	CostFormat string
+}
+
+type calculateResp struct {
+	Fee       uint64
+	FeeFormat string
+}
+
+func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, timesVal, privilegeVal, copynumVal interface{},
+	encryptPwd, url string, whitelist []string, share bool) *DspErr {
+	currentAccount := this.Dsp.CurrentAccount()
+	fssetting, err := this.Dsp.Chain.Native.Fs.GetSetting()
+	if err != nil {
+		return &DspErr{Code: FS_GET_SETTING_FAILED, Error: err}
+	}
+	duration, _ := durationVal.(float64)
+	interval, ok := intervalVal.(float64)
+	if !ok || interval == 0 {
+		interval = float64(fssetting.DefaultProvePeriod)
+	}
+	times, ok := timesVal.(float64)
+	if !ok || times == 0 {
+		//TODO
+		userspace, err := this.Dsp.Chain.Native.Fs.GetUserSpace(currentAccount.Address)
+		if err != nil {
+			return &DspErr{Code: FS_GET_USER_SPACE_FAILED, Error: err}
+		}
+		if userspace == nil {
+		}
+		currentHeight, err := this.Dsp.Chain.GetCurrentBlockHeight()
+		if err != nil {
+			return &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
+		}
+		log.Debugf("userspace.ExpireHeight %d, current: %d", userspace.ExpireHeight, currentHeight)
+		if userspace.ExpireHeight <= uint64(currentHeight) {
+			return &DspErr{Code: DSP_USER_SPACE_EXPIRED, Error: err}
+		}
+		if duration > 0 && (uint64(currentHeight)+uint64(duration)) > userspace.ExpireHeight {
+			return &DspErr{Code: DSP_USER_SPACE_NOT_ENOUGH, Error: err}
+		}
+		if duration == 0 {
+			duration = float64(userspace.ExpireHeight) - float64(currentHeight)
+		}
+		times = math.Ceil(duration / float64(interval))
+		log.Debugf("userspace.ExpireHeight %d, current %d, duration :%v, times :%v", userspace.ExpireHeight, currentHeight, duration, times)
+	}
+	privilege, ok := privilegeVal.(float64)
+	if !ok {
+		privilege = onifs.PUBLIC
+	}
+	copynum, ok := copynumVal.(float64)
+	if !ok {
+		copynum = float64(fssetting.DefaultCopyNum)
+	}
+	if len(url) == 0 {
+		// random
+		b := make([]byte, clicom.DSP_URL_RAMDOM_NAME_LEN/2)
+		_, err := rand.Read(b)
+		if err != nil {
+			return &DspErr{Code: INTERNAL_ERROR, Error: err}
+		}
+		url = this.Dsp.Chain.Native.Dns.GetCustomUrlHeader() + hex.EncodeToString(b)
+	}
+	find, err := this.Dsp.Chain.Native.Dns.QueryUrl(url, this.Dsp.CurrentAccount().Address)
+	if find != nil || err == nil {
+		return &DspErr{Code: DSP_UPLOAD_URL_EXIST, Error: fmt.Errorf("url exist err %s", err)}
+	}
+	opt := &dspCom.UploadOption{
+		FileDesc:        desc,
+		ProveInterval:   uint64(interval),
+		ProveTimes:      uint32(times),
+		Privilege:       uint32(privilege),
+		CopyNum:         uint32(copynum),
+		Encrypt:         len(encryptPwd) > 0,
+		EncryptPassword: encryptPwd,
+		RegisterDns:     len(url) > 0,
+		BindDns:         len(url) > 0,
+		DnsUrl:          url,
+		WhiteList:       whitelist,
+		Share:           share,
+	}
+	optBuf, _ := json.Marshal(opt)
+	log.Debugf("path %s, UploadOption :%s\n", path, optBuf)
+	go func() {
+		log.Debugf("upload file path %s", path)
+		ret, err := this.Dsp.UploadFile(path, opt)
+		if err != nil {
+			log.Errorf("upload failed err %s", err)
+			return
+		}
+		log.Info(ret)
+	}()
+	return nil
+}
+
+func (this *Endpoint) DeleteFile(fileHash string) (*DeleteFileResp, *DspErr) {
+	fi, err := this.Dsp.Chain.Native.Fs.GetFileInfo(fileHash)
+	if fi != nil && err == nil && fi.FileOwner.ToBase58() == this.Dsp.WalletAddress() {
+		tx, err := this.Dsp.DeleteUploadedFile(fileHash)
+		if err != nil {
+			return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: err}
+		}
+		return &DeleteFileResp{Tx: tx, IsUploaded: false}, nil
+	}
+	err = this.Dsp.DeleteDownloadedFile(fileHash)
+	if err != nil {
+		return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: err}
+	}
+	return &DeleteFileResp{IsUploaded: true}, nil
+}
+
+func (this *Endpoint) DownloadFile(fileHash, url, link, password string, max uint64) *DspErr {
+	if len(fileHash) > 0 {
+		go func() {
+			// TODO: get file name
+			err := this.Dsp.DownloadFile(fileHash, "", dspCom.ASSET_USDT, true, password, false, int(max))
+			if err != nil {
+				log.Errorf("Downloadfile from url failed %s", err)
+			}
+		}()
+		return nil
+	}
+	if len(url) > 0 {
+		go func() {
+			err := this.Dsp.DownloadFileByUrl(url, dspCom.ASSET_USDT, true, password, false, int(max))
+			if err != nil {
+				log.Errorf("Downloadfile from url failed %s", err)
+			}
+		}()
+		return nil
+	}
+	if len(link) > 0 {
+		go func() {
+			err := this.Dsp.DownloadFileByLink(fileHash, dspCom.ASSET_USDT, true, password, false, int(max))
+			if err != nil {
+				log.Errorf("Downloadfile from url failed %s", err)
+			}
+		}()
+		return nil
+	}
+	return nil
 }
 
 func (this *Endpoint) RegisterProgressCh() {
@@ -228,24 +451,72 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint64) 
 	return resp
 }
 
-func (this *Endpoint) CalculateUploadFee(filePath string, proveInterval uint64, proveTimes, copyNum uint32, whitelistCnt uint64) (uint64, error) {
-	return this.Dsp.CalculateUploadFee(filePath, &dspCom.UploadOption{
-		ProveInterval: proveInterval,
-		ProveTimes:    proveTimes,
-		CopyNum:       copyNum,
-	}, uint64(whitelistCnt))
+func (this *Endpoint) CalculateUploadFee(filePath string, durationVal, intervalVal, timesVal, copynumVal, whitelistVal interface{}) (*calculateResp, *DspErr) {
+	currentAccount := this.Dsp.CurrentAccount()
+	fssetting, err := this.Dsp.Chain.Native.Fs.GetSetting()
+	if err != nil {
+		return nil, &DspErr{Code: FS_GET_SETTING_FAILED, Error: err}
+	}
+	duration, err := OptionStrToFloat64(durationVal, 0)
+	if err != nil {
+		return nil, &DspErr{Code: INVALID_PARAMS, Error: err}
+	}
+	interval, err := OptionStrToFloat64(intervalVal, float64(fssetting.DefaultProvePeriod))
+	if err != nil {
+		return nil, &DspErr{Code: INVALID_PARAMS, Error: err}
+	}
+	times, err := OptionStrToFloat64(timesVal, 0)
+	if err != nil {
+		return nil, &DspErr{Code: INVALID_PARAMS, Error: err}
+	}
+	if times == 0 {
+		userspace, err := this.Dsp.Chain.Native.Fs.GetUserSpace(currentAccount.Address)
+		if err != nil {
+			return nil, &DspErr{Code: FS_GET_USER_SPACE_FAILED, Error: err}
+		}
+		if userspace == nil {
+			return nil, &DspErr{Code: FS_GET_USER_SPACE_FAILED, Error: err}
+		}
+		currentHeight, err := this.Dsp.Chain.GetCurrentBlockHeight()
+		if err != nil {
+			return nil, &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
+		}
+		if userspace.ExpireHeight <= uint64(currentHeight) {
+			return nil, &DspErr{Code: DSP_USER_SPACE_EXPIRED, Error: ErrMaps[DSP_USER_SPACE_EXPIRED]}
+		}
+		if duration > 0 && (uint64(currentHeight)+uint64(duration)) > userspace.ExpireHeight {
+			return nil, &DspErr{Code: DSP_USER_SPACE_NOT_ENOUGH, Error: ErrMaps[DSP_USER_SPACE_NOT_ENOUGH]}
+		}
+		if duration == 0 {
+			duration = float64(userspace.ExpireHeight) - float64(currentHeight)
+		}
+		times = math.Ceil(duration / float64(interval))
+		log.Debugf("userspace.ExpireHeight %d, current %d, duration :%v, times :%v", userspace.ExpireHeight, currentHeight, duration, times)
+	}
+	copynum, err := OptionStrToFloat64(copynumVal, float64(fssetting.DefaultCopyNum))
+	if err != nil {
+		return nil, &DspErr{Code: INVALID_PARAMS, Error: err}
+	}
+	wh, err := OptionStrToFloat64(whitelistVal, 0)
+	if err != nil {
+		return nil, &DspErr{Code: INVALID_PARAMS, Error: err}
+	}
+	fee, err := this.Dsp.CalculateUploadFee(filePath, &dspCom.UploadOption{
+		ProveInterval: uint64(interval),
+		ProveTimes:    uint32(times),
+		CopyNum:       uint32(copynum),
+	}, uint64(wh))
+	if err != nil {
+		return nil, &DspErr{Code: DSP_CALC_UPLOAD_FEE_FAILED, Error: err}
+	}
+	feeFormat := utils.FormatUsdt(fee)
+	return &calculateResp{
+		Fee:       fee,
+		FeeFormat: feeFormat,
+	}, nil
 }
 
-type downloadFileInfo struct {
-	Hash      string
-	Name      string
-	Ext       string
-	Size      uint64
-	Fee       uint64
-	FeeFormat string
-}
-
-func (this *Endpoint) GetDownloadFileInfo(url string) *downloadFileInfo {
+func (this *Endpoint) GetDownloadFileInfo(url string) (*downloadFileInfo, *DspErr) {
 	info := &downloadFileInfo{}
 	var fileLink string
 	if strings.HasPrefix(url, dspCom.FILE_URL_CUSTOM_HEADER) {
@@ -254,21 +525,21 @@ func (this *Endpoint) GetDownloadFileInfo(url string) *downloadFileInfo {
 		fileLink = url
 	} else if strings.HasPrefix(url, dspCom.PROTO_NODE_PREFIX) || strings.HasPrefix(url, dspCom.RAW_NODE_PREFIX) {
 		// TODO support get download file info from hash
-		return nil
+		return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
 	}
 	if len(fileLink) == 0 {
-		return nil
+		return nil, &DspErr{Code: DSP_GET_FILE_LINK_FAILED, Error: ErrMaps[DSP_GET_FILE_LINK_FAILED]}
 	}
 	values := this.Dsp.GetLinkValues(fileLink)
 	if values == nil {
-		return nil
+		return nil, &DspErr{Code: DSP_GET_FILE_LINK_FAILED, Error: ErrMaps[DSP_GET_FILE_LINK_FAILED]}
 	}
 	info.Hash = values[dspCom.FILE_LINK_HASH_KEY]
 	info.Name = values[dspCom.FILE_LINK_NAME_KEY]
 	blockNumStr := values[dspCom.FILE_LINK_BLOCKNUM_KEY]
 	blockNum, err := strconv.ParseUint(blockNumStr, 10, 64)
 	if err != nil {
-		return nil
+		return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
 	}
 	info.Size = blockNum * dspCom.CHUNK_SIZE / 1024
 	extParts := strings.Split(info.Name, ".")
@@ -277,50 +548,49 @@ func (this *Endpoint) GetDownloadFileInfo(url string) *downloadFileInfo {
 	}
 	info.Fee = blockNum * dspCom.CHUNK_SIZE * common.DSP_DOWNLOAD_UNIT_PRICE
 	info.FeeFormat = utils.FormatUsdt(info.Fee)
-	return info
+	return info, nil
 }
 
-func (this *Endpoint) EncryptFile(path, password string) error {
+func (this *Endpoint) EncryptFile(path, password string) *DspErr {
 	err := this.Dsp.Fs.AESEncryptFile(path, password, path+".temp")
 	if err != nil {
-		return err
+		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
 	}
-	return os.Rename(path+".temp", path)
+	err = os.Rename(path+".temp", path)
+	if err != nil {
+		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
+	}
+	return nil
 }
 
-func (this *Endpoint) DecryptFile(path, password string) error {
+func (this *Endpoint) DecryptFile(path, password string) *DspErr {
 	err := this.Dsp.Fs.AESDecryptFile(path, password, path+".temp")
 	if err != nil {
-		return err
+		return &DspErr{Code: DSP_DECRYPTED_FILE_FAILED, Error: err}
 	}
-	return os.Rename(path+".temp", path)
+	err = os.Rename(path+".temp", path)
+	if err != nil {
+		return &DspErr{Code: DSP_DECRYPTED_FILE_FAILED, Error: err}
+	}
+	return nil
 }
 
-type fileShareIncome struct {
-	Name         string
-	Profit       uint64
-	ProfitFormat string
-	SharedAt     uint64
-}
-
-type FileShareIncomeResp struct {
-	TotalIncome       uint64
-	TotalIncomeFormat string
-	Incomes           []*fileShareIncome
-}
-
-func (this *Endpoint) GetFileRevene() (uint64, error) {
+func (this *Endpoint) GetFileRevene() (uint64, *DspErr) {
 	if this.sqliteDB == nil {
-		return 0, errors.New("sqlite db is nil")
+		return 0, &DspErr{Code: NO_DB, Error: ErrMaps[NO_DB]}
 	}
-	return this.sqliteDB.SumRecordsProfit()
+	sum, err := this.sqliteDB.SumRecordsProfit()
+	if err != nil {
+		return 0, &DspErr{Code: DB_SUM_SHARE_PROFIT_FAILED, Error: err}
+	}
+	return sum, nil
 }
 
-func (this *Endpoint) GetFileShareIncome(start, end, offset, limit uint64) (*FileShareIncomeResp, error) {
+func (this *Endpoint) GetFileShareIncome(start, end, offset, limit uint64) (*FileShareIncomeResp, *DspErr) {
 	resp := &FileShareIncomeResp{}
 	records, err := this.sqliteDB.FineShareRecordsByCreatedAt(int64(start), int64(end), int64(offset), int64(limit))
 	if err != nil {
-		return nil, err
+		return nil, &DspErr{Code: DB_FIND_SHARE_RECORDS_FAILED, Error: err}
 	}
 	resp.Incomes = make([]*fileShareIncome, 0, len(records))
 	for _, record := range records {
@@ -378,26 +648,14 @@ func (this *Endpoint) RegisterShareNotificationCh() {
 	}
 }
 
-type fileResp struct {
-	Hash          string
-	Name          string
-	Url           string
-	Size          uint64
-	DownloadCount uint64
-	ExpiredAt     uint64
-	UpdatedAt     uint64
-	Profit        uint64
-	Privilege     uint64
-}
-
-func (this *Endpoint) GetUploadFiles(fileType http.DSP_FILE_LIST_TYPE, offset, limit uint64) ([]*fileResp, error) {
+func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uint64) ([]*fileResp, *DspErr) {
 	fileList, err := this.Dsp.Chain.Native.Fs.GetFileList()
 	if err != nil {
-		return nil, err
+		return nil, &DspErr{Code: FS_GET_FILE_LIST_FAILED, Error: err}
 	}
 	now, err := this.Dsp.Chain.GetCurrentBlockHeight()
 	if err != nil {
-		return nil, err
+		return nil, &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
 	}
 	files := make([]*fileResp, 0)
 	offsetCnt := uint64(0)
@@ -444,21 +702,10 @@ func (this *Endpoint) GetUploadFiles(fileType http.DSP_FILE_LIST_TYPE, offset, l
 	return files, nil
 }
 
-type downloadFilesInfo struct {
-	Hash          string
-	Name          string
-	Url           string
-	Size          uint64
-	DownloadCount uint64
-	DownloadAt    uint64
-	LastShareAt   uint64
-	Profit        uint64
-}
-
-func (this *Endpoint) GetDownloadFiles(fileType http.DSP_FILE_LIST_TYPE, offset, limit uint64) ([]*downloadFilesInfo, error) {
+func (this *Endpoint) GetDownloadFiles(fileType DspFileListType, offset, limit uint64) ([]*downloadFilesInfo, *DspErr) {
 	fileInfos := make([]*downloadFilesInfo, 0)
 	if this.Dsp == nil {
-		return nil, errors.New("dsp is nil")
+		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
 	files := this.Dsp.AllDownloadFiles()
 	offsetCnt := uint64(0)
@@ -501,15 +748,9 @@ func (this *Endpoint) GetDownloadFiles(fileType http.DSP_FILE_LIST_TYPE, offset,
 	return fileInfos, nil
 }
 
-type WhiteListRule struct {
-	Addr          string
-	StartHeight   uint64
-	ExpiredHeight uint64
-}
-
-func (this *Endpoint) WhiteListOperation(fileHash string, op uint64, list []*WhiteListRule) (string, error) {
+func (this *Endpoint) WhiteListOperation(fileHash string, op uint64, list []*WhiteListRule) (string, *DspErr) {
 	if len(list) == 0 {
-		return "", errors.New("empty white list")
+		return "", &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
 	}
 	li := fs.WhiteList{
 		Num:  uint64(len(list)),
@@ -518,7 +759,7 @@ func (this *Endpoint) WhiteListOperation(fileHash string, op uint64, list []*Whi
 	for _, l := range list {
 		address, err := chainCom.AddressFromBase58(l.Addr)
 		if err != nil {
-			return "", err
+			return "", &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
 		}
 		li.List = append(li.List, fs.Rule{
 			Addr:         address,
@@ -528,23 +769,22 @@ func (this *Endpoint) WhiteListOperation(fileHash string, op uint64, list []*Whi
 	}
 	txHash, err := this.Dsp.Chain.Native.Fs.WhiteListOp(fileHash, op, li)
 	if err != nil {
-		return "", err
+		return "", &DspErr{Code: DSP_WHITELIST_OP_FAILED, Error: err}
 	}
 	return hex.EncodeToString(chainCom.ToArrayReverse(txHash)), nil
 }
 
-func (this *Endpoint) GetWhitelist(fileHash string) ([]*WhiteListRule, error) {
+func (this *Endpoint) GetWhitelist(fileHash string) ([]*WhiteListRule, *DspErr) {
 	if len(fileHash) == 0 {
-		return nil, errors.New("empty fileHash")
+		return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
 	}
 	list, err := this.Dsp.Chain.Native.Fs.GetWhiteList(fileHash)
 	if err != nil {
-		log.Debugf("err:%s", err.Error())
 		if strings.Contains(err.Error(), "not found!") {
 			emptyList := make([]*WhiteListRule, 0)
 			return emptyList, nil
 		}
-		return nil, err
+		return nil, &DspErr{Code: DSP_GET_WHITELIST_FAILED, Error: ErrMaps[DSP_GET_WHITELIST_FAILED]}
 	}
 	li := make([]*WhiteListRule, 0, list.Num)
 	for _, l := range list.List {
@@ -557,10 +797,10 @@ func (this *Endpoint) GetWhitelist(fileHash string) ([]*WhiteListRule, error) {
 	return li, nil
 }
 
-func (this *Endpoint) SetUserSpace(walletAddr string, size, sizeOpType, blockCount, countOpType uint64) (string, error) {
+func (this *Endpoint) SetUserSpace(walletAddr string, size, sizeOpType, blockCount, countOpType uint64) (string, *DspErr) {
 	tx, err := this.Dsp.UpdateUserSpace(walletAddr, size, sizeOpType, blockCount, countOpType)
 	if err != nil {
-		return tx, err
+		return tx, ParseContractError(err)
 	}
 	txReHash, err := hex.DecodeString(tx)
 	if err != nil {
@@ -568,7 +808,7 @@ func (this *Endpoint) SetUserSpace(walletAddr string, size, sizeOpType, blockCou
 	}
 	_, err = this.Dsp.Chain.PollForTxConfirmed(time.Duration(common.POLL_TX_COMFIRMED_TIMEOUT)*time.Second, chainCom.ToArrayReverse(txReHash))
 	if err != nil {
-		return "", err
+		return "", &DspErr{Code: CHAIN_WAIT_TX_COMFIRMED_TIMEOUT, Error: err}
 	}
 	event, err := this.Dsp.Chain.GetSmartContractEvent(tx)
 	log.Debugf("get event err %s, event :%v", err, event)
@@ -576,7 +816,7 @@ func (this *Endpoint) SetUserSpace(walletAddr string, size, sizeOpType, blockCou
 		_, err := this.sqliteDB.InsertUserspaceRecord(tx, walletAddr, size, storage.UserspaceOperation(sizeOpType), blockCount, storage.UserspaceOperation(countOpType), 0, storage.TransferTypeNone)
 		if err != nil {
 			log.Errorf("insert userspace record err %s", err)
-			return "", err
+			return "", &DspErr{Code: DB_ADD_USER_SPACE_RECORD_FAILED, Error: err}
 		}
 		return tx, nil
 	}
@@ -610,21 +850,14 @@ func (this *Endpoint) SetUserSpace(walletAddr string, size, sizeOpType, blockCou
 		_, err := this.sqliteDB.InsertUserspaceRecord(tx, walletAddr, size, storage.UserspaceOperation(sizeOpType), blockCount, storage.UserspaceOperation(countOpType), 0, storage.TransferTypeNone)
 		if err != nil {
 			log.Errorf("insert userspace record err %s", err)
-			return "", err
+			return "", &DspErr{Code: DB_ADD_USER_SPACE_RECORD_FAILED, Error: err}
 		}
 		return tx, nil
 	}
 	return tx, nil
 }
 
-type userspace struct {
-	Used      uint64
-	Remain    uint64
-	ExpiredAt uint64
-	Balance   uint64
-}
-
-func (this *Endpoint) GetUserSpace(addr string) (*userspace, error) {
+func (this *Endpoint) GetUserSpace(addr string) (*userspace, *DspErr) {
 	space, err := this.Dsp.GetUserSpace(addr)
 	if err != nil || space == nil {
 		log.Errorf("get user space err %s, space %v", err, space)
@@ -637,14 +870,14 @@ func (this *Endpoint) GetUserSpace(addr string) (*userspace, error) {
 	}
 	currentHeight, err := this.Dsp.Chain.GetCurrentBlockHeight()
 	if err != nil {
-		return nil, err
+		return nil, &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
 	}
 	expiredAt := uint64(0)
 	updateHeight := space.UpdateHeight
 	if space.ExpireHeight > uint64(currentHeight) {
 		blk, err := this.Dsp.Chain.GetBlockByHeight(uint32(updateHeight))
 		if err != nil {
-			return nil, err
+			return nil, &DspErr{Code: CHAIN_GET_BLK_BY_HEIGHT_FAILED, Error: err}
 		}
 		expiredAt = uint64(blk.Header.Timestamp) + (space.ExpireHeight - uint64(updateHeight))
 	} else {
@@ -663,16 +896,10 @@ func (this *Endpoint) GetUserSpace(addr string) (*userspace, error) {
 	}, nil
 }
 
-type UserspaceRecordResp struct {
-	Size      uint64
-	ExpiredAt uint64
-	Cost      uint64
-}
-
-func (this *Endpoint) GetUserspaceRecords(walletAddr string, offset, limit uint64) ([]*UserspaceRecordResp, error) {
+func (this *Endpoint) GetUserspaceRecords(walletAddr string, offset, limit uint64) ([]*UserspaceRecordResp, *DspErr) {
 	records, err := this.sqliteDB.SelectUserspaceRecordByWalletAddr(walletAddr, offset, limit)
 	if err != nil {
-		return nil, err
+		return nil, &DspErr{Code: DB_FIND_USER_SPACE_RECORD_FAILED, Error: err}
 	}
 	var resp []*UserspaceRecordResp
 	if limit == 0 {
@@ -683,9 +910,10 @@ func (this *Endpoint) GetUserspaceRecords(walletAddr string, offset, limit uint6
 
 	for _, record := range records {
 		resp = append(resp, &UserspaceRecordResp{
-			Size:      record.TotalSize,
-			ExpiredAt: record.ExpiredAt,
-			Cost:      record.Amount,
+			Size:       record.TotalSize,
+			ExpiredAt:  record.ExpiredAt,
+			Cost:       record.Amount,
+			CostFormat: utils.FormatUsdt(record.Amount),
 		})
 	}
 	return resp, nil

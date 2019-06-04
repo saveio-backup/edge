@@ -1,16 +1,11 @@
-/**
- * Description:
- * Author: Yihen.Liu
- * Create: 2018-11-27
- */
-package rpc
+package localrpc
 
 import (
 	"fmt"
 	"net/http"
 
 	"github.com/saveio/edge/common/config"
-	"github.com/saveio/edge/http/rpc/core"
+	"github.com/saveio/edge/http/base/rpc"
 	"github.com/saveio/themis/common/log"
 )
 

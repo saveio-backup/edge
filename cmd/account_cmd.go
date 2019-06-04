@@ -4,13 +4,14 @@ import (
 	"bufio"
 	"encoding/hex"
 	"fmt"
+	"io/ioutil"
 	"os"
 
+	cmdutil "github.com/saveio/edge/cmd/utils"
 	"github.com/saveio/themis/account"
 	"github.com/saveio/themis/cmd/common"
 	"github.com/saveio/themis/cmd/utils"
 	"github.com/saveio/themis/common/password"
-	"github.com/saveio/themis/core/types"
 	"github.com/saveio/themis/crypto/keypair"
 	"github.com/saveio/themis/crypto/signature"
 
@@ -111,13 +112,26 @@ You can use ./edge account --help command to view help information of wallet man
 				Action:    accountImport,
 				Name:      "import",
 				Usage:     "Import accounts of wallet to another",
-				ArgsUsage: "[sub-command options] <address|label|index>",
+				ArgsUsage: "[sub-command options]",
 				Flags: []cli.Flag{
-					utils.WalletFileFlag,
-					utils.AccountSourceFileFlag,
-					utils.AccountWIFFlag,
+					cmdutil.WalletFileFlag,
+					cmdutil.WalletPasswordFlag,
+					cmdutil.ImportOnlineWalletFlag,
 				},
 				Description: "Import accounts of wallet to another. If not specific accounts in args, all account in source will be import",
+			},
+			{
+				Action:    accountCreateOnline,
+				Name:      "create",
+				Usage:     "Create online account to start edge",
+				ArgsUsage: "[sub-command options]",
+				Flags: []cli.Flag{
+					// cmdutil.WalletPasswordFlag,
+					cmdutil.WalletLabelFlag,
+					cmdutil.WalletKeyTypeFlag,
+					cmdutil.WalletCurveFlag,
+					cmdutil.WalletSchemeFlag,
+				},
 			},
 			{
 				Action:    accountExport,
@@ -125,9 +139,22 @@ You can use ./edge account --help command to view help information of wallet man
 				Usage:     "Export accounts to a specified wallet file",
 				ArgsUsage: "[sub-command options] <filename>",
 				Flags: []cli.Flag{
-					utils.WalletFileFlag,
-					utils.AccountLowSecurityFlag,
+					cmdutil.WalletExportTypeFlag,
 				},
+			},
+			{
+				Action:    currentAccount,
+				Name:      "current",
+				Usage:     "List current account",
+				ArgsUsage: "[sub-command options]",
+				Flags:     []cli.Flag{},
+			},
+			{
+				Action:    logoutAccount,
+				Name:      "logout",
+				Usage:     "Logout current account",
+				ArgsUsage: "[sub-command options]",
+				Flags:     []cli.Flag{},
 			},
 		},
 	}
@@ -370,187 +397,88 @@ func accountDelete(ctx *cli.Context) error {
 }
 
 func accountImport(ctx *cli.Context) error {
-	source := ctx.String(utils.GetFlagName(utils.AccountSourceFileFlag))
-	if source == "" {
-		PrintErrorMsg("Missing source wallet path argument to import.")
-		cli.ShowSubcommandHelp(ctx)
+	password := ctx.String(utils.GetFlagName(cmdutil.WalletPasswordFlag))
+	walletFile := ctx.String(utils.GetFlagName(cmdutil.WalletFileFlag))
+	forOnline := ctx.Bool(utils.GetFlagName(cmdutil.ImportOnlineWalletFlag))
+	if !forOnline {
+		// TODO: support import offline
 		return nil
 	}
-
-	target := ctx.String(utils.GetFlagName(utils.WalletFileFlag))
-	fn := checkFileName(ctx)
-	wallet, err := account.Open(fn)
+	wallet, err := ioutil.ReadFile(walletFile)
 	if err != nil {
 		return err
 	}
-
-	succ := 0
-	fail := 0
-	skip := 0
-	total := 0
-
-	if ctx.Bool(utils.GetFlagName(utils.AccountWIFFlag)) {
-		// import WIF keys
-		file, err := os.Open(source)
-		if err != nil {
-			return err
-		}
-		f := bufio.NewScanner(file)
-		keys := make([]keypair.PrivateKey, 0)
-		for f.Scan() {
-			wif := f.Bytes()
-			pri, err := keypair.GetP256KeyPairFromWIF(wif)
-			common.ClearPasswd(wif)
-			if err != nil {
-				return err
-			}
-			keys = append(keys, pri)
-		}
-		total = len(keys)
-		PrintInfoMsg("Please input a password to encrypt the imported key(s)")
-		pwd, err := password.GetConfirmedPassword()
-		if err != nil {
-			return err
-		}
-		for _, v := range keys {
-			pub := v.Public()
-			addr := types.AddressFromPubKey(pub)
-			b58addr := addr.ToBase58()
-			old := wallet.GetAccountMetadataByAddress(b58addr)
-			if old != nil {
-				PrintWarnMsg("Account %s already exists.", b58addr)
-				skip += 1
-				continue
-			}
-			PrintInfoMsg("Import account %s", b58addr)
-			k, err := keypair.EncryptPrivateKey(v, b58addr, pwd)
-			if err != nil {
-				PrintWarnMsg("Import account:%s error %s", b58addr, err)
-				fail += 1
-				continue
-			}
-			var accMeta account.AccountMetadata
-			accMeta.Address = k.Address
-			accMeta.KeyType = k.Alg
-			accMeta.EncAlg = k.EncAlg
-			accMeta.Hash = k.Hash
-			accMeta.Key = k.Key
-			accMeta.Curve = k.Param["curve"]
-			accMeta.Salt = k.Salt
-			accMeta.Label = ""
-			accMeta.PubKey = hex.EncodeToString(keypair.SerializePublicKey(v.Public()))
-			accMeta.SigSch = signature.SHA256withECDSA.Name()
-			err = wallet.ImportAccount(&accMeta)
-			if err != nil {
-				PrintWarnMsg("Import account:%s error:%s", accMeta.Address, err)
-				fail += 1
-				continue
-			}
-			succ += 1
-		}
-		common.ClearPasswd(pwd)
-	} else {
-		ctx.Set(utils.GetFlagName(utils.WalletFileFlag), source)
-		sourceWallet, err := common.OpenWallet(ctx)
-		if err != nil {
-			return fmt.Errorf("open source wallet to import error: %s", err)
-		}
-		accountNum := sourceWallet.GetAccountNum()
-		if accountNum == 0 {
-			PrintWarnMsg("No account to import.")
-			return nil
-		}
-		accList := make(map[string]string, ctx.NArg())
-		for i := 0; i < ctx.NArg(); i++ {
-			addr := ctx.Args().Get(i)
-			accMeta := common.GetAccountMetadataMulti(sourceWallet, addr)
-			if accMeta == nil {
-				PrintWarnMsg("Cannot find account %s in wallet %s.", addr, source)
-				continue
-			}
-			accList[accMeta.Address] = ""
-		}
-
-		for i := 1; i <= accountNum; i++ {
-			accMeta := sourceWallet.GetAccountMetadataByIndex(i)
-			if accMeta == nil {
-				continue
-			}
-			if len(accList) > 0 {
-				_, ok := accList[accMeta.Address]
-				if !ok {
-					//Account not in import list, skip
-					continue
-				}
-			}
-			total++
-			old := wallet.GetAccountMetadataByAddress(accMeta.Address)
-			if old != nil {
-				skip++
-				PrintWarnMsg("Account: %s (label: %s) already exists in wallet, skip.", accMeta.Address, accMeta.Label)
-				continue
-			}
-			err = wallet.ImportAccount(accMeta)
-			if err != nil {
-				fail++
-				PrintWarnMsg("Import account: %s (label: %s) failed, %s", accMeta.Address, accMeta.Label, err)
-				continue
-			}
-			succ++
-			PrintInfoMsg("Import account: %s (label: %s) successfully.", accMeta.Address, accMeta.Label)
-		}
+	acc, err := cmdutil.ImportWithWalletData(string(wallet), password)
+	if err != nil {
+		return err
 	}
+	PrintJsonObject(acc)
+	return nil
+}
 
-	PrintInfoMsg("Import from %s to %s complete.", source, target)
-	PrintInfoMsg("Total:\t%d", total)
-	PrintInfoMsg("Success:%d", succ)
-	PrintInfoMsg("Failed:\t%d", fail)
-	PrintInfoMsg("Skip:\t%d", skip)
+func accountCreateOnline(ctx *cli.Context) error {
+	pwd, err := password.GetPassword()
+	if err != nil {
+		return err
+	}
+	password := string(pwd)
+	label := ctx.String(utils.GetFlagName(cmdutil.WalletLabelFlag))
+	keyType := ctx.String(utils.GetFlagName(cmdutil.WalletKeyTypeFlag))
+	curve := ctx.String(utils.GetFlagName(cmdutil.WalletCurveFlag))
+	scheme := ctx.String(utils.GetFlagName(cmdutil.WalletSchemeFlag))
+	acc, err := cmdutil.NewAccount(password, label, keyType, curve, scheme)
+	if err != nil {
+		return err
+	}
+	PrintJsonObject(acc)
 	return nil
 }
 
 func accountExport(ctx *cli.Context) error {
-	if ctx.NArg() <= 0 {
+	exportType := ctx.Int(utils.GetFlagName(cmdutil.WalletExportTypeFlag))
+
+	if exportType == 0 && ctx.NArg() <= 0 {
 		PrintErrorMsg("Missing target file argument to export.")
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
-	target := ctx.Args().First()
-	client, err := common.OpenWallet(ctx)
+	if exportType == 0 {
+		target := ctx.Args().First()
+
+		wal, err := cmdutil.ExportWalletFile()
+		if err != nil {
+			return err
+		}
+		err = ioutil.WriteFile(target, []byte(wal), 0666)
+		if err != nil {
+			return err
+		}
+		PrintInfoMsg("Export wallet success.")
+	} else {
+		ret, err := cmdutil.ExportPrivateKey()
+		if err != nil {
+			return err
+		}
+		PrintInfoMsg(ret)
+	}
+
+	return nil
+}
+
+func currentAccount(ctx *cli.Context) error {
+	acc, err := cmdutil.GetCurrentAccount()
 	if err != nil {
 		return err
 	}
-	wallet := client.GetWalletData()
-	if ctx.IsSet(utils.GetFlagName(utils.AccountLowSecurityFlag)) {
-		n := client.GetAccountNum()
-		passwords := make([][]byte, n)
-		for i := 0; i < n; i++ {
-			ac := client.GetAccountMetadataByIndex(i + 1)
-			PrintInfoMsg("Account %d %s: %s", i+1, ac.Label, ac.Address)
-			for j := 0; j < 3; j++ {
-				pwd, err := password.GetPassword()
-				if err != nil {
-					fmt.Println(err)
-				} else {
-					passwords[i] = pwd
-					break
-				}
-			}
-		}
-		wallet = wallet.Clone()
-		err := wallet.ToLowSecurity(passwords)
-		for _, v := range passwords {
-			common.ClearPasswd(v)
-		}
-		if err != nil {
-			return fmt.Errorf("export failed: %s", err)
-		}
-	}
-	err = wallet.Save(target)
-	if err != nil {
-		return fmt.Errorf("save wallet file error: %s", err)
-	}
+	PrintJsonObject(acc)
+	return nil
+}
 
-	PrintInfoMsg("Export wallet success.")
+func logoutAccount(ctx *cli.Context) error {
+	err := cmdutil.Logout()
+	if err != nil {
+		return err
+	}
+	PrintInfoMsg("Logout wallet success.")
 	return nil
 }

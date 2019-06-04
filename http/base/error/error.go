@@ -1,7 +1,5 @@
 package error
 
-import ontErrors "github.com/saveio/themis/errors"
-
 const (
 	SUCCESS            int64 = 0
 	SESSION_EXPIRED    int64 = 41001
@@ -24,31 +22,6 @@ const (
 	INTERNAL_ERROR  int64 = 45001
 	SMARTCODE_ERROR int64 = 47001
 	PRE_EXEC_ERROR  int64 = 47002
-
-	INVALID_WALLET_DATA        int64 = 50001
-	ACCOUNT_HAS_EXISTS         int64 = 50002
-	DEFAULT_ACCOUNT_NOT_FOUND  int64 = 50003
-	WRONG_PASSWORD             int64 = 50004
-	WALLET_SAVE_FAILED         int64 = 50005
-	LOGOUT_DELETE_WALLET_ERROR int64 = 50006
-	OPEN_WALLET_ERROR          int64 = 50007
-
-	DSP_INIT_ERROR  int64 = 51001
-	DSP_START_ERROR int64 = 51002
-	DSP_STOP_ERROR  int64 = 51003
-
-	DSP_INTERNAL_ERROR          int64 = 52000
-	DSP_FILE_ERROR              int64 = 52001
-	DSP_URL_EXISTS              int64 = 52002
-	DSP_USERSPACE_NO_ENOUGH     int64 = 52003
-	DSP_USERSPACE_EXPIRED       int64 = 52004
-	DSP_DURATION_EXCEED_EXPIRED int64 = 52005
-	DSP_QUERY_FILE_ERROR        int64 = 52006
-	DSP_CRYPTO_ERROR            int64 = 52007
-	DSP_FILE_SHARE_INCOME_ERROR int64 = 52008
-
-	CHANNEL_DEPOSIT_ERROR  int64 = 53001
-	CHANNEL_WITHDRAW_ERROR int64 = 53002
 )
 
 var ErrMap = map[int64]string{
@@ -70,45 +43,7 @@ var ErrMap = map[int64]string{
 	UNKNOWN_BLOCK:       "UNKNOWN BLOCK",
 	UNKNOWN_CONTRACT:    "UNKNOWN CONTRACT",
 
-	INTERNAL_ERROR:                           "INTERNAL ERROR",
-	SMARTCODE_ERROR:                          "SMARTCODE EXEC ERROR",
-	PRE_EXEC_ERROR:                           "SMARTCODE PREPARE EXEC ERROR",
-	int64(ontErrors.ErrNoCode):               "INTERNAL ERROR, ErrNoCode",
-	int64(ontErrors.ErrUnknown):              "INTERNAL ERROR, ErrUnknown",
-	int64(ontErrors.ErrDuplicatedTx):         "INTERNAL ERROR, ErrDuplicatedTx",
-	int64(ontErrors.ErrDuplicateInput):       "INTERNAL ERROR, ErrDuplicateInput",
-	int64(ontErrors.ErrAssetPrecision):       "INTERNAL ERROR, ErrAssetPrecision",
-	int64(ontErrors.ErrTransactionBalance):   "INTERNAL ERROR, ErrTransactionBalance",
-	int64(ontErrors.ErrAttributeProgram):     "INTERNAL ERROR, ErrAttributeProgram",
-	int64(ontErrors.ErrTransactionContracts): "INTERNAL ERROR, ErrTransactionContracts",
-	int64(ontErrors.ErrTransactionPayload):   "INTERNAL ERROR, ErrTransactionPayload",
-	int64(ontErrors.ErrDoubleSpend):          "INTERNAL ERROR, ErrDoubleSpend",
-	int64(ontErrors.ErrTxHashDuplicate):      "INTERNAL ERROR, ErrTxHashDuplicate",
-	int64(ontErrors.ErrStateUpdaterVaild):    "INTERNAL ERROR, ErrStateUpdaterVaild",
-	int64(ontErrors.ErrSummaryAsset):         "INTERNAL ERROR, ErrSummaryAsset",
-	int64(ontErrors.ErrXmitFail):             "INTERNAL ERROR, ErrXmitFail",
-	int64(ontErrors.ErrNoAccount):            "INTERNAL ERROR, ErrNoAccount",
-
-	INVALID_WALLET_DATA:        "INVALID WALLET DATA",
-	ACCOUNT_HAS_EXISTS:         "ACCOUNT HAS EXISTS",
-	DEFAULT_ACCOUNT_NOT_FOUND:  "DEFAULT ACCOUNT NOT FOUND",
-	WRONG_PASSWORD:             "WRONG PASSWORD",
-	WALLET_SAVE_FAILED:         "WALLET SAVE FAILED",
-	LOGOUT_DELETE_WALLET_ERROR: "DELETE WALLET FILE ERROR",
-	OPEN_WALLET_ERROR:          "OPEN WALLET ERROR",
-
-	DSP_INTERNAL_ERROR:          "DSP INTERNAL ERROR",
-	DSP_INIT_ERROR:              "DSP INIT ERROR",
-	DSP_START_ERROR:             "DSP START ERROR",
-	DSP_STOP_ERROR:              "DSP STOP ERROR",
-	DSP_FILE_ERROR:              "FILE ERROR",
-	DSP_URL_EXISTS:              "FILE URL EXISTS",
-	DSP_USERSPACE_NO_ENOUGH:     "DSP USERSPACE NO ENOUGH",
-	DSP_USERSPACE_EXPIRED:       "DSP USERSPACE EXPIRED",
-	DSP_DURATION_EXCEED_EXPIRED: "DSP DURATION EXCEEDS EXPIRED DATA",
-	DSP_QUERY_FILE_ERROR:        "DSP QUERY FILE ERROR",
-	DSP_CRYPTO_ERROR:            "DSP CRYPTO ERROR",
-	DSP_FILE_SHARE_INCOME_ERROR: "DSP FILE SHARE INCOME ERROR",
-	CHANNEL_DEPOSIT_ERROR:       "CHANNEL DEPOSIT ERROR",
-	CHANNEL_WITHDRAW_ERROR:      "CHANNEL WITHDRAW ERROR",
+	INTERNAL_ERROR:  "INTERNAL ERROR",
+	SMARTCODE_ERROR: "SMARTCODE EXEC ERROR",
+	PRE_EXEC_ERROR:  "SMARTCODE PREPARE EXEC ERROR",
 }
