@@ -30,7 +30,7 @@ func NewAccount(cmd []interface{}) map[string]interface{} {
 }
 
 func ImportWithPrivateKey(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 2 {
+	if len(cmd) < 3 {
 		return responsePack(dsp.INVALID_PARAMS, "")
 	}
 	params := convertSliceToMap(cmd, []string{"PrivateKey", "Label", "Password"})
@@ -43,7 +43,10 @@ func ImportWithPrivateKey(cmd []interface{}) map[string]interface{} {
 }
 
 func ExportPrivateKey(cmd []interface{}) map[string]interface{} {
-	params := convertSliceToMap(cmd, []string{})
+	if len(cmd) < 1 {
+		return responsePack(dsp.INVALID_PARAMS, "")
+	}
+	params := convertSliceToMap(cmd, []string{"Password"})
 	v := rest.ExportWIFPrivateKey(params)
 	ret, err := parseRestResult(v)
 	if err != nil {

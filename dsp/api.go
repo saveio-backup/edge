@@ -246,6 +246,15 @@ func (this *Endpoint) SetupDNSNodeBackground() {
 				log.Errorf("setup dns failed balance not enough %d", bal)
 				break
 			}
+			progress, derr := this.GetFilterBlockProgress()
+			if derr != nil {
+				log.Errorf("setup dns failed filter block err %s", err)
+				break
+			}
+			if progress != 1.0 {
+				log.Debugf("setup dns wait for init channel")
+				break
+			}
 			err = this.Dsp.SetupDNSChannels()
 			if err != nil {
 				break

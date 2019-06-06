@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"encoding/hex"
 	"strconv"
 	"strings"
 
@@ -71,11 +72,11 @@ func GetBlockHash(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	param, ok := cmd["Height"].(string)
 	if !ok || len(param) == 0 {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	height, err := strconv.ParseUint(param, 10, 64)
 	if err != nil {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	hash, derr := dsp.DspService.GetBlockHash(uint32(height))
 	if derr != nil {
@@ -93,7 +94,7 @@ func GetBlockByHash(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	str := cmd["Hash"].(string)
 	if len(str) == 0 {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	raw, _ := cmd["Raw"].(string)
 	block, err := dsp.DspService.GetBlockByHash(str, raw)
@@ -109,7 +110,7 @@ func GetBlockHeightByTxHash(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	str, ok := cmd["Hash"].(string)
 	if !ok || len(str) == 0 {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	height, err := dsp.DspService.GetBlockHeightByTxHash(str)
 	if err != nil {
@@ -124,11 +125,11 @@ func GetBlockTxsByHeight(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	param, ok := cmd["Height"].(string)
 	if !ok || len(param) == 0 {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	height, err := strconv.ParseUint(param, 10, 64)
 	if err != nil {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	res, derr := dsp.DspService.GetBlockTxsByHeight(uint32(height))
 	if derr != nil {
@@ -144,15 +145,15 @@ func GetBlockByHeight(cmd map[string]interface{}) map[string]interface{} {
 
 	param, ok := cmd["Height"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	if len(param) == 0 {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	raw, _ := cmd["Raw"].(string)
 	height, err := strconv.ParseInt(param, 10, 64)
 	if err != nil {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	index := uint32(height)
 
@@ -169,7 +170,7 @@ func GetTransactionByHash(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	str, ok := cmd["Hash"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	raw, _ := cmd["Raw"].(string)
 	tx, err := dsp.DspService.GetTransactionByHash(str, raw)
@@ -185,14 +186,14 @@ func GetSmartCodeEventTxsByHeight(cmd map[string]interface{}) map[string]interfa
 	resp := ResponsePack(dsp.SUCCESS)
 	param, ok := cmd["Height"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	if len(param) == 0 {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	height, err := strconv.ParseInt(param, 10, 64)
 	if err != nil {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	eInfos, derr := dsp.DspService.GetSmartCodeEventTxsByHeight(uint32(height))
 	if derr != nil {
@@ -208,7 +209,7 @@ func GetSmartCodeEventByTxHash(cmd map[string]interface{}) map[string]interface{
 	resp := ResponsePack(dsp.SUCCESS)
 	str, ok := cmd["Hash"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	notify, err := dsp.DspService.GetSmartCodeEventByTxHash(str)
 	if err != nil {
@@ -223,7 +224,7 @@ func GetContractState(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	str, ok := cmd["Hash"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	raw, _ := cmd["Raw"].(string)
 	state, err := dsp.DspService.GetContractState(str, raw)
@@ -239,7 +240,7 @@ func GetStorage(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	str, ok := cmd["Hash"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	key := cmd["Key"].(string)
 	value, err := dsp.DspService.GetStorage(str, key)
@@ -255,7 +256,7 @@ func GetBalance(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	addrBase58, ok := cmd["Addr"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	balance, err := dsp.DspService.GetBalance(addrBase58)
 	if err != nil {
@@ -270,7 +271,7 @@ func GetMerkleProof(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	str, ok := cmd["Hash"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	proof, err := dsp.DspService.GetMerkleProof(str)
 	if err != nil {
@@ -298,15 +299,15 @@ func GetAllowance(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	asset, ok := cmd["Asset"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	fromAddrStr, ok := cmd["From"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	toAddrStr, ok := cmd["To"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	rsp, err := dsp.DspService.GetAllowance(asset, fromAddrStr, toAddrStr)
 	if err != nil {
@@ -332,7 +333,7 @@ func GetMemPoolTxState(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	str, ok := cmd["Hash"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 
 	entryInfo, err := dsp.DspService.GetMemPoolTxState(str)
@@ -348,7 +349,7 @@ func GetTxByHeightAndLimit(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	addr, ok := cmd["Addr"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	txType, err := dsp.RequiredStrToUint64(cmd["Type"])
 	if err != nil {
@@ -371,18 +372,26 @@ func AssetTransferDirect(cmd map[string]interface{}) map[string]interface{} {
 
 	to, ok := cmd["To"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	asset, ok := cmd["Asset"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	if strings.ToLower(asset) == "save" {
 		asset = "usdt"
 	}
 	amountStr, ok := cmd["Amount"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	password, ok := cmd["Password"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	_, derr := dsp.DspService.GetAccount(dsp.DspService.GetWallatFilePath(), password)
+	if derr != nil {
+		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
 	}
 	txHash, err := dsp.DspService.AssetTransferDirect(to, asset, amountStr)
 	if err != nil {
@@ -402,5 +411,74 @@ func SetConfig(cmd map[string]interface{}) map[string]interface{} {
 		}
 		return resp
 	}
+	return resp
+}
+
+func InvokeSmartContract(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	version, ok := cmd["Version"].(string)
+	if !ok {
+		return ResponsePack(dsp.INVALID_PARAMS)
+	}
+	verBufs, err := hex.DecodeString(version)
+	if err != nil || len(verBufs) == 0 {
+		return ResponsePack(dsp.INVALID_PARAMS)
+	}
+
+	contractAddr, ok := cmd["Contract"].(string)
+	if !ok {
+		return ResponsePack(dsp.INVALID_PARAMS)
+	}
+	method, ok := cmd["Method"].(string)
+	if !ok {
+		return ResponsePack(dsp.INVALID_PARAMS)
+	}
+	params, _ := cmd["Params"].([]interface{})
+	password, ok := cmd["Password"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	_, derr := dsp.DspService.GetAccount(dsp.DspService.GetWallatFilePath(), password)
+	if derr != nil {
+		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
+	}
+
+	tx, derr := dsp.DspService.InvokeNativeContract(verBufs[0], contractAddr, method, params)
+	if derr != nil {
+		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
+	}
+	m := make(map[string]interface{}, 0)
+	m["Tx"] = tx
+	resp["Result"] = m
+	return resp
+}
+
+func PreExecSmartContract(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	version, ok := cmd["Version"].(string)
+	if !ok {
+		return ResponsePack(dsp.INVALID_PARAMS)
+	}
+	verBufs, err := hex.DecodeString(version)
+	if err != nil || len(verBufs) == 0 {
+		return ResponsePack(dsp.INVALID_PARAMS)
+	}
+
+	contractAddr, ok := cmd["Contract"].(string)
+	if !ok {
+		return ResponsePack(dsp.INVALID_PARAMS)
+	}
+	method, ok := cmd["Method"].(string)
+	if !ok {
+		return ResponsePack(dsp.INVALID_PARAMS)
+	}
+	params, _ := cmd["Params"].([]interface{})
+	ret, derr := dsp.DspService.PreInvokeNativeContract(verBufs[0], contractAddr, method, params)
+	if derr != nil {
+		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
+	}
+	m := make(map[string]interface{}, 0)
+	m["Data"] = hex.EncodeToString(ret)
+	resp["Result"] = m
 	return resp
 }

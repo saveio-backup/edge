@@ -41,10 +41,12 @@ type UserspaceRecord struct {
 func (this *SQLiteStorage) InsertUserspaceRecord(id, walletAddr string, size uint64, sizeOp UserspaceOperation, second uint64, secondOp UserspaceOperation, amount uint64, transferType UserspaceTransferType) (bool, error) {
 	totalSize, expiredAt := uint64(0), uint64(0)
 	records, _ := this.SelectUserspaceRecordByWalletAddr(walletAddr, 0, 1)
-	if len(records) > 0 {
+	now := uint64(time.Now().Unix())
+	if len(records) > 0 && records[0].ExpiredAt > now {
 		totalSize = records[0].TotalSize
 		expiredAt = records[0].ExpiredAt
 	}
+
 	switch sizeOp {
 	case UserspaceOperationAdd:
 		totalSize += size
@@ -57,14 +59,14 @@ func (this *SQLiteStorage) InsertUserspaceRecord(id, walletAddr string, size uin
 	switch secondOp {
 	case UserspaceOperationAdd:
 		if expiredAt == 0 {
-			expiredAt = uint64(time.Now().Unix())
+			expiredAt = now
 		}
 		expiredAt += second
 	case UserspaceOperationRevoke:
 		if expiredAt >= second {
 			expiredAt -= second
 		} else {
-			expiredAt = uint64(time.Now().Unix())
+			expiredAt = now
 		}
 	}
 

@@ -77,6 +77,7 @@ const (
 	DSP_DNS_QUERY_INFOS_FAILED           = 55058
 	DSP_DNS_QUERY_INFO_FAILED            = 55059
 	DSP_DNS_QUERY_ALLINFOS_FAILED        = 55060
+	DSP_DNS_GET_EXTERNALIP_FAILED        = 55061
 	DSP_CHANNEL_INTERNAL_ERROR           = 56000
 	DSP_CHANNEL_OPEN_FAILED              = 56001
 	DSP_CHANNEL_CLOSE_FAILED             = 56002
@@ -87,6 +88,7 @@ const (
 	DSP_CHANNEL_GET_ALL_FAILED           = 56007
 	DSP_CHANNEL_MEDIATRANSFER_FAILED     = 56008
 	DSP_CHANNEL_CO_SETTLE_FAILED         = 56009
+	DSP_CHANNEL_INIT_NOT_FINISH          = 56010
 
 	DB_FIND_SHARE_RECORDS_FAILED     = 59000
 	DB_SUM_SHARE_PROFIT_FAILED       = 59001
@@ -163,6 +165,7 @@ var ErrMaps = map[int64]error{
 	DSP_DNS_QUERY_INFOS_FAILED:           errors.New("dsp dns query infos failed"),
 	DSP_DNS_QUERY_INFO_FAILED:            errors.New("dsp dns query info failed"),
 	DSP_DNS_QUERY_ALLINFOS_FAILED:        errors.New("dsp dns query allinfos failed"),
+	DSP_DNS_GET_EXTERNALIP_FAILED:        errors.New("dsp dns get externalip failed"),
 	DSP_CHANNEL_INTERNAL_ERROR:           errors.New("dsp channel internal error"),
 	DSP_CHANNEL_OPEN_FAILED:              errors.New("dsp channel open failed"),
 	DSP_CHANNEL_CLOSE_FAILED:             errors.New("dsp channel close failed"),
@@ -173,8 +176,10 @@ var ErrMaps = map[int64]error{
 	DSP_CHANNEL_GET_ALL_FAILED:           errors.New("dsp channel get all failed"),
 	DSP_CHANNEL_MEDIATRANSFER_FAILED:     errors.New("dsp channel mediatransfer failed"),
 	DSP_CHANNEL_CO_SETTLE_FAILED:         errors.New("dsp channel co settle failed"),
-	DB_FIND_SHARE_RECORDS_FAILED:         errors.New("db find share records failed"),
-	DB_SUM_SHARE_PROFIT_FAILED:           errors.New("db sum share profit failed"),
-	DB_FIND_USER_SPACE_RECORD_FAILED:     errors.New("db find user space record failed"),
-	DB_ADD_USER_SPACE_RECORD_FAILED:      errors.New("db add user space record failed"),
+	DSP_CHANNEL_INIT_NOT_FINISH:          errors.New("dsp channel init not finish"),
+
+	DB_FIND_SHARE_RECORDS_FAILED:     errors.New("db find share records failed"),
+	DB_SUM_SHARE_PROFIT_FAILED:       errors.New("db sum share profit failed"),
+	DB_FIND_USER_SPACE_RECORD_FAILED: errors.New("db find user space record failed"),
+	DB_ADD_USER_SPACE_RECORD_FAILED:  errors.New("db add user space record failed"),
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/saveio/edge/dsp"
 	sdk "github.com/saveio/themis-go-sdk/utils"
 	"github.com/saveio/themis/common"
+	"github.com/saveio/themis/common/password"
 
 	"github.com/urfave/cli"
 )
@@ -28,6 +29,22 @@ var ChannelCommand = cli.Command{
 	Before: utils.BeforeFunc,
 	Subcommands: []cli.Command{
 		{
+			Action:      channelInitProgress,
+			Name:        "initprogress",
+			Usage:       "Get channel init progress",
+			ArgsUsage:   " ",
+			Flags:       []cli.Flag{},
+			Description: "Get channel init progress",
+		},
+		{
+			Action:      listAllChannels,
+			Name:        "list",
+			Usage:       "Get all channels",
+			ArgsUsage:   " ",
+			Flags:       []cli.Flag{},
+			Description: "Get all channels",
+		},
+		{
 			Action:    openChannel,
 			Name:      "open",
 			Usage:     "Open a payment channel",
@@ -44,7 +61,7 @@ var ChannelCommand = cli.Command{
 			ArgsUsage: " ",
 			Flags: []cli.Flag{
 				flags.PartnerAddressFlag,
-				flags.TotalDepositFlag,
+				flags.AmountStrFlag,
 			},
 			Description: "Deposit token to channel with specified partner",
 		},
@@ -104,43 +121,12 @@ func openChannel(ctx *cli.Context) error {
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
-
 	partnerAddr := ctx.String(flags.GetFlagName(flags.PartnerAddressFlag))
-
-	if utils.CallDspRest() {
-		reqPath := fmt.Sprintf("%s%s", OPEN_CHANNEL, partnerAddr)
-		data, err := utils.SendRestGetRequest(reqPath)
-		if err != nil {
-			return err
-		}
-
-		res, err := sdk.GetUint32(data)
-		if err != nil {
-			PrintErrorMsg("open channel err: %s", err)
-			return err
-		}
-
-		PrintInfoMsg("Open channel finished. Channel Id:%d", res)
-	} else {
-		endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
-		if err != nil {
-			PrintErrorMsg("init dsp err:%s\n", err)
-			return err
-		}
-
-		err = dsp.StartDspNode(endpoint, false, false, true)
-		if err != nil {
-			PrintErrorMsg("start dsp err:%s\n", err)
-			return err
-		}
-		// id, err := endpoint.OpenPaymentChannel(partnerAddr)
-		// if err != nil {
-		// 	PrintErrorMsg("open channel err: %s", err)
-		// 	return err
-		// }
-
-		// PrintInfoMsg("Open channel finished. Channel Id:%d", id)
+	ret, err := utils.OpenPaymentChannel(partnerAddr)
+	if err != nil {
+		return err
 	}
+	PrintJsonObject(ret)
 	return nil
 }
 
@@ -181,41 +167,18 @@ func depositToChannel(ctx *cli.Context) error {
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
-
 	partnerAddr := ctx.String(flags.GetFlagName(flags.PartnerAddressFlag))
-	totalDeposit := ctx.Uint64(flags.GetFlagName(flags.TotalDepositFlag))
-
-	if utils.CallDspRest() {
-		reqPath := fmt.Sprintf("%s%s/%d", DEPOSIT_CHANNEL, partnerAddr, totalDeposit)
-		data, err := utils.SendRestGetRequest(reqPath)
-		if err != nil {
-			PrintErrorMsg("open channel err: %s", err)
-			return err
-		}
-
-		res, err := sdk.GetUint32(data)
-		if err != nil {
-			PrintErrorMsg("open channel err: %s", err)
-			return err
-		}
-
-		PrintInfoMsg("Open channel finished. Channel Id:%d", res)
-	} else {
-		endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
-		if err != nil {
-			PrintErrorMsg("init dsp err:%s\n", err)
-			return err
-		}
-
-		err = dsp.StartDspNode(endpoint, false, false, true)
-		if err != nil {
-			PrintErrorMsg("start dsp err:%s\n", err)
-			return err
-		}
-		endpoint.DepositToChannel(partnerAddr, totalDeposit)
-		PrintInfoMsg("deposit to channel finished.")
+	totalDeposit := ctx.String(flags.GetFlagName(flags.AmountStrFlag))
+	pwd, err := password.GetPassword()
+	if err != nil {
+		return err
 	}
-
+	_, err = utils.DepositToChannel(partnerAddr, totalDeposit, string(pwd))
+	if err != nil {
+		PrintErrorMsg("%s", err)
+		return err
+	}
+	PrintInfoMsg("deposit to channel success. use <channel list> to get infos")
 	return nil
 }
 
@@ -367,5 +330,23 @@ func cooperativeSettle(ctx *cli.Context) error {
 	// 	return err
 	// }
 	// PrintInfoMsg("Cooperative settle success")
+	return nil
+}
+
+func channelInitProgress(ctx *cli.Context) error {
+	progress, err := utils.GetFilterBlockProgress()
+	if err != nil {
+		return err
+	}
+	PrintJsonData(progress)
+	return nil
+}
+
+func listAllChannels(ctx *cli.Context) error {
+	lists, err := utils.GetAllChannels()
+	if err != nil {
+		return err
+	}
+	PrintJsonData(lists)
 	return nil
 }

@@ -29,10 +29,10 @@ func OpenChannel(cmd []interface{}) map[string]interface{} {
 }
 
 func DepositChannel(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 2 {
+	if len(cmd) < 3 {
 		return responsePack(dsp.INVALID_PARAMS, "")
 	}
-	params := convertSliceToMap(cmd, []string{"Partner", "Amount"})
+	params := convertSliceToMap(cmd, []string{"Partner", "Amount", "Password"})
 	v := rest.DepositChannel(params)
 	ret, err := parseRestResult(v)
 	if err != nil {

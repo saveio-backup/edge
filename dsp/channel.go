@@ -3,7 +3,9 @@ package dsp
 import (
 	"container/list"
 	"strconv"
+	"time"
 
+	"github.com/saveio/dsp-go-sdk/common"
 	chanCom "github.com/saveio/pylons/common"
 	pylons_transfer "github.com/saveio/pylons/transfer"
 	chainCom "github.com/saveio/themis/common"
@@ -13,12 +15,14 @@ import (
 var startChannelHeight, endChannelHeight uint32
 
 func (this *Endpoint) SetFilterBlockRange() {
-	currentBlockHeight, _ := this.Dsp.Chain.GetCurrentBlockHeight()
+	currentBlockHeight, err := this.Dsp.Chain.GetCurrentBlockHeight()
 	startChannelHeight = this.Dsp.Channel.GetCurrentFilterBlockHeight()
 	endChannelHeight = currentBlockHeight
+	log.Debugf("set filter block range %d %s %d %d", currentBlockHeight, err, startChannelHeight, endChannelHeight)
 }
 
 func (this *Endpoint) ResetChannelProgress() {
+	log.Debugf("ResetChannelProgress")
 	startChannelHeight = 0
 	endChannelHeight = 0
 }
@@ -31,6 +35,7 @@ func (this *Endpoint) GetFilterBlockProgress() (float32, *DspErr) {
 		return 0.0, nil
 	}
 	now := this.Dsp.Channel.GetCurrentFilterBlockHeight()
+	log.Debugf("endChannelHeight %d, start %d", endChannelHeight, startChannelHeight)
 	if endChannelHeight <= startChannelHeight {
 		return 1.0, nil
 	}
@@ -52,6 +57,26 @@ func (this *Endpoint) GetAllChannels() (interface{}, *DspErr) {
 
 //oniChannel api
 func (this *Endpoint) OpenPaymentChannel(partnerAddr string) (chanCom.ChannelID, *DspErr) {
+	progress, derr := this.GetFilterBlockProgress()
+	if derr != nil {
+		return 0, derr
+	}
+	if progress != 1.0 {
+		return 0, &DspErr{Code: DSP_CHANNEL_INIT_NOT_FINISH, Error: ErrMaps[DSP_CHANNEL_INIT_NOT_FINISH]}
+	}
+	dnsUrl, err := this.Dsp.GetExternalIP(partnerAddr)
+	if err != nil {
+		return 0, &DspErr{Code: DSP_DNS_GET_EXTERNALIP_FAILED, Error: err}
+	}
+	err = this.Dsp.Channel.SetHostAddr(partnerAddr, dnsUrl)
+	if err != nil {
+		return 0, &DspErr{Code: DSP_CHANNEL_INTERNAL_ERROR, Error: err}
+	}
+	err = this.Dsp.Channel.WaitForConnected(partnerAddr, time.Duration(common.WAIT_CHANNEL_CONNECT_TIMEOUT)*time.Second)
+	if err != nil {
+		log.Errorf("wait channel connected err %s %s", partnerAddr, err)
+		return 0, &DspErr{Code: DSP_CHANNEL_INTERNAL_ERROR, Error: err}
+	}
 	id, err := this.Dsp.Channel.OpenChannel(partnerAddr)
 	if err != nil {
 		return 0, &DspErr{Code: DSP_CHANNEL_OPEN_FAILED, Error: err}

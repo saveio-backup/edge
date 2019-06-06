@@ -62,20 +62,23 @@ const (
 	IMPORT_ACCOUNT_WITH_PRIVATEKEY = "/api/v1/account/import/privatekey"
 	IMPORT_ACCOUNT_WITH_WALLETFILE = "/api/v1/account/import/walletfile"
 	EXPORT_WALLETFILE              = "/api/v1/account/export/walletfile"
-	EXPORT_WIFPRIVATEKEY           = "/api/v1/account/export/privatekey"
+	EXPORT_WIFPRIVATEKEY           = "/api/v1/account/export/privatekey/:password"
 
 	ASSET_TRANSFER_DIRECT = "/api/v1/asset/transfer/direct"
+	INVOKE_SMARTCONTRACT  = "/api/v1/smartcontract/invoke"
+	PREEXEC_SMARTCONTRACT = "/api/v1/smartcontract/preexec"
 
 	SET_CONFIG = "/api/v1/config"
 
-	DSP_NODE_REGISTER         = "/api/v1/dsp/node/register"
-	DSP_NODE_UNREGISTER       = "/api/v1/dsp/node/unregister"
-	DSP_NODE_QUERY            = "/api/v1/dsp/node/query/:addr"
-	DSP_NODE_UPDATE           = "/api/v1/dsp/node/update"
-	DSP_NODE_WITHDRAW         = "/api/v1/dsp/node/withdraw"
-	DSP_SET_USER_SPACE        = "/api/v1/dsp/client/userspace/set"
-	DSP_CLIENT_GET_USER_SPACE = "/api/v1/dsp/client/userspace/:addr"
-	DSP_USERSPACE_RECORDS     = "/api/v1/dsp/client/userspacerecords/:addr/:offset/:limit"
+	DSP_NODE_REGISTER              = "/api/v1/dsp/node/register"
+	DSP_NODE_UNREGISTER            = "/api/v1/dsp/node/unregister"
+	DSP_NODE_QUERY                 = "/api/v1/dsp/node/query/:addr"
+	DSP_NODE_UPDATE                = "/api/v1/dsp/node/update"
+	DSP_NODE_WITHDRAW              = "/api/v1/dsp/node/withdraw"
+	DSP_SET_USER_SPACE             = "/api/v1/dsp/client/userspace/set"
+	DSP_GET_UPDATE_USER_SPACE_COST = "/api/v1/dsp/client/userspace/cost"
+	DSP_CLIENT_GET_USER_SPACE      = "/api/v1/dsp/client/userspace/:addr"
+	DSP_USERSPACE_RECORDS          = "/api/v1/dsp/client/userspacerecords/:addr/:offset/:limit"
 
 	DSP_GET_UPLOAD_FILELIST   = "/api/v1/dsp/file/uploadlist/:type/:offset/:limit"
 	DSP_GET_DOWNLOAD_FILELIST = "/api/v1/dsp/file/downloadlist/:type/:offset/:limit"
@@ -228,21 +231,24 @@ func (this *restServer) registryMethod() {
 
 	postMethodMap := map[string]Action{
 		ASSET_TRANSFER_DIRECT: {name: "assettransferdirect", handler: AssetTransferDirect},
+		INVOKE_SMARTCONTRACT:  {name: "invokesmartcontract", handler: InvokeSmartContract},
+		PREEXEC_SMARTCONTRACT: {name: "preexecsmartcontract", handler: PreExecSmartContract},
 
 		NEW_ACCOUNT:                    {name: "newaccount", handler: NewAccount},
 		LOGOUT_ACCOUNT:                 {name: "logout", handler: Logout},
 		IMPORT_ACCOUNT_WITH_PRIVATEKEY: {name: "importaccountwithprivatekey", handler: ImportWithPrivateKey},
 		IMPORT_ACCOUNT_WITH_WALLETFILE: {name: "importaccountwithwalletfile", handler: ImportWithWalletData},
 
-		DSP_NODE_REGISTER:         {name: "registernode", handler: RegisterNode},
-		DSP_NODE_UPDATE:           {name: "updatenode", handler: NodeUpdate},
-		DSP_SET_USER_SPACE:        {name: "setuserspace", handler: SetUserSpace},
-		DSP_FILE_UPLOAD:           {name: "uploadfile", handler: UploadFile},
-		DSP_FILE_DELETE:           {name: "deletefile", handler: DeleteFile},
-		DSP_FILE_DOWNLOAD:         {name: "downloadfile", handler: DownloadFile},
-		DSP_FILE_ENCRYPT:          {name: "encryptfile", handler: EncryptFile},
-		DSP_FILE_DECRYPT:          {name: "decryptfile", handler: DecryptFile},
-		DSP_UPDATE_FILE_WHITELIST: {name: "updatewhitelist", handler: WhiteListOperate},
+		DSP_NODE_REGISTER:              {name: "registernode", handler: RegisterNode},
+		DSP_NODE_UPDATE:                {name: "updatenode", handler: NodeUpdate},
+		DSP_SET_USER_SPACE:             {name: "setuserspace", handler: SetUserSpace},
+		DSP_GET_UPDATE_USER_SPACE_COST: {name: "setuserspace", handler: GetUserSpaceCost},
+		DSP_FILE_UPLOAD:                {name: "uploadfile", handler: UploadFile},
+		DSP_FILE_DELETE:                {name: "deletefile", handler: DeleteFile},
+		DSP_FILE_DOWNLOAD:              {name: "downloadfile", handler: DownloadFile},
+		DSP_FILE_ENCRYPT:               {name: "encryptfile", handler: EncryptFile},
+		DSP_FILE_DECRYPT:               {name: "decryptfile", handler: DecryptFile},
+		DSP_UPDATE_FILE_WHITELIST:      {name: "updatewhitelist", handler: WhiteListOperate},
 
 		DEPOSIT_CHANNEL:  {name: "depositchannel", handler: DepositChannel},
 		WITHDRAW_CHANNEL: {name: "withdrawchannel", handler: WithdrawChannel},
@@ -291,6 +297,8 @@ func (this *restServer) getPath(url string) string {
 		return GET_GRANTONG
 	} else if strings.Contains(url, strings.TrimRight(GET_MEMPOOL_TXSTATE, ":hash")) {
 		return GET_MEMPOOL_TXSTATE
+	} else if strings.Contains(url, strings.TrimSuffix(EXPORT_WIFPRIVATEKEY, ":password")) {
+		return EXPORT_WIFPRIVATEKEY
 	}
 
 	// //path for asset
@@ -396,6 +404,8 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 		req["Addr"] = getParam(r, "addr")
 	case GET_MEMPOOL_TXSTATE:
 		req["Hash"] = getParam(r, "hash")
+	case EXPORT_WIFPRIVATEKEY:
+		req["Password"] = getParam(r, "password")
 	default:
 	}
 

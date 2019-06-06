@@ -110,7 +110,11 @@ func ExportWalletFile(cmd map[string]interface{}) map[string]interface{} {
 
 func ExportWIFPrivateKey(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
-	ret, err := dsp.DspService.ExportWIFPrivateKey()
+	password, ok := cmd["Password"].(string)
+	if !ok {
+		return ResponsePack(dsp.INVALID_PARAMS)
+	}
+	ret, err := dsp.DspService.ExportWIFPrivateKey(password)
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}

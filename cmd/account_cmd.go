@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/saveio/edge/cmd/flags"
 	cmdutil "github.com/saveio/edge/cmd/utils"
 	"github.com/saveio/themis/account"
 	"github.com/saveio/themis/cmd/common"
@@ -114,9 +115,9 @@ You can use ./edge account --help command to view help information of wallet man
 				Usage:     "Import accounts of wallet to another",
 				ArgsUsage: "[sub-command options]",
 				Flags: []cli.Flag{
-					cmdutil.WalletFileFlag,
-					cmdutil.WalletPasswordFlag,
-					cmdutil.ImportOnlineWalletFlag,
+					flags.WalletFileFlag,
+					flags.WalletPasswordFlag,
+					flags.ImportOnlineWalletFlag,
 				},
 				Description: "Import accounts of wallet to another. If not specific accounts in args, all account in source will be import",
 			},
@@ -126,11 +127,10 @@ You can use ./edge account --help command to view help information of wallet man
 				Usage:     "Create online account to start edge",
 				ArgsUsage: "[sub-command options]",
 				Flags: []cli.Flag{
-					// cmdutil.WalletPasswordFlag,
-					cmdutil.WalletLabelFlag,
-					cmdutil.WalletKeyTypeFlag,
-					cmdutil.WalletCurveFlag,
-					cmdutil.WalletSchemeFlag,
+					flags.WalletLabelFlag,
+					flags.WalletKeyTypeFlag,
+					flags.WalletCurveFlag,
+					flags.WalletSchemeFlag,
 				},
 			},
 			{
@@ -139,7 +139,7 @@ You can use ./edge account --help command to view help information of wallet man
 				Usage:     "Export accounts to a specified wallet file",
 				ArgsUsage: "[sub-command options] <filename>",
 				Flags: []cli.Flag{
-					cmdutil.WalletExportTypeFlag,
+					flags.WalletExportTypeFlag,
 				},
 			},
 			{
@@ -166,7 +166,7 @@ func accountCreate(ctx *cli.Context) error {
 	optionCurve := ""
 	optionScheme := ""
 
-	optionDefault := ctx.IsSet(utils.GetFlagName(utils.AccountDefaultFlag))
+	optionDefault := ctx.IsSet(flags.GetFlagName(utils.AccountDefaultFlag))
 	if !optionDefault {
 		optionType = checkType(ctx, reader)
 		optionCurve = checkCurve(ctx, reader, &optionType)
@@ -241,7 +241,7 @@ func accountList(ctx *cli.Context) error {
 		addr := ctx.Args().Get(i)
 		accMeta := common.GetAccountMetadataMulti(wallet, addr)
 		if accMeta == nil {
-			PrintWarnMsg("Cannot find account by:%s in wallet:%s", addr, utils.GetFlagName(utils.WalletFileFlag))
+			PrintWarnMsg("Cannot find account by:%s in wallet:%s", addr, flags.GetFlagName(utils.WalletFileFlag))
 			continue
 		}
 		accList[accMeta.Address] = ""
@@ -257,7 +257,7 @@ func accountList(ctx *cli.Context) error {
 				continue
 			}
 		}
-		if !ctx.Bool(utils.GetFlagName(utils.AccountVerboseFlag)) {
+		if !ctx.Bool(flags.GetFlagName(utils.AccountVerboseFlag)) {
 			if accMeta.IsDefault {
 				PrintInfoMsg("Index:%-4d Address:%s  Label:%s (default)", i, accMeta.Address, accMeta.Label)
 			} else {
@@ -298,7 +298,7 @@ func accountSet(ctx *cli.Context) error {
 	}
 	address = accMeta.Address
 	label := accMeta.Label
-	if ctx.Bool(utils.GetFlagName(utils.AccountSetDefaultFlag)) {
+	if ctx.Bool(flags.GetFlagName(utils.AccountSetDefaultFlag)) {
 		err = wallet.SetDefaultAccount(address)
 		if err != nil {
 			PrintErrorMsg("Set Label:%s Account:%s as default failed, %s", label, address, err)
@@ -306,8 +306,8 @@ func accountSet(ctx *cli.Context) error {
 			PrintInfoMsg("Set Label:%s Account:%s as default successfully", label, address)
 		}
 	}
-	if ctx.IsSet(utils.GetFlagName(utils.AccountLabelFlag)) {
-		newLabel := ctx.String(utils.GetFlagName(utils.AccountLabelFlag))
+	if ctx.IsSet(flags.GetFlagName(utils.AccountLabelFlag)) {
+		newLabel := ctx.String(flags.GetFlagName(utils.AccountLabelFlag))
 		err = wallet.SetLabel(address, newLabel)
 		if err != nil {
 			PrintErrorMsg("Set Account:%s Label:%s to %s failed, %s", address, label, newLabel, err)
@@ -316,9 +316,9 @@ func accountSet(ctx *cli.Context) error {
 			label = newLabel
 		}
 	}
-	if ctx.IsSet(utils.GetFlagName(utils.AccountSigSchemeFlag)) {
+	if ctx.IsSet(flags.GetFlagName(utils.AccountSigSchemeFlag)) {
 		find := false
-		sigScheme := ctx.String(utils.GetFlagName(utils.AccountSigSchemeFlag))
+		sigScheme := ctx.String(flags.GetFlagName(utils.AccountSigSchemeFlag))
 		var sigSch signature.SignatureScheme
 		for key, val := range schemeMap {
 			if key == sigScheme {
@@ -344,7 +344,7 @@ func accountSet(ctx *cli.Context) error {
 		}
 	}
 
-	if ctx.Bool(utils.GetFlagName(utils.AccountChangePasswdFlag)) {
+	if ctx.Bool(flags.GetFlagName(utils.AccountChangePasswdFlag)) {
 		passwd, err := common.GetPasswd(ctx)
 		if err != nil {
 			return err
@@ -397,9 +397,9 @@ func accountDelete(ctx *cli.Context) error {
 }
 
 func accountImport(ctx *cli.Context) error {
-	password := ctx.String(utils.GetFlagName(cmdutil.WalletPasswordFlag))
-	walletFile := ctx.String(utils.GetFlagName(cmdutil.WalletFileFlag))
-	forOnline := ctx.Bool(utils.GetFlagName(cmdutil.ImportOnlineWalletFlag))
+	password := ctx.String(flags.GetFlagName(flags.WalletPasswordFlag))
+	walletFile := ctx.String(flags.GetFlagName(flags.WalletFileFlag))
+	forOnline := ctx.Bool(flags.GetFlagName(flags.ImportOnlineWalletFlag))
 	if !forOnline {
 		// TODO: support import offline
 		return nil
@@ -422,10 +422,10 @@ func accountCreateOnline(ctx *cli.Context) error {
 		return err
 	}
 	password := string(pwd)
-	label := ctx.String(utils.GetFlagName(cmdutil.WalletLabelFlag))
-	keyType := ctx.String(utils.GetFlagName(cmdutil.WalletKeyTypeFlag))
-	curve := ctx.String(utils.GetFlagName(cmdutil.WalletCurveFlag))
-	scheme := ctx.String(utils.GetFlagName(cmdutil.WalletSchemeFlag))
+	label := ctx.String(flags.GetFlagName(flags.WalletLabelFlag))
+	keyType := ctx.String(flags.GetFlagName(flags.WalletKeyTypeFlag))
+	curve := ctx.String(flags.GetFlagName(flags.WalletCurveFlag))
+	scheme := ctx.String(flags.GetFlagName(flags.WalletSchemeFlag))
 	acc, err := cmdutil.NewAccount(password, label, keyType, curve, scheme)
 	if err != nil {
 		return err
@@ -435,7 +435,7 @@ func accountCreateOnline(ctx *cli.Context) error {
 }
 
 func accountExport(ctx *cli.Context) error {
-	exportType := ctx.Int(utils.GetFlagName(cmdutil.WalletExportTypeFlag))
+	exportType := ctx.Int(flags.GetFlagName(flags.WalletExportTypeFlag))
 
 	if exportType == 0 && ctx.NArg() <= 0 {
 		PrintErrorMsg("Missing target file argument to export.")
@@ -455,7 +455,12 @@ func accountExport(ctx *cli.Context) error {
 		}
 		PrintInfoMsg("Export wallet success.")
 	} else {
-		ret, err := cmdutil.ExportPrivateKey()
+		pwd, err := password.GetPassword()
+		if err != nil {
+			return err
+		}
+		password := string(pwd)
+		ret, err := cmdutil.ExportPrivateKey(password)
 		if err != nil {
 			return err
 		}

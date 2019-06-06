@@ -156,6 +156,12 @@ type calculateResp struct {
 	FeeFormat string
 }
 
+type userspaceCostResp struct {
+	Fee          uint64
+	FeeFormat    string
+	TransferType storage.UserspaceTransferType
+}
+
 func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, timesVal, privilegeVal, copynumVal interface{},
 	encryptPwd, url string, whitelist []string, share bool) *DspErr {
 	currentAccount := this.Dsp.CurrentAccount()
@@ -183,7 +189,7 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, ti
 		}
 		log.Debugf("userspace.ExpireHeight %d, current: %d", userspace.ExpireHeight, currentHeight)
 		if userspace.ExpireHeight <= uint64(currentHeight) {
-			return &DspErr{Code: DSP_USER_SPACE_EXPIRED, Error: err}
+			return &DspErr{Code: DSP_USER_SPACE_EXPIRED, Error: ErrMaps[DSP_USER_SPACE_EXPIRED]}
 		}
 		if duration > 0 && (uint64(currentHeight)+uint64(duration)) > userspace.ExpireHeight {
 			return &DspErr{Code: DSP_USER_SPACE_NOT_ENOUGH, Error: err}
@@ -798,6 +804,15 @@ func (this *Endpoint) GetWhitelist(fileHash string) ([]*WhiteListRule, *DspErr) 
 }
 
 func (this *Endpoint) SetUserSpace(walletAddr string, size, sizeOpType, blockCount, countOpType uint64) (string, *DspErr) {
+	if sizeOpType == uint64(fs.UserSpaceNone) && countOpType == uint64(fs.UserSpaceNone) {
+		return "", &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
+	}
+	if sizeOpType == uint64(fs.UserSpaceNone) {
+		size = 0
+	}
+	if countOpType == uint64(fs.UserSpaceNone) {
+		blockCount = 0
+	}
 	tx, err := this.Dsp.UpdateUserSpace(walletAddr, size, sizeOpType, blockCount, countOpType)
 	if err != nil {
 		return tx, ParseContractError(err)
@@ -855,6 +870,34 @@ func (this *Endpoint) SetUserSpace(walletAddr string, size, sizeOpType, blockCou
 		return tx, nil
 	}
 	return tx, nil
+}
+
+func (this *Endpoint) GetUserSpaceCost(walletAddr string, size, sizeOpType, blockCount, countOpType uint64) (*userspaceCostResp, *DspErr) {
+	if sizeOpType == uint64(fs.UserSpaceNone) && countOpType == uint64(fs.UserSpaceNone) {
+		return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
+	}
+	if sizeOpType == uint64(fs.UserSpaceNone) {
+		size = 0
+	}
+	if countOpType == uint64(fs.UserSpaceNone) {
+		blockCount = 0
+	}
+	cost, err := this.Dsp.GetUpdateUserSpaceCost(walletAddr, size, sizeOpType, blockCount, countOpType)
+	if err != nil {
+		return nil, ParseContractError(err)
+	}
+	if cost.From.ToBase58() == this.Dsp.Account.Address.ToBase58() {
+		return &userspaceCostResp{
+			Fee:          cost.Value,
+			FeeFormat:    utils.FormatUsdt(cost.Value),
+			TransferType: storage.TransferTypeIn,
+		}, nil
+	}
+	return &userspaceCostResp{
+		Fee:          cost.Value,
+		FeeFormat:    utils.FormatUsdt(cost.Value),
+		TransferType: storage.TransferTypeOut,
+	}, nil
 }
 
 func (this *Endpoint) GetUserSpace(addr string) (*userspace, *DspErr) {

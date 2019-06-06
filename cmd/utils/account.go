@@ -65,12 +65,12 @@ func ExportWalletFile() (string, error) {
 		return "", ontErr.Error
 	}
 	old := string(ret)
-	new := strings.ReplaceAll(old, "\\", "")
+	new := strings.Replace(old, "\\", "", -1)
 	return string(new), nil
 }
 
-func ExportPrivateKey() (string, error) {
-	ret, ontErr := sendRpcRequest("exportprivatekey", []interface{}{})
+func ExportPrivateKey(password string) (string, error) {
+	ret, ontErr := sendRpcRequest("exportprivatekey", []interface{}{password})
 	if ontErr != nil {
 		return "", ontErr.Error
 	}

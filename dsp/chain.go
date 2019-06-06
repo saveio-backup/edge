@@ -10,7 +10,6 @@ import (
 	"github.com/saveio/edge/common/config"
 	hcomm "github.com/saveio/edge/http/common"
 	"github.com/saveio/themis-go-sdk/usdt"
-	"github.com/saveio/themis-go-sdk/wallet"
 	"github.com/saveio/themis/cmd/utils"
 	"github.com/saveio/themis/common"
 	chainCfg "github.com/saveio/themis/common/config"
@@ -25,12 +24,18 @@ const (
 	TxTypeReceive = 2
 )
 
+var GitCommit string
+
 func (this *Endpoint) GetNodeVersion() (string, *DspErr) {
 	version, err := this.Dsp.Chain.GetVersion()
 	if err != nil {
 		return "", &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
-	return version, nil
+	max := 6
+	if len(GitCommit) < max {
+		max = len(GitCommit)
+	}
+	return version + GitCommit[:max], nil
 }
 
 // get networkid
@@ -424,15 +429,10 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 
 //asset transfer direct
 func (this *Endpoint) AssetTransferDirect(to, asset, amountStr string) (string, *DspErr) {
-	wal, err := wallet.OpenWallet(config.WalletDatFilePath())
-	if err != nil {
-		return "", &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
+	acc, derr := this.GetAccount(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
+	if derr != nil {
+		return "", derr
 	}
-	accDefault, err := wal.GetDefaultAccount([]byte(config.Parameters.BaseConfig.WalletPwd))
-	if err != nil {
-		return "", &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
-	}
-
 	if strings.ToLower(asset) == "save" {
 		asset = "usdt"
 	}
@@ -449,7 +449,7 @@ func (this *Endpoint) AssetTransferDirect(to, asset, amountStr string) (string, 
 		if err != nil {
 			return "", &DspErr{Code: INVALID_PARAMS, Error: err}
 		}
-		txHash, err := this.Dsp.Chain.Native.Usdt.Transfer(chainCfg.DEFAULT_GAS_PRICE, chainCfg.DEFAULT_GAS_LIMIT, accDefault, toAddr, realAmount)
+		txHash, err := this.Dsp.Chain.Native.Usdt.Transfer(chainCfg.DEFAULT_GAS_PRICE, chainCfg.DEFAULT_GAS_LIMIT, acc, toAddr, realAmount)
 		if err != nil {
 			return "", &DspErr{Code: CHAIN_TRANSFER_ERROR, Error: err}
 		}
@@ -457,4 +457,37 @@ func (this *Endpoint) AssetTransferDirect(to, asset, amountStr string) (string, 
 		return tx, nil
 	}
 	return "", &DspErr{Code: CHAIN_UNKNOWN_ASSET, Error: ErrMaps[CHAIN_UNKNOWN_ASSET]}
+}
+
+func (this *Endpoint) InvokeNativeContract(version byte, contractAddr, method string, params []interface{}) (string, *DspErr) {
+	acc, derr := this.GetAccount(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
+	if derr != nil {
+		return "", derr
+	}
+	contractAddress, err := common.AddressFromBase58(contractAddr)
+	if err != nil {
+		return "", &DspErr{Code: INVALID_PARAMS, Error: err}
+	}
+	txHash, err := this.Dsp.Chain.InvokeNativeContract(chainCfg.DEFAULT_GAS_PRICE, chainCfg.DEFAULT_GAS_LIMIT, acc, version, contractAddress, method, params)
+	if err != nil {
+		return "", &DspErr{Code: CONTRACT_ERROR, Error: err}
+	}
+	return hex.EncodeToString(common.ToArrayReverse(txHash[:])), nil
+}
+
+func (this *Endpoint) PreInvokeNativeContract(version byte, contractAddr, method string, params []interface{}) ([]byte, *DspErr) {
+	contractAddress, err := common.AddressFromBase58(contractAddr)
+	if err != nil {
+		return nil, &DspErr{Code: INVALID_PARAMS, Error: err}
+	}
+	log.Debugf("contractAddress :%v", contractAddress)
+	ret, err := this.Dsp.Chain.PreExecInvokeNativeContract(contractAddress, version, method, params)
+	if err != nil {
+		return nil, &DspErr{Code: CONTRACT_ERROR, Error: err}
+	}
+	data, err := ret.Result.ToByteArray()
+	if err != nil {
+		return nil, &DspErr{Code: CONTRACT_ERROR, Error: err}
+	}
+	return data, nil
 }
