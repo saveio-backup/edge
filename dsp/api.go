@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -193,6 +194,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		go endpoint.RegisterProgressCh()
 		go endpoint.RegisterShareNotificationCh()
 	}
+	go endpoint.CheckLogFileSize()
 	log.Info("Dsp start successed.")
 	return nil
 }
@@ -221,17 +223,28 @@ func (this *Endpoint) SetupDNSNodeBackground() {
 	}
 	allChannels := this.Dsp.Channel.GetAllPartners()
 	log.Debugf("setup dns node len %v", len(allChannels))
-	if len(allChannels) > 0 {
-		err := this.Dsp.SetupDNSChannels()
-		if err != nil {
-			panic(err)
-		}
-		return
-	}
 	ti := time.NewTicker(time.Second)
 	for {
 		select {
 		case <-ti.C:
+			progress, derr := this.GetFilterBlockProgress()
+			if derr != nil {
+				log.Errorf("setup dns failed filter block err %s", derr)
+				break
+			}
+			if progress.Progress != 1.0 {
+				log.Debugf("setup dns wait for init channel")
+				break
+			}
+
+			if len(allChannels) > 0 {
+				err := this.Dsp.SetupDNSChannels()
+				if err != nil {
+					// panic(err)
+					log.Errorf("set up dns failed %s", err)
+				}
+				return
+			}
 			address, err := chainCom.AddressFromBase58(this.Dsp.WalletAddress())
 			if err != nil {
 				log.Errorf("setup dns failed address decoded failed")
@@ -246,20 +259,30 @@ func (this *Endpoint) SetupDNSNodeBackground() {
 				log.Errorf("setup dns failed balance not enough %d", bal)
 				break
 			}
-			progress, derr := this.GetFilterBlockProgress()
-			if derr != nil {
-				log.Errorf("setup dns failed filter block err %s", err)
-				break
-			}
-			if progress != 1.0 {
-				log.Debugf("setup dns wait for init channel")
-				break
-			}
 			err = this.Dsp.SetupDNSChannels()
 			if err != nil {
 				break
 			}
 			return
+		case <-this.closhCh:
+			return
+		}
+	}
+}
+
+func (this *Endpoint) CheckLogFileSize() {
+	ti := time.NewTicker(time.Second)
+	for {
+		select {
+		case <-ti.C:
+			isNeedNewFile := log.CheckIfNeedNewFile()
+			if isNeedNewFile {
+				log.ClosePrintLog()
+				logPath := config.Parameters.BaseConfig.LogPath
+				baseDir := config.Parameters.BaseConfig.BaseDir
+				logFullPath := filepath.Join(baseDir, logPath) + "/"
+				log.InitLog(int(config.Parameters.BaseConfig.LogLevel), logFullPath, log.Stdout)
+			}
 		case <-this.closhCh:
 			return
 		}

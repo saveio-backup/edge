@@ -13,11 +13,11 @@ func UploadFile(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	path, ok := cmd["Path"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	desc, ok := cmd["Desc"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 
 	whitelist := make([]string, 0)
@@ -45,7 +45,7 @@ func DeleteFile(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	fileHash, ok := cmd["Hash"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
@@ -166,7 +166,7 @@ func GetTransferList(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	tt, ok := cmd["Type"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	transferTypeInt, err := strconv.ParseUint(tt, 10, 64)
 	if err != nil {
@@ -204,11 +204,11 @@ func CalculateUploadFee(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	p, ok := cmd["Path"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	path, err := hex.DecodeString(p)
 	if err != nil {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
@@ -226,11 +226,11 @@ func GetDownloadFileInfo(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	url, ok := cmd["Url"].(string)
 	if !ok || len(url) == 0 {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	realUrl, err := hex.DecodeString(url)
 	if err != nil {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
@@ -248,11 +248,11 @@ func EncryptFile(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	path, ok := cmd["Path"].(string)
 	if !ok || len(path) == 0 {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	password, ok := cmd["Password"].(string)
 	if !ok || len(password) == 0 {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
@@ -269,11 +269,11 @@ func DecryptFile(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	path, ok := cmd["Path"].(string)
 	if !ok || len(path) == 0 {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	password, ok := cmd["Password"].(string)
 	if !ok || len(password) == 0 {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
@@ -290,27 +290,27 @@ func GetFileShareIncome(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	begStr, ok := cmd["Begin"].(string)
 	if !ok || len(begStr) == 0 {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	begin, err := strconv.ParseUint(begStr, 10, 64)
 	if err != nil {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	endStr, ok := cmd["End"].(string)
 	if !ok || len(endStr) == 0 {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	end, err := strconv.ParseUint(endStr, 10, 64)
 	if err != nil {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	offset, err := dsp.OptionStrToUint64(cmd["Offset"])
 	if err != nil {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	limit, err := dsp.OptionStrToUint64(cmd["Limit"])
 	if err != nil {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
@@ -345,45 +345,45 @@ func WhiteListOperate(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	fileHash, ok := cmd["FileHash"].(string)
 	if !ok || len(fileHash) == 0 {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	op, ok := cmd["Operation"].(float64)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	list, ok := cmd["List"].([]interface{})
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	whitelist := make([]*dsp.WhiteListRule, 0, len(list))
 	for _, item := range list {
 		l, ok := item.(map[string]interface{})
 		if !ok {
-			return ResponsePack(dsp.INVALID_PARAMS)
+			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 		}
 		value, ok := l["Addr"]
 		if !ok {
-			return ResponsePack(dsp.INVALID_PARAMS)
+			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 		}
 		addr, ok := value.(string)
 		if !ok {
-			return ResponsePack(dsp.INVALID_PARAMS)
+			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 		}
 		value, ok = l["StartHeight"]
 		if !ok {
-			return ResponsePack(dsp.INVALID_PARAMS)
+			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 		}
 		startHeight, ok := value.(float64)
 		if !ok {
-			return ResponsePack(dsp.INVALID_PARAMS)
+			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 		}
 		value, ok = l["ExpiredHeight"]
 		if !ok {
-			return ResponsePack(dsp.INVALID_PARAMS)
+			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 		}
 		expiredHeight, ok := value.(float64)
 		if !ok {
-			return ResponsePack(dsp.INVALID_PARAMS)
+			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 		}
 
 		whitelist = append(whitelist, &dsp.WhiteListRule{
@@ -409,7 +409,7 @@ func GetFileWhiteList(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	fileHash, ok := cmd["FileHash"].(string)
 	if !ok || len(fileHash) == 0 {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
@@ -426,7 +426,7 @@ func GetUserSpace(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	addr, ok := cmd["Addr"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
@@ -444,7 +444,7 @@ func SetUserSpace(cmd map[string]interface{}) map[string]interface{} {
 	log.Debugf("cmd %v , type %T", cmd, cmd["Size"])
 	addr, ok := cmd["Addr"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	size, sizeOp, second, secondOp := float64(0), float64(0), float64(0), float64(0)
 	sizeMap, ok := cmd["Size"].(map[string]interface{})
@@ -475,7 +475,7 @@ func GetUserSpaceCost(cmd map[string]interface{}) map[string]interface{} {
 	log.Debugf("cmd %v , type %T", cmd, cmd["Size"])
 	addr, ok := cmd["Addr"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	size, sizeOp, second, secondOp := float64(0), float64(0), float64(0), float64(0)
 	sizeMap, ok := cmd["Size"].(map[string]interface{})
@@ -505,7 +505,7 @@ func GetUserSpaceRecords(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	addr, ok := cmd["Addr"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	offset, _ := dsp.OptionStrToUint64(cmd["Offset"])
 	limit, _ := dsp.OptionStrToUint64(cmd["Limit"])

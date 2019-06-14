@@ -269,7 +269,7 @@ var (
 		Name:  "amount",
 		Usage: "Channel payment amount `<amount>`. float",
 	}
-	PaymentIDFlag = cli.UintFlag{
+	PaymentIDFlag = cli.Uint64Flag{
 		Name:  "paymentId",
 		Usage: "",
 	}
@@ -279,7 +279,7 @@ var (
 		Name:  "peerPubkey",
 		Usage: "candidate pubkey",
 	}
-	InitDepositFlag = cli.Uint64Flag{
+	InitDepositFlag = cli.StringFlag{
 		Name:  "initDeposit",
 		Usage: "Init `<deposit>`",
 	}
@@ -291,7 +291,7 @@ var (
 		Name:  "withdrawList",
 		Usage: "withdraw value list",
 	}
-	DeltaDepositFlag = cli.Uint64Flag{
+	DeltaDepositFlag = cli.StringFlag{
 		Name:  "deltaDeposit",
 		Usage: "Delta `<deposit>`",
 	}

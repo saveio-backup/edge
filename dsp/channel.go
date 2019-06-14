@@ -12,6 +12,13 @@ import (
 	"github.com/saveio/themis/common/log"
 )
 
+type FilterBlockProgress struct {
+	Progress float32
+	Start    uint32
+	End      uint32
+	Now      uint32
+}
+
 var startChannelHeight, endChannelHeight uint32
 
 func (this *Endpoint) SetFilterBlockRange() {
@@ -27,24 +34,31 @@ func (this *Endpoint) ResetChannelProgress() {
 	endChannelHeight = 0
 }
 
-func (this *Endpoint) GetFilterBlockProgress() (float32, *DspErr) {
+func (this *Endpoint) GetFilterBlockProgress() (*FilterBlockProgress, *DspErr) {
+	progress := &FilterBlockProgress{}
 	if this.Dsp == nil {
-		return 0, nil
+		return progress, nil
 	}
 	if endChannelHeight == 0 {
-		return 0.0, nil
+		return progress, nil
 	}
+	progress.Start = startChannelHeight
+	progress.End = endChannelHeight
 	now := this.Dsp.Channel.GetCurrentFilterBlockHeight()
+	progress.Now = now
 	log.Debugf("endChannelHeight %d, start %d", endChannelHeight, startChannelHeight)
 	if endChannelHeight <= startChannelHeight {
-		return 1.0, nil
+		progress.Progress = 1.0
+		return progress, nil
 	}
 	rangeHeight := endChannelHeight - startChannelHeight
 	if now >= rangeHeight+startChannelHeight {
-		return 1.0, nil
+		progress.Progress = 1.0
+		return progress, nil
 	}
-	progress := float32(now-startChannelHeight) / float32(rangeHeight)
+	p := float32(now-startChannelHeight) / float32(rangeHeight)
 	log.Debugf("GetFilterBlockProgress start %d, now %d, end %d, progress %f", startChannelHeight, now, endChannelHeight, progress)
+	progress.Progress = p
 	return progress, nil
 }
 
@@ -61,7 +75,7 @@ func (this *Endpoint) OpenPaymentChannel(partnerAddr string) (chanCom.ChannelID,
 	if derr != nil {
 		return 0, derr
 	}
-	if progress != 1.0 {
+	if progress.Progress != 1.0 {
 		return 0, &DspErr{Code: DSP_CHANNEL_INIT_NOT_FINISH, Error: ErrMaps[DSP_CHANNEL_INIT_NOT_FINISH]}
 	}
 	dnsUrl, err := this.Dsp.GetExternalIP(partnerAddr)

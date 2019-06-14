@@ -2,13 +2,11 @@ package cmd
 
 import (
 	"fmt"
+	"math/rand"
+	"time"
 
 	"github.com/saveio/edge/cmd/flags"
 	"github.com/saveio/edge/cmd/utils"
-	"github.com/saveio/edge/common/config"
-	"github.com/saveio/edge/dsp"
-	sdk "github.com/saveio/themis-go-sdk/utils"
-	"github.com/saveio/themis/common"
 	"github.com/saveio/themis/common/password"
 
 	"github.com/urfave/cli"
@@ -55,6 +53,16 @@ var ChannelCommand = cli.Command{
 			Description: "Open a payment channel with partner",
 		},
 		{
+			Action:    closeChannel,
+			Name:      "close",
+			Usage:     "Close a payment channel",
+			ArgsUsage: " ",
+			Flags: []cli.Flag{
+				flags.PartnerAddressFlag,
+			},
+			Description: "Close a payment channel with partner",
+		},
+		{
 			Action:    depositToChannel,
 			Name:      "deposit",
 			Usage:     "Deposit token to channel",
@@ -67,12 +75,12 @@ var ChannelCommand = cli.Command{
 		},
 		{
 			Action:    transferToSomebody,
-			Name:      "transfer",
+			Name:      "mediatransfer",
 			Usage:     "Make payment through channel",
 			ArgsUsage: " ",
 			Flags: []cli.Flag{
 				flags.TargetAddressFlag,
-				flags.AmountFlag,
+				flags.AmountStrFlag,
 				flags.PaymentIDFlag,
 			},
 			Description: "Transfer some token from owner to target with specified payment ID",
@@ -130,34 +138,18 @@ func openChannel(ctx *cli.Context) error {
 	return nil
 }
 
-//[TODO] All channel operation may need call rest server!
-func openChannelExt(ctx *cli.Context) error {
+func closeChannel(ctx *cli.Context) error {
 	if ctx.NumFlags() < 1 {
 		PrintErrorMsg("Missing argument.")
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
-	endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
+	partnerAddr := ctx.String(flags.GetFlagName(flags.PartnerAddressFlag))
+	err := utils.ClosePaymentChannel(partnerAddr)
 	if err != nil {
-		PrintErrorMsg("init dsp err:%s\n", err)
 		return err
 	}
-
-	err = dsp.StartDspNode(endpoint, false, false, true)
-	if err != nil {
-		PrintErrorMsg("start dsp err:%s\n", err)
-		return err
-	}
-
-	// partnerAddr := ctx.String(flags.GetFlagName(flags.PartnerAddressFlag))
-
-	// id, err := endpoint.OpenPaymentChannel(partnerAddr)
-	// if err != nil {
-	// 	PrintErrorMsg("open channel err: %s", err)
-	// 	return err
-	// }
-
-	// PrintInfoMsg("Open channel finished. Channel Id:%d", id)
+	PrintInfoMsg("close channel success")
 	return nil
 }
 
@@ -183,46 +175,24 @@ func depositToChannel(ctx *cli.Context) error {
 }
 
 func transferToSomebody(ctx *cli.Context) error {
-	if ctx.NumFlags() < 3 {
+	if ctx.NumFlags() < 2 {
 		PrintErrorMsg("Missing argument.")
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
 
 	targetAddr := ctx.String(flags.GetFlagName(flags.TargetAddressFlag))
-	amount := ctx.Uint64(flags.GetFlagName(flags.AmountFlag))
-	paymentID := ctx.Uint(flags.GetFlagName(flags.PaymentIDFlag))
-
-	if utils.CallDspRest() {
-		reqPath := fmt.Sprintf("%s%s/%d/%d", TRANSFER_BY_CHANNEL, targetAddr, amount, paymentID)
-		_, err := utils.SendRestGetRequest(reqPath)
-		if err != nil {
-			PrintErrorMsg("transfer to %s err: %s", targetAddr, err)
-			return err
-		}
-
-		PrintInfoMsg("transfer to %s successed", targetAddr)
-	} else {
-		endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
-		if err != nil {
-			PrintErrorMsg("init dsp err:%s\n", err)
-			return err
-		}
-
-		err = dsp.StartDspNode(endpoint, false, false, true)
-		if err != nil {
-			PrintErrorMsg("start dsp err:%s\n", err)
-			return err
-		}
-		// err = endpoint.MediaTransfer(int32(paymentID), amount, targetAddr)
-		// if err != nil {
-		// 	PrintErrorMsg("Transfer to %s failed. err: %s", targetAddr, err)
-		// 	return err
-		// } else {
-		// 	PrintInfoMsg("Transfer to %s successed.", targetAddr)
-		// }
+	amount := ctx.String(flags.GetFlagName(flags.AmountStrFlag))
+	paymentID := ctx.Uint64(flags.GetFlagName(flags.PaymentIDFlag))
+	if paymentID == 0 {
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		paymentID = uint64(r.Int31())
 	}
-
+	err := utils.MediaTransfer(fmt.Sprintf("%d", paymentID), amount, targetAddr)
+	if err != nil {
+		return err
+	}
+	PrintInfoMsg("MediaTransfer success")
 	return nil
 }
 
@@ -232,49 +202,13 @@ func queryChannelDeposit(ctx *cli.Context) error {
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
-
 	partnerAddr := ctx.String(flags.GetFlagName(flags.PartnerAddressFlag))
-
-	_, err := common.AddressFromBase58(partnerAddr)
+	amount, err := utils.QuerySpecialChannelDeposit(partnerAddr)
 	if err != nil {
-		PrintErrorMsg("partner address %s is not valid", partnerAddr)
+		PrintErrorMsg("%s", err)
 		return err
 	}
-
-	if utils.CallDspRest() {
-		reqPath := fmt.Sprintf("%s%s", QUERY_CHANNEL_DEPOSIT, partnerAddr)
-		data, err := utils.SendRestGetRequest(reqPath)
-		if err != nil {
-			PrintErrorMsg("query channel deposit err: %s", err)
-			return err
-		}
-
-		selfAmount, err := sdk.GetUint64(data)
-		if err != nil {
-			PrintErrorMsg("query channel deposit err: %s", err)
-			return err
-		}
-		PrintInfoMsg("Our amount: %v", selfAmount)
-	} else {
-		endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
-		if err != nil {
-			PrintErrorMsg("init dsp err:%s\n", err)
-			return err
-		}
-
-		err = dsp.StartDspNode(endpoint, false, false, true)
-		if err != nil {
-			PrintErrorMsg("start dsp err:%s\n", err)
-			return err
-		}
-
-		// selfAmount, err := endpoint.QuerySpecialChannelDeposit(partnerAddr)
-		// if err != nil {
-		// 	PrintErrorMsg("query channel deposit err: %s", err)
-		// 	return err
-		// }
-		// PrintInfoMsg("Our amount: %v", selfAmount)
-	}
+	PrintJsonData(amount)
 	return nil
 }
 
@@ -284,25 +218,18 @@ func withdrawChannel(ctx *cli.Context) error {
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
-	// partnerAddr := ctx.String(flags.GetFlagName(flags.PartnerAddressFlag))
-	// amount := ctx.Uint64(flags.GetFlagName(flags.AmountFlag))
-	// endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
-	// if err != nil {
-	// 	PrintErrorMsg("init dsp err:%s\n", err)
-	// 	return err
-	// }
-	// err = dsp.StartDspNode(endpoint, false, false, true)
-	// if err != nil {
-	// 	PrintErrorMsg("start dsp err:%s\n", err)
-	// 	return err
-	// }
-
-	// err = endpoint.ChannelWithdraw(partnerAddr, amount)
-	// if err != nil {
-	// 	PrintErrorMsg("withdraw channel err: %s", err)
-	// 	return err
-	// }
-	// PrintInfoMsg("withdraw channel amount: %v success", amount)
+	partnerAddr := ctx.String(flags.GetFlagName(flags.PartnerAddressFlag))
+	totalDeposit := ctx.String(flags.GetFlagName(flags.AmountStrFlag))
+	pwd, err := password.GetPassword()
+	if err != nil {
+		return err
+	}
+	_, err = utils.WithdrawChannel(partnerAddr, totalDeposit, string(pwd))
+	if err != nil {
+		PrintErrorMsg("%s", err)
+		return err
+	}
+	PrintInfoMsg("withdraw to channel success. use <channel list> to get infos")
 	return nil
 }
 

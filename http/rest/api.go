@@ -418,20 +418,20 @@ func InvokeSmartContract(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	version, ok := cmd["Version"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	verBufs, err := hex.DecodeString(version)
 	if err != nil || len(verBufs) == 0 {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 
 	contractAddr, ok := cmd["Contract"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	method, ok := cmd["Method"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	params, _ := cmd["Params"].([]interface{})
 	password, ok := cmd["Password"].(string)
@@ -457,20 +457,20 @@ func PreExecSmartContract(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	version, ok := cmd["Version"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	verBufs, err := hex.DecodeString(version)
 	if err != nil || len(verBufs) == 0 {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 
 	contractAddr, ok := cmd["Contract"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	method, ok := cmd["Method"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	params, _ := cmd["Params"].([]interface{})
 	ret, derr := dsp.DspService.PreInvokeNativeContract(verBufs[0], contractAddr, method, params)

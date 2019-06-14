@@ -18,7 +18,7 @@ func GetCurrentAccount(cmd []interface{}) map[string]interface{} {
 
 func NewAccount(cmd []interface{}) map[string]interface{} {
 	if len(cmd) < 5 {
-		return responsePack(dsp.INVALID_PARAMS, "")
+		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	params := convertSliceToMap(cmd, []string{"Password", "Label", "KeyType", "Curve", "Scheme"})
 	v := rest.NewAccount(params)
@@ -31,7 +31,7 @@ func NewAccount(cmd []interface{}) map[string]interface{} {
 
 func ImportWithPrivateKey(cmd []interface{}) map[string]interface{} {
 	if len(cmd) < 3 {
-		return responsePack(dsp.INVALID_PARAMS, "")
+		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	params := convertSliceToMap(cmd, []string{"PrivateKey", "Label", "Password"})
 	v := rest.ImportWithPrivateKey(params)
@@ -44,7 +44,7 @@ func ImportWithPrivateKey(cmd []interface{}) map[string]interface{} {
 
 func ExportPrivateKey(cmd []interface{}) map[string]interface{} {
 	if len(cmd) < 1 {
-		return responsePack(dsp.INVALID_PARAMS, "")
+		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	params := convertSliceToMap(cmd, []string{"Password"})
 	v := rest.ExportWIFPrivateKey(params)
@@ -57,7 +57,7 @@ func ExportPrivateKey(cmd []interface{}) map[string]interface{} {
 
 func ImportWithWalletData(cmd []interface{}) map[string]interface{} {
 	if len(cmd) < 2 {
-		return responsePack(dsp.INVALID_PARAMS, "")
+		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	params := convertSliceToMap(cmd, []string{"Wallet", "Password"})
 	v := rest.ImportWithWalletData(params)

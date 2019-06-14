@@ -11,12 +11,12 @@ func RegisterNode(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	addr, ok := cmd["NodeAddr"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 
 	volumeStr, ok := cmd["Volume"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	volume, err := strconv.ParseUint(volumeStr, 10, 64)
 	if err != nil {
@@ -25,7 +25,7 @@ func RegisterNode(cmd map[string]interface{}) map[string]interface{} {
 
 	serviceTimeStr, ok := cmd["ServiceTime"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	serviceTime, err := strconv.ParseUint(serviceTimeStr, 10, 64)
 	if err != nil {
@@ -37,7 +37,9 @@ func RegisterNode(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
 	}
 
-	resp["Result"] = tx
+	m := make(map[string]interface{}, 0)
+	m["Tx"] = tx
+	resp["Result"] = m
 	return resp
 }
 
@@ -48,7 +50,9 @@ func UnregisterNode(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
 
-	resp["Result"] = tx
+	m := make(map[string]interface{}, 0)
+	m["Tx"] = tx
+	resp["Result"] = m
 	return resp
 }
 
@@ -57,15 +61,16 @@ func NodeQuery(cmd map[string]interface{}) map[string]interface{} {
 
 	walletAddr, ok := cmd["Addr"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 
 	fsNodeInfo, err := dsp.DspService.NodeQuery(walletAddr)
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
-
-	resp["Result"] = fsNodeInfo
+	m := make(map[string]interface{}, 0)
+	m["Info"] = fsNodeInfo
+	resp["Result"] = m
 	return resp
 }
 
@@ -103,7 +108,9 @@ func NodeUpdate(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
 
-	resp["Result"] = tx
+	m := make(map[string]interface{}, 0)
+	m["Tx"] = tx
+	resp["Result"] = m
 	return resp
 }
 
@@ -115,7 +122,9 @@ func NodeWithdrawProfit(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
 
-	resp["Result"] = tx
+	m := make(map[string]interface{}, 0)
+	m["Tx"] = tx
+	resp["Result"] = m
 	return resp
 }
 
@@ -124,12 +133,12 @@ func RegisterUrl(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	url, ok := cmd["Url"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 
 	link, ok := cmd["Link"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 
 	tx, err := dsp.DspService.RegisterUrl(url, link)
@@ -137,7 +146,9 @@ func RegisterUrl(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
 
-	resp["Result"] = tx
+	m := make(map[string]interface{}, 0)
+	m["Tx"] = tx
+	resp["Result"] = m
 	return resp
 }
 
@@ -145,20 +156,21 @@ func BindUrl(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	url, ok := cmd["Url"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 
 	link, ok := cmd["Link"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 
 	tx, err := dsp.DspService.BindUrl(url, link)
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
-
-	resp["Result"] = tx
+	m := make(map[string]interface{}, 0)
+	m["Tx"] = tx
+	resp["Result"] = m
 	return resp
 }
 
@@ -166,13 +178,15 @@ func QueryLink(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	url, ok := cmd["Url"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	link, err := dsp.DspService.QueryLink(url)
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
-	resp["Result"] = link
+	m := make(map[string]interface{}, 0)
+	m["Link"] = link
+	resp["Result"] = m
 	return resp
 }
 
@@ -180,17 +194,17 @@ func RegisterDns(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	ip, ok := cmd["Ip"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 
 	port, ok := cmd["Port"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 
 	depositStr, ok := cmd["Amount"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	deposit, err := strconv.ParseUint(depositStr, 10, 64)
 	if err != nil {
@@ -201,7 +215,9 @@ func RegisterDns(cmd map[string]interface{}) map[string]interface{} {
 	if derr != nil {
 		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
 	}
-	resp["Result"] = tx
+	m := make(map[string]interface{}, 0)
+	m["Tx"] = tx
+	resp["Result"] = m
 	return resp
 }
 
@@ -211,7 +227,9 @@ func UnRegisterDns(cmd map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
-	resp["Result"] = tx
+	m := make(map[string]interface{}, 0)
+	m["Tx"] = tx
+	resp["Result"] = m
 	return resp
 }
 
@@ -223,7 +241,9 @@ func QuitDns(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
 
-	resp["Result"] = tx
+	m := make(map[string]interface{}, 0)
+	m["Tx"] = tx
+	resp["Result"] = m
 	return resp
 }
 
@@ -232,7 +252,7 @@ func AddPos(cmd map[string]interface{}) map[string]interface{} {
 
 	amountStr, ok := cmd["Amount"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	amount, err := strconv.ParseUint(amountStr, 10, 64)
 	if err != nil {
@@ -244,7 +264,9 @@ func AddPos(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
 	}
 
-	resp["Result"] = tx
+	m := make(map[string]interface{}, 0)
+	m["Tx"] = tx
+	resp["Result"] = m
 	return resp
 }
 
@@ -253,7 +275,7 @@ func ReducePos(cmd map[string]interface{}) map[string]interface{} {
 
 	amountStr, ok := cmd["Amount"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	amount, err := strconv.ParseUint(amountStr, 10, 64)
 	if err != nil {
@@ -265,7 +287,9 @@ func ReducePos(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
 	}
 
-	resp["Result"] = tx
+	m := make(map[string]interface{}, 0)
+	m["Tx"] = tx
+	resp["Result"] = m
 	return resp
 }
 
@@ -283,7 +307,7 @@ func QueryRegInfo(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	pubkey, ok := cmd["Pubkey"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	ret, err := dsp.DspService.QueryRegInfo(pubkey)
 	if err != nil {
@@ -308,7 +332,7 @@ func QueryHostInfo(cmd map[string]interface{}) map[string]interface{} {
 
 	addr, ok := cmd["Addr"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	ret, err := dsp.DspService.QueryHostInfo(addr)
 	if err != nil {

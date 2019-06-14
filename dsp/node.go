@@ -69,6 +69,7 @@ func (this *Endpoint) NodeWithdrawProfit() (string, *DspErr) {
 
 //Handle for DNS
 func (this *Endpoint) RegisterUrl(url, link string) (string, *DspErr) {
+	log.Debugf("register url %v link %v", url, link)
 	tx, err := this.Dsp.RegisterFileUrl(url, link)
 	if err != nil {
 		return "", &DspErr{Code: DSP_URL_REGISTER_FAILED, Error: err}

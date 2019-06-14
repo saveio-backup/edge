@@ -1,6 +1,8 @@
 package rpc
 
 import (
+	"fmt"
+
 	"github.com/saveio/edge/dsp"
 	"github.com/saveio/edge/http/rest"
 )
@@ -17,7 +19,7 @@ func GetAllChannels(cmd []interface{}) map[string]interface{} {
 
 func OpenChannel(cmd []interface{}) map[string]interface{} {
 	if len(cmd) < 1 {
-		return responsePack(dsp.INVALID_PARAMS, "")
+		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	params := convertSliceToMap(cmd, []string{"Partner"})
 	v := rest.OpenChannel(params)
@@ -28,9 +30,23 @@ func OpenChannel(cmd []interface{}) map[string]interface{} {
 	return responseSuccess(ret)
 }
 
+func CloseChannel(cmd []interface{}) map[string]interface{} {
+	if len(cmd) < 1 {
+		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	params := convertSliceToMap(cmd, []string{"Partner"})
+	v := rest.CloseChannel(params)
+	fmt.Printf("rest close channel %v\n", v)
+	ret, err := parseRestResult(v)
+	if err != nil {
+		return responsePackError(err.Code, err.Error.Error())
+	}
+	return responseSuccess(ret)
+}
+
 func DepositChannel(cmd []interface{}) map[string]interface{} {
 	if len(cmd) < 3 {
-		return responsePack(dsp.INVALID_PARAMS, "")
+		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	params := convertSliceToMap(cmd, []string{"Partner", "Amount", "Password"})
 	v := rest.DepositChannel(params)
@@ -43,9 +59,9 @@ func DepositChannel(cmd []interface{}) map[string]interface{} {
 
 func WithdrawChannel(cmd []interface{}) map[string]interface{} {
 	if len(cmd) < 2 {
-		return responsePack(dsp.INVALID_PARAMS, "")
+		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
-	params := convertSliceToMap(cmd, []string{"Partner", "Amount"})
+	params := convertSliceToMap(cmd, []string{"Partner", "Amount", "Password"})
 	v := rest.WithdrawChannel(params)
 	ret, err := parseRestResult(v)
 	if err != nil {
@@ -56,7 +72,7 @@ func WithdrawChannel(cmd []interface{}) map[string]interface{} {
 
 func QueryChannelDeposit(cmd []interface{}) map[string]interface{} {
 	if len(cmd) < 1 {
-		return responsePack(dsp.INVALID_PARAMS, "")
+		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	params := convertSliceToMap(cmd, []string{"Partner"})
 	v := rest.QueryChannelDeposit(params)
@@ -69,7 +85,7 @@ func QueryChannelDeposit(cmd []interface{}) map[string]interface{} {
 
 func QueryChannel(cmd []interface{}) map[string]interface{} {
 	if len(cmd) < 1 {
-		return responsePack(dsp.INVALID_PARAMS, "")
+		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	params := convertSliceToMap(cmd, []string{"Partner"})
 	v := rest.QueryChannel(params)
@@ -82,7 +98,7 @@ func QueryChannel(cmd []interface{}) map[string]interface{} {
 
 func QueryChannelByID(cmd []interface{}) map[string]interface{} {
 	if len(cmd) < 2 {
-		return responsePack(dsp.INVALID_PARAMS, "")
+		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	params := convertSliceToMap(cmd, []string{"Id", "Partner"})
 	v := rest.QueryChannelByID(params)
@@ -95,7 +111,7 @@ func QueryChannelByID(cmd []interface{}) map[string]interface{} {
 
 func TransferByChannel(cmd []interface{}) map[string]interface{} {
 	if len(cmd) < 3 {
-		return responsePack(dsp.INVALID_PARAMS, "")
+		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	params := convertSliceToMap(cmd, []string{"To", "Amount", "PaymentId"})
 	v := rest.TransferByChannel(params)

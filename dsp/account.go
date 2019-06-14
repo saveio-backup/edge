@@ -109,11 +109,13 @@ func (this *Endpoint) NewAccount(label string, typeCode keypair.KeyType, curveCo
 		log.Errorf("dsp init err %s", err)
 		return nil, &DspErr{Code: DSP_INIT_FAILED, Error: err}
 	}
-	err = StartDspNode(service, true, true, true)
-	if err != nil {
-		log.Errorf("dsp start err %s", err)
-		return nil, &DspErr{Code: DSP_START_FAILED, Error: err}
-	}
+	go func() {
+		err = StartDspNode(service, true, true, true)
+		if err != nil {
+			log.Errorf("dsp start err %s", err)
+			panic(err)
+		}
+	}()
 	config.Parameters.BaseConfig.WalletPwd = string(passwd)
 	config.Save()
 	return acc2, nil
@@ -170,10 +172,13 @@ func (this *Endpoint) ImportWithPrivateKey(wif, label, password string) (*Accoun
 	if err != nil {
 		return nil, &DspErr{Code: DSP_INIT_FAILED, Error: err}
 	}
-	err = StartDspNode(service, true, true, true)
-	if err != nil {
-		return nil, &DspErr{Code: DSP_START_FAILED, Error: err}
-	}
+	go func() {
+		err = StartDspNode(service, true, true, true)
+		if err != nil {
+			log.Errorf("dsp start err %s", err)
+			panic(err)
+		}
+	}()
 	return acc2, nil
 }
 func (this *Endpoint) ImportWithWalletData(walletStr, password string) (*AccountResp, *DspErr) {
@@ -205,10 +210,13 @@ func (this *Endpoint) ImportWithWalletData(walletStr, password string) (*Account
 	if err != nil {
 		return nil, &DspErr{Code: DSP_INIT_FAILED, Error: err}
 	}
-	err = StartDspNode(service, true, true, true)
-	if err != nil {
-		return nil, &DspErr{Code: DSP_START_FAILED, Error: err}
-	}
+	go func() {
+		err = StartDspNode(service, true, true, true)
+		if err != nil {
+			log.Errorf("dsp start err %s", err)
+			panic(err)
+		}
+	}()
 	return acc2, nil
 }
 

@@ -94,7 +94,6 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 		ctx.Sender().Request(&dspact.P2pResp{Error: err}, ctx.Self())
 	case *dspact.SendReq:
 		err := this.dspNet.Send(msg.Data, msg.Address)
-		log.Debugf("[p2pActor] send msg to %s, err %s", msg.Address, err)
 		ctx.Sender().Request(&dspact.P2pResp{Error: err}, ctx.Self())
 	case *dspact.BroadcastReq:
 		err := this.dspNet.Broadcast(msg.Addresses, msg.Data, msg.NeedReply, msg.Stop, msg.Action)

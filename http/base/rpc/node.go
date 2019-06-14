@@ -1,13 +1,15 @@
 package rpc
 
 import (
+	"fmt"
+
 	"github.com/saveio/edge/dsp"
 	"github.com/saveio/edge/http/rest"
 )
 
 func RegisterNode(cmd []interface{}) map[string]interface{} {
 	if len(cmd) < 3 {
-		return responsePack(dsp.INVALID_PARAMS, "")
+		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	params := convertSliceToMap(cmd, []string{"NodeAddr", "Volume", "ServiceTime"})
 	v := rest.RegisterNode(params)
@@ -30,7 +32,7 @@ func UnregisterNode(cmd []interface{}) map[string]interface{} {
 
 func NodeQuery(cmd []interface{}) map[string]interface{} {
 	if len(cmd) < 1 {
-		return responsePack(dsp.INVALID_PARAMS, "")
+		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	params := convertSliceToMap(cmd, []string{"Addr"})
 	v := rest.NodeQuery(params)
@@ -43,7 +45,7 @@ func NodeQuery(cmd []interface{}) map[string]interface{} {
 
 func NodeUpdate(cmd []interface{}) map[string]interface{} {
 	if len(cmd) < 4 {
-		return responsePack(dsp.INVALID_PARAMS, "")
+		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	params := convertSliceToMap(cmd, []string{"NodeAddr", "NodeAddr", "Volume", "ServiceTime"})
 	v := rest.NodeUpdate(params)
@@ -66,7 +68,7 @@ func NodeWithdrawProfit(cmd []interface{}) map[string]interface{} {
 
 func RegisterUrl(cmd []interface{}) map[string]interface{} {
 	if len(cmd) < 2 {
-		return responsePack(dsp.INVALID_PARAMS, "")
+		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	params := convertSliceToMap(cmd, []string{"Url", "Link"})
 	v := rest.RegisterUrl(params)
@@ -79,7 +81,7 @@ func RegisterUrl(cmd []interface{}) map[string]interface{} {
 
 func BindUrl(cmd []interface{}) map[string]interface{} {
 	if len(cmd) < 2 {
-		return responsePack(dsp.INVALID_PARAMS, "")
+		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	params := convertSliceToMap(cmd, []string{"Url", "Link"})
 	v := rest.BindUrl(params)
@@ -92,7 +94,7 @@ func BindUrl(cmd []interface{}) map[string]interface{} {
 
 func QueryLink(cmd []interface{}) map[string]interface{} {
 	if len(cmd) < 1 {
-		return responsePack(dsp.INVALID_PARAMS, "")
+		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	params := convertSliceToMap(cmd, []string{"Url"})
 	v := rest.QueryLink(params)
@@ -100,12 +102,13 @@ func QueryLink(cmd []interface{}) map[string]interface{} {
 	if err != nil {
 		return responsePackError(err.Code, err.Error.Error())
 	}
+	fmt.Printf("ret %v\n", ret)
 	return responseSuccess(ret)
 }
 
 func RegisterDns(cmd []interface{}) map[string]interface{} {
 	if len(cmd) < 3 {
-		return responsePack(dsp.INVALID_PARAMS, "")
+		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	params := convertSliceToMap(cmd, []string{"Ip", "Port", "Amount"})
 	v := rest.RegisterDns(params)
@@ -138,7 +141,7 @@ func QuitDns(cmd []interface{}) map[string]interface{} {
 
 func AddPos(cmd []interface{}) map[string]interface{} {
 	if len(cmd) < 1 {
-		return responsePack(dsp.INVALID_PARAMS, "")
+		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	params := convertSliceToMap(cmd, []string{"Amount"})
 	v := rest.AddPos(params)
@@ -151,7 +154,7 @@ func AddPos(cmd []interface{}) map[string]interface{} {
 
 func ReducePos(cmd []interface{}) map[string]interface{} {
 	if len(cmd) < 1 {
-		return responsePack(dsp.INVALID_PARAMS, "")
+		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	params := convertSliceToMap(cmd, []string{"Amount"})
 	v := rest.ReducePos(params)
@@ -174,7 +177,7 @@ func QueryRegInfos(cmd []interface{}) map[string]interface{} {
 
 func QueryRegInfo(cmd []interface{}) map[string]interface{} {
 	if len(cmd) < 1 {
-		return responsePack(dsp.INVALID_PARAMS, "")
+		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	params := convertSliceToMap(cmd, []string{"Pubkey"})
 	v := rest.QueryRegInfo(params)
@@ -197,7 +200,7 @@ func QueryHostInfos(cmd []interface{}) map[string]interface{} {
 
 func QueryHostInfo(cmd []interface{}) map[string]interface{} {
 	if len(cmd) < 1 {
-		return responsePack(dsp.INVALID_PARAMS, "")
+		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	params := convertSliceToMap(cmd, []string{"Addr"})
 	v := rest.QueryHostInfo(params)

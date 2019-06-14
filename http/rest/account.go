@@ -24,23 +24,23 @@ func NewAccount(cmd map[string]interface{}) map[string]interface{} {
 	}
 	password, ok := cmd["Password"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	label, ok := cmd["Label"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	optionType, ok := cmd["KeyType"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	optionCurve, ok := cmd["Curve"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	optionScheme, ok := cmd["Scheme"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	createOnly, _ := cmd["CreateOnly"].(bool)
 	keyType := edgeCmd.GetKeyTypeCode(optionType)
@@ -61,11 +61,11 @@ func ImportWithPrivateKey(cmd map[string]interface{}) map[string]interface{} {
 	}
 	privKeyStr, ok := cmd["PrivateKey"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	password, ok := cmd["Password"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	label, ok := cmd["Label"].(string)
 	acc, err := dsp.DspService.ImportWithPrivateKey(privKeyStr, label, password)
@@ -84,11 +84,11 @@ func ImportWithWalletData(cmd map[string]interface{}) map[string]interface{} {
 	}
 	walletStr, ok := cmd["Wallet"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	password, ok := cmd["Password"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	acc, err := dsp.DspService.ImportWithWalletData(walletStr, password)
 	if err != nil {
@@ -112,7 +112,7 @@ func ExportWIFPrivateKey(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	password, ok := cmd["Password"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	ret, err := dsp.DspService.ExportWIFPrivateKey(password)
 	if err != nil {

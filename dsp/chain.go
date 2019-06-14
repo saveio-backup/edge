@@ -3,12 +3,14 @@ package dsp
 import (
 	"bytes"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/saveio/edge/common/config"
 	hcomm "github.com/saveio/edge/http/common"
+	dynamicstruct "github.com/saveio/edge/utils/dynamic-struct"
 	"github.com/saveio/themis-go-sdk/usdt"
 	"github.com/saveio/themis/cmd/utils"
 	"github.com/saveio/themis/common"
@@ -468,7 +470,29 @@ func (this *Endpoint) InvokeNativeContract(version byte, contractAddr, method st
 	if err != nil {
 		return "", &DspErr{Code: INVALID_PARAMS, Error: err}
 	}
-	txHash, err := this.Dsp.Chain.InvokeNativeContract(chainCfg.DEFAULT_GAS_PRICE, chainCfg.DEFAULT_GAS_LIMIT, acc, version, contractAddress, method, params)
+	newParams := make([]interface{}, 0, len(params))
+	for _, p := range params {
+		switch p.(type) {
+		case map[string]interface{}:
+			type none struct{}
+			type strStruct struct {
+				Value string
+			}
+			var instance interface{}
+			for _, v := range p.(map[string]interface{}) {
+				switch v.(type) {
+				case string:
+					instance = dynamicstruct.MergeStructs(none{}, strStruct{Value: v.(string)}).Build().New()
+				}
+			}
+			newParams = append(newParams, instance)
+		default:
+			newParams = append(newParams, p)
+		}
+	}
+	fmt.Printf("new param %v\n", newParams)
+	txHash, err := this.Dsp.Chain.InvokeNativeContract(chainCfg.DEFAULT_GAS_PRICE, chainCfg.DEFAULT_GAS_LIMIT, acc, version, contractAddress, method, newParams)
+	// txHash, err := this.Dsp.Chain.InvokeNativeContract(chainCfg.DEFAULT_GAS_PRICE, chainCfg.DEFAULT_GAS_LIMIT, acc, version, contractAddress, method, params)
 	if err != nil {
 		return "", &DspErr{Code: CONTRACT_ERROR, Error: err}
 	}
@@ -480,8 +504,20 @@ func (this *Endpoint) PreInvokeNativeContract(version byte, contractAddr, method
 	if err != nil {
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: err}
 	}
-	log.Debugf("contractAddress :%v", contractAddress)
-	ret, err := this.Dsp.Chain.PreExecInvokeNativeContract(contractAddress, version, method, params)
+	newParams := make([]interface{}, 0, len(params))
+	for _, p := range params {
+		switch p.(type) {
+		case map[string]interface{}:
+			b, err := json.Marshal(p)
+			if err != nil {
+				return nil, &DspErr{Code: INVALID_PARAMS, Error: err}
+			}
+			newParams = append(newParams, b)
+		default:
+			newParams = append(newParams, p)
+		}
+	}
+	ret, err := this.Dsp.Chain.PreExecInvokeNativeContract(contractAddress, version, method, newParams)
 	if err != nil {
 		return nil, &DspErr{Code: CONTRACT_ERROR, Error: err}
 	}

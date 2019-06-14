@@ -1,9 +1,8 @@
 package cmd
 
 import (
-	"encoding/hex"
-
 	"github.com/saveio/edge/cmd/flags"
+	"github.com/saveio/edge/cmd/utils"
 	"github.com/saveio/edge/common/config"
 	"github.com/saveio/edge/dsp"
 	ccom "github.com/saveio/themis/common"
@@ -129,25 +128,11 @@ func registerUrl(ctx *cli.Context) error {
 
 	url := ctx.String(flags.GetFlagName(flags.DnsURLFlag))
 	link := ctx.String(flags.GetFlagName(flags.DnsLinkFlag))
-
-	endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
+	ret, err := utils.RegisterUrl(url, link)
 	if err != nil {
-		PrintErrorMsg("init dsp err:%s\n", err)
 		return err
 	}
-
-	dsp.StartDspNode(endpoint, false, false, false)
-	if err != nil {
-		PrintErrorMsg("start dsp err:%s\n", err)
-		return err
-	}
-
-	hash, err := endpoint.Dsp.RegisterFileUrl(url, link)
-	if err != nil {
-		PrintInfoMsg("Regiter URL:%s Error, err-Messge:%s", url, err)
-		return err
-	}
-	PrintInfoMsg("Register URL:%s Successed, tx-Hash:%s", url, hash)
+	PrintJsonData(ret)
 	return nil
 }
 
@@ -160,25 +145,11 @@ func bindUrl(ctx *cli.Context) error {
 
 	url := ctx.String(flags.GetFlagName(flags.DnsURLFlag))
 	link := ctx.String(flags.GetFlagName(flags.DnsLinkFlag))
-
-	endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
+	ret, err := utils.BindUrl(url, link)
 	if err != nil {
-		PrintErrorMsg("init dsp err:%s\n", err)
 		return err
 	}
-
-	dsp.StartDspNode(endpoint, false, false, false)
-	if err != nil {
-		PrintErrorMsg("start dsp err:%s\n", err)
-		return err
-	}
-
-	hash, err := endpoint.Dsp.BindFileUrl(url, link)
-	if err != nil {
-		PrintInfoMsg("Bind URL:%s Error, err-Messge:%s", url, err)
-		return err
-	}
-	PrintInfoMsg("Bind URL:%s Successed, tx-Hash:%s", url, hash)
+	PrintJsonData(ret)
 	return nil
 }
 
@@ -190,21 +161,11 @@ func queryLink(ctx *cli.Context) error {
 	}
 
 	url := ctx.String(flags.GetFlagName(flags.DnsURLFlag))
-
-	endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
+	ret, err := utils.QueryLink(url)
 	if err != nil {
-		PrintErrorMsg("init dsp err:%s\n", err)
 		return err
 	}
-
-	err = dsp.StartDspNode(endpoint, false, false, false)
-	if err != nil {
-		PrintErrorMsg("start dsp err:%s\n", err)
-		return err
-	}
-
-	link := endpoint.Dsp.GetLinkFromUrl(url)
-	PrintInfoMsg("Query URL:%s Successed, Link:%s", url, link)
+	PrintJsonData(ret)
 	return nil
 }
 
@@ -214,61 +175,35 @@ func registerDns(ctx *cli.Context) error {
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
-
-	endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
-	if err != nil {
-		PrintErrorMsg("init dsp err:%s\n", err)
-		return err
-	}
-
 	ip := ctx.String(flags.GetFlagName(flags.DnsIpFlag))
 	port := ctx.String(flags.GetFlagName(flags.DnsPortFlag))
-	initDeposit := ctx.Uint64(flags.GetFlagName(flags.InitDepositFlag))
-
-	tx, err := endpoint.Dsp.Chain.Native.Dns.DNSNodeReg([]byte(ip), []byte(port), initDeposit)
+	initDeposit := ctx.String(flags.GetFlagName(flags.InitDepositFlag))
+	ret, err := utils.RegisterDns(ip, port, initDeposit)
 	if err != nil {
-		PrintErrorMsg("Register candidate err:%s\n", err)
-		return nil
+		return err
 	}
-	PrintInfoMsg("RegisterCandidate Success")
-	PrintInfoMsg("tx :%s\n", hex.EncodeToString(ccom.ToArrayReverse(tx.ToArray())))
-
+	PrintJsonData(ret)
 	return nil
 }
 
 func unregisterDns(ctx *cli.Context) error {
-	endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
+	// TODO: check password
+	ret, err := utils.UnregisterDns()
 	if err != nil {
-		PrintErrorMsg("init dsp err:%s\n", err)
 		return err
 	}
-
-	tx, err := endpoint.Dsp.Chain.Native.Dns.UnregisterDNSNode()
-	if err != nil {
-		PrintErrorMsg("Unregister candidate err:%s\n", err)
-		return nil
-	}
-	PrintInfoMsg("UnregisterCandidate Success")
-	PrintInfoMsg("tx :%s\n", hex.EncodeToString(ccom.ToArrayReverse(tx.ToArray())))
+	PrintJsonData(ret)
 
 	return nil
 }
 
 func quitDns(ctx *cli.Context) error {
-	endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
+	// TODO: check password
+	ret, err := utils.QuitDns()
 	if err != nil {
-		PrintErrorMsg("init dsp err:%s\n", err)
 		return err
 	}
-
-	tx, err := endpoint.Dsp.Chain.Native.Dns.QuitNode()
-	if err != nil {
-		PrintErrorMsg("Quit candidate err:%s\n", err)
-		return nil
-	}
-	PrintInfoMsg("Quit candidate Success")
-	PrintInfoMsg("tx :%s\n", hex.EncodeToString(ccom.ToArrayReverse(tx.ToArray())))
-
+	PrintJsonData(ret)
 	return nil
 }
 
@@ -278,23 +213,12 @@ func addPos(ctx *cli.Context) error {
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
-
-	endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
+	deltaDeposit := ctx.String(flags.GetFlagName(flags.DeltaDepositFlag))
+	ret, err := utils.AddPos(deltaDeposit)
 	if err != nil {
-		PrintErrorMsg("init dsp err:%s\n", err)
 		return err
 	}
-
-	deltaDeposit := ctx.Uint64(flags.GetFlagName(flags.DeltaDepositFlag))
-
-	tx, err := endpoint.Dsp.Chain.Native.Dns.AddInitPos(deltaDeposit)
-	if err != nil {
-		PrintErrorMsg("Add init deposit err:%s\n", err)
-		return nil
-	}
-	PrintInfoMsg("Add init deposit Success")
-	PrintInfoMsg("tx :%s\n", hex.EncodeToString(ccom.ToArrayReverse(tx.ToArray())))
-
+	PrintJsonData(ret)
 	return nil
 }
 
@@ -304,23 +228,12 @@ func reducePos(ctx *cli.Context) error {
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
-
-	endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
+	deltaDeposit := ctx.String(flags.GetFlagName(flags.DeltaDepositFlag))
+	ret, err := utils.ReducePos(deltaDeposit)
 	if err != nil {
-		PrintErrorMsg("init dsp err:%s\n", err)
 		return err
 	}
-
-	deltaDeposit := ctx.Uint64(flags.GetFlagName(flags.DeltaDepositFlag))
-
-	tx, err := endpoint.Dsp.Chain.Native.Dns.ReduceInitPos(deltaDeposit)
-	if err != nil {
-		PrintErrorMsg("Reduce init deposit err:%s\n", err)
-		return nil
-	}
-	PrintInfoMsg("Reduce init deposit Success")
-	PrintInfoMsg("tx :%s\n", hex.EncodeToString(ccom.ToArrayReverse(tx.ToArray())))
-
+	PrintJsonData(ret)
 	return nil
 }
 

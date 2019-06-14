@@ -6,6 +6,7 @@ import (
 
 	"github.com/saveio/edge/dsp"
 	"github.com/saveio/themis/common/constants"
+	"github.com/saveio/themis/common/log"
 )
 
 func GetAllChannels(cmd map[string]interface{}) map[string]interface{} {
@@ -26,7 +27,7 @@ func OpenChannel(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	partnerAddrstr, ok := cmd["Partner"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
@@ -39,19 +40,37 @@ func OpenChannel(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
+//Handle for channel
+func CloseChannel(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	partnerAddrstr, ok := cmd["Partner"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	if dsp.DspService == nil {
+		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
+	}
+	err := dsp.DspService.ClosePaymentChannel(partnerAddrstr)
+	log.Debugf("close channel %s %s", partnerAddrstr, err)
+	if err != nil {
+		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
+	}
+	return resp
+}
+
 func DepositChannel(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	partnerAddrstr, ok := cmd["Partner"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	amountstr, ok := cmd["Amount"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	amount, err := strconv.ParseFloat(amountstr, 10)
 	if err != nil || amount <= 0 {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	realAmount := uint64(amount * math.Pow10(constants.USDT_DECIMALS))
 	password, ok := cmd["Password"].(string)
@@ -76,15 +95,15 @@ func WithdrawChannel(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	partnerAddrstr, ok := cmd["Partner"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	amountstr, ok := cmd["Amount"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	amount, err := strconv.ParseFloat(amountstr, 10)
 	if err != nil || amount <= 0 {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	password, ok := cmd["Password"].(string)
 	if !ok {
@@ -109,7 +128,7 @@ func QueryChannelDeposit(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	partnerAddrstr, ok := cmd["Partner"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
@@ -136,7 +155,7 @@ func QueryChannelByID(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	idstr, ok := cmd["Id"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	partnerAddrStr, _ := cmd["Partner"].(string)
 	if dsp.DspService == nil {
@@ -152,26 +171,27 @@ func QueryChannelByID(cmd map[string]interface{}) map[string]interface{} {
 
 func TransferByChannel(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
+	log.Debugf("cmd %v", cmd)
 
 	toAddrstr, ok := cmd["To"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	amountstr, ok := cmd["Amount"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	amount, err := strconv.ParseUint(amountstr, 10, 64)
 	if err != nil {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	idstr, ok := cmd["PaymentId"].(string)
 	if !ok {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	paymentId, err := strconv.ParseInt(idstr, 10, 32)
 	if err != nil {
-		return ResponsePack(dsp.INVALID_PARAMS)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
@@ -192,8 +212,6 @@ func GetChannelInitProgress(cmd map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
-	ret := make(map[string]interface{}, 0)
-	ret["Progress"] = progress
-	resp["Result"] = ret
+	resp["Result"] = progress
 	return resp
 }
