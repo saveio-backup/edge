@@ -17,5 +17,6 @@ func GetFlagName(flag cli.Flag) string {
 	if name == "" {
 		return ""
 	}
+
 	return strings.TrimSpace(strings.Split(name, ",")[0])
 }

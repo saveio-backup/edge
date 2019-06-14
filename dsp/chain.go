@@ -10,7 +10,7 @@ import (
 
 	"github.com/saveio/edge/common/config"
 	hcomm "github.com/saveio/edge/http/common"
-	dynamicstruct "github.com/saveio/edge/utils/dynamic-struct"
+	"github.com/saveio/edge/utils/dystruct"
 	"github.com/saveio/themis-go-sdk/usdt"
 	"github.com/saveio/themis/cmd/utils"
 	"github.com/saveio/themis/common"
@@ -482,7 +482,7 @@ func (this *Endpoint) InvokeNativeContract(version byte, contractAddr, method st
 			for _, v := range p.(map[string]interface{}) {
 				switch v.(type) {
 				case string:
-					instance = dynamicstruct.MergeStructs(none{}, strStruct{Value: v.(string)}).Build().New()
+					instance = dystruct.MergeStructs(none{}, strStruct{Value: v.(string)}).Build().New()
 				}
 			}
 			newParams = append(newParams, instance)
