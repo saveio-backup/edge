@@ -3,14 +3,14 @@ package dsp
 import (
 	"bytes"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 
 	"github.com/saveio/edge/common/config"
 	hcomm "github.com/saveio/edge/http/common"
-	"github.com/saveio/edge/utils/dystruct"
+	edgeUtils "github.com/saveio/edge/utils"
 	"github.com/saveio/themis-go-sdk/usdt"
 	"github.com/saveio/themis/cmd/utils"
 	"github.com/saveio/themis/common"
@@ -18,6 +18,7 @@ import (
 	"github.com/saveio/themis/common/log"
 	"github.com/saveio/themis/core/payload"
 	bcomn "github.com/saveio/themis/http/base/common"
+	"github.com/saveio/themis/smartcontract/service/native/film"
 )
 
 const (
@@ -470,52 +471,25 @@ func (this *Endpoint) InvokeNativeContract(version byte, contractAddr, method st
 	if err != nil {
 		return "", &DspErr{Code: INVALID_PARAMS, Error: err}
 	}
-	newParams := make([]interface{}, 0, len(params))
-	for _, p := range params {
-		switch p.(type) {
-		case map[string]interface{}:
-			type none struct{}
-			type strStruct struct {
-				Value string
-			}
-			var instance interface{}
-			for _, v := range p.(map[string]interface{}) {
-				switch v.(type) {
-				case string:
-					instance = dystruct.MergeStructs(none{}, strStruct{Value: v.(string)}).Build().New()
-				}
-			}
-			newParams = append(newParams, instance)
-		default:
-			newParams = append(newParams, p)
-		}
+	newParams, derr := getNativeContractParams(method, params)
+	if derr != nil {
+		return "", derr
 	}
-	fmt.Printf("new param %v\n", newParams)
 	txHash, err := this.Dsp.Chain.InvokeNativeContract(chainCfg.DEFAULT_GAS_PRICE, chainCfg.DEFAULT_GAS_LIMIT, acc, version, contractAddress, method, newParams)
-	// txHash, err := this.Dsp.Chain.InvokeNativeContract(chainCfg.DEFAULT_GAS_PRICE, chainCfg.DEFAULT_GAS_LIMIT, acc, version, contractAddress, method, params)
 	if err != nil {
 		return "", &DspErr{Code: CONTRACT_ERROR, Error: err}
 	}
 	return hex.EncodeToString(common.ToArrayReverse(txHash[:])), nil
 }
 
-func (this *Endpoint) PreInvokeNativeContract(version byte, contractAddr, method string, params []interface{}) ([]byte, *DspErr) {
+func (this *Endpoint) PreInvokeNativeContract(version byte, contractAddr, method string, params []interface{}) (interface{}, *DspErr) {
 	contractAddress, err := common.AddressFromBase58(contractAddr)
 	if err != nil {
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: err}
 	}
-	newParams := make([]interface{}, 0, len(params))
-	for _, p := range params {
-		switch p.(type) {
-		case map[string]interface{}:
-			b, err := json.Marshal(p)
-			if err != nil {
-				return nil, &DspErr{Code: INVALID_PARAMS, Error: err}
-			}
-			newParams = append(newParams, b)
-		default:
-			newParams = append(newParams, p)
-		}
+	newParams, derr := getNativeContractParams(method, params)
+	if derr != nil {
+		return nil, derr
 	}
 	ret, err := this.Dsp.Chain.PreExecInvokeNativeContract(contractAddress, version, method, newParams)
 	if err != nil {
@@ -525,5 +499,139 @@ func (this *Endpoint) PreInvokeNativeContract(version byte, contractAddr, method
 	if err != nil {
 		return nil, &DspErr{Code: CONTRACT_ERROR, Error: err}
 	}
-	return data, nil
+	result, err := convertResult(method, data)
+	if err != nil {
+		return nil, &DspErr{Code: CONTRACT_ERROR, Error: err}
+	}
+	return result, nil
+}
+
+func getNativeContractParams(method string, params []interface{}) ([]interface{}, *DspErr) {
+	switch method {
+	case film.FILM_PUBLISH:
+		if len(params) != 10 {
+			return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
+		}
+		newParams, err := convertParam(params, []string{"string", "string", "string", "string", "float64", "float64", "string", "string", "float64", "float64"})
+		if err != nil {
+			return nil, err
+		}
+		return []interface{}{&film.PublishFilmParam{
+			Cover:       []byte(newParams[0].(string)),
+			Url:         []byte(newParams[1].(string)),
+			Name:        []byte(newParams[2].(string)),
+			Desc:        []byte(newParams[3].(string)),
+			Type:        uint64(newParams[4].(float64)),
+			ReleaseYear: uint64(newParams[5].(float64)),
+			Language:    []byte(newParams[6].(string)),
+			Region:      []byte(newParams[7].(string)),
+			Price:       uint64(newParams[8].(float64)),
+			CreatedAt:   uint64(newParams[9].(float64)),
+		}}, nil
+	case film.FILM_GETINFO:
+		if len(params) != 2 {
+			return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
+		}
+		newParams, err := convertParam(params, []string{"string", "address"})
+		if err != nil {
+			return nil, err
+		}
+		param := &film.FilmHashAddrParams{
+			Hash:       []byte(newParams[0].(string)),
+			WalletAddr: newParams[1].(common.Address),
+		}
+		return []interface{}{param}, nil
+	case film.FILM_SEARCH:
+		if len(params) != 8 {
+			return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
+		}
+		newParams, err := convertParam(params, []string{"string", "bool", "float64", "float64", "string", "address", "float64", "float64"})
+		if err != nil {
+			return nil, err
+		}
+		avaiable := 0
+		if newParams[1].(bool) {
+			avaiable = 1
+		}
+		param := &film.SearchFilmParams{
+			Name:        []byte(newParams[0].(string)),
+			Avaiable:    uint64(avaiable),
+			Type:        uint64(newParams[2].(float64)),
+			ReleaseYear: uint64(newParams[3].(float64)),
+			Region:      []byte(newParams[4].(string)),
+			WalletAddr:  common.Address(newParams[5].(common.Address)),
+			Offset:      uint64(newParams[6].(float64)),
+			Limit:       uint64(newParams[7].(float64)),
+		}
+		return []interface{}{param}, nil
+	default:
+		return params, nil
+	}
+}
+
+func convertParam(param []interface{}, valType []string) ([]interface{}, *DspErr) {
+	if len(param) != len(valType) {
+		return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
+	}
+	result := make([]interface{}, 0, len(param))
+	for i, p := range param {
+		switch valType[i] {
+		case "string":
+			str, ok := p.(string)
+			if !ok {
+				return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
+			}
+			result = append(result, str)
+		case "float64":
+			val, ok := p.(float64)
+			if !ok {
+				return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
+			}
+			result = append(result, val)
+		case "bool":
+			val, ok := p.(bool)
+			if !ok {
+				return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
+			}
+			fmt.Printf("Val %t\n", val)
+			result = append(result, val)
+		case "address":
+			str, ok := p.(string)
+			if !ok {
+				return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
+			}
+			addr, err := common.AddressFromBase58(str)
+			if err != nil {
+				return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
+			}
+			result = append(result, addr)
+		}
+	}
+	return result, nil
+}
+
+func convertResult(method string, data []byte) (interface{}, error) {
+	var e reflect.Value
+	switch method {
+	case film.FILM_GETINFO:
+		var filmInfo film.FilmInfo
+		bf := bytes.NewReader(data)
+		err := filmInfo.Deserialize(bf)
+		if err != nil {
+			return nil, err
+		}
+		e = reflect.ValueOf(&filmInfo).Elem()
+	case film.FILM_SEARCH:
+		var list film.KeyList
+		bf := bytes.NewReader(data)
+		err := list.Deserialize(bf)
+		if err != nil {
+			return nil, err
+		}
+		e = reflect.ValueOf(&list).Elem()
+	default:
+		return data, nil
+	}
+
+	return edgeUtils.ConvertStructToMap(e), nil
 }

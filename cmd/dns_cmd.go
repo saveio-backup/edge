@@ -3,9 +3,6 @@ package cmd
 import (
 	"github.com/saveio/edge/cmd/flags"
 	"github.com/saveio/edge/cmd/utils"
-	"github.com/saveio/edge/common/config"
-	"github.com/saveio/edge/dsp"
-	ccom "github.com/saveio/themis/common"
 
 	"github.com/urfave/cli"
 )
@@ -111,6 +108,16 @@ var DnsCommand = cli.Command{
 			ArgsUsage: " ",
 			Flags: []cli.Flag{
 				flags.DnsAllFlag,
+				flags.DnsWalletFlag,
+			},
+			Description: "Display all or specified Dns host info including ip, port",
+		},
+		{
+			Action:    getPublicIP,
+			Name:      "getPublicIP",
+			Usage:     "Display all or specified Dns host info including ip, port",
+			ArgsUsage: " ",
+			Flags: []cli.Flag{
 				flags.DnsWalletFlag,
 			},
 			Description: "Display all or specified Dns host info including ip, port",
@@ -238,97 +245,40 @@ func reducePos(ctx *cli.Context) error {
 }
 
 func getRegisterInfo(ctx *cli.Context) error {
-	endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
+	ret, err := utils.QueryRegInfos()
 	if err != nil {
-		PrintErrorMsg("init dsp err:%s\n", err)
 		return err
 	}
-
-	DnsAllFlag := ctx.Bool(flags.GetFlagName(flags.DnsAllFlag))
-
-	if DnsAllFlag {
-		m, err := endpoint.Dsp.Chain.Native.Dns.GetPeerPoolMap()
-
-		if err != nil {
-			PrintErrorMsg("Get all dns register info err:%s\n", err)
-			return nil
-		}
-
-		if _, ok := m.PeerPoolMap[""]; ok {
-			delete(m.PeerPoolMap, "")
-		}
-
-		for _, item := range m.PeerPoolMap {
-			PrintInfoMsg("PeerPubkey: %s\n", item.PeerPubkey)
-			PrintInfoMsg("WalletAddress: %s\n", item.WalletAddress.ToBase58())
-			PrintInfoMsg("Status: %d\n", item.Status)
-			PrintInfoMsg("InitPos: %d\n", item.TotalInitPos)
-			PrintInfoMsg("\n")
-		}
-	} else {
-		peerPubkey := ctx.String(flags.GetFlagName(flags.PeerPubkeyFlag))
-		item, err := endpoint.Dsp.Chain.Native.Dns.GetPeerPoolItem(peerPubkey)
-		if err != nil {
-			PrintErrorMsg("Get dns register info err:%s\n", err)
-			return nil
-		}
-
-		PrintInfoMsg("PeerPubkey: %s\n", item.PeerPubkey)
-		PrintInfoMsg("WalletAddress: %s\n", item.WalletAddress.ToBase58())
-		PrintInfoMsg("Status: %d\n", item.Status)
-		PrintInfoMsg("TotalInitPos: %d\n", item.TotalInitPos)
-	}
-
+	PrintJsonData(ret)
 	return nil
 }
 
 func getHostInfo(ctx *cli.Context) error {
-	endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
+	DnsAllFlag := ctx.Bool(flags.GetFlagName(flags.DnsAllFlag))
+	if DnsAllFlag {
+		ret, err := utils.QueryHostInfos()
+		if err != nil {
+			return err
+		}
+		PrintJsonData(ret)
+	} else {
+		walletAddr := ctx.String(flags.GetFlagName(flags.DnsWalletFlag))
+		ret, err := utils.QueryHostInfo(walletAddr)
+		if err != nil {
+			return err
+		}
+		PrintJsonData(ret)
+	}
+	return nil
+}
+
+func getPublicIP(ctx *cli.Context) error {
+	walletAddr := ctx.String(flags.GetFlagName(flags.DnsWalletFlag))
+	ret, err := utils.QueryPublicIP(walletAddr)
 	if err != nil {
-		PrintErrorMsg("init dsp err:%s\n", err)
 		return err
 	}
-
-	DnsAllFlag := ctx.Bool(flags.GetFlagName(flags.DnsAllFlag))
-
-	if DnsAllFlag {
-		infos, err := endpoint.Dsp.Chain.Native.Dns.GetAllDnsNodes()
-		if err != nil {
-			PrintErrorMsg("Get all dns host info err:%s\n", err)
-			return nil
-		}
-
-		for k, v := range infos {
-			PrintInfoMsg("Pubkey:%s\n", k)
-			PrintInfoMsg("wallet:%s\n", v.WalletAddr.ToBase58())
-			PrintInfoMsg("ip:%s\n", v.IP)
-			PrintInfoMsg("port:%s\n", v.Port)
-			PrintInfoMsg("\n")
-		}
-	} else {
-		var addr ccom.Address
-		var err error
-
-		walletAddr := ctx.String(flags.GetFlagName(flags.DnsWalletFlag))
-		if walletAddr != "" {
-			addr, err = ccom.AddressFromBase58(walletAddr)
-			if err != nil {
-				PrintErrorMsg("Get dns host info err:%s\n", err)
-				return nil
-			}
-		}
-
-		info, err := endpoint.Dsp.Chain.Native.Dns.GetDnsNodeByAddr(addr)
-		if err != nil {
-			PrintErrorMsg("Get dns host info err:%s\n", err)
-			return nil
-		}
-
-		PrintInfoMsg("Pubkey:%s\n", info.PeerPubKey)
-		PrintInfoMsg("Wallet:%s\n", info.WalletAddr.ToBase58())
-		PrintInfoMsg("Ip:%v\n", info.IP)
-		PrintInfoMsg("Port:%v\n", info.Port)
-	}
+	PrintJsonData(ret)
 
 	return nil
 }

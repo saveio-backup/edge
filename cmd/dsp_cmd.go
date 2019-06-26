@@ -1,12 +1,14 @@
 package cmd
 
 import (
-	"encoding/json"
+	"crypto/md5"
+	"encoding/hex"
+	"io/ioutil"
+	"math/rand"
 
-	"github.com/saveio/dsp-go-sdk/common"
 	"github.com/saveio/edge/cmd/flags"
+	"github.com/saveio/edge/cmd/utils"
 	"github.com/saveio/edge/common/config"
-	"github.com/saveio/edge/dsp"
 	"github.com/saveio/themis/common/log"
 
 	"github.com/urfave/cli"
@@ -24,13 +26,16 @@ var FileCommand = cli.Command{
 			Flags: []cli.Flag{
 				flags.DspUploadFileNameFlag,
 				flags.DspUploadFileDescFlag,
+				flags.DspUploadDurationFlag,
 				flags.DspUploadChallengeRateFlag,
 				flags.DspUploadChallengeTimesFlag,
 				flags.DspUploadPrivilegeFlag,
 				flags.DspUploadCopyNumFlag,
-				flags.DspUploadEncryptFlag,
 				flags.DspUploadEncryptPasswordFlag,
-				flags.DspUploadUrlFlag,
+				flags.DspFileUrlFlag,
+				flags.DspUploadShareFlag,
+				flags.TestFlag,
+				flags.DspSizeFlag,
 			},
 			Description: "Upload file",
 		},
@@ -41,11 +46,10 @@ var FileCommand = cli.Command{
 			ArgsUsage: "[arguments...]",
 			Flags: []cli.Flag{
 				flags.DspFileHashFlag,
-				flags.DspInorderFlag,
-				flags.DspNofeeFlag,
+				flags.DspFileUrlFlag,
+				flags.DspFileLinkFlag,
 				flags.DspDecryptPwdFlag,
 				flags.DspMaxPeerCntFlag,
-				flags.DspProgressEnableFlag,
 			},
 			Description: "Download file",
 		},
@@ -56,118 +60,99 @@ var FileCommand = cli.Command{
 			ArgsUsage: "[arguments...]",
 			Flags: []cli.Flag{
 				flags.DspFileHashFlag,
-				flags.DspDeleteLocalFlag,
 			},
 			Description: "Delete file",
 		},
-	},
-	Description: `./dsp file --help command to view help information.`,
-}
-
-var NodeCommand = cli.Command{
-	Name:  "node",
-	Usage: "Display information about the dsp",
-	Subcommands: []cli.Command{
 		{
-			Action:    registerNode,
-			Name:      "register",
-			Usage:     "Register node to themis",
+			Action:    getUploadList,
+			Name:      "uploadlist",
+			Usage:     "Get upload files list",
 			ArgsUsage: "[arguments...]",
 			Flags: []cli.Flag{
-				flags.DspNodeAddrFlag,
-				flags.DspVolumeFlag,
-				flags.DspServiceTimeFlag,
+				flags.DspFileTypeFlag,
+				flags.DspListOffsetFlag,
+				flags.DspListLimitFlag,
 			},
+			Description: "Get upload file list",
 		},
 		{
-			Action:      unregisterNode,
-			Name:        "unregister",
-			Usage:       "Unregister node from themis",
-			Description: "Unregister node",
+			Action:    getDownloadList,
+			Name:      "downloadlist",
+			Usage:     "Get download files list",
+			ArgsUsage: "[arguments...]",
+			Flags: []cli.Flag{
+				flags.DspFileTypeFlag,
+				flags.DspListOffsetFlag,
+				flags.DspListLimitFlag,
+			},
+			Description: "Get download file list",
 		},
 		{
-			Action:    queryNode,
-			Name:      "query",
-			Usage:     "Query node info",
+			Action:    getTransferList,
+			Name:      "transferlist",
+			Usage:     "Get transfer files list",
+			ArgsUsage: "[arguments...]",
+			Flags: []cli.Flag{
+				flags.DspFileTransferTypeFlag,
+				flags.DspListOffsetFlag,
+				flags.DspListLimitFlag,
+			},
+			Description: "Get transfer file list",
+		},
+	},
+	Description: `./edge file --help command to view help information.`,
+}
+
+var UserspaceCommand = cli.Command{
+	Name:  "userspace",
+	Usage: "Manage user file storage space using dsp",
+	Subcommands: []cli.Command{
+		{
+			Action:    getUserSpace,
+			Name:      "show",
+			Usage:     "Get user space",
 			ArgsUsage: "[arguments...]",
 			Flags: []cli.Flag{
 				flags.DspWalletAddrFlag,
 			},
-			Description: "Query node info",
+			Description: "Get user space",
 		},
 		{
-			Action:    updateNode,
-			Name:      "update",
-			Usage:     "Update node info",
+			Action:    setUserSpace,
+			Name:      "set",
+			Usage:     "Set user space",
 			ArgsUsage: "[arguments...]",
 			Flags: []cli.Flag{
-				flags.DspNodeAddrFlag,
-				flags.DspVolumeFlag,
-				flags.DspServiceTimeFlag,
+				flags.DspWalletAddrFlag,
+				flags.DspSecondFlag,
+				flags.DspSecondOpFlag,
+				flags.DspSizeFlag,
+				flags.DspSizeOpFlag,
 			},
-			Description: "Update node info",
-		},
-		{
-			Action:      withDraw,
-			Name:        "withdraw",
-			Usage:       "Withdraw node profit",
-			Description: "Withdraw node profit",
+			Description: "Set user space size/second",
 		},
 	},
-	Description: `./dsp node --help command to view help information.`,
+	Description: `./edge userspace --help command to view help information.`,
 }
 
 //file command
 func fileDownload(ctx *cli.Context) error {
-	if !ctx.IsSet(flags.GetFlagName(flags.DspFileHashFlag)) {
-		PrintErrorMsg("Missing file hash.")
+	if !ctx.IsSet(flags.GetFlagName(flags.DspFileHashFlag)) && !ctx.IsSet(flags.GetFlagName(flags.DspFileUrlFlag)) && !ctx.IsSet(flags.GetFlagName(flags.DspFileLinkFlag)) {
+		PrintErrorMsg("Missing file hash/url/link.")
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
-	log.InitLog(config.Parameters.BaseConfig.LogLevel, log.PATH, log.Stdout)
-	endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
+	fileHash := ctx.String(flags.GetFlagName(flags.DspFileHashFlag))
+	url := ctx.String(flags.GetFlagName(flags.DspFileUrlFlag))
+	link := ctx.String(flags.GetFlagName(flags.DspFileLinkFlag))
+	password := ctx.String(flags.GetFlagName(flags.DspDecryptPwdFlag))
+	maxPeerNum := ctx.Uint64(flags.GetFlagName(flags.DspMaxPeerCntFlag))
+	_, err := utils.DownloadFile(fileHash, url, link, password, maxPeerNum)
 	if err != nil {
-		PrintErrorMsg("init dsp err:%s\n", err)
+		PrintErrorMsg("download file err %s", err)
 		return err
 	}
-
-	err = dsp.StartDspNode(endpoint, true, false, true)
-	if err != nil {
-		PrintErrorMsg("start dsp err:%s\n", err)
-		return err
-	}
-
-	hash := ctx.String(flags.GetFlagName(flags.DspFileHashFlag))
-	inorder := ctx.Bool(flags.GetFlagName(flags.DspInorderFlag))
-	pwd := ctx.String(flags.GetFlagName(flags.DspDecryptPwdFlag))
-	nofee := ctx.Bool(flags.GetFlagName(flags.DspNofeeFlag))
-	maxPeer := ctx.Uint64(flags.GetFlagName(flags.DspMaxPeerCntFlag))
-	progressEnable := ctx.Bool(flags.GetFlagName(flags.DspProgressEnableFlag))
-
-	if progressEnable {
-		endpoint.Dsp.RegProgressChannel()
-		go func() {
-			stop := false
-			for {
-				v := <-endpoint.Dsp.ProgressChannel()
-				for node, cnt := range v.Count {
-					PrintInfoMsg("file:%s, hash:%s, total:%d, peer:%s, downloaded:%d, progress:%f", v.FileName, v.FileHash, v.Total, node, cnt, float64(cnt)/float64(v.Total))
-					stop = (cnt == v.Total)
-				}
-				if stop {
-					break
-				}
-			}
-			endpoint.Dsp.CloseProgressChannel()
-		}()
-	}
-	err = endpoint.Dsp.DownloadFile(hash, "", common.ASSET_USDT, inorder, pwd, nofee, int(maxPeer))
-	if err != nil {
-		PrintErrorMsg("download err %s\n", err)
-		return err
-	}
-	//[TODO] need wait download task finish by RegProgressCh
-	PrintInfoMsg("Download file:%s Successed", hash)
+	PrintInfoMsg("download file succes. use <list> to show transfer list")
 	return nil
 }
 
@@ -178,52 +163,38 @@ func fileUpload(ctx *cli.Context) error {
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
-	log.InitLog(config.Parameters.BaseConfig.LogLevel, log.PATH, log.Stdout)
-
-	endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
-	if err != nil {
-		PrintErrorMsg("init dsp err:%s\n", err)
-		return err
-	}
-
-	err = dsp.StartDspNode(endpoint, true, false, false)
-	if err != nil {
-		PrintErrorMsg("start dsp err:%s\n", err)
-		return err
-	}
-
 	fileName := ctx.String(flags.GetFlagName(flags.DspUploadFileNameFlag))
 	fileDesc := ctx.String(flags.GetFlagName(flags.DspUploadFileDescFlag))
-	rate := ctx.Uint64(flags.GetFlagName(flags.DspUploadChallengeRateFlag))
-	challengeTimes := ctx.Uint64(flags.GetFlagName(flags.DspUploadChallengeTimesFlag))
+	duration := ctx.String(flags.GetFlagName(flags.DspUploadDurationFlag))
+	rate := ctx.String(flags.GetFlagName(flags.DspUploadChallengeRateFlag))
+	challengeTimes := ctx.String(flags.GetFlagName(flags.DspUploadChallengeTimesFlag))
 	uploadPrivilege := ctx.Uint64(flags.GetFlagName(flags.DspUploadPrivilegeFlag))
-	copyNum := ctx.Uint64(flags.GetFlagName(flags.DspUploadCopyNumFlag))
-	encrypt := ctx.Bool(flags.GetFlagName(flags.DspUploadEncryptFlag))
+	copyNum := ctx.String(flags.GetFlagName(flags.DspUploadCopyNumFlag))
 	encryptPwd := ctx.String(flags.GetFlagName(flags.DspUploadEncryptPasswordFlag))
-	uploadUrl := ctx.String(flags.GetFlagName(flags.DspUploadUrlFlag))
-	regUrl, bindUrl := len(uploadUrl) > 0, len(uploadUrl) > 0
-
-	opt := &common.UploadOption{
-		FileDesc:        fileDesc,
-		ProveInterval:   rate,
-		ProveTimes:      uint32(challengeTimes),
-		Privilege:       uint32(uploadPrivilege),
-		CopyNum:         uint32(copyNum),
-		Encrypt:         encrypt,
-		EncryptPassword: encryptPwd,
-		RegisterDns:     regUrl,
-		BindDns:         bindUrl,
-		DnsUrl:          uploadUrl,
+	uploadUrl := ctx.String(flags.GetFlagName(flags.DspFileUrlFlag))
+	share := ctx.Bool(flags.GetFlagName(flags.DspUploadShareFlag))
+	test := ctx.Bool(flags.GetFlagName(flags.TestFlag))
+	if test {
+		dataSize := ctx.Uint64(flags.GetFlagName(flags.DspSizeFlag))
+		data := make([]byte, dataSize*1024)
+		_, err := rand.Read(data)
+		if err != nil {
+			log.Errorf("make rand data err %s", err)
+			return nil
+		}
+		md5Ret := md5.Sum(data)
+		baseName := hex.EncodeToString(md5Ret[:])
+		fileDesc = baseName
+		fileName = config.FsFileRootPath() + "/" + baseName
+		ioutil.WriteFile(fileName, data, 0666)
+		PrintInfoMsg("filemd5 is %s", hex.EncodeToString(md5Ret[:]))
 	}
-
-	ret, err := endpoint.Dsp.UploadFile(fileName, opt)
+	_, err := utils.UploadFile(fileName, fileDesc, nil, encryptPwd, uploadUrl, share, duration, rate, challengeTimes, uploadPrivilege, copyNum)
 	if err != nil {
-		PrintErrorMsg("upload file failed, err: %s", err)
+		PrintErrorMsg("upload file err %s", err)
 		return err
 	}
-	retJson, _ := json.Marshal(ret)
-	PrintInfoMsg("upload file success, result:\n %s", string(retJson))
-
+	PrintInfoMsg("upload file succes. use <list> to show transfer list")
 	return nil
 }
 
@@ -233,173 +204,95 @@ func fileDelete(ctx *cli.Context) error {
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
-
-	endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
-	if err != nil {
-		PrintErrorMsg("init dsp err:%s\n", err)
-		return err
-	}
-
-	err = dsp.StartDspNode(endpoint, true, false, false)
-	if err != nil {
-		PrintErrorMsg("start dsp err:%s\n", err)
-		return err
-	}
 	hash := ctx.String(flags.GetFlagName(flags.DspFileHashFlag))
-	isLocal := ctx.Bool(flags.GetFlagName(flags.DspDeleteLocalFlag))
-
-	if isLocal {
-		err = endpoint.Dsp.DeleteDownloadedFile(hash)
-		if err != nil {
-			PrintErrorMsg("delete file failed, err: %s", err)
-		}
-		PrintInfoMsg("delete file success")
-		return nil
-	}
-
-	ret, err := endpoint.Dsp.DeleteUploadedFile(hash)
+	ret, err := utils.DeleteFile(hash)
 	if err != nil {
-		PrintErrorMsg("delete file failed, err: %s", err)
+		PrintErrorMsg("delete file err %s", err)
+		return err
 	}
-	PrintInfoMsg("delete file success, ret: %s", ret)
-
+	PrintJsonData(ret)
 	return nil
 }
 
-//node command
-func registerNode(ctx *cli.Context) error {
-	if ctx.NumFlags() < 3 {
-		PrintErrorMsg("Missing argument.")
+func getUploadList(ctx *cli.Context) error {
+	fileType := ctx.String(flags.GetFlagName(flags.DspFileTypeFlag))
+	offset := ctx.String(flags.GetFlagName(flags.DspListOffsetFlag))
+	limit := ctx.String(flags.GetFlagName(flags.DspListLimitFlag))
+	ret, err := utils.GetUploadFiles(fileType, offset, limit)
+	if err != nil {
+		PrintErrorMsg("get upload file list err %s", err)
+		return err
+	}
+	PrintJsonData(ret)
+	return nil
+}
+
+func getDownloadList(ctx *cli.Context) error {
+	fileType := ctx.String(flags.GetFlagName(flags.DspFileTypeFlag))
+	offset := ctx.String(flags.GetFlagName(flags.DspListOffsetFlag))
+	limit := ctx.String(flags.GetFlagName(flags.DspListLimitFlag))
+	ret, err := utils.GetDownloadFiles(fileType, offset, limit)
+	if err != nil {
+		PrintErrorMsg("get upload file list err %s", err)
+		return err
+	}
+	PrintJsonData(ret)
+	return nil
+}
+
+func getTransferList(ctx *cli.Context) error {
+	transferType := ctx.String(flags.GetFlagName(flags.DspFileTransferTypeFlag))
+	offset := ctx.String(flags.GetFlagName(flags.DspListOffsetFlag))
+	limit := ctx.String(flags.GetFlagName(flags.DspListLimitFlag))
+	ret, err := utils.GetTransferList(transferType, offset, limit)
+	if err != nil {
+		PrintErrorMsg("get upload file list err %s", err)
+		return err
+	}
+	PrintJsonData(ret)
+	return nil
+}
+
+func getUserSpace(ctx *cli.Context) error {
+	if !ctx.IsSet(flags.GetFlagName(flags.DspWalletAddrFlag)) {
+		PrintErrorMsg("Missing wallet address.")
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
-
-	endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
+	addr := ctx.String(flags.GetFlagName(flags.DspWalletAddrFlag))
+	ret, err := utils.GetUserSpace(addr)
 	if err != nil {
-		PrintErrorMsg("init dsp err:%s\n", err)
+		PrintErrorMsg("get upload file list err %s", err)
 		return err
 	}
-
-	err = dsp.StartDspNode(endpoint, false, false, false)
-	if err != nil {
-		PrintErrorMsg("start dsp err:%s\n", err)
-		return err
-	}
-	nodeAddr := ctx.String(flags.GetFlagName(flags.DspNodeAddrFlag))
-	volume := ctx.Uint64(flags.GetFlagName(flags.DspVolumeFlag))
-	serviceTime := ctx.Uint64(flags.GetFlagName(flags.DspServiceTimeFlag))
-
-	tx, err := endpoint.Dsp.RegisterNode(nodeAddr, volume, serviceTime)
-	if err != nil {
-		PrintErrorMsg("register node err: %s", err)
-		return err
-	}
-	PrintInfoMsg("register node success, tx: %s", tx)
-
+	PrintJsonData(ret)
 	return nil
 }
 
-func unregisterNode(ctx *cli.Context) error {
-	endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
-	if err != nil {
-		PrintErrorMsg("init dsp err:%s\n", err)
-		return err
-	}
-
-	err = dsp.StartDspNode(endpoint, false, false, false)
-	if err != nil {
-		PrintErrorMsg("start dsp err:%s\n", err)
-		return err
-	}
-	tx, err := endpoint.Dsp.UnregisterNode()
-	if err != nil {
-		PrintErrorMsg("unregister node err: %s", err)
-		return err
-	}
-	PrintInfoMsg("unregister node success, tx: %s", tx)
-
-	return nil
-}
-
-func queryNode(ctx *cli.Context) error {
-	if ctx.NumFlags() < 1 {
-		PrintErrorMsg("Missing argument.")
+func setUserSpace(ctx *cli.Context) error {
+	if !ctx.IsSet(flags.GetFlagName(flags.DspWalletAddrFlag)) {
+		PrintErrorMsg("Missing wallet address.")
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
+	addr := ctx.String(flags.GetFlagName(flags.DspWalletAddrFlag))
+	size := ctx.Uint64(flags.GetFlagName(flags.DspSizeFlag))
+	sizeOp := ctx.Uint64(flags.GetFlagName(flags.DspSizeOpFlag))
+	second := ctx.Uint64(flags.GetFlagName(flags.DspSecondFlag))
+	secondOp := ctx.Uint64(flags.GetFlagName(flags.DspSecondOpFlag))
 
-	endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
+	sizeMap := make(map[string]interface{}, 0)
+	sizeMap["Type"] = sizeOp
+	sizeMap["Size"] = size
+
+	secondMap := make(map[string]interface{}, 0)
+	secondMap["Type"] = secondOp
+	secondMap["Second"] = second
+	ret, err := utils.SetUserSpace(addr, sizeMap, secondMap)
 	if err != nil {
-		PrintErrorMsg("init dsp err:%s\n", err)
+		PrintErrorMsg("get upload file list err %s", err)
 		return err
 	}
-
-	err = dsp.StartDspNode(endpoint, false, false, false)
-	if err != nil {
-		PrintErrorMsg("start dsp err:%s\n", err)
-		return err
-	}
-	walletAddr := ctx.String(flags.GetFlagName(flags.DspWalletAddrFlag))
-	info, err := endpoint.Dsp.QueryNode(walletAddr)
-	if err != nil {
-		PrintErrorMsg("query node err %s", err)
-		return err
-	}
-	PrintInfoMsg("node info pledge %d", info.Pledge)
-	PrintInfoMsg("node info profit %d", info.Profit)
-	PrintInfoMsg("node info volume %d", info.Volume)
-	PrintInfoMsg("node info restvol %d", info.RestVol)
-	PrintInfoMsg("node info service time %d", info.ServiceTime)
-	PrintInfoMsg("node info wallet address %s", info.WalletAddr.ToBase58())
-	PrintInfoMsg("node info node address %s", info.NodeAddr)
-
-	return nil
-}
-
-func updateNode(ctx *cli.Context) error {
-	endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
-	if err != nil {
-		PrintErrorMsg("init dsp err:%s\n", err)
-		return err
-	}
-
-	err = dsp.StartDspNode(endpoint, false, false, false)
-	if err != nil {
-		PrintErrorMsg("start dsp err:%s\n", err)
-		return err
-	}
-	nodeAddr := ctx.String(flags.GetFlagName(flags.DspNodeAddrFlag))
-	volume := ctx.Uint64(flags.GetFlagName(flags.DspVolumeFlag))
-	serviceTime := ctx.Uint64(flags.GetFlagName(flags.DspServiceTimeFlag))
-
-	tx, err := endpoint.Dsp.UpdateNode(nodeAddr, volume, serviceTime)
-	if err != nil {
-		PrintErrorMsg("update node err: %s", err)
-		return err
-	}
-	PrintInfoMsg("update node success, tx: %s", tx)
-
-	return nil
-}
-
-func withDraw(ctx *cli.Context) error {
-	endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
-	if err != nil {
-		PrintErrorMsg("init dsp err:%s\n", err)
-		return err
-	}
-
-	err = dsp.StartDspNode(endpoint, false, false, false)
-	if err != nil {
-		PrintErrorMsg("start dsp err:%s\n", err)
-		return err
-	}
-	tx, err := endpoint.Dsp.NodeWithdrawProfit()
-	if err != nil {
-		PrintErrorMsg("withdraw node profit err: %s", err)
-		return err
-	}
-	PrintInfoMsg("withdraw node profit success, tx: %s", tx)
-
+	PrintJsonData(ret)
 	return nil
 }

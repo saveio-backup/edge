@@ -162,15 +162,19 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 			return err
 		}
 		p2pActor.SetChannelNetwork(channelNetwork)
-		log.Debugf("channelNetwork.PublicAddr(): %s", channelNetwork.PublicAddr())
 		endpoint.UpdateNodeIfNeeded()
+		log.Debugf("update node finished")
 		err = dspSrv.RegNodeEndpoint(dspSrv.CurrentAccount().Address, channelNetwork.PublicAddr())
+		log.Debugf("register endpoint for channel %s", channelNetwork.PublicAddr())
 		if err != nil {
 			log.Errorf("register endpoint failed %s", err)
 			return err
 		}
+		testGetIp, err := dspSrv.GetExternalIP(dspSrv.CurrentAccount().Address.ToBase58())
+		log.Debugf("test get ip %s err %s", testGetIp, err)
 		// setup filter block range before start
 		endpoint.SetFilterBlockRange()
+		log.Debugf("will start dsp")
 		err = dspSrv.Start()
 		if err != nil {
 			return err
@@ -207,13 +211,17 @@ func (this *Endpoint) UpdateNodeIfNeeded() {
 	publicAddr := dspActorClient.P2pGetPublicAddr()
 	log.Debugf("update node info %s %s", string(nodeInfo.NodeAddr), publicAddr)
 	if string(nodeInfo.NodeAddr) == publicAddr {
+		log.Debugf("no need to update")
 		return
 	}
+	log.Debugf("update it %v %v %v", publicAddr, nodeInfo.Volume, nodeInfo.ServiceTime)
 	_, err = this.NodeUpdate(publicAddr, nodeInfo.Volume, nodeInfo.ServiceTime)
+	log.Debugf("update node result")
 	if err != nil {
 		log.Errorf("update node addr failed, err %s", err)
+		panic(err)
 	}
-	// TODO: update to trackes
+	this.Dsp.PushLocalFilesToTrackers()
 }
 
 // SetupDNSNodeBackground. setup a dns node background when received first payments.

@@ -135,11 +135,11 @@ var (
 		Name:  "nodeAddr",
 		Usage: "Node address",
 	}
-	DspVolumeFlag = cli.Uint64Flag{
+	DspVolumeFlag = cli.StringFlag{
 		Name:  "volume",
 		Usage: "",
 	}
-	DspServiceTimeFlag = cli.Uint64Flag{
+	DspServiceTimeFlag = cli.StringFlag{
 		Name:  "serviceTime",
 		Usage: "",
 	}
@@ -147,10 +147,15 @@ var (
 		Name:  "walletAddr",
 		Usage: "",
 	}
+
 	////////////////Dsp File(download) Setting///////////////////
 	DspFileHashFlag = cli.StringFlag{
 		Name:  "fileHash",
 		Usage: "`<hash>` of file",
+	}
+	DspFileLinkFlag = cli.StringFlag{
+		Name:  "link",
+		Usage: "`<link>` of file",
 	}
 	DspInorderFlag = cli.BoolFlag{
 		Name:  "inorder",
@@ -176,51 +181,96 @@ var (
 
 	////////////////Dsp File(upload) Setting///////////////////
 	DspUploadFileNameFlag = cli.StringFlag{
-		Name:  "uploadFileName",
-		Usage: "`<name>` of file to be uploaded",
+		Name:  "filePath",
+		Usage: "Absolute `<path>` of file to be uploaded",
 	}
 	DspUploadFileDescFlag = cli.StringFlag{
-		Name:  "uploadFileDesc",
-		Usage: "",
+		Name:  "desc",
+		Usage: "File description",
 	}
-	DspUploadUrlFlag = cli.StringFlag{
-		Name:  "uploadUrl",
-		Usage: "",
+	DspUploadDurationFlag = cli.StringFlag{
+		Name:  "duration",
+		Usage: "File storage life cycle",
 	}
-	DspUploadUrlOpFlag = cli.UintFlag{
-		Name:  "uploadUrlOp",
-		Usage: "",
+	DspFileUrlFlag = cli.StringFlag{
+		Name:  "url",
+		Usage: "File search url",
 	}
-	DspUploadChallengeRateFlag = cli.Uint64Flag{
-		Name:  "uploadChanllengeRate",
-		Usage: "",
+	DspUploadChallengeRateFlag = cli.StringFlag{
+		Name:  "interval",
+		Usage: "File challenge interval",
 	}
-	DspUploadChallengeTimesFlag = cli.Uint64Flag{
-		Name:  "uploadChanllengeTimes",
-		Usage: "",
+	DspUploadChallengeTimesFlag = cli.StringFlag{
+		Name:  "challengeTimes",
+		Usage: "Total challenge times",
 	}
 	DspUploadPrivilegeFlag = cli.Uint64Flag{
-		Name:  "uploadPrivilege",
-		Usage: "",
-	}
-	DspUploadCopyNumFlag = cli.Uint64Flag{
-		Name:  "uploadCopyNum",
-		Usage: "",
+		Name:  "privilege",
+		Usage: "Privilege of file sharing",
 		Value: 1,
 	}
+	DspUploadCopyNumFlag = cli.StringFlag{
+		Name:  "copyNum",
+		Usage: "Copy Number of file storage",
+	}
 	DspUploadEncryptFlag = cli.BoolFlag{
-		Name:  "uploadEncrypt",
-		Usage: "",
+		Name:  "encrypt",
+		Usage: "Encrypt file or not",
 	}
 	DspUploadEncryptPasswordFlag = cli.StringFlag{
-		Name:  "uploadEncryptPassword",
-		Usage: "",
+		Name:  "encryptPwd",
+		Usage: "Encrypt password",
+	}
+	DspUploadShareFlag = cli.BoolFlag{
+		Name:  "share",
+		Usage: "Share file or not",
+	}
+	DspFileTypeFlag = cli.StringFlag{
+		Name:  "fileType",
+		Usage: "File list type",
+		Value: "0",
+	}
+	DspListOffsetFlag = cli.StringFlag{
+		Name:  "offset",
+		Usage: "File list offset",
+		Value: "0",
+	}
+	DspListLimitFlag = cli.StringFlag{
+		Name:  "limit",
+		Usage: "File list size limit",
+		Value: "0",
+	}
+	DspFileTransferTypeFlag = cli.StringFlag{
+		Name:  "transferType",
+		Usage: "File transfer type",
+		Value: "0",
 	}
 
 	////////////////Dsp File(delete) Setting///////////////////
 	DspDeleteLocalFlag = cli.BoolFlag{
 		Name:  "local",
 		Usage: "Delete remote file or local file",
+	}
+
+	DspSecondOpFlag = cli.Uint64Flag{
+		Name:  "secondOp",
+		Usage: "User space second operation",
+		Value: 0,
+	}
+	DspSecondFlag = cli.Uint64Flag{
+		Name:  "second",
+		Usage: "User space second",
+		Value: 0,
+	}
+	DspSizeFlag = cli.Uint64Flag{
+		Name:  "size",
+		Usage: "User space size",
+		Value: 0,
+	}
+	DspSizeOpFlag = cli.Uint64Flag{
+		Name:  "sizeOp",
+		Usage: "User space size operation",
+		Value: 0,
 	}
 
 	////////////////Dsp DNS Command Setting///////////////////
@@ -294,6 +344,11 @@ var (
 	DeltaDepositFlag = cli.StringFlag{
 		Name:  "deltaDeposit",
 		Usage: "Delta `<deposit>`",
+	}
+
+	TestFlag = cli.BoolFlag{
+		Name:  "test",
+		Usage: "use in test case",
 	}
 )
 

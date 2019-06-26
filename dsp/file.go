@@ -192,7 +192,7 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, ti
 			return &DspErr{Code: DSP_USER_SPACE_EXPIRED, Error: ErrMaps[DSP_USER_SPACE_EXPIRED]}
 		}
 		if duration > 0 && (uint64(currentHeight)+uint64(duration)) > userspace.ExpireHeight {
-			return &DspErr{Code: DSP_USER_SPACE_NOT_ENOUGH, Error: err}
+			return &DspErr{Code: DSP_USER_SPACE_PERIOD_NOT_ENOUGH, Error: err}
 		}
 		if duration == 0 {
 			duration = float64(userspace.ExpireHeight) - float64(currentHeight)
@@ -340,99 +340,20 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint64) 
 		log.Errorf("get all task keys err %s", err)
 		return resp
 	}
-	log.Debugf("allTasksKey:%v", allTasksKey)
 	for _, key := range allTasksKey {
 		info, err := this.GetProgress(key)
 		if err != nil {
 			continue
 		}
-		log.Debugf("==== range key %v", key)
 		if pType == transferTypeUploading && info.Type != task.TaskTypeUpload {
 			continue
 		}
 		if pType == transferTypeDownloading && info.Type != task.TaskTypeDownload {
 			continue
 		}
-
-		sum := uint64(0)
-		npros := make([]*nodeProgress, 0)
-		for haddr, cnt := range info.Count {
-			sum += cnt
-			pros := &nodeProgress{
-				HostAddr: haddr,
-			}
-			if info.Type == task.TaskTypeUpload {
-				pros.UploadSize = cnt * dspCom.CHUNK_SIZE / 1024
-			} else if info.Type == task.TaskTypeDownload {
-				pros.DownloadSize = cnt * dspCom.CHUNK_SIZE / 1024
-			}
-			npros = append(npros, pros)
-		}
-		pInfo := &transfer{
-			FileHash: info.FileHash,
-			FileName: info.FileName,
-			Type:     pType,
-			Status:   transferStatusDoing,
-			FileSize: info.Total * dspCom.CHUNK_SIZE / 1024,
-			Nodes:    npros,
-		}
-		pInfo.IsUploadAction = (info.Type == task.TaskTypeUpload)
-		pInfo.Progress = 0
-		switch pType {
-		case transferTypeUploading:
-			if info.Total > 0 && sum >= info.Total && (info.Result != nil || info.Error != nil) {
-				continue
-			}
-			if info.Total == 0 {
-				pInfo.Status = transferStatusPreparing
-			}
-			pInfo.UploadSize = sum * dspCom.CHUNK_SIZE / 1024
-			if len(pInfo.Nodes) > 0 && pInfo.FileSize > 0 {
-				pInfo.Progress = (float64(pInfo.UploadSize) / float64(pInfo.FileSize)) / float64(len(pInfo.Nodes))
-			}
-		case transferTypeDownloading:
-			if info.Total > 0 && sum >= info.Total {
-				continue
-			}
-			if info.Total == 0 {
-				pInfo.Status = transferStatusPreparing
-			}
-			pInfo.DownloadSize = sum * dspCom.CHUNK_SIZE / 1024
-			if pInfo.FileSize > 0 {
-				pInfo.Progress = float64(pInfo.DownloadSize) / float64(pInfo.FileSize)
-			}
-		case transferTypeComplete:
-			if sum < info.Total || info.Total == 0 {
-				continue
-			}
-			if info.Type == task.TaskTypeUpload {
-				if info.Result == nil {
-					continue
-				}
-				pInfo.UploadSize = sum * dspCom.CHUNK_SIZE / 1024
-				if pInfo.FileSize > 0 && pInfo.UploadSize == pInfo.FileSize*uint64(len(pInfo.Nodes)) {
-					pInfo.Status = transferStatusDone
-				}
-				if len(pInfo.Nodes) > 0 && pInfo.FileSize > 0 {
-					pInfo.Progress = (float64(pInfo.UploadSize) / float64(pInfo.FileSize)) / float64(len(pInfo.Nodes))
-				}
-			} else if info.Type == task.TaskTypeDownload {
-				pInfo.DownloadSize = sum * dspCom.CHUNK_SIZE / 1024
-				if pInfo.FileSize > 0 && pInfo.DownloadSize == pInfo.FileSize {
-					pInfo.Status = transferStatusDone
-				}
-				if pInfo.FileSize > 0 {
-					pInfo.Progress = float64(pInfo.DownloadSize) / float64(pInfo.FileSize)
-				}
-				pInfo.Path = config.Parameters.FsConfig.FsFileRoot + "/" + pInfo.FileName
-			}
-		}
-		if info.Error != nil {
-			pInfo.ErrMsg = info.Error.Error()
-			pInfo.Status = transferStatusFailed
-		}
-		if info.Result != nil {
-			pInfo.Result = info.Result
+		pInfo := this.getTransferDetail(pType, info)
+		if pInfo == nil {
+			continue
 		}
 		if !resp.IsTransfering {
 			resp.IsTransfering = (pType == transferTypeUploading || pType == transferTypeDownloading) && (pInfo.Status != transferStatusFailed && pInfo.Status != transferStatusDone)
@@ -442,11 +363,7 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint64) 
 			off++
 			continue
 		}
-		log.Debugf("set transfer info.FileHash %v", pInfo.FileHash)
-		log.Debugf("set transfer info.FileName %v", pInfo.FileName)
-		log.Debugf("set transfer info.Progress %v", pInfo.Progress)
-		log.Debugf("set transfer info.Result %v", pInfo.Result)
-		log.Debugf("set transfer info.ErrMsg %v", pInfo.ErrMsg)
+		log.Debugf("set transfer type %d info.FileHash %v, fileName %s, progress:%v, result %v, err %s, status %d", pType, pInfo.FileHash, pInfo.FileName, pInfo.Progress, pInfo.Result, pInfo.ErrMsg, pInfo.Status)
 		infos = append(infos, pInfo)
 		off++
 		if limit > 0 && uint64(len(infos)) >= limit {
@@ -455,6 +372,39 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint64) 
 	}
 	resp.Transfers = infos
 	return resp
+}
+
+// GetTransferList. get transfer progress list
+func (this *Endpoint) GetDownloadTransferDetail(pType TransferType, url string) (*transfer, *DspErr) {
+	if len(url) == 0 {
+		return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
+	}
+	resp := &transfer{}
+	allTasksKey, err := this.GetAllProgressKeys()
+	if err != nil {
+		return resp, &DspErr{Code: INTERNAL_ERROR, Error: err}
+	}
+	hash := this.Dsp.GetFileHashFromUrl(url)
+	log.Debugf("get hash from url %s %s", url, hash)
+	for _, key := range allTasksKey {
+		info, err := this.GetProgress(key)
+		if err != nil {
+			continue
+		}
+		if info.Type != task.TaskTypeDownload {
+			continue
+		}
+		if info.FileHash != hash {
+			continue
+		}
+		pInfo := this.getTransferDetail(pType, info)
+		if pInfo == nil {
+			return resp, &DspErr{Code: INTERNAL_ERROR, Error: ErrMaps[INTERNAL_ERROR]}
+		}
+		resp = pInfo
+		break
+	}
+	return resp, nil
 }
 
 func (this *Endpoint) CalculateUploadFee(filePath string, durationVal, intervalVal, timesVal, copynumVal, whitelistVal interface{}) (*calculateResp, *DspErr) {
@@ -589,7 +539,7 @@ func (this *Endpoint) GetFileRevene() (uint64, *DspErr) {
 	if err != nil {
 		return 0, &DspErr{Code: DB_SUM_SHARE_PROFIT_FAILED, Error: err}
 	}
-	return sum, nil
+	return uint64(sum), nil
 }
 
 func (this *Endpoint) GetFileShareIncome(start, end, offset, limit uint64) (*FileShareIncomeResp, *DspErr) {
@@ -960,4 +910,88 @@ func (this *Endpoint) GetUserspaceRecords(walletAddr string, offset, limit uint6
 		})
 	}
 	return resp, nil
+}
+
+func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressInfo) *transfer {
+	sum := uint64(0)
+	npros := make([]*nodeProgress, 0)
+	for haddr, cnt := range info.Count {
+		sum += cnt
+		pros := &nodeProgress{
+			HostAddr: haddr,
+		}
+		if info.Type == task.TaskTypeUpload {
+			pros.UploadSize = cnt * dspCom.CHUNK_SIZE / 1024
+		} else if info.Type == task.TaskTypeDownload {
+			pros.DownloadSize = cnt * dspCom.CHUNK_SIZE / 1024
+		}
+		npros = append(npros, pros)
+	}
+	pInfo := &transfer{
+		FileHash: info.FileHash,
+		FileName: info.FileName,
+		Type:     pType,
+		Status:   transferStatusDoing,
+		FileSize: info.Total * dspCom.CHUNK_SIZE / 1024,
+		Nodes:    npros,
+	}
+	pInfo.IsUploadAction = (info.Type == task.TaskTypeUpload)
+	pInfo.Progress = 0
+	switch pType {
+	case transferTypeUploading:
+		if info.Total > 0 && sum >= info.Total && (info.Result != nil || info.Error != nil) {
+			return nil
+		}
+		if info.Total == 0 {
+			pInfo.Status = transferStatusPreparing
+		}
+		pInfo.UploadSize = sum * dspCom.CHUNK_SIZE / 1024
+		if len(pInfo.Nodes) > 0 && pInfo.FileSize > 0 {
+			pInfo.Progress = (float64(pInfo.UploadSize) / float64(pInfo.FileSize)) / float64(len(pInfo.Nodes))
+		}
+	case transferTypeDownloading:
+		if info.Total > 0 && sum >= info.Total {
+			return nil
+		}
+		if info.Total == 0 {
+			pInfo.Status = transferStatusPreparing
+		}
+		pInfo.DownloadSize = sum * dspCom.CHUNK_SIZE / 1024
+		if pInfo.FileSize > 0 {
+			pInfo.Progress = float64(pInfo.DownloadSize) / float64(pInfo.FileSize)
+		}
+	case transferTypeComplete:
+		if sum < info.Total || info.Total == 0 {
+			return nil
+		}
+		if info.Type == task.TaskTypeUpload {
+			if info.Result == nil {
+				return nil
+			}
+			pInfo.UploadSize = sum * dspCom.CHUNK_SIZE / 1024
+			if pInfo.FileSize > 0 && pInfo.UploadSize == pInfo.FileSize*uint64(len(pInfo.Nodes)) {
+				pInfo.Status = transferStatusDone
+			}
+			if len(pInfo.Nodes) > 0 && pInfo.FileSize > 0 {
+				pInfo.Progress = (float64(pInfo.UploadSize) / float64(pInfo.FileSize)) / float64(len(pInfo.Nodes))
+			}
+		} else if info.Type == task.TaskTypeDownload {
+			pInfo.DownloadSize = sum * dspCom.CHUNK_SIZE / 1024
+			if pInfo.FileSize > 0 && pInfo.DownloadSize == pInfo.FileSize {
+				pInfo.Status = transferStatusDone
+			}
+			if pInfo.FileSize > 0 {
+				pInfo.Progress = float64(pInfo.DownloadSize) / float64(pInfo.FileSize)
+			}
+			pInfo.Path = config.FsFileRootPath() + "/" + pInfo.FileHash
+		}
+	}
+	if info.Error != nil {
+		pInfo.ErrMsg = info.Error.Error()
+		pInfo.Status = transferStatusFailed
+	}
+	if info.Result != nil {
+		pInfo.Result = info.Result
+	}
+	return pInfo
 }

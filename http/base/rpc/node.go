@@ -44,10 +44,10 @@ func NodeQuery(cmd []interface{}) map[string]interface{} {
 }
 
 func NodeUpdate(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 4 {
+	if len(cmd) < 3 {
 		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
-	params := convertSliceToMap(cmd, []string{"NodeAddr", "NodeAddr", "Volume", "ServiceTime"})
+	params := convertSliceToMap(cmd, []string{"NodeAddr", "Volume", "ServiceTime"})
 	v := rest.NodeUpdate(params)
 	ret, err := parseRestResult(v)
 	if err != nil {
@@ -204,6 +204,18 @@ func QueryHostInfo(cmd []interface{}) map[string]interface{} {
 	}
 	params := convertSliceToMap(cmd, []string{"Addr"})
 	v := rest.QueryHostInfo(params)
+	ret, err := parseRestResult(v)
+	if err != nil {
+		return responsePackError(err.Code, err.Error.Error())
+	}
+	return responseSuccess(ret)
+}
+func QueryPublicIP(cmd []interface{}) map[string]interface{} {
+	if len(cmd) < 1 {
+		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	params := convertSliceToMap(cmd, []string{"Addr"})
+	v := rest.QueryPublicIP(params)
 	ret, err := parseRestResult(v)
 	if err != nil {
 		return responsePackError(err.Code, err.Error.Error())

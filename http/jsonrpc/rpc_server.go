@@ -108,6 +108,7 @@ func StartRPCServer() error {
 	rpc.HandleFunc("queryreginfo", rpc.QueryRegInfo)
 	rpc.HandleFunc("queryhostinfos", rpc.QueryHostInfos)
 	rpc.HandleFunc("queryhostinfo", rpc.QueryHostInfo)
+	rpc.HandleFunc("querypublicip", rpc.QueryPublicIP)
 
 	err := http.ListenAndServe(":"+strconv.Itoa(int(config.Parameters.BaseConfig.PortBase+uint32(config.Parameters.BaseConfig.JsonRpcPortOffset))), nil)
 	if err != nil {

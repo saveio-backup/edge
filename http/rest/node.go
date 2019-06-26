@@ -1,9 +1,11 @@
 package rest
 
 import (
+	"reflect"
 	"strconv"
 
 	"github.com/saveio/edge/dsp"
+	"github.com/saveio/edge/utils"
 )
 
 //Handle for Dsp
@@ -69,7 +71,7 @@ func NodeQuery(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
 	m := make(map[string]interface{}, 0)
-	m["Info"] = fsNodeInfo
+	m["Info"] = utils.ConvertStructToMap(reflect.ValueOf(fsNodeInfo).Elem())
 	resp["Result"] = m
 	return resp
 }
@@ -339,6 +341,20 @@ func QueryHostInfo(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
 
+	resp["Result"] = ret
+	return resp
+}
+
+func QueryPublicIP(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	addr, ok := cmd["Addr"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	ret, err := dsp.DspService.Dsp.GetExternalIP(addr)
+	if err != nil {
+		return ResponsePackWithErrMsg(dsp.INTERNAL_ERROR, err.Error())
+	}
 	resp["Result"] = ret
 	return resp
 }

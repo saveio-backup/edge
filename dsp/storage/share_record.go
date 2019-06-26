@@ -122,8 +122,8 @@ func (this *SQLiteStorage) CountRecordByFileHash(fileHash string) (uint64, error
 }
 
 // SumRecordsProfit. sum profit off all files
-func (this *SQLiteStorage) SumRecordsProfit() (uint64, error) {
-	sql := fmt.Sprintf("SELECT SUM (profit) FROM %s", SHARE_RECORDS_TABLE_NAME)
+func (this *SQLiteStorage) SumRecordsProfit() (int64, error) {
+	sql := fmt.Sprintf("SELECT SUM (profit) FROM %s;", SHARE_RECORDS_TABLE_NAME)
 	rows, err := this.Query(sql)
 	if err != nil {
 		return 0, err
@@ -137,7 +137,7 @@ func (this *SQLiteStorage) SumRecordsProfit() (uint64, error) {
 		}
 		break
 	}
-	count, _ := value.(uint64)
+	count, _ := value.(int64)
 	return count, nil
 }
 

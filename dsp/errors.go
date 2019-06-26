@@ -78,6 +78,7 @@ const (
 	DSP_DNS_QUERY_INFO_FAILED            = 55059
 	DSP_DNS_QUERY_ALLINFOS_FAILED        = 55060
 	DSP_DNS_GET_EXTERNALIP_FAILED        = 55061
+	DSP_USER_SPACE_PERIOD_NOT_ENOUGH     = 55062
 	DSP_CHANNEL_INTERNAL_ERROR           = 56000
 	DSP_CHANNEL_OPEN_FAILED              = 56001
 	DSP_CHANNEL_CLOSE_FAILED             = 56002
@@ -177,6 +178,7 @@ var ErrMaps = map[int64]error{
 	DSP_CHANNEL_MEDIATRANSFER_FAILED:     errors.New("dsp channel mediatransfer failed"),
 	DSP_CHANNEL_CO_SETTLE_FAILED:         errors.New("dsp channel co settle failed"),
 	DSP_CHANNEL_INIT_NOT_FINISH:          errors.New("dsp channel init not finish"),
+	DSP_USER_SPACE_PERIOD_NOT_ENOUGH:     errors.New("dsp user space period not enough"),
 
 	DB_FIND_SHARE_RECORDS_FAILED:     errors.New("db find share records failed"),
 	DB_SUM_SHARE_PROFIT_FAILED:       errors.New("db sum share profit failed"),

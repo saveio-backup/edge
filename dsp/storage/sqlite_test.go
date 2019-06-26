@@ -26,15 +26,10 @@ func TestQueryShareRecordById(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r, err := s.FindShareRecordById("2")
+	_, err = s.FindShareRecordById("2")
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Printf("id %v\n", r.id)
-	fmt.Printf("hash %v\n", r.fileHash)
-	fmt.Printf("to %v\n", r.toWalletAddr)
-	fmt.Printf("profit %v\n", r.profit)
-	fmt.Printf("createdat %v\n", r.createdAt)
 }
 
 func TestIncreaseShareRecordProfit(t *testing.T) {
@@ -49,19 +44,6 @@ func TestIncreaseShareRecordProfit(t *testing.T) {
 	if !ret {
 		t.Fatal("insert miner record result false")
 	}
-}
-
-func TestFineShareRecordsByCreatedAt(t *testing.T) {
-	s, err := NewSQLiteStorage("test.db")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	rs, err := s.FineShareRecordsByCreatedAt(1555928050, 1555928185, 1, 1)
-	if err != nil {
-		t.Fatal(err)
-	}
-	fmt.Printf("result %v\n", rs)
 }
 
 func TestCountRecordByFileHash(t *testing.T) {
@@ -87,5 +69,17 @@ func TestSumRecordsProfit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Printf("result %v\n", rs)
+	t.Logf("result %v\n", rs)
+}
+
+func TestFineShareRecordsByCreatedAt(t *testing.T) {
+	s, err := NewSQLiteStorage("test.db")
+	if err != nil {
+		t.Fatal(err)
+	}
+	rs, err := s.FineShareRecordsByCreatedAt(1555091319, 1560828943, 0, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("result %v\n", rs)
 }

@@ -119,7 +119,20 @@ func (this *Endpoint) DepositToChannel(partnerAddr string, realAmount uint64) *D
 }
 
 func (this *Endpoint) MediaTransfer(paymentId int32, amount uint64, to string) *DspErr {
-	err := this.Dsp.Channel.MediaTransfer(paymentId, amount, to)
+	url, err := this.Dsp.GetExternalIP(to)
+	if err != nil {
+		return &DspErr{Code: DSP_DNS_GET_EXTERNALIP_FAILED, Error: err}
+	}
+	err = this.Dsp.Channel.SetHostAddr(to, url)
+	if err != nil {
+		return &DspErr{Code: DSP_CHANNEL_INTERNAL_ERROR, Error: err}
+	}
+	err = this.Dsp.Channel.WaitForConnected(to, time.Duration(common.WAIT_CHANNEL_CONNECT_TIMEOUT)*time.Second)
+	if err != nil {
+		log.Errorf("wait channel connected err %s %s", to, err)
+		return &DspErr{Code: DSP_CHANNEL_INTERNAL_ERROR, Error: err}
+	}
+	err = this.Dsp.Channel.MediaTransfer(paymentId, amount, to)
 	if err != nil {
 		return &DspErr{Code: DSP_CHANNEL_MEDIATRANSFER_FAILED, Error: err}
 	}
