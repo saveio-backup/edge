@@ -163,6 +163,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		}
 		p2pActor.SetChannelNetwork(channelNetwork)
 		endpoint.UpdateNodeIfNeeded()
+
 		log.Debugf("update node finished")
 		err = dspSrv.RegNodeEndpoint(dspSrv.CurrentAccount().Address, channelNetwork.PublicAddr())
 		log.Debugf("register endpoint for channel %s", channelNetwork.PublicAddr())
@@ -182,6 +183,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		if startShare {
 			//[TODO] price needed to be discuss
 			dspSrv.SetUnitPriceForAllFile(dspCom.ASSET_USDT, common.DSP_DOWNLOAD_UNIT_PRICE)
+			endpoint.Dsp.PushLocalFilesToTrackers()
 			go dspSrv.StartShareServices()
 		}
 	}
@@ -221,7 +223,7 @@ func (this *Endpoint) UpdateNodeIfNeeded() {
 		log.Errorf("update node addr failed, err %s", err)
 		panic(err)
 	}
-	this.Dsp.PushLocalFilesToTrackers()
+
 }
 
 // SetupDNSNodeBackground. setup a dns node background when received first payments.
