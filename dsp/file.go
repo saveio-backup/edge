@@ -318,7 +318,7 @@ func (this *Endpoint) RegisterProgressCh() {
 			}
 			log.Debugf("progress store file %s, %v, ok %t", v.TaskKey, v, ok)
 			for node, cnt := range v.Count {
-				log.Infof("+++++++= file:%s, hash:%s, total:%d, peer:%s, uploaded:%d, progress:%f", v.FileName, v.FileHash, v.Total, node, cnt, float64(cnt)/float64(v.Total))
+				log.Infof("prorgess type:%d file:%s, hash:%s, total:%d, peer:%s, uploaded:%d, progress:%f", v.Type, v.FileName, v.FileHash, v.Total, node, cnt, float64(cnt)/float64(v.Total))
 			}
 		case <-this.closhCh:
 			this.Dsp.CloseProgressChannel()
@@ -340,9 +340,11 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint64) 
 		log.Errorf("get all task keys err %s", err)
 		return resp
 	}
-	for _, key := range allTasksKey {
+	log.Debugf("allTasksKey :%v", allTasksKey)
+	for idx, key := range allTasksKey {
 		info, err := this.GetProgress(key)
 		if err != nil {
+			log.Errorf("get progress failed for %s info %v err %s", key, info, err)
 			continue
 		}
 		if pType == transferTypeUploading && info.Type != task.TaskTypeUpload {
@@ -352,6 +354,7 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint64) 
 			continue
 		}
 		pInfo := this.getTransferDetail(pType, info)
+		log.Debugf("get pinfo  %v of %v", pInfo, key)
 		if pInfo == nil {
 			continue
 		}
@@ -363,7 +366,7 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint64) 
 			off++
 			continue
 		}
-		log.Debugf("set transfer type %d info.FileHash %v, fileName %s, progress:%v, result %v, err %s, status %d", pType, pInfo.FileHash, pInfo.FileName, pInfo.Progress, pInfo.Result, pInfo.ErrMsg, pInfo.Status)
+		log.Debugf("#%d set transfer type %d info.FileHash %v, fileName %s, progress:%v, result %v, err %s, status %d", idx, pType, pInfo.FileHash, pInfo.FileName, pInfo.Progress, pInfo.Result, pInfo.ErrMsg, pInfo.Status)
 		infos = append(infos, pInfo)
 		off++
 		if limit > 0 && uint64(len(infos)) >= limit {
@@ -937,9 +940,10 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 	}
 	pInfo.IsUploadAction = (info.Type == task.TaskTypeUpload)
 	pInfo.Progress = 0
+	log.Debugf("get transfer %s detail total %d sum %d ret %v err %s info.type %d", info.TaskKey, info.Total, sum, info.Result, info.ErrorMsg, info.Type)
 	switch pType {
 	case transferTypeUploading:
-		if info.Total > 0 && sum >= info.Total && (info.Result != nil || info.Error != nil) {
+		if info.Total > 0 && sum >= info.Total && info.Result != nil && len(info.ErrorMsg) == 0 {
 			return nil
 		}
 		if info.Total == 0 {
@@ -986,8 +990,8 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 			pInfo.Path = config.FsFileRootPath() + "/" + pInfo.FileHash
 		}
 	}
-	if info.Error != nil {
-		pInfo.ErrMsg = info.Error.Error()
+	if len(info.ErrorMsg) != 0 {
+		pInfo.ErrMsg = info.ErrorMsg
 		pInfo.Status = transferStatusFailed
 	}
 	if info.Result != nil {

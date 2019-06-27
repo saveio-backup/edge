@@ -93,11 +93,19 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 		err := this.dspNet.Disconnect(msg.Address)
 		ctx.Sender().Request(&dspact.P2pResp{Error: err}, ctx.Self())
 	case *dspact.SendReq:
-		err := this.dspNet.Send(msg.Data, msg.Address)
-		ctx.Sender().Request(&dspact.P2pResp{Error: err}, ctx.Self())
+		// err := this.dspNet.Send(msg.Data, msg.Address)
+		// ctx.Sender().Request(&dspact.P2pResp{Error: err}, ctx.Self())
+		go func(net *dsp.Network, cmsg *dspact.SendReq, sender *actor.PID, self *actor.PID) {
+			err := net.Send(msg.Data, msg.Address)
+			sender.Request(&dspact.P2pResp{Error: err}, self)
+		}(this.dspNet, msg, ctx.Sender(), ctx.Self())
 	case *dspact.BroadcastReq:
-		err := this.dspNet.Broadcast(msg.Addresses, msg.Data, msg.NeedReply, msg.Stop, msg.Action)
-		ctx.Sender().Request(&dspact.P2pResp{Error: err}, ctx.Self())
+		go func(net *dsp.Network, cmsg *dspact.BroadcastReq, sender *actor.PID, self *actor.PID) {
+			err := net.Broadcast(cmsg.Addresses, cmsg.Data, cmsg.NeedReply, cmsg.Stop, cmsg.Action)
+			sender.Request(&dspact.P2pResp{Error: err}, self)
+		}(this.dspNet, msg, ctx.Sender(), ctx.Self())
+		// err := this.dspNet.Broadcast(msg.Addresses, msg.Data, msg.NeedReply, msg.Stop, msg.Action)
+		// ctx.Sender().Request(&dspact.P2pResp{Error: err}, ctx.Self())
 	case *dspact.PeerListeningReq:
 		ret := this.dspNet.IsPeerListenning(msg.Address)
 		var err error
