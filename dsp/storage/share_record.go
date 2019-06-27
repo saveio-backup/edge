@@ -100,6 +100,11 @@ func (this *SQLiteStorage) FindLastShareTime(fileHash string) (uint64, error) {
 		}
 		break
 	}
+	log.Debugf("fileHash %s lastTime :%v unix %v", fileHash, lastTime, lastTime.Unix())
+	if lastTime.Unix() < 0 {
+		return 0, nil
+	}
+
 	return uint64(lastTime.Unix()), nil
 }
 
