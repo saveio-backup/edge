@@ -10,8 +10,7 @@ SRC_FILES = $(shell git ls-files | grep -e .go$ | grep -v _test.go)
 all: client
 
 client:
-	-rm ./bin/dsp/dsp
-	$(GC)  $(BUILD_DSP_CLIENT_PAR) -o ./bin/dsp/dsp ./bin/dsp/main.go
+	$(GC)  $(BUILD_DSP_CLIENT_PAR) -o ./edge ./bin/edge/main.go
 
 
 do-cross: w-dsp l-dsp d-dsp

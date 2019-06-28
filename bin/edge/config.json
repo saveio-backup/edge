@@ -1,0 +1,43 @@
+{
+  "Base": {
+    "BaseDir": ".",
+    "LogPath": "./Log",
+    "NetworkId": 0,
+    "PublicIP": "",
+    "PortBase": 10000,
+    "LogLevel": 0,
+    "LocalRpcPortOffset": 338,
+    "EnableLocalRpc": false,
+    "JsonRpcPortOffset": 336,
+    "EnableJsonRpc": true,
+    "HttpRestPortOffset": 335,
+    "HttpCertPath": "",
+    "HttpKeyPath": "",
+    "RestEnable": true,
+    "ChannelPortOffset": 3005,
+    "ChannelProtocol": "kcp",
+    "ChannelClientType": "rpc",
+    "ChannelRevealTimeout": "200",
+    "DBPath": "./DB",
+    "PpListenAddr": "",
+    "PpBootstrap": null,
+    "ChainRestAddr": "http://221.179.156.57:10334",
+    "ChainRpcAddr": "http://221.179.156.57:10336",
+    "NATProxyServerAddr": "kcp://40.73.100.114:6009",
+    "DspProtocol": "kcp",
+    "DspPortOffset": 4024,
+    "AutoSetupDNSEnable": false,
+    "TrackerPortOffset": 0,
+    "DnsNodeMaxNum": 100,
+    "SeedInterval": 3600,
+    "DnsChannelDeposit": 1000000000,
+    "WalletPwd": "pwd",
+    "WalletDir": "./wallet.dat"
+  },
+  "Fs": {
+    "FsRepoRoot": "./FS",
+    "FsFileRoot": "./Downloads",
+    "FsType": 0
+  },
+  "Bootstraps": []
+}

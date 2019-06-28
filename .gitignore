@@ -28,4 +28,4 @@ test/*/Downloads
 test/*/Log
 test/*/wallet*
 test/*/dsp*
-edge
+./edge
