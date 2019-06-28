@@ -13,6 +13,7 @@ import (
 	"github.com/saveio/carrier/crypto"
 	"github.com/saveio/carrier/crypto/ed25519"
 	"github.com/saveio/carrier/network"
+	"github.com/saveio/carrier/network/components/backoff"
 	"github.com/saveio/carrier/network/components/keepalive"
 	"github.com/saveio/carrier/network/components/proxy"
 	"github.com/saveio/carrier/types/opcode"
@@ -122,6 +123,10 @@ func (this *Network) Start(address string) error {
 	component.Net = this
 	builder.AddComponent(component)
 	builder.AddComponent(keepalive.New(options...))
+	backoffOptions := []backoff.ComponentOption{
+		backoff.WithMaxAttempts(100), //try again times;
+	}
+	builder.AddComponent(backoff.New(backoffOptions...))
 	if len(this.proxyAddr) > 0 {
 		if protocol == "udp" {
 			builder.AddComponent(new(proxy.UDPProxyComponent))

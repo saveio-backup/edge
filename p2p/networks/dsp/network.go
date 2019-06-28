@@ -14,6 +14,7 @@ import (
 	"github.com/saveio/carrier/crypto/ed25519"
 	"github.com/saveio/carrier/network"
 	p2pNet "github.com/saveio/carrier/network"
+	"github.com/saveio/carrier/network/components/backoff"
 	"github.com/saveio/carrier/network/components/keepalive"
 	"github.com/saveio/carrier/network/components/proxy"
 	"github.com/saveio/carrier/types/opcode"
@@ -102,6 +103,10 @@ func (this *Network) Start(addr string) error {
 		keepalive.WithPeerStateChan(this.peerStateChan),
 	}
 	builder.AddComponent(keepalive.New(options...))
+	backoffOptions := []backoff.ComponentOption{
+		backoff.WithMaxAttempts(100), //try again times;
+	}
+	builder.AddComponent(backoff.New(backoffOptions...))
 	netComponent := new(NetComponent)
 	netComponent.Net = this
 	builder.AddComponent(netComponent)
