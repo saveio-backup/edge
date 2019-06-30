@@ -130,7 +130,11 @@ func openChannel(ctx *cli.Context) error {
 		return nil
 	}
 	partnerAddr := ctx.String(flags.GetFlagName(flags.PartnerAddressFlag))
-	ret, err := utils.OpenPaymentChannel(partnerAddr)
+	pwd, err := password.GetPassword()
+	if err != nil {
+		return err
+	}
+	ret, err := utils.OpenPaymentChannel(partnerAddr, string(pwd))
 	if err != nil {
 		return err
 	}
@@ -145,7 +149,12 @@ func closeChannel(ctx *cli.Context) error {
 		return nil
 	}
 	partnerAddr := ctx.String(flags.GetFlagName(flags.PartnerAddressFlag))
-	err := utils.ClosePaymentChannel(partnerAddr)
+	pwd, err := password.GetPassword()
+	if err != nil {
+		return err
+	}
+
+	err = utils.ClosePaymentChannel(partnerAddr, string(pwd))
 	if err != nil {
 		return err
 	}

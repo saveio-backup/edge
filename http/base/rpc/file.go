@@ -200,10 +200,10 @@ func GetUserSpace(cmd []interface{}) map[string]interface{} {
 }
 
 func SetUserSpace(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 4 {
+	if len(cmd) < 3 {
 		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
-	params := convertSliceToMap(cmd, []string{"Size", "Addr", "Size", "Second"})
+	params := convertSliceToMap(cmd, []string{"Addr", "Size", "Second"})
 	v := rest.SetUserSpace(params)
 	ret, err := parseRestResult(v)
 	if err != nil {

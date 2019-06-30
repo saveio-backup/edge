@@ -61,7 +61,7 @@ var NodeCommand = cli.Command{
 
 //node command
 func registerNode(ctx *cli.Context) error {
-	if ctx.NumFlags() < 3 {
+	if !ctx.IsSet(flags.GetFlagName(flags.DspVolumeFlag)) {
 		PrintErrorMsg("Missing argument.")
 		cli.ShowSubcommandHelp(ctx)
 		return nil

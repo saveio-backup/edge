@@ -18,10 +18,10 @@ func GetAllChannels(cmd []interface{}) map[string]interface{} {
 }
 
 func OpenChannel(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 1 {
+	if len(cmd) < 2 {
 		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
-	params := convertSliceToMap(cmd, []string{"Partner"})
+	params := convertSliceToMap(cmd, []string{"Partner", "Password"})
 	v := rest.OpenChannel(params)
 	ret, err := parseRestResult(v)
 	if err != nil {
@@ -31,10 +31,10 @@ func OpenChannel(cmd []interface{}) map[string]interface{} {
 }
 
 func CloseChannel(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 1 {
+	if len(cmd) < 2 {
 		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
-	params := convertSliceToMap(cmd, []string{"Partner"})
+	params := convertSliceToMap(cmd, []string{"Partner", "Password"})
 	v := rest.CloseChannel(params)
 	fmt.Printf("rest close channel %v\n", v)
 	ret, err := parseRestResult(v)

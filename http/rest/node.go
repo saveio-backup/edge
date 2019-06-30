@@ -4,18 +4,20 @@ import (
 	"reflect"
 	"strconv"
 
+	dspActorClient "github.com/saveio/dsp-go-sdk/actor/client"
 	"github.com/saveio/edge/dsp"
 	"github.com/saveio/edge/utils"
+	"github.com/saveio/themis/common/log"
 )
 
 //Handle for Dsp
 func RegisterNode(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	addr, ok := cmd["NodeAddr"].(string)
-	if !ok {
-		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	if !ok || len(addr) == 0 {
+		addr = dspActorClient.P2pGetPublicAddr()
 	}
-
+	log.Debugf("register node addr %s", addr)
 	volumeStr, ok := cmd["Volume"].(string)
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())

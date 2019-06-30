@@ -129,6 +129,7 @@ type downloadFilesInfo struct {
 	DownloadAt    uint64
 	LastShareAt   uint64
 	Profit        uint64
+	ProfitFormat  string
 }
 
 type WhiteListRule struct {
@@ -278,6 +279,8 @@ func (this *Endpoint) DownloadFile(fileHash, url, link, password string, max uin
 	}
 	if len(url) > 0 {
 		go func() {
+			hash := this.Dsp.GetFileHashFromUrl(url)
+			this.SetUrlForHash(hash, url)
 			err := this.Dsp.DownloadFileByUrl(url, dspCom.ASSET_USDT, true, password, false, int(max))
 			if err != nil {
 				log.Errorf("Downloadfile from url failed %s", err)
@@ -699,6 +702,7 @@ func (this *Endpoint) GetDownloadFiles(fileType DspFileListType, offset, limit u
 			DownloadAt:    info.CreatedAt,
 			LastShareAt:   lastSharedAt,
 			Profit:        profit,
+			ProfitFormat:  utils.FormatUsdt(profit),
 		})
 		if uint64(len(fileInfos)) > limit {
 			break

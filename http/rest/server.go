@@ -98,7 +98,8 @@ const (
 
 	GET_CHANNEL_INIT_PROGRESS = "/api/v1/channel/init/progress"
 	GET_ALL_CHANNEL           = "/api/v1/channel"
-	OPEN_CHANNEL              = "/api/v1/channel/open/:partneraddr"
+	OPEN_CHANNEL              = "/api/v1/channel/open"
+	CLOSE_CHANNEL             = "/api/v1/channel/close"
 	DEPOSIT_CHANNEL           = "/api/v1/channel/deposit"
 	WITHDRAW_CHANNEL          = "/api/v1/channel/withdraw"
 	TRANSFER_BY_CHANNEL       = "/api/v1/channel/transfer/:toaddr/:amount/:paymentid"
@@ -211,11 +212,11 @@ func (this *restServer) registryMethod() {
 
 		GET_CHANNEL_INIT_PROGRESS: {name: "channelinitprogress", handler: GetChannelInitProgress},
 		GET_ALL_CHANNEL:           {name: "getallchannels", handler: GetAllChannels},
-		OPEN_CHANNEL:              {name: "openchannel", handler: OpenChannel},
-		TRANSFER_BY_CHANNEL:       {name: "transferbychannel", handler: TransferByChannel},
-		QUERY_CHANNEL_DEPOSIT:     {name: "querydeposit", handler: QueryChannelDeposit},
-		QUERY_CHANNEL:             {name: "querychannel", handler: QueryChannel},
-		QUERY_CHANNEL_BY_ID:       {name: "querychannelbyid", handler: QueryChannelByID},
+
+		TRANSFER_BY_CHANNEL:   {name: "transferbychannel", handler: TransferByChannel},
+		QUERY_CHANNEL_DEPOSIT: {name: "querydeposit", handler: QueryChannelDeposit},
+		QUERY_CHANNEL:         {name: "querychannel", handler: QueryChannel},
+		QUERY_CHANNEL_BY_ID:   {name: "querychannelbyid", handler: QueryChannelByID},
 
 		DNS_REGISTER_DNS:     {name: "registerdns", handler: RegisterDns},
 		DNS_UNREGISTER_DNS:   {name: "unregisterdns", handler: UnRegisterDns},
@@ -252,6 +253,8 @@ func (this *restServer) registryMethod() {
 
 		DEPOSIT_CHANNEL:  {name: "depositchannel", handler: DepositChannel},
 		WITHDRAW_CHANNEL: {name: "withdrawchannel", handler: WithdrawChannel},
+		OPEN_CHANNEL:     {name: "openchannel", handler: OpenChannel},
+		CLOSE_CHANNEL:    {name: "closechannel", handler: CloseChannel},
 
 		DNS_REGISTER:  {name: "registerurl", handler: RegisterUrl},
 		DNS_BIND:      {name: "bindurl", handler: BindUrl},

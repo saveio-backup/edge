@@ -283,11 +283,12 @@ func setUserSpace(ctx *cli.Context) error {
 
 	sizeMap := make(map[string]interface{}, 0)
 	sizeMap["Type"] = sizeOp
-	sizeMap["Size"] = size
+	sizeMap["Value"] = size
 
 	secondMap := make(map[string]interface{}, 0)
 	secondMap["Type"] = secondOp
-	secondMap["Second"] = second
+	secondMap["Value"] = second
+	log.Debugf("addr %v, size %v second %v", addr, sizeMap, secondMap)
 	ret, err := utils.SetUserSpace(addr, sizeMap, secondMap)
 	if err != nil {
 		PrintErrorMsg("get upload file list err %s", err)

@@ -441,7 +441,6 @@ func GetUserSpace(cmd map[string]interface{}) map[string]interface{} {
 
 func SetUserSpace(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
-	log.Debugf("cmd %v , type %T", cmd, cmd["Size"])
 	addr, ok := cmd["Addr"].(string)
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
@@ -466,7 +465,9 @@ func SetUserSpace(cmd map[string]interface{}) map[string]interface{} {
 		log.Errorf("add user space err %s", err)
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
-	resp["Result"] = tx
+	m := make(map[string]string, 0)
+	m["Tx"] = tx
+	resp["Result"] = m
 	return resp
 }
 

@@ -1,8 +1,6 @@
 package rpc
 
 import (
-	"fmt"
-
 	"github.com/saveio/edge/dsp"
 	"github.com/saveio/edge/http/rest"
 )
@@ -102,7 +100,6 @@ func QueryLink(cmd []interface{}) map[string]interface{} {
 	if err != nil {
 		return responsePackError(err.Code, err.Error.Error())
 	}
-	fmt.Printf("ret %v\n", ret)
 	return responseSuccess(ret)
 }
 
