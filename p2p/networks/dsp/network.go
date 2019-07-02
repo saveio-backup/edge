@@ -129,7 +129,7 @@ func (this *Network) Start(addr string) error {
 	go this.net.Listen()
 	go this.PeerStateChange(this.syncPeerState)
 	this.net.BlockUntilListening()
-	log.Debugf("++++ dsp will blocking")
+	log.Debugf("++++ dsp will blocking %s", this.proxySvrAddr)
 	if len(this.proxySvrAddr) > 0 {
 		if protocol == "udp" {
 			this.net.BlockUntilUDPProxyFinish()
@@ -247,7 +247,7 @@ func (this *Network) Connect(addr ...string) error {
 		this.net.Bootstrap(a)
 	}
 	for _, a := range addr {
-		err := this.WaitForConnected(a, time.Duration(20)*time.Second)
+		err := this.WaitForConnected(a, time.Duration(10)*time.Second)
 		if err != nil {
 			return err
 		}
@@ -291,8 +291,8 @@ func (this *Network) Send(msg proto.Message, peer interface{}) error {
 		return false
 	})
 	log.Debugf("send msg to %v", peer)
-	ctx := network.WithSignMessage(context.Background(), true)
-	return client.Tell(ctx, msg)
+	// ctx := network.WithSignMessage(context.Background(), true)
+	return client.Tell(context.Background(), msg)
 }
 
 // Request. send msg to peer and wait for response synchronously
@@ -304,8 +304,8 @@ func (this *Network) Request(msg proto.Message, peer interface{}) (proto.Message
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(common.REQUEST_MSG_TIMEOUT)*time.Second)
 	defer cancel()
-	ctx2 := network.WithSignMessage(ctx, true)
-	return client.Request(ctx2, msg)
+	// ctx2 := network.WithSignMessage(ctx, true)
+	return client.Request(ctx, msg)
 }
 
 // RequestWithRetry. send msg to peer and wait for response synchronously
@@ -319,8 +319,8 @@ func (this *Network) RequestWithRetry(msg proto.Message, peer interface{}, retry
 	for i := 0; i < retry; i++ {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(common.REQUEST_MSG_TIMEOUT)*time.Second)
 		defer cancel()
-		ctx2 := network.WithSignMessage(ctx, true)
-		res, err = client.Request(ctx2, msg)
+		// ctx2 := network.WithSignMessage(ctx, true)
+		res, err = client.Request(ctx, msg)
 		if err == nil || err.Error() != "context deadline exceeded" {
 			break
 		}

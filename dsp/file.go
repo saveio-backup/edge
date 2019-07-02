@@ -874,6 +874,7 @@ func (this *Endpoint) GetUserSpace(addr string) (*userspace, *DspErr) {
 	}
 	expiredAt := uint64(0)
 	updateHeight := space.UpdateHeight
+	now := uint64(time.Now().Unix())
 	if space.ExpireHeight > uint64(currentHeight) {
 		blk, err := this.Dsp.Chain.GetBlockByHeight(uint32(updateHeight))
 		if err != nil {
@@ -883,10 +884,18 @@ func (this *Endpoint) GetUserSpace(addr string) (*userspace, *DspErr) {
 	} else {
 		space, err := this.GetUserspaceRecords(addr, 0, 1)
 		if err != nil || len(space) == 0 {
-			expiredAt = uint64(time.Now().Unix())
+			expiredAt = now
 		} else {
 			expiredAt = space[0].ExpiredAt
 		}
+	}
+	if expiredAt == now {
+		return &userspace{
+			Used:      0,
+			Remain:    0,
+			ExpiredAt: expiredAt,
+			Balance:   space.Balance,
+		}, nil
 	}
 	return &userspace{
 		Used:      space.Used,
