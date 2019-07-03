@@ -184,6 +184,8 @@ func fileUpload(ctx *cli.Context) error {
 		}
 		md5Ret := md5.Sum(data)
 		baseName := hex.EncodeToString(md5Ret[:])
+		exts := []string{"txt", "jpg", "mp3", "mp4"}
+		baseName = baseName + "." + exts[rand.Int31n(int32(len(exts)))]
 		fileDesc = baseName
 		fileName = config.FsFileRootPath() + "/" + baseName
 		ioutil.WriteFile(fileName, data, 0666)

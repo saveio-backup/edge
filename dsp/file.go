@@ -163,6 +163,13 @@ type userspaceCostResp struct {
 	TransferType storage.UserspaceTransferType
 }
 
+type FsContractSettingResp struct {
+	DefaultCopyNum     uint64
+	DefaultProvePeriod uint64
+	MinChallengeRate   uint64
+	MinVolume          uint64
+}
+
 func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, timesVal, privilegeVal, copynumVal interface{},
 	encryptPwd, url string, whitelist []string, share bool) *DspErr {
 	currentAccount := this.Dsp.CurrentAccount()
@@ -264,6 +271,20 @@ func (this *Endpoint) DeleteFile(fileHash string) (*DeleteFileResp, *DspErr) {
 		return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: err}
 	}
 	return &DeleteFileResp{IsUploaded: true}, nil
+}
+
+func (this *Endpoint) GetFsConfig() (*FsContractSettingResp, *DspErr) {
+	set, err := this.Dsp.Chain.Native.Fs.GetSetting()
+	if err != nil {
+		return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
+	}
+
+	return &FsContractSettingResp{
+		DefaultCopyNum:     set.DefaultCopyNum,
+		DefaultProvePeriod: set.DefaultProvePeriod,
+		MinChallengeRate:   set.MinChallengeRate,
+		MinVolume:          set.MinVolume,
+	}, nil
 }
 
 func (this *Endpoint) DownloadFile(fileHash, url, link, password string, max uint64) *DspErr {
@@ -381,8 +402,8 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint64) 
 }
 
 // GetTransferList. get transfer progress list
-func (this *Endpoint) GetDownloadTransferDetail(pType TransferType, url string) (*transfer, *DspErr) {
-	if len(url) == 0 {
+func (this *Endpoint) GetTransferDetail(tType task.TaskType, fileHash, url string) (*transfer, *DspErr) {
+	if len(url) == 0 && len(fileHash) == 0 {
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
 	}
 	resp := &transfer{}
@@ -390,7 +411,10 @@ func (this *Endpoint) GetDownloadTransferDetail(pType TransferType, url string) 
 	if err != nil {
 		return resp, &DspErr{Code: INTERNAL_ERROR, Error: err}
 	}
-	hash := this.Dsp.GetFileHashFromUrl(url)
+	hash := fileHash
+	if len(hash) == 0 {
+		hash = this.Dsp.GetFileHashFromUrl(url)
+	}
 	log.Debugf("get hash from url %s %s", url, hash)
 	for _, key := range allTasksKey {
 		info, err := this.GetProgress(key)
@@ -403,11 +427,11 @@ func (this *Endpoint) GetDownloadTransferDetail(pType TransferType, url string) 
 		if info.FileHash != hash {
 			continue
 		}
-		pInfo := this.getTransferDetail(pType, info)
-		if pInfo == nil {
-			return resp, &DspErr{Code: INTERNAL_ERROR, Error: ErrMaps[INTERNAL_ERROR]}
-		}
-		resp = pInfo
+		// pInfo := this.getTransferDetail(pType, info)
+		// if pInfo == nil {
+		// 	return resp, &DspErr{Code: INTERNAL_ERROR, Error: ErrMaps[INTERNAL_ERROR]}
+		// }
+		// resp = pInfo
 		break
 	}
 	return resp, nil
@@ -556,6 +580,9 @@ func (this *Endpoint) GetFileShareIncome(start, end, offset, limit uint64) (*Fil
 	}
 	resp.Incomes = make([]*fileShareIncome, 0, len(records))
 	for _, record := range records {
+		if record.Profit == 0 {
+			continue
+		}
 		resp.TotalIncome += record.Profit
 		fileName := ""
 		info, _ := this.Dsp.DownloadedFileInfo(record.FileHash)

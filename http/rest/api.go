@@ -358,7 +358,8 @@ func GetTxByHeightAndLimit(cmd map[string]interface{}) map[string]interface{} {
 	asset, _ := cmd["Asset"].(string)
 	h, _ := cmd["Height"].(string)
 	l, _ := cmd["Limit"].(string)
-	txs, derr := dsp.DspService.GetTxByHeightAndLimit(addr, asset, txType, h, l)
+	skip, _ := cmd["SkipTxcountFromBlock"].(string)
+	txs, derr := dsp.DspService.GetTxByHeightAndLimit(addr, asset, txType, h, l, skip)
 	if derr != nil {
 		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
 	}
@@ -479,6 +480,16 @@ func PreExecSmartContract(cmd map[string]interface{}) map[string]interface{} {
 	}
 	// m := make(map[string]interface{}, 0)
 	// m["Data"] = ret
+	resp["Result"] = ret
+	return resp
+}
+
+func GetFsContractSetting(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	ret, derr := dsp.DspService.GetFsConfig()
+	if derr != nil {
+		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
+	}
 	resp["Result"] = ret
 	return resp
 }

@@ -332,7 +332,8 @@ type TxResp struct {
 	BlockHeight  uint32
 }
 
-func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, heightStr, limitStr string) ([]*TxResp, *DspErr) {
+func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, heightStr, limitStr, skipTxCntStr string) ([]*TxResp, *DspErr) {
+	log.Debugf("GetTxByHeightAndLimit %v %v %v %v %v %v", addr, asset, txType, heightStr, limitStr, skipTxCntStr)
 	if len(asset) == 0 {
 		asset = "save"
 	} else {
@@ -356,6 +357,7 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 		}
 		limit = uint32(limit64)
 	}
+
 	currentHeight, err := this.Dsp.Chain.GetCurrentBlockHeight()
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
@@ -366,15 +368,24 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 	if height > currentHeight {
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
 	}
+	skipTxCnt := uint64(0)
+	if len(heightStr) > 0 && len(skipTxCntStr) > 0 {
+		var err error
+		skipTxCnt, err = strconv.ParseUint(skipTxCntStr, 10, 32)
+		if err != nil {
+			return nil, &DspErr{Code: INVALID_PARAMS, Error: err}
+		}
+	}
 
 	txs := make([]*TxResp, 0)
-	events, err := this.Dsp.Chain.GetSmartContractEventByEventId(usdt.USDT_CONTRACT_ADDRESS.ToBase58(), this.Dsp.WalletAddress(), cusdt.EVENT_USDT_STATE_CHANGE)
-	log.Debugf("events-len %d, addr %s-%s-%d", len(events), usdt.USDT_CONTRACT_ADDRESS.ToBase58(), this.Dsp.WalletAddress(), cusdt.EVENT_USDT_STATE_CHANGE)
+	events, err := this.Dsp.Chain.GetSmartContractEventByEventId(usdt.USDT_CONTRACT_ADDRESS.ToBase58(), addr, cusdt.EVENT_USDT_STATE_CHANGE)
+	log.Debugf("events-len %d, addr %s-%s-%d", len(events), usdt.USDT_CONTRACT_ADDRESS.ToBase58(), addr, cusdt.EVENT_USDT_STATE_CHANGE)
 	if err != nil {
 		return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
 	}
 	// TODO: fixed this
 	tempMap := make(map[string]struct{}, 0)
+	hasSkip := uint64(0)
 	for i := len(events) - 1; i >= 0; i-- {
 		event := events[i]
 		log.Debugf("#d event %v", i, event.Notify)
@@ -406,7 +417,7 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 				if txType == TxTypeReceive && to != addr {
 					continue
 				}
-				tempKey := fmt.Sprintf("%v-%v", states[1], states[2])
+				tempKey := fmt.Sprintf("%s-%v-%v", event.TxHash, states[1], states[2])
 				if _, ok := tempMap[tempKey]; ok {
 					continue
 				}
@@ -431,6 +442,10 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 				if err != nil {
 					continue
 				}
+				if skipTxCnt > 0 && skipTxCnt > hasSkip {
+					hasSkip++
+					continue
+				}
 				tx.Timestamp = blk.Header.Timestamp
 				txs = append(txs, tx)
 				if limit > 0 && uint32(len(txs)) >= limit {
@@ -440,7 +455,6 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 			}
 		}
 	}
-
 	// for i := int32(height); i >= 0; i-- {
 	// 	blk, err := this.Dsp.Chain.GetBlockByHeight(uint32(i))
 	// 	if err != nil || blk == nil {

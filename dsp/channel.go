@@ -78,6 +78,11 @@ func (this *Endpoint) OpenPaymentChannel(partnerAddr string) (chanCom.ChannelID,
 	if progress.Progress != 1.0 {
 		return 0, &DspErr{Code: DSP_CHANNEL_INIT_NOT_FINISH, Error: ErrMaps[DSP_CHANNEL_INIT_NOT_FINISH]}
 	}
+	log.Debugf("OpenPaymentChannel %s", partnerAddr)
+	canOpen := this.Dsp.Channel.CanOpenChannel(partnerAddr)
+	if !canOpen {
+		return 0, &DspErr{Code: DSP_CHANNEL_EXIST, Error: ErrMaps[DSP_CHANNEL_EXIST]}
+	}
 	dnsUrl, err := this.Dsp.GetExternalIP(partnerAddr)
 	if err != nil {
 		return 0, &DspErr{Code: DSP_DNS_GET_EXTERNALIP_FAILED, Error: err}

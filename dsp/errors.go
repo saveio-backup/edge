@@ -90,6 +90,7 @@ const (
 	DSP_CHANNEL_MEDIATRANSFER_FAILED     = 56008
 	DSP_CHANNEL_CO_SETTLE_FAILED         = 56009
 	DSP_CHANNEL_INIT_NOT_FINISH          = 56010
+	DSP_CHANNEL_EXIST                    = 56011
 
 	DB_FIND_SHARE_RECORDS_FAILED     = 59000
 	DB_SUM_SHARE_PROFIT_FAILED       = 59001
@@ -179,6 +180,7 @@ var ErrMaps = map[int64]error{
 	DSP_CHANNEL_CO_SETTLE_FAILED:         errors.New("dsp channel co settle failed"),
 	DSP_CHANNEL_INIT_NOT_FINISH:          errors.New("dsp channel init not finish"),
 	DSP_USER_SPACE_PERIOD_NOT_ENOUGH:     errors.New("dsp user space period not enough"),
+	DSP_CHANNEL_EXIST:                    errors.New("channel has exists or not settled"),
 
 	DB_FIND_SHARE_RECORDS_FAILED:     errors.New("db find share records failed"),
 	DB_SUM_SHARE_PROFIT_FAILED:       errors.New("db sum share profit failed"),

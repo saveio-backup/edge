@@ -11,33 +11,33 @@ func FileNameMatchType(fileType DspFileListType, fileName string) bool {
 	case DspFileListTypeAll:
 		return true
 	case DspFileListTypeImage:
-		if strings.Index(fileName, "jpg") != -1 ||
-			strings.Index(fileName, "gif") != -1 ||
-			strings.Index(fileName, "svg") != -1 ||
-			strings.Index(fileName, "png") != -1 ||
-			strings.Index(fileName, "jpeg") != -1 {
+		if strings.Index(fileName, ".jpg") != -1 ||
+			strings.Index(fileName, ".gif") != -1 ||
+			strings.Index(fileName, ".svg") != -1 ||
+			strings.Index(fileName, ".png") != -1 ||
+			strings.Index(fileName, ".jpeg") != -1 {
 			return true
 		}
 	case DspFileListTypeDoc:
-		if strings.Index(fileName, "doc") != -1 ||
-			strings.Index(fileName, "txt") != -1 ||
-			strings.Index(fileName, "dat") != -1 ||
-			strings.Index(fileName, "docx") != -1 ||
-			strings.Index(fileName, "md") != -1 ||
-			strings.Index(fileName, "pdf") != -1 ||
-			strings.Index(fileName, "xlx") == -1 {
+		if strings.Index(fileName, ".doc") != -1 ||
+			strings.Index(fileName, ".txt") != -1 ||
+			strings.Index(fileName, ".dat") != -1 ||
+			strings.Index(fileName, ".docx") != -1 ||
+			strings.Index(fileName, ".md") != -1 ||
+			strings.Index(fileName, ".pdf") != -1 ||
+			strings.Index(fileName, ".xlx") != -1 {
 			return true
 		}
 	case DspFileListTypeVideo:
-		if strings.Index(fileName, "mp4") != -1 ||
-			strings.Index(fileName, "mov") != -1 ||
-			strings.Index(fileName, "rmvb") != -1 ||
-			strings.Index(fileName, "avi") != -1 ||
-			strings.Index(fileName, "rm") == -1 {
+		if strings.Index(fileName, ".mp4") != -1 ||
+			strings.Index(fileName, ".mov") != -1 ||
+			strings.Index(fileName, ".rmvb") != -1 ||
+			strings.Index(fileName, ".avi") != -1 ||
+			strings.Index(fileName, ".rm") != -1 {
 			return true
 		}
 	case DspFileListTypeMusic:
-		if strings.Index(fileName, "mp3") == -1 {
+		if strings.Index(fileName, ".mp3") != -1 {
 			return true
 		}
 	}

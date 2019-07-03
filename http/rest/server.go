@@ -70,6 +70,8 @@ const (
 
 	SET_CONFIG = "/api/v1/config"
 
+	FS_CONTRACT_SETTING = "/api/v1/smartcontract/fs/setting"
+
 	DSP_NODE_REGISTER              = "/api/v1/dsp/node/register"
 	DSP_NODE_UNREGISTER            = "/api/v1/dsp/node/unregister"
 	DSP_NODE_QUERY                 = "/api/v1/dsp/node/query/:addr"
@@ -80,21 +82,22 @@ const (
 	DSP_CLIENT_GET_USER_SPACE      = "/api/v1/dsp/client/userspace/:addr"
 	DSP_USERSPACE_RECORDS          = "/api/v1/dsp/client/userspacerecords/:addr/:offset/:limit"
 
-	DSP_GET_UPLOAD_FILELIST   = "/api/v1/dsp/file/uploadlist/:type/:offset/:limit"
-	DSP_GET_DOWNLOAD_FILELIST = "/api/v1/dsp/file/downloadlist/:type/:offset/:limit"
-	DSP_GET_FILEINFO          = "/api/v1/dsp/file/:hash"
-	DSP_GET_FILE_TRANSFERLIST = "/api/v1/dsp/file/transferlist/:type/:offset/:limit"
-	DSP_FILE_UPLOAD           = "/api/v1/dsp/file/upload"
-	DSP_FILE_UPLOAD_FEE       = "/api/v1/dsp/file/uploadfee/:file"
-	DSP_FILE_DELETE           = "/api/v1/dsp/file/delete"
-	DSP_FILE_DOWNLOAD         = "/api/v1/dsp/file/download"
-	DSP_FILE_DOWNLOAD_INFO    = "/api/v1/dsp/file/downloadinfo/:url"
-	DSP_FILE_ENCRYPT          = "/api/v1/dsp/file/encrypt"
-	DSP_FILE_DECRYPT          = "/api/v1/dsp/file/decrypt"
-	DSP_FILE_SHARE_INCOME     = "/api/v1/dsp/file/share/income/:begin/:end/:offset/:limit"
-	DSP_FILE_SHARE_REVENUE    = "/api/v1/dsp/file/share/revenue"
-	DSP_GET_FILE_WHITELIST    = "/api/v1/dsp/file/whitelist/:hash"
-	DSP_UPDATE_FILE_WHITELIST = "/api/v1/dsp/file/updatewhitelist"
+	DSP_GET_UPLOAD_FILELIST      = "/api/v1/dsp/file/uploadlist/:type/:offset/:limit"
+	DSP_GET_DOWNLOAD_FILELIST    = "/api/v1/dsp/file/downloadlist/:type/:offset/:limit"
+	DSP_GET_FILEINFO             = "/api/v1/dsp/file/:hash"
+	DSP_GET_FILE_TRANSFERLIST    = "/api/v1/dsp/file/transferlist/:type/:offset/:limit"
+	DSP_GET_FILE_TRANSFER_DETAIL = "/api/v1/dsp/file/transferdetail/:url"
+	DSP_FILE_UPLOAD              = "/api/v1/dsp/file/upload"
+	DSP_FILE_UPLOAD_FEE          = "/api/v1/dsp/file/uploadfee/:file"
+	DSP_FILE_DELETE              = "/api/v1/dsp/file/delete"
+	DSP_FILE_DOWNLOAD            = "/api/v1/dsp/file/download"
+	DSP_FILE_DOWNLOAD_INFO       = "/api/v1/dsp/file/downloadinfo/:url"
+	DSP_FILE_ENCRYPT             = "/api/v1/dsp/file/encrypt"
+	DSP_FILE_DECRYPT             = "/api/v1/dsp/file/decrypt"
+	DSP_FILE_SHARE_INCOME        = "/api/v1/dsp/file/share/income/:begin/:end/:offset/:limit"
+	DSP_FILE_SHARE_REVENUE       = "/api/v1/dsp/file/share/revenue"
+	DSP_GET_FILE_WHITELIST       = "/api/v1/dsp/file/whitelist/:hash"
+	DSP_UPDATE_FILE_WHITELIST    = "/api/v1/dsp/file/updatewhitelist"
 
 	GET_CHANNEL_INIT_PROGRESS = "/api/v1/channel/init/progress"
 	GET_ALL_CHANNEL           = "/api/v1/channel"
@@ -196,6 +199,8 @@ func (this *restServer) registryMethod() {
 		EXPORT_WALLETFILE:    {name: "exportwalletfile", handler: ExportWalletFile},
 		EXPORT_WIFPRIVATEKEY: {name: "exportwifprivatekey", handler: ExportWIFPrivateKey},
 
+		FS_CONTRACT_SETTING: {name: "getfscontractsetting", handler: GetFsContractSetting},
+
 		DSP_NODE_UNREGISTER:       {name: "unregisternode", handler: UnregisterNode},
 		DSP_NODE_QUERY:            {name: "querynode", handler: NodeQuery},
 		DSP_NODE_WITHDRAW:         {name: "withdrawnode", handler: NodeWithdrawProfit},
@@ -276,7 +281,7 @@ func (this *restServer) getPath(url string) string {
 		return GET_BLK_HASH
 	} else if strings.Contains(url, strings.TrimRight(GET_TX, ":hash")) {
 		return GET_TX
-	} else if strings.Contains(url, strings.TrimRight(GET_TXS_HEIGHT_LIMIT, ":addr/:type")) {
+	} else if strings.Contains(url, strings.TrimSuffix(GET_TXS_HEIGHT_LIMIT, ":addr/:type")) {
 		return GET_TXS_HEIGHT_LIMIT
 	} else if strings.Contains(url, strings.TrimRight(GET_STORAGE, ":hash/:key")) {
 		return GET_STORAGE
@@ -335,9 +340,7 @@ func (this *restServer) getPath(url string) string {
 	}
 
 	//path for channel
-	if strings.Contains(url, strings.TrimRight(OPEN_CHANNEL, ":partneraddr")) {
-		return OPEN_CHANNEL
-	} else if strings.Contains(url, strings.TrimRight(QUERY_CHANNEL, ":partneraddr")) {
+	if strings.Contains(url, strings.TrimRight(QUERY_CHANNEL, ":partneraddr")) {
 		return QUERY_CHANNEL
 		// } else if strings.Contains(url, strings.TrimRight(DEPOSIT_CHANNEL, ":partneraddr/:amount")) {
 		// 	return DEPOSIT_CHANNEL
@@ -384,6 +387,7 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 		req["Hash"], req["Raw"] = getParam(r, "hash"), r.FormValue("raw")
 	case GET_TXS_HEIGHT_LIMIT:
 		req["Addr"], req["Type"], req["Asset"], req["Height"], req["Limit"] = getParam(r, "addr"), getParam(r, "type"), r.FormValue("asset"), r.FormValue("height"), r.FormValue("limit")
+		req["SkipTxcountFromBlock"] = r.FormValue("skipTxCountFromblock")
 	case GET_STORAGE:
 		req["Hash"], req["Key"] = getParam(r, "hash"), getParam(r, "key")
 	case GET_BALANCE:
@@ -449,11 +453,6 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 
 	//params for channel
 	switch url {
-	case OPEN_CHANNEL:
-		req["Partner"] = getParam(r, "partneraddr")
-	// case DEPOSIT_CHANNEL:
-	// 	req["Partner"] = getParam(r, "partneraddr")
-	// 	req["Amount"] = getParam(r, "amount")
 	case TRANSFER_BY_CHANNEL:
 		req["Amount"] = getParam(r, "amount")
 		req["To"], req["PaymentId"] = getParam(r, "toaddr"), getParam(r, "paymentid")

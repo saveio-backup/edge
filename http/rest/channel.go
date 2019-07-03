@@ -25,6 +25,7 @@ func GetAllChannels(cmd map[string]interface{}) map[string]interface{} {
 //Handle for channel
 func OpenChannel(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
+	log.Debugf("partnerAddrstr :%T, cmd %v", cmd["Partner"], cmd)
 	partnerAddrstr, ok := cmd["Partner"].(string)
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
