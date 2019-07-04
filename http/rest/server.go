@@ -77,6 +77,7 @@ const (
 	DSP_NODE_QUERY                 = "/api/v1/dsp/node/query/:addr"
 	DSP_NODE_UPDATE                = "/api/v1/dsp/node/update"
 	DSP_NODE_WITHDRAW              = "/api/v1/dsp/node/withdraw"
+	DSP_NODES_INFO                 = "/api/v1/dsp/nodes/info"
 	DSP_SET_USER_SPACE             = "/api/v1/dsp/client/userspace/set"
 	DSP_GET_UPDATE_USER_SPACE_COST = "/api/v1/dsp/client/userspace/cost"
 	DSP_CLIENT_GET_USER_SPACE      = "/api/v1/dsp/client/userspace/:addr"
@@ -204,6 +205,7 @@ func (this *restServer) registryMethod() {
 		DSP_NODE_UNREGISTER:       {name: "unregisternode", handler: UnregisterNode},
 		DSP_NODE_QUERY:            {name: "querynode", handler: NodeQuery},
 		DSP_NODE_WITHDRAW:         {name: "withdrawnode", handler: NodeWithdrawProfit},
+		DSP_NODES_INFO:            {name: "getnodesinfo", handler: GetStorageNodesInfo},
 		DSP_CLIENT_GET_USER_SPACE: {name: "getuserspacesss", handler: GetUserSpace},
 		DSP_USERSPACE_RECORDS:     {name: "getuserspacerecords", handler: GetUserSpaceRecords},
 		DSP_GET_UPLOAD_FILELIST:   {name: "getuploadfilelist", handler: GetUploadFiles},
@@ -387,7 +389,7 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 		req["Hash"], req["Raw"] = getParam(r, "hash"), r.FormValue("raw")
 	case GET_TXS_HEIGHT_LIMIT:
 		req["Addr"], req["Type"], req["Asset"], req["Height"], req["Limit"] = getParam(r, "addr"), getParam(r, "type"), r.FormValue("asset"), r.FormValue("height"), r.FormValue("limit")
-		req["SkipTxcountFromBlock"] = r.FormValue("skipTxCountFromblock")
+		req["SkipTxcountFromBlock"] = r.FormValue("skipTxCountFromBlock")
 	case GET_STORAGE:
 		req["Hash"], req["Key"] = getParam(r, "hash"), getParam(r, "key")
 	case GET_BALANCE:

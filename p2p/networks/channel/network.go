@@ -128,10 +128,13 @@ func (this *Network) Start(address string) error {
 	}
 	builder.AddComponent(backoff.New(backoffOptions...))
 	if len(this.proxyAddr) > 0 {
-		if protocol == "udp" {
+		switch protocol {
+		case "udp":
 			builder.AddComponent(new(proxy.UDPProxyComponent))
-		} else if protocol == "kcp" {
+		case "kcp":
 			builder.AddComponent(new(proxy.KCPProxyComponent))
+		case "quic":
+			builder.AddComponent(new(proxy.QuicProxyComponent))
 		}
 	}
 	var err error
@@ -158,10 +161,13 @@ func (this *Network) Start(address string) error {
 	this.P2p.BlockUntilListening()
 	log.Debugf("will BlockUntilProxyFinish...")
 	if len(this.proxyAddr) > 0 {
-		if protocol == "udp" {
+		switch protocol {
+		case "udp":
 			this.P2p.BlockUntilUDPProxyFinish()
-		} else if protocol == "kcp" {
+		case "kcp":
 			this.P2p.BlockUntilKCPProxyFinish()
+		case "quic":
+			this.P2p.BlockUntilQuicProxyFinish()
 		}
 	}
 	log.Debugf("finish BlockUntilProxyFinish...")

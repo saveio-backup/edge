@@ -522,3 +522,13 @@ func GetUserSpaceRecords(cmd map[string]interface{}) map[string]interface{} {
 	resp["Result"] = records
 	return resp
 }
+
+func GetStorageNodesInfo(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	ret, err := dsp.DspService.GetStorageNodesInfo()
+	if err != nil {
+		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
+	}
+	resp["Result"] = ret
+	return resp
+}

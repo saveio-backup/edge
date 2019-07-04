@@ -97,6 +97,7 @@ type downloadFileInfo struct {
 
 type fileShareIncome struct {
 	Name         string
+	OwnerAddress string
 	Profit       uint64
 	ProfitFormat string
 	SharedAt     uint64
@@ -589,8 +590,14 @@ func (this *Endpoint) GetFileShareIncome(start, end, offset, limit uint64) (*Fil
 		if info != nil {
 			fileName = info.FileName
 		}
+		fileInfo, _ := this.Dsp.Chain.Native.Fs.GetFileInfo(record.FileHash)
+		owner := ""
+		if fileInfo != nil {
+			owner = fileInfo.FileOwner.ToBase58()
+		}
 		resp.Incomes = append(resp.Incomes, &fileShareIncome{
 			Name:         fileName,
+			OwnerAddress: owner,
 			Profit:       record.Profit,
 			ProfitFormat: utils.FormatUsdt(record.Profit),
 			SharedAt:     uint64(record.CreatedAt.Unix()),
@@ -953,6 +960,16 @@ func (this *Endpoint) GetUserspaceRecords(walletAddr string, offset, limit uint6
 		})
 	}
 	return resp, nil
+}
+
+func (this *Endpoint) GetStorageNodesInfo() (map[string]interface{}, *DspErr) {
+	info, err := this.Dsp.Chain.Native.Fs.GetNodeList()
+	if err != nil {
+		return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
+	}
+	m := make(map[string]interface{})
+	m["Count"] = info.NodeNum
+	return m, nil
 }
 
 func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressInfo) *transfer {

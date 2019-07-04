@@ -256,10 +256,10 @@ func GetMemPoolTxState(cmd []interface{}) map[string]interface{} {
 }
 
 func GetTxByHeightAndLimit(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 5 {
+	if len(cmd) < 6 {
 		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
-	params := convertSliceToMap(cmd, []string{"Addr", "Type", "Asset", "Height", "Limit"})
+	params := convertSliceToMap(cmd, []string{"Addr", "Type", "Asset", "Height", "Limit", "SkipTxCountFromBlock"})
 	v := rest.GetTxByHeightAndLimit(params)
 	ret, err := parseRestResult(v)
 	if err != nil {

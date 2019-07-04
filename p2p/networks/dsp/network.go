@@ -111,10 +111,13 @@ func (this *Network) Start(addr string) error {
 	netComponent.Net = this
 	builder.AddComponent(netComponent)
 	if len(this.proxySvrAddr) > 0 {
-		if protocol == "udp" {
+		switch protocol {
+		case "udp":
 			builder.AddComponent(new(proxy.UDPProxyComponent))
-		} else if protocol == "kcp" {
+		case "kcp":
 			builder.AddComponent(new(proxy.KCPProxyComponent))
+		case "quic":
+			builder.AddComponent(new(proxy.QuicProxyComponent))
 		}
 	}
 	net, err := builder.Build()
@@ -131,10 +134,13 @@ func (this *Network) Start(addr string) error {
 	this.net.BlockUntilListening()
 	log.Debugf("++++ dsp will blocking %s", this.proxySvrAddr)
 	if len(this.proxySvrAddr) > 0 {
-		if protocol == "udp" {
+		switch protocol {
+		case "udp":
 			this.net.BlockUntilUDPProxyFinish()
-		} else if protocol == "kcp" {
+		case "kcp":
 			this.net.BlockUntilKCPProxyFinish()
+		case "quic":
+			this.net.BlockUntilQuicProxyFinish()
 		}
 	}
 	if len(net.ID.Address) == 6 {
