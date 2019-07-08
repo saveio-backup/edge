@@ -261,11 +261,11 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, ti
 func (this *Endpoint) DeleteFile(fileHash string) (*DeleteFileResp, *DspErr) {
 	fi, err := this.Dsp.Chain.Native.Fs.GetFileInfo(fileHash)
 	if fi != nil && err == nil && fi.FileOwner.ToBase58() == this.Dsp.WalletAddress() {
-		tx, err := this.Dsp.DeleteUploadedFile(fileHash)
+		resp, err := this.Dsp.DeleteUploadedFile(fileHash)
 		if err != nil {
 			return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: err}
 		}
-		return &DeleteFileResp{Tx: tx, IsUploaded: false}, nil
+		return &DeleteFileResp{Tx: resp.Tx, IsUploaded: false}, nil
 	}
 	err = this.Dsp.DeleteDownloadedFile(fileHash)
 	if err != nil {

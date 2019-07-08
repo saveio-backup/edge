@@ -101,8 +101,8 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 		}(this.dspNet, msg, ctx.Sender(), ctx.Self())
 	case *dspact.BroadcastReq:
 		go func(net *dsp.Network, cmsg *dspact.BroadcastReq, sender *actor.PID, self *actor.PID) {
-			err := net.Broadcast(cmsg.Addresses, cmsg.Data, cmsg.NeedReply, cmsg.Stop, cmsg.Action)
-			sender.Request(&dspact.P2pResp{Error: err}, self)
+			m, err := net.Broadcast(cmsg.Addresses, cmsg.Data, cmsg.NeedReply, cmsg.Stop, cmsg.Action)
+			sender.Request(&dspact.BroadcastResp{Result: m, Error: err}, self)
 		}(this.dspNet, msg, ctx.Sender(), ctx.Self())
 		// err := this.dspNet.Broadcast(msg.Addresses, msg.Data, msg.NeedReply, msg.Stop, msg.Action)
 		// ctx.Sender().Request(&dspact.P2pResp{Error: err}, ctx.Self())

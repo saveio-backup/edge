@@ -242,8 +242,6 @@ func (this *Network) IsConnectionExists(addr string) bool {
 }
 
 func (this *Network) Connect(addr ...string) error {
-	log.Debugf("DSP Connect 20 %s", addr[0])
-
 	for _, a := range addr {
 		if this.IsConnectionExists(a) {
 			log.Debugf("connection exist %s", a)
@@ -339,76 +337,165 @@ func (this *Network) RequestWithRetry(msg proto.Message, peer interface{}, retry
 
 // Broadcast. broadcast same msg to peers. Handle action if send msg success.
 // If one msg is sent failed, return err. But the previous success msgs can not be recalled.
-// action(responseMsg, responseToAddr).
-func (this *Network) Broadcast(addrs []string, msg proto.Message, needReply bool, stop func() bool, action func(proto.Message, string)) error {
+// callback(responseMsg, responseToAddr).
+func (this *Network) Broadcast(addrs []string, msg proto.Message, needReply bool, stop func() bool, callback func(proto.Message, string)) (map[string]error, error) {
 	log.Debugf("[DSPNetwork] broadcast")
-	wg := sync.WaitGroup{}
 	maxRoutines := common.MAX_GOROUTINES_IN_LOOP
 	if len(addrs) <= common.MAX_GOROUTINES_IN_LOOP {
 		maxRoutines = len(addrs)
 	}
-	count := 0
-	errs := new(sync.Map)
-	errCount := 0
-	for _, addr := range addrs {
-		wg.Add(1)
-		go func(to string) {
-			defer wg.Done()
-			log.Debugf("broadcast check is exists to %s", to)
-			if !this.IsConnectionExists(to) {
-				log.Debugf("not exist, connecting %v", to)
-				err := this.Connect(to)
-				if err != nil {
-					errCount++
-					errs.Store(to, err)
-					return
+	type broadcastReq struct {
+		addr string
+	}
+	type broadcastResp struct {
+		addr string
+		err  error
+	}
+	dispatch := make(chan *broadcastReq, 0)
+	done := make(chan *broadcastResp, 0)
+	for i := 0; i < maxRoutines; i++ {
+		go func() {
+			for {
+				req, ok := <-dispatch
+				log.Debugf("receive msg from %s, ok %t", req, ok)
+				if !ok || req == nil {
+					break
 				}
-			} else {
-				log.Debugf("connection exists")
+				if !this.IsConnectionExists(req.addr) {
+					log.Debugf("broadcast msg check %v not exist, connecting...", req.addr)
+					err := this.Connect(req.addr)
+					if err != nil {
+						done <- &broadcastResp{
+							addr: req.addr,
+							err:  err,
+						}
+						continue
+					}
+				}
+				var res proto.Message
+				var err error
+				if !needReply {
+					err = this.Send(msg, req.addr)
+				} else {
+					res, err = this.Request(msg, req.addr)
+				}
+
+				if err != nil {
+					log.Errorf("broadcast msg to %s err %s", req.addr, err)
+					done <- &broadcastResp{
+						addr: req.addr,
+						err:  err,
+					}
+					continue
+				}
+				if callback != nil {
+					callback(res, req.addr)
+				}
+				done <- &broadcastResp{
+					addr: req.addr,
+					err:  nil,
+				}
 			}
-			var res proto.Message
-			var err error
-			if !needReply {
-				err = this.Send(msg, to)
-			} else {
-				res, err = this.Request(msg, to)
+			log.Debugf("go rontinue outside")
+		}()
+	}
+	go func() {
+		for _, addr := range addrs {
+			dispatch <- &broadcastReq{
+				addr: addr,
 			}
-			if err != nil {
-				errCount++
-				errs.Store(to, err)
-				return
-			}
-			if action != nil {
-				action(res, to)
-			}
-		}(addr)
-		count++
-		if count >= maxRoutines {
-			wg.Wait()
-			// reset, start new round
-			count = 0
 		}
+		log.Debugf("dispatch all msg")
+	}()
+
+	m := make(map[string]error)
+	for {
+		result := <-done
+		m[result.addr] = result.err
 		if stop != nil && stop() {
-			break
+			return m, nil
 		}
-		if errCount > 0 {
-			break
+		if len(m) != len(addrs) {
+			continue
 		}
+		close(dispatch)
+		close(done)
+		return m, nil
 	}
-	// wait again if last round count < maxRoutines
-	wg.Wait()
-	if stop != nil && stop() {
-		return nil
-	}
-	if errCount == 0 {
-		return nil
-	}
-	errs.Range(func(to, err interface{}) bool {
-		log.Errorf("broadcast msg to %v, err %v", to, err)
-		return false
-	})
-	return errors.New("broadcast failed")
 }
+
+// // Broadcast. broadcast same msg to peers. Handle action if send msg success.
+// // If one msg is sent failed, return err. But the previous success msgs can not be recalled.
+// // action(responseMsg, responseToAddr).
+// func (this *Network) Broadcast(addrs []string, msg proto.Message, needReply bool, stop func() bool, action func(proto.Message, string)) error {
+// 	log.Debugf("[DSPNetwork] broadcast")
+// 	wg := sync.WaitGroup{}
+// 	maxRoutines := common.MAX_GOROUTINES_IN_LOOP
+// 	if len(addrs) <= common.MAX_GOROUTINES_IN_LOOP {
+// 		maxRoutines = len(addrs)
+// 	}
+// 	count := 0
+// 	errs := new(sync.Map)
+// 	errCount := 0
+// 	for _, addr := range addrs {
+// 		wg.Add(1)
+// 		go func(to string) {
+// 			defer wg.Done()
+// 			log.Debugf("broadcast check is exists to %s", to)
+// 			if !this.IsConnectionExists(to) {
+// 				log.Debugf("not exist, connecting %v", to)
+// 				err := this.Connect(to)
+// 				if err != nil {
+// 					errCount++
+// 					errs.Store(to, err)
+// 					return
+// 				}
+// 			} else {
+// 				log.Debugf("connection exists")
+// 			}
+// 			var res proto.Message
+// 			var err error
+// 			if !needReply {
+// 				err = this.Send(msg, to)
+// 			} else {
+// 				res, err = this.Request(msg, to)
+// 			}
+// 			if err != nil {
+// 				errCount++
+// 				errs.Store(to, err)
+// 				return
+// 			}
+// 			if action != nil {
+// 				action(res, to)
+// 			}
+// 		}(addr)
+// 		count++
+// 		if count >= maxRoutines {
+// 			wg.Wait()
+// 			// reset, start new round
+// 			count = 0
+// 		}
+// 		if stop != nil && stop() {
+// 			break
+// 		}
+// 		if errCount > 0 {
+// 			break
+// 		}
+// 	}
+// 	// wait again if last round count < maxRoutines
+// 	wg.Wait()
+// 	if stop != nil && stop() {
+// 		return nil
+// 	}
+// 	if errCount == 0 {
+// 		return nil
+// 	}
+// 	errs.Range(func(to, err interface{}) bool {
+// 		log.Errorf("broadcast msg to %v, err %v", to, err)
+// 		return false
+// 	})
+// 	return errors.New("broadcast failed")
+// }
 
 func (this *Network) loadClient(peer interface{}) (*network.PeerClient, error) {
 	addr, ok := peer.(string)
