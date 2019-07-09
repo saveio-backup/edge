@@ -127,6 +127,7 @@ func (this *Network) Start(addr string) error {
 	this.net = net
 	log.Debugf("proxy %v, list %v", this.proxySvrAddr, addr)
 	if len(this.proxySvrAddr) > 0 {
+		this.net.EnableProxyMode(true)
 		this.net.SetProxyServer(this.proxySvrAddr)
 	}
 	go this.net.Listen()

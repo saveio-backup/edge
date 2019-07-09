@@ -153,6 +153,7 @@ func (this *Network) Start(address string) error {
 		}
 	})
 	if len(this.proxyAddr) > 0 {
+		this.P2p.EnableProxyMode(true)
 		this.P2p.SetProxyServer(this.proxyAddr)
 	}
 	go this.P2p.Listen()
