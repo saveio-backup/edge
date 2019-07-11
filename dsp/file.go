@@ -109,6 +109,13 @@ type FileShareIncomeResp struct {
 	Incomes           []*fileShareIncome
 }
 
+type FileStoreType int
+
+const (
+	FileStoreTypeNormal FileStoreType = iota
+	FileStoreTypeProfessional
+)
+
 type fileResp struct {
 	Hash          string
 	Name          string
@@ -119,6 +126,7 @@ type fileResp struct {
 	UpdatedAt     uint64
 	Profit        uint64
 	Privilege     uint64
+	StoreType     FileStoreType
 }
 
 type downloadFilesInfo struct {
@@ -651,10 +659,19 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uin
 	if err != nil {
 		return nil, &DspErr{Code: FS_GET_FILE_LIST_FAILED, Error: err}
 	}
+	setting, err := this.Dsp.Chain.Native.Fs.GetSetting()
+	if err != nil {
+		return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
+	}
 	now, err := this.Dsp.Chain.GetCurrentBlockHeight()
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
 	}
+	space, err := this.Dsp.GetUserSpace(this.Dsp.WalletAddress())
+	if err != nil {
+		return nil, &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
+	}
+
 	files := make([]*fileResp, 0)
 	offsetCnt := uint64(0)
 	for _, hash := range fileList.List {
@@ -680,6 +697,13 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uin
 		url, _ := this.GetUrlFromHash(string(hash.Hash))
 		downloadedCount, _ := this.sqliteDB.CountRecordByFileHash(string(hash.Hash))
 		profit, _ := this.sqliteDB.SumRecordsProfitByFileHash(string(hash.Hash))
+		storeType := FileStoreTypeNormal
+
+		calculateTimes := math.Ceil(float64(space.ExpireHeight-fi.BlockHeight) / float64(setting.DefaultProvePeriod))
+		if fi.CopyNum != setting.DefaultCopyNum || fi.ChallengeRate != setting.DefaultProvePeriod || fi.ChallengeTimes != uint64(calculateTimes) {
+			log.Debugf("file %s copy num %d , rate %d, expired: %d, real-expired: %d, fi.BlockHeight:%d, ChallengeTimes %d", string(hash.Hash), fi.CopyNum, fi.ChallengeRate, expired, space.ExpireHeight, fi.BlockHeight, fi.ChallengeTimes)
+			storeType = FileStoreTypeProfessional
+		}
 		fr := &fileResp{
 			Hash:          string(hash.Hash),
 			Name:          string(fi.FileDesc),
@@ -691,6 +715,7 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uin
 			UpdatedAt: updatedAt,
 			Profit:    profit,
 			Privilege: fi.Privilege,
+			StoreType: storeType,
 		}
 		files = append(files, fr)
 		if limit > 0 && uint64(len(files)) >= limit {
