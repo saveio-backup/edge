@@ -19,6 +19,25 @@ type FilterBlockProgress struct {
 	Now      uint32
 }
 
+type ChannelInfo struct {
+	ChannelId         uint32
+	Balance           uint64
+	BalanceFormat     string
+	Address           string
+	HostAddr          string
+	TokenAddr         string
+	Participant1State int
+	ParticiPant2State int
+	IsDNS             bool
+	Connected         bool
+}
+
+type ChannelInfosResp struct {
+	Balance       uint64
+	BalanceFormat string
+	Channels      []*ChannelInfo
+}
+
 var startChannelHeight, endChannelHeight uint32
 
 func (this *Endpoint) SetFilterBlockRange() {
@@ -66,7 +85,39 @@ func (this *Endpoint) GetAllChannels() (interface{}, *DspErr) {
 	if this.Account == nil {
 		return nil, &DspErr{Code: NO_ACCOUNT, Error: ErrMaps[NO_ACCOUNT]}
 	}
-	return this.Dsp.Channel.AllChannels(), nil
+	resp := &ChannelInfosResp{}
+	all := this.Dsp.Channel.AllChannels()
+	resp.Balance = all.Balance
+	resp.BalanceFormat = all.BalanceFormat
+	for _, ch := range all.Channels {
+		newch := &ChannelInfo{
+			ChannelId:         ch.ChannelId,
+			Balance:           ch.Balance,
+			BalanceFormat:     ch.BalanceFormat,
+			Address:           ch.Address,
+			HostAddr:          ch.HostAddr,
+			TokenAddr:         ch.TokenAddr,
+			Participant1State: ch.Participant1State,
+			ParticiPant2State: ch.ParticiPant2State,
+		}
+
+		address, err := chainCom.AddressFromBase58(ch.Address)
+		if err != nil {
+			resp.Channels = append(resp.Channels, newch)
+			continue
+		}
+		info, err := this.Dsp.Chain.Native.Dns.GetDnsNodeByAddr(address)
+		if err != nil || info == nil {
+			resp.Channels = append(resp.Channels, newch)
+			continue
+		}
+		newch.IsDNS = true
+		if newch.Address == this.Dsp.DNSNode.WalletAddr {
+			newch.Connected = true
+		}
+		resp.Channels = append(resp.Channels, newch)
+	}
+	return resp, nil
 }
 
 //oniChannel api

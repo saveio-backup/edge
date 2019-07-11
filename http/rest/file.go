@@ -456,9 +456,17 @@ func SetUserSpace(cmd map[string]interface{}) map[string]interface{} {
 		second, _ = secondMap["Value"].(float64)
 		secondOp, _ = secondMap["Type"].(float64)
 	}
+	password, ok := cmd["Password"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
 	log.Debugf("size %v %v %v %v", uint64(size), uint64(sizeOp), uint64(second), uint64(secondOp))
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
+	}
+	_, derr := dsp.DspService.GetAccount(dsp.DspService.GetWallatFilePath(), password)
+	if derr != nil {
+		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
 	}
 	tx, err := dsp.DspService.SetUserSpace(addr, uint64(size), uint64(sizeOp), uint64(second), uint64(secondOp))
 	if err != nil {

@@ -161,6 +161,8 @@ type calculateResp struct {
 type userspaceCostResp struct {
 	Fee          uint64
 	FeeFormat    string
+	Refund       uint64
+	RefundFormat string
 	TransferType storage.UserspaceTransferType
 }
 
@@ -883,12 +885,14 @@ func (this *Endpoint) GetUserSpaceCost(walletAddr string, size, sizeOpType, bloc
 			FeeFormat:    utils.FormatUsdt(cost.Value),
 			TransferType: storage.TransferTypeIn,
 		}, nil
+	} else if cost.To.ToBase58() == this.Dsp.Account.Address.ToBase58() {
+		return &userspaceCostResp{
+			Refund:       cost.Value,
+			RefundFormat: utils.FormatUsdt(cost.Value),
+			TransferType: storage.TransferTypeOut,
+		}, nil
 	}
-	return &userspaceCostResp{
-		Fee:          cost.Value,
-		FeeFormat:    utils.FormatUsdt(cost.Value),
-		TransferType: storage.TransferTypeOut,
-	}, nil
+	return nil, &DspErr{Code: INTERNAL_ERROR, Error: ErrMaps[INTERNAL_ERROR]}
 }
 
 func (this *Endpoint) GetUserSpace(addr string) (*userspace, *DspErr) {
