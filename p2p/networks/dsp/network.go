@@ -118,6 +118,8 @@ func (this *Network) Start(addr string) error {
 			builder.AddComponent(new(proxy.KCPProxyComponent))
 		case "quic":
 			builder.AddComponent(new(proxy.QuicProxyComponent))
+		case "tcp":
+			builder.AddComponent(new(proxy.TcpProxyComponent))
 		}
 	}
 	net, err := builder.Build()
@@ -142,6 +144,8 @@ func (this *Network) Start(addr string) error {
 			this.net.BlockUntilKCPProxyFinish()
 		case "quic":
 			this.net.BlockUntilQuicProxyFinish()
+		case "tcp":
+			this.net.BlockUntilTcpProxyFinish()
 		}
 	}
 	if len(net.ID.Address) == 6 {

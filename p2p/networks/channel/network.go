@@ -135,6 +135,8 @@ func (this *Network) Start(address string) error {
 			builder.AddComponent(new(proxy.KCPProxyComponent))
 		case "quic":
 			builder.AddComponent(new(proxy.QuicProxyComponent))
+		case "tcp":
+			builder.AddComponent(new(proxy.TcpProxyComponent))
 		}
 	}
 	var err error
@@ -169,6 +171,9 @@ func (this *Network) Start(address string) error {
 			this.P2p.BlockUntilKCPProxyFinish()
 		case "quic":
 			this.P2p.BlockUntilQuicProxyFinish()
+		case "tcp":
+			this.P2p.BlockUntilTcpProxyFinish()
+
 		}
 	}
 	log.Debugf("finish BlockUntilProxyFinish...")
