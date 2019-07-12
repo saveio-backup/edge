@@ -79,6 +79,7 @@ const (
 	DSP_DNS_QUERY_ALLINFOS_FAILED        = 55060
 	DSP_DNS_GET_EXTERNALIP_FAILED        = 55061
 	DSP_USER_SPACE_PERIOD_NOT_ENOUGH     = 55062
+	DSP_FILE_INFO_NOT_FOUND              = 55100
 	DSP_CHANNEL_INTERNAL_ERROR           = 56000
 	DSP_CHANNEL_OPEN_FAILED              = 56001
 	DSP_CHANNEL_CLOSE_FAILED             = 56002
@@ -168,6 +169,7 @@ var ErrMaps = map[int64]error{
 	DSP_DNS_QUERY_INFO_FAILED:            errors.New("dsp dns query info failed"),
 	DSP_DNS_QUERY_ALLINFOS_FAILED:        errors.New("dsp dns query allinfos failed"),
 	DSP_DNS_GET_EXTERNALIP_FAILED:        errors.New("dsp dns get externalip failed"),
+	DSP_FILE_INFO_NOT_FOUND:              errors.New("dsp file info not found"),
 	DSP_CHANNEL_INTERNAL_ERROR:           errors.New("dsp channel internal error"),
 	DSP_CHANNEL_OPEN_FAILED:              errors.New("dsp channel open failed"),
 	DSP_CHANNEL_CLOSE_FAILED:             errors.New("dsp channel close failed"),

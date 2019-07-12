@@ -85,7 +85,6 @@ const (
 
 	DSP_GET_UPLOAD_FILELIST      = "/api/v1/dsp/file/uploadlist/:type/:offset/:limit"
 	DSP_GET_DOWNLOAD_FILELIST    = "/api/v1/dsp/file/downloadlist/:type/:offset/:limit"
-	DSP_GET_FILEINFO             = "/api/v1/dsp/file/:hash"
 	DSP_GET_FILE_TRANSFERLIST    = "/api/v1/dsp/file/transferlist/:type/:offset/:limit"
 	DSP_GET_FILE_TRANSFER_DETAIL = "/api/v1/dsp/file/transferdetail/:url"
 	DSP_FILE_UPLOAD              = "/api/v1/dsp/file/upload"
@@ -99,6 +98,7 @@ const (
 	DSP_FILE_SHARE_REVENUE       = "/api/v1/dsp/file/share/revenue"
 	DSP_GET_FILE_WHITELIST       = "/api/v1/dsp/file/whitelist/:hash"
 	DSP_UPDATE_FILE_WHITELIST    = "/api/v1/dsp/file/updatewhitelist"
+	DSP_FILE_UPLOAD_INFO         = "/api/v1/dsp/file/upload/info/:hash"
 
 	GET_CHANNEL_INIT_PROGRESS = "/api/v1/channel/init/progress"
 	GET_ALL_CHANNEL           = "/api/v1/channel"
@@ -216,6 +216,7 @@ func (this *restServer) registryMethod() {
 		DSP_FILE_SHARE_INCOME:     {name: "getfileshareincome", handler: GetFileShareIncome},
 		DSP_FILE_SHARE_REVENUE:    {name: "getfilesharerevenue", handler: GetFileShareRevenue},
 		DSP_GET_FILE_WHITELIST:    {name: "getwhitelist", handler: GetFileWhiteList},
+		DSP_FILE_UPLOAD_INFO:      {name: "getuploadfileinfo", handler: GetUploadFileInfo},
 
 		GET_CHANNEL_INIT_PROGRESS: {name: "channelinitprogress", handler: GetChannelInitProgress},
 		GET_ALL_CHANNEL:           {name: "getallchannels", handler: GetAllChannels},
@@ -339,6 +340,8 @@ func (this *restServer) getPath(url string) string {
 		return DSP_GET_FILE_WHITELIST
 	} else if strings.Contains(url, strings.TrimSuffix(DSP_USERSPACE_RECORDS, ":addr/:offset/:limit")) {
 		return DSP_USERSPACE_RECORDS
+	} else if strings.Contains(url, strings.TrimRight(DSP_FILE_UPLOAD_INFO, ":hash")) {
+		return DSP_FILE_UPLOAD_INFO
 	}
 
 	//path for channel
@@ -447,6 +450,8 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 		req["Offset"] = getParam(r, "offset")
 		req["Limit"] = getParam(r, "limit")
 	case DSP_GET_FILE_WHITELIST:
+		req["FileHash"] = getParam(r, "hash")
+	case DSP_FILE_UPLOAD_INFO:
 		req["FileHash"] = getParam(r, "hash")
 	case DSP_USERSPACE_RECORDS:
 		req["Addr"], req["Offset"], req["Limit"] = getParam(r, "addr"), getParam(r, "offset"), getParam(r, "limit")

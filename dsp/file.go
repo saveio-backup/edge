@@ -66,6 +66,7 @@ type nodeProgress struct {
 }
 
 type transfer struct {
+	Id             string
 	FileHash       string
 	FileName       string
 	Type           TransferType
@@ -77,6 +78,8 @@ type transfer struct {
 	FileSize       uint64
 	Nodes          []*nodeProgress
 	Progress       float64
+	CreatedAt      uint64
+	UpdatedAt      uint64
 	Result         interface{} `json:",omitempty"`
 	ErrMsg         string      `json:",omitempty"`
 }
@@ -725,6 +728,54 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uin
 	return files, nil
 }
 
+type fileInfoResp struct {
+	FileHash   string
+	CreatedAt  uint64
+	CopyNum    uint64
+	Interval   uint64
+	ProveTimes uint64
+	Priviledge uint64
+	Whitelist  []string
+}
+
+func (this *Endpoint) GetFileInfo(fileHashStr string) (*fileInfoResp, *DspErr) {
+	if len(fileHashStr) == 0 {
+		return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
+	}
+	info, err := this.Dsp.Chain.Native.Fs.GetFileInfo(fileHashStr)
+	if err != nil {
+		return nil, &DspErr{Code: DSP_FILE_INFO_NOT_FOUND, Error: ErrMaps[DSP_FILE_INFO_NOT_FOUND]}
+	}
+	result := &fileInfoResp{
+		FileHash:   string(info.FileHash),
+		CopyNum:    info.CopyNum,
+		Interval:   info.ChallengeRate,
+		ProveTimes: info.ChallengeTimes,
+		Priviledge: info.Privilege,
+		Whitelist:  []string{},
+	}
+	block, _ := this.Dsp.Chain.GetBlockByHeight(uint32(info.BlockHeight))
+	if block == nil {
+		result.CreatedAt = uint64(time.Now().Unix())
+	} else {
+		result.CreatedAt = uint64(block.Header.Timestamp)
+	}
+	if info.Privilege != fs.WHITELIST {
+		return result, nil
+	}
+
+	whitelist, err := this.Dsp.Chain.Native.Fs.GetWhiteList(fileHashStr)
+	if err != nil || whitelist == nil {
+		return result, nil
+	}
+	list := make([]string, 0, len(whitelist.List))
+	for _, rule := range whitelist.List {
+		list = append(list, rule.Addr.ToBase58())
+	}
+	result.Whitelist = list
+	return result, nil
+}
+
 func (this *Endpoint) GetDownloadFiles(fileType DspFileListType, offset, limit uint64) ([]*downloadFilesInfo, *DspErr) {
 	fileInfos := make([]*downloadFilesInfo, 0)
 	if this.Dsp == nil {
@@ -1017,12 +1068,15 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 		npros = append(npros, pros)
 	}
 	pInfo := &transfer{
-		FileHash: info.FileHash,
-		FileName: info.FileName,
-		Type:     pType,
-		Status:   transferStatusDoing,
-		FileSize: info.Total * dspCom.CHUNK_SIZE / 1024,
-		Nodes:    npros,
+		Id:        info.TaskKey,
+		FileHash:  info.FileHash,
+		FileName:  info.FileName,
+		Type:      pType,
+		Status:    transferStatusDoing,
+		FileSize:  info.Total * dspCom.CHUNK_SIZE / 1024,
+		Nodes:     npros,
+		CreatedAt: info.CreatedAt,
+		UpdatedAt: info.UpdatedAt,
 	}
 	pInfo.IsUploadAction = (info.Type == task.TaskTypeUpload)
 	pInfo.Progress = 0

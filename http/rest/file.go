@@ -540,3 +540,18 @@ func GetStorageNodesInfo(cmd map[string]interface{}) map[string]interface{} {
 	resp["Result"] = ret
 	return resp
 }
+
+func GetUploadFileInfo(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	log.Debugf("cmd: %v\n", cmd)
+	hash, ok := cmd["FileHash"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	ret, err := dsp.DspService.GetFileInfo(hash)
+	if err != nil {
+		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
+	}
+	resp["Result"] = ret
+	return resp
+}

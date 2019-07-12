@@ -379,7 +379,7 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 
 	txs := make([]*TxResp, 0)
 	events, err := this.Dsp.Chain.GetSmartContractEventByEventId(usdt.USDT_CONTRACT_ADDRESS.ToBase58(), addr, cusdt.EVENT_USDT_STATE_CHANGE)
-	log.Debugf("events-len %d, addr %s-%s-%d", len(events), usdt.USDT_CONTRACT_ADDRESS.ToBase58(), addr, cusdt.EVENT_USDT_STATE_CHANGE)
+	log.Debugf("events-len %d, addr %s-%s-%d skipTxCnt %d", len(events), usdt.USDT_CONTRACT_ADDRESS.ToBase58(), addr, cusdt.EVENT_USDT_STATE_CHANGE, skipTxCnt)
 	if err != nil {
 		return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
 	}
