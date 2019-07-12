@@ -388,7 +388,6 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 	hasSkip := uint64(0)
 	for i := len(events) - 1; i >= 0; i-- {
 		event := events[i]
-		log.Debugf("#d event %v", i, event.Notify)
 		blockHeight, err := this.Dsp.Chain.GetBlockHeightByTxHash(event.TxHash)
 		if err != nil {
 			continue
@@ -397,7 +396,6 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 			continue
 		}
 		for _, n := range event.Notify {
-			log.Debugf("States %v, addrs %v", n.States, n.Addresses)
 			states, ok := n.States.([]interface{})
 			if !ok {
 				continue

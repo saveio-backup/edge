@@ -143,6 +143,7 @@ func (this *Endpoint) OpenPaymentChannel(partnerAddr string) (chanCom.ChannelID,
 		return 0, &DspErr{Code: DSP_CHANNEL_INTERNAL_ERROR, Error: err}
 	}
 	err = this.Dsp.Channel.WaitForConnected(partnerAddr, time.Duration(common.WAIT_CHANNEL_CONNECT_TIMEOUT)*time.Second)
+	log.Debugf("openchannel wait for connected dns %s, partneraddr %s, err %s", dnsUrl, partnerAddr, err)
 	if err != nil {
 		log.Errorf("wait channel connected err %s %s", partnerAddr, err)
 		return 0, &DspErr{Code: DSP_CHANNEL_INTERNAL_ERROR, Error: err}

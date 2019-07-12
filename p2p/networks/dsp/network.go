@@ -110,6 +110,12 @@ func (this *Network) Start(addr string) error {
 	netComponent := new(NetComponent)
 	netComponent.Net = this
 	builder.AddComponent(netComponent)
+	backoff_options := []backoff.ComponentOption{
+		backoff.WithInitialDelay(3 * time.Second),
+		backoff.WithMaxAttempts(10),
+		backoff.WithPriority(10),
+	}
+	builder.AddComponent(backoff.New(backoff_options...))
 	if len(this.proxySvrAddr) > 0 {
 		switch protocol {
 		case "udp":

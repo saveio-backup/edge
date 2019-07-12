@@ -378,11 +378,11 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint64) 
 		log.Errorf("get all task keys err %s", err)
 		return resp
 	}
-	log.Debugf("allTasksKey :%v", allTasksKey)
+	// log.Debugf("allTasksKey :%v", allTasksKey)
 	for idx, key := range allTasksKey {
 		info, err := this.GetProgress(key)
 		if err != nil {
-			log.Errorf("get progress failed for %s info %v err %s", key, info, err)
+			log.Errorf("get progress failed %d for %s info %v err %s", idx, key, info, err)
 			continue
 		}
 		if pType == transferTypeUploading && info.Type != task.TaskTypeUpload {
@@ -392,7 +392,7 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint64) 
 			continue
 		}
 		pInfo := this.getTransferDetail(pType, info)
-		log.Debugf("get pinfo  %v of %v", pInfo, key)
+		// log.Debugf("get pinfo  %v of %v", pInfo, key)
 		if pInfo == nil {
 			continue
 		}
@@ -404,7 +404,7 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint64) 
 			off++
 			continue
 		}
-		log.Debugf("#%d set transfer type %d info.FileHash %v, fileName %s, progress:%v, result %v, err %s, status %d", idx, pType, pInfo.FileHash, pInfo.FileName, pInfo.Progress, pInfo.Result, pInfo.ErrMsg, pInfo.Status)
+		// log.Debugf("#%d set transfer type %d info.FileHash %v, fileName %s, progress:%v, result %v, err %s, status %d", idx, pType, pInfo.FileHash, pInfo.FileName, pInfo.Progress, pInfo.Result, pInfo.ErrMsg, pInfo.Status)
 		infos = append(infos, pInfo)
 		off++
 		if limit > 0 && uint64(len(infos)) >= limit {
@@ -995,15 +995,19 @@ func (this *Endpoint) GetUserSpace(addr string) (*userspace, *DspErr) {
 			return nil, &DspErr{Code: CHAIN_GET_BLK_BY_HEIGHT_FAILED, Error: err}
 		}
 		expiredAt = uint64(blk.Header.Timestamp) + (space.ExpireHeight - uint64(updateHeight))
+		log.Debugf("expiredAt %d height %d, expiredheight %d updatedheight %d", expiredAt, blk.Header.Timestamp, space.ExpireHeight, updateHeight)
 	} else {
 		space, err := this.GetUserspaceRecords(addr, 0, 1)
 		if err != nil || len(space) == 0 {
 			expiredAt = now
+			log.Debugf("no space expiredAt %d ", expiredAt)
 		} else {
 			expiredAt = space[0].ExpiredAt
+			log.Debugf(" space[0] expiredAt %d ", expiredAt)
 		}
 	}
-	if expiredAt == now {
+	log.Debugf("expiredAt %d, now %d ", expiredAt, now)
+	if expiredAt <= now {
 		return &userspace{
 			Used:      0,
 			Remain:    0,

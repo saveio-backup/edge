@@ -123,10 +123,12 @@ func (this *Network) Start(address string) error {
 	component.Net = this
 	builder.AddComponent(component)
 	builder.AddComponent(keepalive.New(options...))
-	backoffOptions := []backoff.ComponentOption{
-		backoff.WithMaxAttempts(100), //try again times;
+	backoff_options := []backoff.ComponentOption{
+		backoff.WithInitialDelay(3 * time.Second),
+		backoff.WithMaxAttempts(10),
+		backoff.WithPriority(10),
 	}
-	builder.AddComponent(backoff.New(backoffOptions...))
+	builder.AddComponent(backoff.New(backoff_options...))
 	if len(this.proxyAddr) > 0 {
 		switch protocol {
 		case "udp":
