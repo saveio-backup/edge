@@ -1,9 +1,13 @@
 package dsp
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"strconv"
 	"strings"
+
+	"github.com/saveio/themis/common/log"
 )
 
 func FileNameMatchType(fileType DspFileListType, fileName string) bool {
@@ -110,4 +114,23 @@ func ParseContractError(err error) *DspErr {
 		}
 	}
 	return &DspErr{Code: CONTRACT_ERROR, Error: err}
+}
+
+type accountReader struct {
+	PrivateKey []byte
+}
+
+func (this accountReader) Read(buf []byte) (int, error) {
+	bufs := make([]byte, 0)
+	hash := sha256.Sum256(this.PrivateKey)
+	bufs = append(bufs, hash[:]...)
+	log.Debugf("bufs :%s", hex.EncodeToString(bufs))
+	for i, _ := range buf {
+		if i < len(bufs) {
+			buf[i] = bufs[i]
+			continue
+		}
+		buf[i] = 0
+	}
+	return len(buf), nil
 }

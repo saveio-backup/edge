@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/agl/ed25519"
 	"github.com/saveio/carrier/crypto"
 	dsp "github.com/saveio/dsp-go-sdk"
 	dspActorClient "github.com/saveio/dsp-go-sdk/actor/client"
@@ -138,7 +139,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		}
 		log.Debugf("networkKey:%v", networkKey)
 		dspNetwork := dspNet.NewNetwork()
-		// dspNetwork.SetNetworkKey(networkKey)
+		dspNetwork.SetNetworkKey(networkKey)
 		dspNetwork.SetHandler(dspSrv.Receive)
 		dspNetwork.SetProxyServer(config.Parameters.BaseConfig.NATProxyServerAddr)
 		dspListenAddr := fmt.Sprintf("%s://%s:%d", config.Parameters.BaseConfig.DspProtocol, "127.0.0.1", dspListenPort)
@@ -151,8 +152,18 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		log.Debugf("start dsp at %s", dspNetwork.PublicAddr())
 		// start channel net
 		channelNetwork := channelNet.NewP2P()
-		// channelNetwork.Keys = networkKey
-		log.Debugf("privteKey:%s, pubkey:%s\n", hex.EncodeToString(bPrivate), hex.EncodeToString(bPub))
+		channelPubKey, channelPrivateKey, err := ed25519.GenerateKey(&accountReader{
+			PrivateKey: bPrivate,
+		})
+		if err != nil {
+			return err
+		}
+		channelNetwork.Keys = &crypto.KeyPair{
+			PrivateKey: (*channelPrivateKey)[:],
+			PublicKey:  (*channelPubKey)[:],
+		}
+		log.Debugf("dsp privteKey:%s, pubkey:%s\n", hex.EncodeToString(networkKey.PrivateKey), hex.EncodeToString(networkKey.PublicKey))
+		log.Debugf("channel privteKey:%s, pubkey:%s\n", hex.EncodeToString(channelNetwork.Keys.PrivateKey), hex.EncodeToString(channelNetwork.Keys.PublicKey))
 		channelNetwork.SetProxyServer(config.Parameters.BaseConfig.NATProxyServerAddr)
 		req.SetChannelPid(dspSrv.Channel.GetChannelPid())
 		listenAddr := fmt.Sprintf("%s://%s", config.Parameters.BaseConfig.ChannelProtocol, dspConfig.ChannelListenAddr)
