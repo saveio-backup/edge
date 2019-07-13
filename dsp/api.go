@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/agl/ed25519"
 	"github.com/saveio/carrier/crypto"
+	"github.com/saveio/carrier/crypto/ed25519"
 	dsp "github.com/saveio/dsp-go-sdk"
 	dspActorClient "github.com/saveio/dsp-go-sdk/actor/client"
 	dspCom "github.com/saveio/dsp-go-sdk/common"
@@ -159,8 +159,8 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 			return err
 		}
 		channelNetwork.Keys = &crypto.KeyPair{
-			PrivateKey: (*channelPrivateKey)[:],
-			PublicKey:  (*channelPubKey)[:],
+			PrivateKey: channelPubKey,
+			PublicKey:  channelPrivateKey,
 		}
 		log.Debugf("dsp privteKey:%s, pubkey:%s\n", hex.EncodeToString(networkKey.PrivateKey), hex.EncodeToString(networkKey.PublicKey))
 		log.Debugf("channel privteKey:%s, pubkey:%s\n", hex.EncodeToString(channelNetwork.Keys.PrivateKey), hex.EncodeToString(channelNetwork.Keys.PublicKey))
