@@ -34,10 +34,10 @@ func DeleteFile(cmd []interface{}) map[string]interface{} {
 }
 
 func DownloadFile(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 5 {
+	if len(cmd) < 6 {
 		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
-	params := convertSliceToMap(cmd, []string{"Hash", "Url", "Link", "Password", "MaxPeerNum"})
+	params := convertSliceToMap(cmd, []string{"Hash", "Url", "Link", "Password", "MaxPeerNum", "SetFileName"})
 	v := rest.DownloadFile(params)
 	ret, err := parseRestResult(v)
 	if err != nil {

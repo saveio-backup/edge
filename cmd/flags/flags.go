@@ -178,6 +178,10 @@ var (
 		Name:  "progressEnable",
 		Usage: "",
 	}
+	DspSetFileNameFlag = cli.BoolFlag{
+		Name:  "setFileName",
+		Usage: "",
+	}
 
 	////////////////Dsp File(upload) Setting///////////////////
 	DspUploadFileNameFlag = cli.StringFlag{

@@ -112,7 +112,7 @@ func (this *Endpoint) GetAllChannels() (interface{}, *DspErr) {
 			continue
 		}
 		newch.IsDNS = true
-		if newch.Address == this.Dsp.DNSNode.WalletAddr {
+		if newch.Address == this.Dsp.DNS.DNSNode.WalletAddr {
 			newch.Connected = true
 		}
 		resp.Channels = append(resp.Channels, newch)

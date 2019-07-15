@@ -301,11 +301,11 @@ func (this *Endpoint) GetFsConfig() (*FsContractSettingResp, *DspErr) {
 	}, nil
 }
 
-func (this *Endpoint) DownloadFile(fileHash, url, link, password string, max uint64) *DspErr {
+func (this *Endpoint) DownloadFile(fileHash, url, link, password string, max uint64, setFileName bool) *DspErr {
 	if len(fileHash) > 0 {
 		go func() {
 			// TODO: get file name
-			err := this.Dsp.DownloadFile(fileHash, "", dspCom.ASSET_USDT, true, password, false, int(max))
+			err := this.Dsp.DownloadFile(fileHash, "", dspCom.ASSET_USDT, true, password, false, setFileName, int(max))
 			if err != nil {
 				log.Errorf("Downloadfile from url failed %s", err)
 			}
@@ -316,7 +316,7 @@ func (this *Endpoint) DownloadFile(fileHash, url, link, password string, max uin
 		go func() {
 			hash := this.Dsp.GetFileHashFromUrl(url)
 			this.SetUrlForHash(hash, url)
-			err := this.Dsp.DownloadFileByUrl(url, dspCom.ASSET_USDT, true, password, false, int(max))
+			err := this.Dsp.DownloadFileByUrl(url, dspCom.ASSET_USDT, true, password, false, setFileName, int(max))
 			if err != nil {
 				log.Errorf("Downloadfile from url failed %s", err)
 			}
@@ -325,7 +325,7 @@ func (this *Endpoint) DownloadFile(fileHash, url, link, password string, max uin
 	}
 	if len(link) > 0 {
 		go func() {
-			err := this.Dsp.DownloadFileByLink(fileHash, dspCom.ASSET_USDT, true, password, false, int(max))
+			err := this.Dsp.DownloadFileByLink(fileHash, dspCom.ASSET_USDT, true, password, false, setFileName, int(max))
 			if err != nil {
 				log.Errorf("Downloadfile from url failed %s", err)
 			}
@@ -1131,7 +1131,8 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 			if pInfo.FileSize > 0 {
 				pInfo.Progress = float64(pInfo.DownloadSize) / float64(pInfo.FileSize)
 			}
-			pInfo.Path = config.FsFileRootPath() + "/" + pInfo.FileHash
+			//TODO: use from progress
+			pInfo.Path = config.FsFileRootPath() + "/" + pInfo.FileName
 		}
 	}
 	if len(info.ErrorMsg) != 0 {

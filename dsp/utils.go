@@ -117,12 +117,12 @@ func ParseContractError(err error) *DspErr {
 }
 
 type accountReader struct {
-	PrivateKey []byte
+	PublicKey []byte
 }
 
 func (this accountReader) Read(buf []byte) (int, error) {
 	bufs := make([]byte, 0)
-	hash := sha256.Sum256(this.PrivateKey)
+	hash := sha256.Sum256(this.PublicKey)
 	bufs = append(bufs, hash[:]...)
 	log.Debugf("bufs :%s", hex.EncodeToString(bufs))
 	for i, _ := range buf {

@@ -68,10 +68,11 @@ func DownloadFile(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		max = 1
 	}
+	setFileName, _ := cmd["SetFileName"].(bool)
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
-	err := dsp.DspService.DownloadFile(fileHash, url, link, password, uint64(max))
+	err := dsp.DspService.DownloadFile(fileHash, url, link, password, uint64(max), setFileName)
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}

@@ -38,8 +38,8 @@ func UploadFile(path, desc string, WhiteList []string, encryptPassword, url stri
 	return ret, nil
 }
 
-func DownloadFile(fileHash, url, link, pwd string, maxPeerNum uint64) ([]byte, error) {
-	ret, dErr := sendRpcRequest("downloadfile", []interface{}{fileHash, url, link, pwd, float64(maxPeerNum)})
+func DownloadFile(fileHash, url, link, pwd string, maxPeerNum uint64, setFileName bool) ([]byte, error) {
+	ret, dErr := sendRpcRequest("downloadfile", []interface{}{fileHash, url, link, pwd, float64(maxPeerNum), setFileName})
 	if dErr != nil {
 		return nil, dErr.Error
 	}

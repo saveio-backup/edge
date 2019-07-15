@@ -131,13 +131,10 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 			log.Fatal("Not configure HttpRestPort port ")
 			return nil
 		}
-		bPrivate := keypair.SerializePrivateKey(endpoint.Account.PrivKey())
 		bPub := keypair.SerializePublicKey(endpoint.Account.PubKey())
 		networkKey := &crypto.KeyPair{
-			PrivateKey: bPrivate,
-			PublicKey:  bPub,
+			PublicKey: bPub,
 		}
-		log.Debugf("networkKey:%v", networkKey)
 		dspNetwork := dspNet.NewNetwork()
 		dspNetwork.SetNetworkKey(networkKey)
 		dspNetwork.SetHandler(dspSrv.Receive)
@@ -152,18 +149,17 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		log.Debugf("start dsp at %s", dspNetwork.PublicAddr())
 		// start channel net
 		channelNetwork := channelNet.NewP2P()
-		channelPubKey, channelPrivateKey, err := ed25519.GenerateKey(&accountReader{
-			PrivateKey: bPrivate,
+		channelPubKey, _, err := ed25519.GenerateKey(&accountReader{
+			PublicKey: bPub,
 		})
 		if err != nil {
 			return err
 		}
 		channelNetwork.Keys = &crypto.KeyPair{
-			PrivateKey: channelPubKey,
-			PublicKey:  channelPrivateKey,
+			PublicKey: channelPubKey,
 		}
-		log.Debugf("dsp privteKey:%s, pubkey:%s\n", hex.EncodeToString(networkKey.PrivateKey), hex.EncodeToString(networkKey.PublicKey))
-		log.Debugf("channel privteKey:%s, pubkey:%s\n", hex.EncodeToString(channelNetwork.Keys.PrivateKey), hex.EncodeToString(channelNetwork.Keys.PublicKey))
+		log.Debugf("dsp pubkey:%s\n", hex.EncodeToString(networkKey.PublicKey))
+		log.Debugf("channel pubkey:%s\n", hex.EncodeToString(channelNetwork.Keys.PublicKey))
 		channelNetwork.SetProxyServer(config.Parameters.BaseConfig.NATProxyServerAddr)
 		req.SetChannelPid(dspSrv.Channel.GetChannelPid())
 		listenAddr := fmt.Sprintf("%s://%s", config.Parameters.BaseConfig.ChannelProtocol, dspConfig.ChannelListenAddr)

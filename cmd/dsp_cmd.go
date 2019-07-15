@@ -50,6 +50,7 @@ var FileCommand = cli.Command{
 				flags.DspFileLinkFlag,
 				flags.DspDecryptPwdFlag,
 				flags.DspMaxPeerCntFlag,
+				flags.DspSetFileNameFlag,
 			},
 			Description: "Download file",
 		},
@@ -147,7 +148,8 @@ func fileDownload(ctx *cli.Context) error {
 	link := ctx.String(flags.GetFlagName(flags.DspFileLinkFlag))
 	password := ctx.String(flags.GetFlagName(flags.DspDecryptPwdFlag))
 	maxPeerNum := ctx.Uint64(flags.GetFlagName(flags.DspMaxPeerCntFlag))
-	_, err := utils.DownloadFile(fileHash, url, link, password, maxPeerNum)
+	setFileName := ctx.Bool(flags.GetFlagName(flags.DspSetFileNameFlag))
+	_, err := utils.DownloadFile(fileHash, url, link, password, maxPeerNum, setFileName)
 	if err != nil {
 		PrintErrorMsg("download file err %s", err)
 		return err
