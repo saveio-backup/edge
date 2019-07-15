@@ -34,7 +34,7 @@ func UploadFile(cmd map[string]interface{}) map[string]interface{} {
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
-	err := dsp.DspService.UploadFile(path, desc, cmd["Duration"], cmd["Interval"], cmd["Times"], cmd["Privilege"], cmd["CopyNum"], pwd, url, whitelist, share)
+	err := dsp.DspService.UploadFile(path, desc, cmd["Duration"], cmd["Interval"], cmd["Times"], cmd["Privilege"], cmd["CopyNum"], cmd["StorageType"], pwd, url, whitelist, share)
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
@@ -214,7 +214,7 @@ func CalculateUploadFee(cmd map[string]interface{}) map[string]interface{} {
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
-	res, derr := dsp.DspService.CalculateUploadFee(string(path), cmd["Duration"], cmd["Interval"], cmd["Times"], cmd["CopyNum"], cmd["WhiteList"])
+	res, derr := dsp.DspService.CalculateUploadFee(string(path), cmd["Duration"], cmd["Interval"], cmd["Times"], cmd["CopyNum"], cmd["WhiteList"], cmd["StorageType"])
 	if derr != nil {
 		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
 	}

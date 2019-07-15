@@ -262,7 +262,7 @@ func (this *Network) Connect(addr ...string) error {
 		this.net.Bootstrap(a)
 	}
 	for _, a := range addr {
-		err := this.WaitForConnected(a, time.Duration(10)*time.Second)
+		err := this.WaitForConnected(a, time.Duration(20)*time.Second)
 		if err != nil {
 			return err
 		}

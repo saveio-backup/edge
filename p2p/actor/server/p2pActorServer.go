@@ -78,49 +78,59 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 	case *actor.Restart:
 		log.Warn("[P2PActor] actor restart")
 	case *chact.ConnectReq:
-		err := this.channelNet.Connect(msg.Address)
-		ctx.Sender().Request(&chact.P2pResp{Error: err}, ctx.Self())
+		go func() {
+			msg.Ret.Err = this.channelNet.Connect(msg.Address)
+			msg.Ret.Done <- true
+		}()
 	case *chact.CloseReq:
-		err := this.channelNet.Close(msg.Address)
-		ctx.Sender().Request(&chact.P2pResp{Error: err}, ctx.Self())
+		go func() {
+			msg.Ret.Err = this.channelNet.Close(msg.Address)
+			msg.Ret.Done <- true
+		}()
 	case *chact.SendReq:
-		err := this.channelNet.Send(msg.Data, msg.Address)
-		ctx.Sender().Request(&chact.P2pResp{Error: err}, ctx.Self())
+		go func() {
+			msg.Ret.Err = this.channelNet.Send(msg.Data, msg.Address)
+			msg.Ret.Done <- true
+		}()
 	case *dspact.ConnectReq:
-		err := this.dspNet.Connect(msg.Address)
-		ctx.Sender().Request(&dspact.P2pResp{Error: err}, ctx.Self())
+		go func() {
+			err := this.dspNet.Connect(msg.Address)
+			msg.Response <- &dspact.P2pResp{Error: err}
+		}()
 	case *dspact.CloseReq:
-		err := this.dspNet.Disconnect(msg.Address)
-		ctx.Sender().Request(&dspact.P2pResp{Error: err}, ctx.Self())
+		go func() {
+			err := this.dspNet.Disconnect(msg.Address)
+			msg.Response <- &dspact.P2pResp{Error: err}
+		}()
 	case *dspact.SendReq:
-		// err := this.dspNet.Send(msg.Data, msg.Address)
-		// ctx.Sender().Request(&dspact.P2pResp{Error: err}, ctx.Self())
-		go func(net *dsp.Network, cmsg *dspact.SendReq, sender *actor.PID, self *actor.PID) {
-			err := net.Send(msg.Data, msg.Address)
-			sender.Request(&dspact.P2pResp{Error: err}, self)
-		}(this.dspNet, msg, ctx.Sender(), ctx.Self())
+		go func() {
+			err := this.dspNet.Send(msg.Data, msg.Address)
+			msg.Response <- &dspact.P2pResp{Error: err}
+		}()
 	case *dspact.BroadcastReq:
-		go func(net *dsp.Network, cmsg *dspact.BroadcastReq, sender *actor.PID, self *actor.PID) {
-			m, err := net.Broadcast(cmsg.Addresses, cmsg.Data, cmsg.NeedReply, cmsg.Stop, cmsg.Action)
-			sender.Request(&dspact.BroadcastResp{Result: m, Error: err}, self)
-		}(this.dspNet, msg, ctx.Sender(), ctx.Self())
-		// err := this.dspNet.Broadcast(msg.Addresses, msg.Data, msg.NeedReply, msg.Stop, msg.Action)
-		// ctx.Sender().Request(&dspact.P2pResp{Error: err}, ctx.Self())
+		go func() {
+			m, err := this.dspNet.Broadcast(msg.Addresses, msg.Data, msg.NeedReply, msg.Stop, msg.Action)
+			msg.Response <- &dspact.BroadcastResp{Result: m, Error: err}
+		}()
 	case *dspact.PeerListeningReq:
-		ret := this.dspNet.IsPeerListenning(msg.Address)
-		var err error
-		if !ret {
-			err = errors.New("peer is not listening")
-		}
-		log.Debugf("is peer listening %s, ret %t, err %s", msg.Address, ret, err)
-		ctx.Sender().Request(&dspact.P2pResp{Error: err}, ctx.Self())
+		go func() {
+			ret := this.dspNet.IsPeerListenning(msg.Address)
+			var err error
+			if !ret {
+				err = errors.New("peer is not listening")
+			}
+			msg.Response <- &dspact.P2pResp{Error: err}
+		}()
 	case *dspact.PublicAddrReq:
-		addr := this.dspNet.PublicAddr()
-		log.Debugf("receive PublicIPReq msg: %v", addr)
-		ctx.Sender().Request(&dspact.PublicAddrResp{Addr: addr}, ctx.Self())
+		go func() {
+			addr := this.dspNet.PublicAddr()
+			msg.Response <- &dspact.PublicAddrResp{Addr: addr}
+		}()
 	case *dspact.RequestWithRetryReq:
-		ret, err := this.dspNet.RequestWithRetry(msg.Data, msg.Address, msg.Retry)
-		ctx.Sender().Request(&dspact.RequestWithRetryResp{Data: ret, Error: err}, ctx.Self())
+		go func() {
+			ret, err := this.dspNet.RequestWithRetry(msg.Data, msg.Address, msg.Retry)
+			msg.Response <- &dspact.RequestWithRetryResp{Data: ret, Error: err}
+		}()
 	default:
 		log.Error("[P2PActor] receive unknown message type!")
 	}

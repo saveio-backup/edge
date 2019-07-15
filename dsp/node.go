@@ -33,7 +33,6 @@ func (this *Endpoint) UnregisterNode() (string, *DspErr) {
 func (this *Endpoint) NodeQuery(walletAddr string) (*fs.FsNodeInfo, *DspErr) {
 	info, err := this.Dsp.QueryNode(walletAddr)
 	if err != nil {
-		log.Errorf("query node err %s", err)
 		return nil, &DspErr{Code: DSP_NODE_QUERY_FAILED, Error: err}
 	}
 	log.Infof("node info pledge %d", info.Pledge)

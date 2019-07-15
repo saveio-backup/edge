@@ -212,7 +212,7 @@ func (this *Endpoint) QuerySpecialChannelDeposit(partnerAddr string) (uint64, *D
 }
 
 func (this *Endpoint) QuerySpecialChannelAvaliable(partnerAddr string) (uint64, *DspErr) {
-	bal, err := this.Dsp.Channel.GetAvaliableBalance(partnerAddr)
+	bal, err := this.Dsp.Channel.GetAvailableBalance(partnerAddr)
 	if err != nil {
 		return 0, &DspErr{Code: DSP_CHANNEL_QUERY_AVA_BALANCE_FAILED, Error: err}
 	}

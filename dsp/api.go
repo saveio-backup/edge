@@ -131,9 +131,14 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 			log.Fatal("Not configure HttpRestPort port ")
 			return nil
 		}
+
 		bPub := keypair.SerializePublicKey(endpoint.Account.PubKey())
+		dspPub, dspPrivate, err := ed25519.GenerateKey(&accountReader{
+			PublicKey: append(bPub, []byte("dsp")...),
+		})
 		networkKey := &crypto.KeyPair{
-			PublicKey: bPub,
+			PublicKey:  dspPub,
+			PrivateKey: dspPrivate,
 		}
 		dspNetwork := dspNet.NewNetwork()
 		dspNetwork.SetNetworkKey(networkKey)
@@ -141,7 +146,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		dspNetwork.SetProxyServer(config.Parameters.BaseConfig.NATProxyServerAddr)
 		dspListenAddr := fmt.Sprintf("%s://%s:%d", config.Parameters.BaseConfig.DspProtocol, "127.0.0.1", dspListenPort)
 		log.Debugf("goto start dsp network %s", dspListenAddr)
-		err := dspNetwork.Start(dspListenAddr)
+		err = dspNetwork.Start(dspListenAddr)
 		if err != nil {
 			return err
 		}
@@ -149,14 +154,15 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		log.Debugf("start dsp at %s", dspNetwork.PublicAddr())
 		// start channel net
 		channelNetwork := channelNet.NewP2P()
-		channelPubKey, _, err := ed25519.GenerateKey(&accountReader{
-			PublicKey: bPub,
+		channelPubKey, channelPrivateKey, err := ed25519.GenerateKey(&accountReader{
+			PublicKey: append(bPub, []byte("channel")...),
 		})
 		if err != nil {
 			return err
 		}
 		channelNetwork.Keys = &crypto.KeyPair{
-			PublicKey: channelPubKey,
+			PublicKey:  channelPubKey,
+			PrivateKey: channelPrivateKey,
 		}
 		log.Debugf("dsp pubkey:%s\n", hex.EncodeToString(networkKey.PublicKey))
 		log.Debugf("channel pubkey:%s\n", hex.EncodeToString(channelNetwork.Keys.PublicKey))

@@ -112,13 +112,6 @@ type FileShareIncomeResp struct {
 	Incomes           []*fileShareIncome
 }
 
-type FileStoreType int
-
-const (
-	FileStoreTypeNormal FileStoreType = iota
-	FileStoreTypeProfessional
-)
-
 type fileResp struct {
 	Hash          string
 	Name          string
@@ -129,7 +122,7 @@ type fileResp struct {
 	UpdatedAt     uint64
 	Profit        uint64
 	Privilege     uint64
-	StoreType     FileStoreType
+	StoreType     dspCom.FileStoreType
 }
 
 type downloadFilesInfo struct {
@@ -184,7 +177,7 @@ type FsContractSettingResp struct {
 	MinVolume          uint64
 }
 
-func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, timesVal, privilegeVal, copynumVal interface{},
+func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, timesVal, privilegeVal, copynumVal, storageTypeVal interface{},
 	encryptPwd, url string, whitelist []string, share bool) *DspErr {
 	currentAccount := this.Dsp.CurrentAccount()
 	fssetting, err := this.Dsp.Chain.Native.Fs.GetSetting()
@@ -243,6 +236,7 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, ti
 	if find != nil || err == nil {
 		return &DspErr{Code: DSP_UPLOAD_URL_EXIST, Error: fmt.Errorf("url exist err %s", err)}
 	}
+	storageType, _ := storageTypeVal.(float64)
 	opt := &dspCom.UploadOption{
 		FileDesc:        desc,
 		ProveInterval:   uint64(interval),
@@ -256,6 +250,7 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, ti
 		DnsUrl:          url,
 		WhiteList:       whitelist,
 		Share:           share,
+		StorageType:     dspCom.FileStoreType(storageType),
 	}
 	optBuf, _ := json.Marshal(opt)
 	log.Debugf("path %s, UploadOption :%s\n", path, optBuf)
@@ -451,7 +446,7 @@ func (this *Endpoint) GetTransferDetail(tType task.TaskType, fileHash, url strin
 	return resp, nil
 }
 
-func (this *Endpoint) CalculateUploadFee(filePath string, durationVal, intervalVal, timesVal, copynumVal, whitelistVal interface{}) (*calculateResp, *DspErr) {
+func (this *Endpoint) CalculateUploadFee(filePath string, durationVal, intervalVal, timesVal, copynumVal, whitelistVal, storeType interface{}) (*calculateResp, *DspErr) {
 	currentAccount := this.Dsp.CurrentAccount()
 	fssetting, err := this.Dsp.Chain.Native.Fs.GetSetting()
 	if err != nil {
@@ -501,10 +496,12 @@ func (this *Endpoint) CalculateUploadFee(filePath string, durationVal, intervalV
 	if err != nil {
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: err}
 	}
+	sType, _ := OptionStrToFloat64(storeType, 0)
 	fee, err := this.Dsp.CalculateUploadFee(filePath, &dspCom.UploadOption{
 		ProveInterval: uint64(interval),
 		ProveTimes:    uint32(times),
 		CopyNum:       uint32(copynum),
+		StorageType:   dspCom.FileStoreType(sType),
 	}, uint64(wh))
 	if err != nil {
 		return nil, &DspErr{Code: DSP_CALC_UPLOAD_FEE_FAILED, Error: err}
@@ -662,18 +659,18 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uin
 	if err != nil {
 		return nil, &DspErr{Code: FS_GET_FILE_LIST_FAILED, Error: err}
 	}
-	setting, err := this.Dsp.Chain.Native.Fs.GetSetting()
-	if err != nil {
-		return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
-	}
+	// setting, err := this.Dsp.Chain.Native.Fs.GetSetting()
+	// if err != nil {
+	// 	return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
+	// }
 	now, err := this.Dsp.Chain.GetCurrentBlockHeight()
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
 	}
-	space, err := this.Dsp.GetUserSpace(this.Dsp.WalletAddress())
-	if err != nil {
-		return nil, &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
-	}
+	// space, err := this.Dsp.GetUserSpace(this.Dsp.WalletAddress())
+	// if err != nil {
+	// 	return nil, &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
+	// }
 
 	files := make([]*fileResp, 0)
 	offsetCnt := uint64(0)
@@ -700,13 +697,7 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uin
 		url, _ := this.GetUrlFromHash(string(hash.Hash))
 		downloadedCount, _ := this.sqliteDB.CountRecordByFileHash(string(hash.Hash))
 		profit, _ := this.sqliteDB.SumRecordsProfitByFileHash(string(hash.Hash))
-		storeType := FileStoreTypeNormal
 
-		calculateTimes := math.Ceil(float64(space.ExpireHeight-fi.BlockHeight) / float64(setting.DefaultProvePeriod))
-		if fi.CopyNum != setting.DefaultCopyNum || fi.ChallengeRate != setting.DefaultProvePeriod || fi.ChallengeTimes != uint64(calculateTimes) {
-			log.Debugf("file %s copy num %d , rate %d, expired: %d, real-expired: %d, fi.BlockHeight:%d, ChallengeTimes %d", string(hash.Hash), fi.CopyNum, fi.ChallengeRate, expired, space.ExpireHeight, fi.BlockHeight, fi.ChallengeTimes)
-			storeType = FileStoreTypeProfessional
-		}
 		fr := &fileResp{
 			Hash:          string(hash.Hash),
 			Name:          string(fi.FileDesc),
@@ -718,7 +709,7 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uin
 			UpdatedAt: updatedAt,
 			Profit:    profit,
 			Privilege: fi.Privilege,
-			StoreType: storeType,
+			StoreType: dspCom.FileStoreType(fi.StorageType),
 		}
 		files = append(files, fr)
 		if limit > 0 && uint64(len(files)) >= limit {
@@ -736,6 +727,7 @@ type fileInfoResp struct {
 	ProveTimes uint64
 	Priviledge uint64
 	Whitelist  []string
+	ExpiredAt  uint64
 }
 
 func (this *Endpoint) GetFileInfo(fileHashStr string) (*fileInfoResp, *DspErr) {
@@ -746,6 +738,13 @@ func (this *Endpoint) GetFileInfo(fileHashStr string) (*fileInfoResp, *DspErr) {
 	if err != nil {
 		return nil, &DspErr{Code: DSP_FILE_INFO_NOT_FOUND, Error: ErrMaps[DSP_FILE_INFO_NOT_FOUND]}
 	}
+
+	now, err := this.Dsp.Chain.GetCurrentBlockHeight()
+	if err != nil {
+		return nil, &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
+	}
+	expired := info.BlockHeight + (info.ChallengeRate * info.ChallengeTimes)
+	expiredAt := uint64(time.Now().Unix()) + (expired - uint64(now))
 	result := &fileInfoResp{
 		FileHash:   string(info.FileHash),
 		CopyNum:    info.CopyNum,
@@ -753,6 +752,7 @@ func (this *Endpoint) GetFileInfo(fileHashStr string) (*fileInfoResp, *DspErr) {
 		ProveTimes: info.ChallengeTimes,
 		Priviledge: info.Privilege,
 		Whitelist:  []string{},
+		ExpiredAt:  expiredAt,
 	}
 	block, _ := this.Dsp.Chain.GetBlockByHeight(uint32(info.BlockHeight))
 	if block == nil {
@@ -1084,7 +1084,7 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 	}
 	pInfo.IsUploadAction = (info.Type == task.TaskTypeUpload)
 	pInfo.Progress = 0
-	log.Debugf("get transfer %s detail total %d sum %d ret %v err %s info.type %d", info.TaskKey, info.Total, sum, info.Result, info.ErrorMsg, info.Type)
+	// log.Debugf("get transfer %s detail total %d sum %d ret %v err %s info.type %d", info.TaskKey, info.Total, sum, info.Result, info.ErrorMsg, info.Type)
 	switch pType {
 	case transferTypeUploading:
 		if info.Total > 0 && sum >= info.Total && info.Result != nil && len(info.ErrorMsg) == 0 {
