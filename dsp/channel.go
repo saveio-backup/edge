@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	dsp "github.com/saveio/dsp-go-sdk"
 	"github.com/saveio/dsp-go-sdk/common"
 	chanCom "github.com/saveio/pylons/common"
 	pylons_transfer "github.com/saveio/pylons/transfer"
@@ -89,6 +90,7 @@ func (this *Endpoint) GetAllChannels() (interface{}, *DspErr) {
 	all := this.Dsp.Channel.AllChannels()
 	resp.Balance = all.Balance
 	resp.BalanceFormat = all.BalanceFormat
+	resp.Channels = make([]*ChannelInfo, 0)
 	for _, ch := range all.Channels {
 		newch := &ChannelInfo{
 			ChannelId:         ch.ChannelId,
@@ -112,7 +114,7 @@ func (this *Endpoint) GetAllChannels() (interface{}, *DspErr) {
 			continue
 		}
 		newch.IsDNS = true
-		if newch.Address == this.Dsp.DNS.DNSNode.WalletAddr {
+		if this.Dsp.DNS.DNSNode != nil && newch.Address == this.Dsp.DNS.DNSNode.WalletAddr {
 			newch.Connected = true
 		}
 		resp.Channels = append(resp.Channels, newch)
@@ -121,7 +123,7 @@ func (this *Endpoint) GetAllChannels() (interface{}, *DspErr) {
 }
 
 //oniChannel api
-func (this *Endpoint) OpenPaymentChannel(partnerAddr string) (chanCom.ChannelID, *DspErr) {
+func (this *Endpoint) OpenPaymentChannel(partnerAddr string, amount uint64) (chanCom.ChannelID, *DspErr) {
 	progress, derr := this.GetFilterBlockProgress()
 	if derr != nil {
 		return 0, derr
@@ -148,9 +150,18 @@ func (this *Endpoint) OpenPaymentChannel(partnerAddr string) (chanCom.ChannelID,
 		log.Errorf("wait channel connected err %s %s", partnerAddr, err)
 		return 0, &DspErr{Code: DSP_CHANNEL_INTERNAL_ERROR, Error: err}
 	}
-	id, err := this.Dsp.Channel.OpenChannel(partnerAddr)
+	id, err := this.Dsp.Channel.OpenChannel(partnerAddr, amount)
 	if err != nil {
 		return 0, &DspErr{Code: DSP_CHANNEL_OPEN_FAILED, Error: err}
+	}
+
+	for dnsWallet, dnsUrl := range this.Dsp.DNS.OnlineDNS {
+		if dnsWallet == partnerAddr {
+			this.Dsp.DNS.DNSNode = &dsp.DNSNodeInfo{
+				WalletAddr:  dnsWallet,
+				ChannelAddr: dnsUrl,
+			}
+		}
 	}
 	return id, nil
 }

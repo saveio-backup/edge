@@ -190,30 +190,34 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, ti
 		interval = float64(fssetting.DefaultProvePeriod)
 	}
 	times, ok := timesVal.(float64)
+	storageType, _ := storageTypeVal.(float64)
 	if !ok || times == 0 {
 		//TODO
-		userspace, err := this.Dsp.Chain.Native.Fs.GetUserSpace(currentAccount.Address)
-		if err != nil {
-			return &DspErr{Code: FS_GET_USER_SPACE_FAILED, Error: err}
-		}
-		if userspace == nil {
-		}
-		currentHeight, err := this.Dsp.Chain.GetCurrentBlockHeight()
-		if err != nil {
-			return &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
-		}
-		log.Debugf("userspace.ExpireHeight %d, current: %d", userspace.ExpireHeight, currentHeight)
-		if userspace.ExpireHeight <= uint64(currentHeight) {
-			return &DspErr{Code: DSP_USER_SPACE_EXPIRED, Error: ErrMaps[DSP_USER_SPACE_EXPIRED]}
-		}
-		if duration > 0 && (uint64(currentHeight)+uint64(duration)) > userspace.ExpireHeight {
-			return &DspErr{Code: DSP_USER_SPACE_PERIOD_NOT_ENOUGH, Error: err}
-		}
-		if duration == 0 {
-			duration = float64(userspace.ExpireHeight) - float64(currentHeight)
+		if dspCom.FileStoreType(storageType) == dspCom.FileStoreTypeNormal {
+			userspace, err := this.Dsp.Chain.Native.Fs.GetUserSpace(currentAccount.Address)
+			if err != nil {
+				return &DspErr{Code: FS_GET_USER_SPACE_FAILED, Error: err}
+			}
+			currentHeight, err := this.Dsp.Chain.GetCurrentBlockHeight()
+			if err != nil {
+				return &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
+			}
+			log.Debugf("storageType %d, userspace.ExpireHeight %d, current: %d", storageType, userspace.ExpireHeight, currentHeight)
+			if userspace.ExpireHeight <= uint64(currentHeight) {
+				return &DspErr{Code: DSP_USER_SPACE_EXPIRED, Error: ErrMaps[DSP_USER_SPACE_EXPIRED]}
+			}
+			if duration > 0 && (uint64(currentHeight)+uint64(duration)) > userspace.ExpireHeight {
+				return &DspErr{Code: DSP_USER_SPACE_PERIOD_NOT_ENOUGH, Error: err}
+			}
+			if duration == 0 {
+				duration = float64(userspace.ExpireHeight) - float64(currentHeight)
+			}
+			log.Debugf("userspace.ExpireHeight %d, current %d, duration :%v, times :%v", userspace.ExpireHeight, currentHeight, duration, times)
 		}
 		times = math.Ceil(duration / float64(interval))
-		log.Debugf("userspace.ExpireHeight %d, current %d, duration :%v, times :%v", userspace.ExpireHeight, currentHeight, duration, times)
+	}
+	if times == 0 {
+		return &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
 	}
 	privilege, ok := privilegeVal.(float64)
 	if !ok {
@@ -236,7 +240,7 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, ti
 	if find != nil || err == nil {
 		return &DspErr{Code: DSP_UPLOAD_URL_EXIST, Error: fmt.Errorf("url exist err %s", err)}
 	}
-	storageType, _ := storageTypeVal.(float64)
+
 	opt := &dspCom.UploadOption{
 		FileDesc:        desc,
 		ProveInterval:   uint64(interval),

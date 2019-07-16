@@ -230,13 +230,9 @@ func (this *Endpoint) GetBalance(address string) ([]*BalanceResp, *DspErr) {
 	if err != nil {
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
 	}
-	balance, err := hcomm.GetBalance(addr)
+	usdt, err := this.Dsp.Chain.Native.Usdt.BalanceOf(addr)
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
-	}
-	usdt, err := strconv.ParseUint(balance.Usdt, 10, 64)
-	if err != nil {
-		return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
 	}
 	bals := make([]*BalanceResp, 0)
 	bals = append(bals, &BalanceResp{

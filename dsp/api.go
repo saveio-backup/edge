@@ -117,13 +117,13 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		return err
 	}
 	endpoint.p2pActor = p2pActor
-	log.Debugf("dspConfig.ChannelListenAddr :%s ,acc %v\n", dspConfig.ChannelListenAddr, endpoint.Account)
 	dspSrv := dsp.NewDsp(dspConfig, endpoint.Account, p2pActor.GetLocalPID())
 	if dspSrv == nil {
 		return errors.New("dsp server init failed")
 	}
-	log.Debugf("Create Dsp success %p", endpoint)
 	endpoint.Dsp = dspSrv
+	version, _ := endpoint.GetNodeVersion()
+	log.Debugf("Create Dsp success, version: %s", version)
 	if startListen {
 		// start dsp net
 		dspListenPort := int(config.Parameters.BaseConfig.PortBase + uint32(config.Parameters.BaseConfig.DspPortOffset))
@@ -145,7 +145,6 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		dspNetwork.SetHandler(dspSrv.Receive)
 		dspNetwork.SetProxyServer(config.Parameters.BaseConfig.NATProxyServerAddr)
 		dspListenAddr := fmt.Sprintf("%s://%s:%d", config.Parameters.BaseConfig.DspProtocol, "127.0.0.1", dspListenPort)
-		log.Debugf("goto start dsp network %s", dspListenAddr)
 		err = dspNetwork.Start(dspListenAddr)
 		if err != nil {
 			return err
@@ -184,11 +183,10 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 			log.Errorf("register endpoint failed %s", err)
 			return err
 		}
-		testGetIp, err := dspSrv.GetExternalIP(dspSrv.CurrentAccount().Address.ToBase58())
-		log.Debugf("test get ip %s err %s", testGetIp, err)
+		// testGetIp, err := dspSrv.GetExternalIP(dspSrv.CurrentAccount().Address.ToBase58())
+		// log.Debugf("test get ip %s err %s", testGetIp, err)
 		// setup filter block range before start
 		endpoint.SetFilterBlockRange()
-		log.Debugf("will start dsp")
 		err = dspSrv.Start()
 		if err != nil {
 			return err
@@ -241,12 +239,12 @@ func (this *Endpoint) UpdateNodeIfNeeded() {
 
 // SetupDNSNodeBackground. setup a dns node background when received first payments.
 func (this *Endpoint) SetupDNSNodeBackground() {
-	if config.Parameters.BaseConfig.AutoSetupDNSEnable {
+	if !config.Parameters.BaseConfig.AutoSetupDNSEnable {
 		return
 	}
 	allChannels := this.Dsp.Channel.GetAllPartners()
 	log.Debugf("setup dns node len %v", len(allChannels))
-	ti := time.NewTicker(time.Second)
+	ti := time.NewTicker(time.Minute)
 	for {
 		select {
 		case <-ti.C:
@@ -263,8 +261,8 @@ func (this *Endpoint) SetupDNSNodeBackground() {
 			if len(allChannels) > 0 {
 				err := this.Dsp.SetupDNSChannels()
 				if err != nil {
-					// panic(err)
-					log.Errorf("set up dns failed %s", err)
+					log.Errorf("SetupDNSChannels err %s", err)
+					break
 				}
 				return
 			}

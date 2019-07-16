@@ -34,6 +34,15 @@ func OpenChannel(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
+	amountStr, ok := cmd["Amount"].(string)
+	realAmount := uint64(0)
+	if ok {
+		amount, err := strconv.ParseFloat(amountStr, 10)
+		if err != nil {
+			ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+		}
+		realAmount = uint64(amount * math.Pow10(constants.USDT_DECIMALS))
+	}
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
@@ -41,7 +50,7 @@ func OpenChannel(cmd map[string]interface{}) map[string]interface{} {
 	if derr != nil {
 		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
 	}
-	id, err := dsp.DspService.OpenPaymentChannel(partnerAddrstr)
+	id, err := dsp.DspService.OpenPaymentChannel(partnerAddrstr, realAmount)
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}

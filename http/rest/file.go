@@ -34,7 +34,7 @@ func UploadFile(cmd map[string]interface{}) map[string]interface{} {
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
-	err := dsp.DspService.UploadFile(path, desc, cmd["Duration"], cmd["Interval"], cmd["Times"], cmd["Privilege"], cmd["CopyNum"], cmd["StorageType"], pwd, url, whitelist, share)
+	err := dsp.DspService.UploadFile(path, desc, cmd["Duration"], cmd["Interval"], cmd["Times"], cmd["Privilege"], cmd["CopyNum"], cmd["StoreType"], pwd, url, whitelist, share)
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
