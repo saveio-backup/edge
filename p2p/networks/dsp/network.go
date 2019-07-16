@@ -20,6 +20,7 @@ import (
 	"github.com/saveio/carrier/types/opcode"
 	"github.com/saveio/dsp-go-sdk/network/common"
 	"github.com/saveio/dsp-go-sdk/network/message/pb"
+	"github.com/saveio/edge/common/config"
 	"github.com/saveio/themis/common/log"
 )
 
@@ -132,8 +133,9 @@ func (this *Network) Start(addr string) error {
 	if err != nil {
 		return err
 	}
+	net.SetNetworkID(config.Parameters.BaseConfig.NetworkId)
 	this.net = net
-	log.Debugf("proxy %v, list %v", this.proxySvrAddr, addr)
+	log.Debugf("dsp networkid %s, proxy %v, list %v", config.Parameters.BaseConfig.NetworkId, this.proxySvrAddr, addr)
 	if len(this.proxySvrAddr) > 0 {
 		this.net.EnableProxyMode(true)
 		this.net.SetProxyServer(this.proxySvrAddr)
@@ -189,8 +191,6 @@ func (this *Network) syncPeerState(state *keepalive.PeerStateEvent) {
 		this.ActivePeers.LoadOrStore(state.Address, struct{}{})
 	case keepalive.PEER_UNKNOWN:
 		log.Debugf("[syncPeerState] addr: %s state: PEER_UNKNOWN\n", state.Address)
-	case keepalive.PEER_READY:
-		log.Debugf("[syncPeerState] addr: %s state: Ready\n", state.Address)
 	case keepalive.PEER_UNREACHABLE:
 		this.ActivePeers.Delete(state.Address)
 		log.Debugf("[syncPeerState] addr: %s state: NetworkUnreachable\n", state.Address)

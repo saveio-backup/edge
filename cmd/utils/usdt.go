@@ -19,14 +19,16 @@ const (
 	ASSET_USDT = "usdt"
 )
 
+var chain = sdk.NewChain()
+var restClient = chain.NewRestClient().SetAddress(config.Parameters.BaseConfig.ChainRestAddr)
+
 //Return balance of address in base58 code
 func GetBalance(address string) (*httpcom.BalanceOfRsp, error) {
 	addr, err := common.AddressFromBase58(address)
 	if err != nil {
 		return nil, err
 	}
-	chain := sdk.NewChain()
-	chain.NewRestClient().SetAddress(config.Parameters.BaseConfig.ChainRestAddr)
+
 	ontBal, err := chain.Native.Usdt.BalanceOf(addr)
 	if err != nil {
 		return nil, err
@@ -63,8 +65,7 @@ func GetAllowance(asset, from, to string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("to address:%s invalid:%s", to, err)
 	}
-	chain := sdk.NewChain()
-	chain.NewRestClient().SetAddress(config.Parameters.BaseConfig.ChainRestAddr)
+
 	if strings.ToLower(asset) == ASSET_USDT {
 		allowance, err := chain.Native.Usdt.Allowance(fromAddr, toAddr)
 		if err != nil {
@@ -81,8 +82,7 @@ func Transfer(gasPrice, gasLimit uint64, signer *account.Account, asset, from, t
 	if err != nil {
 		return "", fmt.Errorf("to address:%s invalid:%s", to, err)
 	}
-	chain := sdk.NewChain()
-	chain.NewRestClient().SetAddress(config.Parameters.BaseConfig.ChainRestAddr)
+
 	if strings.ToLower(asset) == ASSET_USDT {
 		tx, err := chain.Native.Usdt.Transfer(gasPrice, gasLimit, signer, toAddr, amount)
 		if err != nil {
@@ -105,8 +105,7 @@ func TransferFrom(gasPrice, gasLimit uint64, signer *account.Account, asset, sen
 	if signer.Address.ToBase58() != sender {
 		return "", fmt.Errorf("sender: %s is not signer: %s", sender, signer.Address.ToBase58())
 	}
-	chain := sdk.NewChain()
-	chain.NewRestClient().SetAddress(config.Parameters.BaseConfig.ChainRestAddr)
+
 	if strings.ToLower(asset) == ASSET_USDT {
 		tx, err := chain.Native.Usdt.TransferFrom(gasPrice, gasLimit, signer, fromAddr, toAddr, amount)
 		if err != nil {
@@ -122,8 +121,7 @@ func Approve(gasPrice, gasLimit uint64, signer *account.Account, asset, from, to
 	if err != nil {
 		return "", fmt.Errorf("to address:%s invalid:%s", to, err)
 	}
-	chain := sdk.NewChain()
-	chain.NewRestClient().SetAddress(config.Parameters.BaseConfig.ChainRestAddr)
+
 	if strings.ToLower(asset) == ASSET_USDT {
 		tx, err := chain.Native.Usdt.Approve(gasPrice, gasLimit, signer, toAddr, amount)
 		if err != nil {
@@ -136,8 +134,7 @@ func Approve(gasPrice, gasLimit uint64, signer *account.Account, asset, from, to
 
 //GetSmartContractEvent return smart contract event execute by invoke transaction by hex string code
 func GetSmartContractEvent(txHash string) (*rpccommon.ExecuteNotify, error) {
-	chain := sdk.NewChain()
-	chain.NewRestClient().SetAddress(config.Parameters.BaseConfig.ChainRestAddr)
+
 	event, err := chain.GetSmartContractEvent(txHash)
 	if err != nil {
 		return nil, err
@@ -159,8 +156,7 @@ func GetSmartContractEvent(txHash string) (*rpccommon.ExecuteNotify, error) {
 }
 
 func GetSmartContractEventInfo(txHash string) ([]byte, error) {
-	chain := sdk.NewChain()
-	chain.NewRestClient().SetAddress(config.Parameters.BaseConfig.ChainRestAddr)
+
 	event, err := chain.GetSmartContractEvent(txHash)
 	if err != nil {
 		return nil, err
@@ -169,8 +165,7 @@ func GetSmartContractEventInfo(txHash string) ([]byte, error) {
 }
 
 func GetRawTransaction(txHash string) ([]byte, error) {
-	chain := sdk.NewChain()
-	chain.NewRestClient().SetAddress(config.Parameters.BaseConfig.ChainRestAddr)
+
 	tx, err := chain.GetTransaction(txHash)
 	if err != nil {
 		return nil, err
@@ -181,8 +176,7 @@ func GetRawTransaction(txHash string) ([]byte, error) {
 }
 
 func GetBlock(hashOrHeight interface{}) ([]byte, error) {
-	chain := sdk.NewChain()
-	chain.NewRestClient().SetAddress(config.Parameters.BaseConfig.ChainRestAddr)
+
 	blockHash, ok := hashOrHeight.(string)
 	if ok {
 		block, err := chain.GetBlockByHash(blockHash)
@@ -203,14 +197,12 @@ func GetBlock(hashOrHeight interface{}) ([]byte, error) {
 }
 
 func GetNetworkId() (uint32, error) {
-	chain := sdk.NewChain()
-	chain.NewRestClient().SetAddress(config.Parameters.BaseConfig.ChainRestAddr)
+
 	return chain.GetNetworkId()
 }
 
 func GetBlockData(hashOrHeight interface{}) ([]byte, error) {
-	chain := sdk.NewChain()
-	chain.NewRestClient().SetAddress(config.Parameters.BaseConfig.ChainRestAddr)
+
 	blockHash, ok := hashOrHeight.(string)
 	if ok {
 		block, err := chain.GetBlockByHash(blockHash)
@@ -231,13 +223,11 @@ func GetBlockData(hashOrHeight interface{}) ([]byte, error) {
 }
 
 func GetBlockCount() (uint32, error) {
-	chain := sdk.NewChain()
-	chain.NewRestClient().SetAddress(config.Parameters.BaseConfig.ChainRestAddr)
+
 	return chain.GetCurrentBlockHeight()
 }
 
 func GetTxHeight(txHash string) (uint32, error) {
-	chain := sdk.NewChain()
-	chain.NewRestClient().SetAddress(config.Parameters.BaseConfig.ChainRestAddr)
+
 	return chain.GetBlockHeightByTxHash(txHash)
 }

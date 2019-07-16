@@ -17,6 +17,7 @@ import (
 	"github.com/saveio/carrier/network/components/keepalive"
 	"github.com/saveio/carrier/network/components/proxy"
 	"github.com/saveio/carrier/types/opcode"
+	"github.com/saveio/edge/common/config"
 	act "github.com/saveio/pylons/actor/server"
 	"github.com/saveio/pylons/network/transport/messages"
 	"github.com/saveio/pylons/transfer"
@@ -160,11 +161,12 @@ func (this *Network) Start(address string) error {
 		this.P2p.EnableProxyMode(true)
 		this.P2p.SetProxyServer(this.proxyAddr)
 	}
+	this.P2p.SetNetworkID(config.Parameters.BaseConfig.NetworkId)
 	go this.P2p.Listen()
 	go this.PeerStateChange(this.syncPeerState)
 
 	this.P2p.BlockUntilListening()
-	log.Debugf("will BlockUntilProxyFinish...")
+	log.Debugf("channel will BlockUntilProxyFinish..., networkid %d", config.Parameters.BaseConfig.NetworkId)
 	if len(this.proxyAddr) > 0 {
 		switch protocol {
 		case "udp":
@@ -295,8 +297,6 @@ func (this *Network) syncPeerState(state *keepalive.PeerStateEvent) {
 		act.SetNodeNetworkState(state.Address, nodeNetworkState)
 	case keepalive.PEER_UNKNOWN:
 		log.Debugf("[syncPeerState] addr: %s state: PEER_UNKNOWN\n", state.Address)
-	case keepalive.PEER_READY:
-		log.Debugf("[syncPeerState] addr: %s state: Ready\n", state.Address)
 	case keepalive.PEER_UNREACHABLE:
 		this.ActivePeers.Delete(state.Address)
 		log.Debugf("[syncPeerState] addr: %s state: NetworkUnreachable\n", state.Address)
