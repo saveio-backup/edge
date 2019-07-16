@@ -2,15 +2,13 @@ package server
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/ontio/ontology-eventbus/actor"
 	p2pNet "github.com/saveio/carrier/network"
 	dspact "github.com/saveio/dsp-go-sdk/actor/client"
-	"github.com/saveio/edge/p2p/networks/channel"
-	"github.com/saveio/edge/p2p/networks/dsp"
+	"github.com/saveio/edge/p2p/network"
 	chact "github.com/saveio/pylons/actor/client"
 	"github.com/saveio/themis/common/log"
 )
@@ -18,8 +16,8 @@ import (
 type MessageHandler func(msgData interface{}, pid *actor.PID)
 
 type P2PActor struct {
-	channelNet  *channel.Network
-	dspNet      *dsp.Network
+	channelNet  *network.Network
+	dspNet      *network.Network
 	props       *actor.Props
 	msgHandlers map[string]MessageHandler
 	localPID    *actor.PID
@@ -37,11 +35,11 @@ func NewP2PActor() (*P2PActor, error) {
 	return p2pActor, nil
 }
 
-func (this *P2PActor) SetChannelNetwork(net *channel.Network) {
+func (this *P2PActor) SetChannelNetwork(net *network.Network) {
 	this.channelNet = net
 }
 
-func (this *P2PActor) SetDspNetwork(net *dsp.Network) {
+func (this *P2PActor) SetDspNetwork(net *network.Network) {
 	this.dspNet = net
 }
 
@@ -57,10 +55,7 @@ func (this *P2PActor) Start() (*actor.PID, error) {
 
 func (this *P2PActor) Stop() error {
 	this.localPID.Stop()
-	err := this.dspNet.Stop()
-	if err != nil {
-		return err
-	}
+	this.dspNet.Stop()
 	this.channelNet.Stop()
 	return nil
 }
@@ -94,7 +89,7 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 		}()
 	case *dspact.ConnectReq:
 		go func() {
-			err := this.dspNet.Connect(msg.Address)
+			err := this.dspNet.ConnectAndWait(msg.Address)
 			msg.Response <- &dspact.P2pResp{Error: err}
 		}()
 	case *dspact.CloseReq:
@@ -111,15 +106,6 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 		go func() {
 			m, err := this.dspNet.Broadcast(msg.Addresses, msg.Data, msg.NeedReply, msg.Stop, msg.Action)
 			msg.Response <- &dspact.BroadcastResp{Result: m, Error: err}
-		}()
-	case *dspact.PeerListeningReq:
-		go func() {
-			ret := this.dspNet.IsPeerListenning(msg.Address)
-			var err error
-			if !ret {
-				err = errors.New("peer is not listening")
-			}
-			msg.Response <- &dspact.P2pResp{Error: err}
 		}()
 	case *dspact.PublicAddrReq:
 		go func() {

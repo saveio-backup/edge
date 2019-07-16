@@ -111,6 +111,7 @@ const (
 	QUERY_CHANNEL             = "/api/v1/channel/query/detail/:partneraddr"
 	QUERY_CHANNEL_BY_ID       = "/api/v1/channel/query/:id"
 
+	ALL_DNS              = "/api/v1/dns"
 	DNS_REGISTER         = "/api/v1/dns/register"
 	DNS_BIND             = "/api/v1/dns/bind"
 	DNS_QUERYLINK        = "/api/v1/dns/query/link"
@@ -226,6 +227,7 @@ func (this *restServer) registryMethod() {
 		QUERY_CHANNEL:         {name: "querychannel", handler: QueryChannel},
 		QUERY_CHANNEL_BY_ID:   {name: "querychannelbyid", handler: QueryChannelByID},
 
+		ALL_DNS:              {name: "getalldns", handler: GetAllDNS},
 		DNS_REGISTER_DNS:     {name: "registerdns", handler: RegisterDns},
 		DNS_UNREGISTER_DNS:   {name: "unregisterdns", handler: UnRegisterDns},
 		DNS_QUIT:             {name: "quitdns", handler: QuitDns},
@@ -370,6 +372,8 @@ func (this *restServer) getPath(url string) string {
 		return DNS_QUERY_REG_INFO
 	} else if strings.Contains(url, strings.TrimRight(DNS_QUERY_HOST_INFO, ":addr")) {
 		return DNS_QUERY_HOST_INFO
+	} else if strings.Contains(url, ALL_DNS) {
+		return ALL_DNS
 	}
 
 	return url

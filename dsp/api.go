@@ -21,8 +21,7 @@ import (
 	"github.com/saveio/edge/dsp/storage"
 	"github.com/saveio/edge/p2p/actor/req"
 	p2p_actor "github.com/saveio/edge/p2p/actor/server"
-	channelNet "github.com/saveio/edge/p2p/networks/channel"
-	dspNet "github.com/saveio/edge/p2p/networks/dsp"
+	"github.com/saveio/edge/p2p/network"
 	"github.com/saveio/themis-go-sdk/wallet"
 	"github.com/saveio/themis/account"
 	chainCom "github.com/saveio/themis/common"
@@ -140,7 +139,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 			PublicKey:  dspPub,
 			PrivateKey: dspPrivate,
 		}
-		dspNetwork := dspNet.NewNetwork()
+		dspNetwork := network.NewP2P()
 		dspNetwork.SetNetworkKey(networkKey)
 		dspNetwork.SetHandler(dspSrv.Receive)
 		dspNetwork.SetProxyServer(config.Parameters.BaseConfig.NATProxyServerAddr)
@@ -152,7 +151,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		p2pActor.SetDspNetwork(dspNetwork)
 		log.Debugf("start dsp at %s", dspNetwork.PublicAddr())
 		// start channel net
-		channelNetwork := channelNet.NewP2P()
+		channelNetwork := network.NewP2P()
 		channelPubKey, channelPrivateKey, err := ed25519.GenerateKey(&accountReader{
 			PublicKey: append(bPub, []byte("channel")...),
 		})
@@ -244,47 +243,55 @@ func (this *Endpoint) SetupDNSNodeBackground() {
 	}
 	allChannels := this.Dsp.Channel.GetAllPartners()
 	log.Debugf("setup dns node len %v", len(allChannels))
-	ti := time.NewTicker(time.Minute)
+	setup := func() bool {
+		progress, derr := this.GetFilterBlockProgress()
+		if derr != nil {
+			log.Errorf("setup dns failed filter block err %s", derr)
+			return false
+		}
+		if progress.Progress != 1.0 {
+			log.Debugf("setup dns wait for init channel")
+			return false
+		}
+
+		if len(allChannels) > 0 {
+			err := this.Dsp.SetupDNSChannels()
+			if err != nil {
+				log.Errorf("SetupDNSChannels err %s", err)
+				return false
+			}
+			return true
+		}
+		address, err := chainCom.AddressFromBase58(this.Dsp.WalletAddress())
+		if err != nil {
+			log.Errorf("setup dns failed address decoded failed")
+			return false
+		}
+		bal, err := this.Dsp.Chain.Native.Usdt.BalanceOf(address)
+		if bal == 0 || err != nil {
+			log.Errorf("setup dns failed balance is 0")
+			return false
+		}
+		if bal < chainCfg.DEFAULT_GAS_PRICE*chainCfg.DEFAULT_GAS_PRICE {
+			log.Errorf("setup dns failed balance not enough %d", bal)
+			return false
+		}
+		err = this.Dsp.SetupDNSChannels()
+		if err != nil {
+			return false
+		}
+		return true
+	}
+	if setup() {
+		return
+	}
+	ti := time.NewTicker(time.Duration(30) * time.Second)
 	for {
 		select {
 		case <-ti.C:
-			progress, derr := this.GetFilterBlockProgress()
-			if derr != nil {
-				log.Errorf("setup dns failed filter block err %s", derr)
-				break
-			}
-			if progress.Progress != 1.0 {
-				log.Debugf("setup dns wait for init channel")
-				break
-			}
-
-			if len(allChannels) > 0 {
-				err := this.Dsp.SetupDNSChannels()
-				if err != nil {
-					log.Errorf("SetupDNSChannels err %s", err)
-					break
-				}
+			if setup() {
 				return
 			}
-			address, err := chainCom.AddressFromBase58(this.Dsp.WalletAddress())
-			if err != nil {
-				log.Errorf("setup dns failed address decoded failed")
-				break
-			}
-			bal, err := this.Dsp.Chain.Native.Usdt.BalanceOf(address)
-			if bal == 0 || err != nil {
-				log.Errorf("setup dns failed balance is 0")
-				break
-			}
-			if bal < chainCfg.DEFAULT_GAS_PRICE*chainCfg.DEFAULT_GAS_PRICE {
-				log.Errorf("setup dns failed balance not enough %d", bal)
-				break
-			}
-			err = this.Dsp.SetupDNSChannels()
-			if err != nil {
-				break
-			}
-			return
 		case <-this.closhCh:
 			return
 		}

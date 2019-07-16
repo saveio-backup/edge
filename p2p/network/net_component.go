@@ -1,6 +1,8 @@
-package dsp
+package network
 
-import "github.com/saveio/carrier/network"
+import (
+	"github.com/saveio/carrier/network"
+)
 
 type NetComponent struct {
 	*network.Component
@@ -11,5 +13,7 @@ func (this *NetComponent) Startup(net *network.Network) {
 }
 
 func (this *NetComponent) Receive(ctx *network.ComponentContext) error {
-	return this.Net.Receive(ctx)
+	msg := ctx.Message()
+	addr := ctx.Client().Address
+	return this.Net.Receive(ctx, msg, addr)
 }
