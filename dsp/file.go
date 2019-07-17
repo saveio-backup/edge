@@ -129,6 +129,7 @@ type fileResp struct {
 type downloadFilesInfo struct {
 	Hash          string
 	Name          string
+	Path          string
 	Url           string
 	Size          uint64
 	DownloadCount uint64
@@ -832,6 +833,7 @@ func (this *Endpoint) GetDownloadFiles(fileType DspFileListType, offset, limit u
 			LastShareAt:   lastSharedAt,
 			Profit:        profit,
 			ProfitFormat:  utils.FormatUsdt(profit),
+			Path:          config.FsFileRootPath() + "/" + info.FileName,
 		})
 		if uint64(len(fileInfos)) > limit {
 			break
