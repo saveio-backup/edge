@@ -131,6 +131,7 @@ type downloadFilesInfo struct {
 	Name          string
 	Path          string
 	Url           string
+	OwnerAddress  string
 	Size          uint64
 	DownloadCount uint64
 	DownloadAt    uint64
@@ -823,10 +824,16 @@ func (this *Endpoint) GetDownloadFiles(fileType DspFileListType, offset, limit u
 		downloadedCount, _ := this.sqliteDB.CountRecordByFileHash(file)
 		profit, _ := this.sqliteDB.SumRecordsProfitByFileHash(file)
 		lastSharedAt, _ := this.sqliteDB.FindLastShareTime(file)
+		fileInfo, _ := this.Dsp.Chain.Native.Fs.GetFileInfo(file)
+		owner := ""
+		if fileInfo != nil {
+			owner = fileInfo.FileOwner.ToBase58()
+		}
 		fileInfos = append(fileInfos, &downloadFilesInfo{
 			Hash:          file,
 			Name:          info.FileName,
 			Url:           url,
+			OwnerAddress:  owner,
 			Size:          uint64(len(info.BlockHashes)) * dspCom.CHUNK_SIZE / 1024,
 			DownloadCount: downloadedCount,
 			DownloadAt:    info.CreatedAt,
