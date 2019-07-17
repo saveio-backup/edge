@@ -445,7 +445,8 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 	case DSP_GET_FILE_TRANSFERLIST:
 		req["Type"], req["Offset"], req["Limit"] = getParam(r, "type"), getParam(r, "offset"), getParam(r, "limit")
 	case DSP_FILE_UPLOAD_FEE:
-		req["Path"], req["Duration"], req["Interval"], req["Times"], req["CopyNum"], req["WhiteList"] = getParam(r, "file"), r.FormValue("duration"), r.FormValue("interval"), r.FormValue("times"), r.FormValue("copynum"), r.FormValue("whitelistcount")
+		req["Path"], req["Duration"], req["Interval"], req["Times"], req["CopyNum"], req["WhiteList"] = getParam(r, "file"), r.FormValue("duration"), r.FormValue("interval"), r.FormValue("times"), r.FormValue("copyNum"), r.FormValue("whitelistCount")
+		req["StoreType"] = r.FormValue("storeType")
 	case DSP_FILE_DOWNLOAD_INFO:
 		req["Url"] = getParam(r, "url")
 	case DSP_FILE_SHARE_INCOME:

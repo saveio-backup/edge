@@ -214,7 +214,7 @@ func CalculateUploadFee(cmd map[string]interface{}) map[string]interface{} {
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
-	res, derr := dsp.DspService.CalculateUploadFee(string(path), cmd["Duration"], cmd["Interval"], cmd["Times"], cmd["CopyNum"], cmd["WhiteList"], cmd["StorageType"])
+	res, derr := dsp.DspService.CalculateUploadFee(string(path), cmd["Duration"], cmd["Interval"], cmd["Times"], cmd["CopyNum"], cmd["WhiteList"], cmd["StoreType"])
 	if derr != nil {
 		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
 	}

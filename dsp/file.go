@@ -405,6 +405,13 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint64) 
 			continue
 		}
 		// log.Debugf("#%d set transfer type %d info.FileHash %v, fileName %s, progress:%v, result %v, err %s, status %d", idx, pType, pInfo.FileHash, pInfo.FileName, pInfo.Progress, pInfo.Result, pInfo.ErrMsg, pInfo.Status)
+		if pType == transferTypeUploading {
+			pInfo.StoreType = dspCom.FileStoreTypeNormal
+			fileInfo, _ := this.Dsp.Chain.Native.Fs.GetFileInfo(info.FileHash)
+			if fileInfo != nil && fileInfo.StorageType != fs.FileStorageTypeUseSpace {
+				pInfo.StoreType = dspCom.FileStoreTypeProfessional
+			}
+		}
 		infos = append(infos, pInfo)
 		off++
 		if limit > 0 && uint64(len(infos)) >= limit {
@@ -469,29 +476,34 @@ func (this *Endpoint) CalculateUploadFee(filePath string, durationVal, intervalV
 	if err != nil {
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: err}
 	}
+	sType, _ := OptionStrToFloat64(storeType, 0)
 	if times == 0 {
-		userspace, err := this.Dsp.Chain.Native.Fs.GetUserSpace(currentAccount.Address)
-		if err != nil {
-			return nil, &DspErr{Code: FS_GET_USER_SPACE_FAILED, Error: err}
+		if dspCom.FileStoreType(sType) == dspCom.FileStoreTypeNormal {
+			userspace, err := this.Dsp.Chain.Native.Fs.GetUserSpace(currentAccount.Address)
+			if err != nil {
+				return nil, &DspErr{Code: FS_GET_USER_SPACE_FAILED, Error: err}
+			}
+			if userspace == nil {
+				return nil, &DspErr{Code: FS_GET_USER_SPACE_FAILED, Error: err}
+			}
+			currentHeight, err := this.Dsp.Chain.GetCurrentBlockHeight()
+			if err != nil {
+				return nil, &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
+			}
+			if userspace.ExpireHeight <= uint64(currentHeight) {
+				return nil, &DspErr{Code: DSP_USER_SPACE_EXPIRED, Error: ErrMaps[DSP_USER_SPACE_EXPIRED]}
+			}
+			if duration > 0 && (uint64(currentHeight)+uint64(duration)) > userspace.ExpireHeight {
+				return nil, &DspErr{Code: DSP_USER_SPACE_NOT_ENOUGH, Error: ErrMaps[DSP_USER_SPACE_NOT_ENOUGH]}
+			}
+			if duration == 0 {
+				duration = float64(userspace.ExpireHeight) - float64(currentHeight)
+			}
+			log.Debugf("userspace.ExpireHeight %d, current %d, duration :%v, times :%v", userspace.ExpireHeight, currentHeight, duration, times)
+			times = math.Ceil(duration / float64(interval))
+		} else {
+			times = math.Ceil(duration / float64(fssetting.DefaultProvePeriod))
 		}
-		if userspace == nil {
-			return nil, &DspErr{Code: FS_GET_USER_SPACE_FAILED, Error: err}
-		}
-		currentHeight, err := this.Dsp.Chain.GetCurrentBlockHeight()
-		if err != nil {
-			return nil, &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
-		}
-		if userspace.ExpireHeight <= uint64(currentHeight) {
-			return nil, &DspErr{Code: DSP_USER_SPACE_EXPIRED, Error: ErrMaps[DSP_USER_SPACE_EXPIRED]}
-		}
-		if duration > 0 && (uint64(currentHeight)+uint64(duration)) > userspace.ExpireHeight {
-			return nil, &DspErr{Code: DSP_USER_SPACE_NOT_ENOUGH, Error: ErrMaps[DSP_USER_SPACE_NOT_ENOUGH]}
-		}
-		if duration == 0 {
-			duration = float64(userspace.ExpireHeight) - float64(currentHeight)
-		}
-		times = math.Ceil(duration / float64(interval))
-		log.Debugf("userspace.ExpireHeight %d, current %d, duration :%v, times :%v", userspace.ExpireHeight, currentHeight, duration, times)
 	}
 	copynum, err := OptionStrToFloat64(copynumVal, float64(fssetting.DefaultCopyNum))
 	if err != nil {
@@ -501,7 +513,7 @@ func (this *Endpoint) CalculateUploadFee(filePath string, durationVal, intervalV
 	if err != nil {
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: err}
 	}
-	sType, _ := OptionStrToFloat64(storeType, 0)
+
 	fee, err := this.Dsp.CalculateUploadFee(filePath, &dspCom.UploadOption{
 		ProveInterval: uint64(interval),
 		ProveTimes:    uint32(times),
