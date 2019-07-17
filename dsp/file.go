@@ -82,6 +82,7 @@ type transfer struct {
 	UpdatedAt      uint64
 	Result         interface{} `json:",omitempty"`
 	ErrMsg         string      `json:",omitempty"`
+	StoreType      dspCom.FileStoreType
 }
 
 type transferlistResp struct {
