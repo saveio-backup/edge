@@ -138,6 +138,7 @@ type downloadFilesInfo struct {
 	LastShareAt   uint64
 	Profit        uint64
 	ProfitFormat  string
+	Privilege     uint64
 }
 
 type WhiteListRule struct {
@@ -826,8 +827,10 @@ func (this *Endpoint) GetDownloadFiles(fileType DspFileListType, offset, limit u
 		lastSharedAt, _ := this.sqliteDB.FindLastShareTime(file)
 		fileInfo, _ := this.Dsp.Chain.Native.Fs.GetFileInfo(file)
 		owner := ""
+		privilege := uint64(fs.PUBLIC)
 		if fileInfo != nil {
 			owner = fileInfo.FileOwner.ToBase58()
+			privilege = fileInfo.Privilege
 		}
 		fileInfos = append(fileInfos, &downloadFilesInfo{
 			Hash:          file,
@@ -841,6 +844,7 @@ func (this *Endpoint) GetDownloadFiles(fileType DspFileListType, offset, limit u
 			Profit:        profit,
 			ProfitFormat:  utils.FormatUsdt(profit),
 			Path:          config.FsFileRootPath() + "/" + info.FileName,
+			Privilege:     privilege,
 		})
 		if uint64(len(fileInfos)) > limit {
 			break
