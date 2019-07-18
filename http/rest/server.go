@@ -42,6 +42,7 @@ const (
 	GET_TXS_HEIGHT_LIMIT  = "/api/v1/transactions/:addr/:type"
 	GET_STORAGE           = "/api/v1/storage/:hash/:key"
 	GET_BALANCE           = "/api/v1/balance/:addr"
+	GET_BALANCE_HISTORY   = "/api/v1/balancehistory/:addr/:limit"
 	GET_CONTRACT_STATE    = "/api/v1/contract/:hash"
 	GET_SMTCOCE_EVT_TXS   = "/api/v1/smartcode/event/transactions/:height"
 	GET_SMTCOCE_EVTS      = "/api/v1/smartcode/event/txhash/:hash"
@@ -185,6 +186,7 @@ func (this *restServer) registryMethod() {
 		GET_TXS_HEIGHT_LIMIT:  {name: "gettxsbyheightlimit", handler: GetTxByHeightAndLimit},
 		GET_STORAGE:           {name: "getstorage", handler: GetStorage},
 		GET_BALANCE:           {name: "getbalance", handler: GetBalance},
+		GET_BALANCE_HISTORY:   {name: "getbalancehistory", handler: GetBalanceHistory},
 		GET_CONTRACT_STATE:    {name: "getcontract", handler: GetContractState},
 		GET_SMTCOCE_EVT_TXS:   {name: "getsmartcodeeventbyheight", handler: GetSmartCodeEventTxsByHeight},
 		GET_SMTCOCE_EVTS:      {name: "getsmartcodeeventbyhash", handler: GetSmartCodeEventByTxHash},
@@ -292,6 +294,8 @@ func (this *restServer) getPath(url string) string {
 		return GET_STORAGE
 	} else if strings.Contains(url, strings.TrimRight(GET_BALANCE, ":addr")) {
 		return GET_BALANCE
+	} else if strings.Contains(url, strings.TrimRight(GET_BALANCE_HISTORY, ":addr/:limit")) {
+		return GET_BALANCE_HISTORY
 	} else if strings.Contains(url, strings.TrimRight(GET_CONTRACT_STATE, ":hash")) {
 		return GET_CONTRACT_STATE
 	} else if strings.Contains(url, strings.TrimRight(GET_SMTCOCE_EVT_TXS, ":height")) {
@@ -401,6 +405,8 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 		req["Hash"], req["Key"] = getParam(r, "hash"), getParam(r, "key")
 	case GET_BALANCE:
 		req["Addr"] = getParam(r, "addr")
+	case GET_BALANCE_HISTORY:
+		req["Addr"], req["Limit"] = getParam(r, "addr"), getParam(r, "limit")
 	case GET_CONTRACT_STATE:
 		req["Hash"], req["Raw"] = getParam(r, "hash"), r.FormValue("raw")
 	case GET_SMTCOCE_EVT_TXS:

@@ -266,6 +266,26 @@ func GetBalance(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
+//get balance history of address
+func GetBalanceHistory(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	addrBase58, ok := cmd["Addr"].(string)
+
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	limitStr, ok := cmd["Limit"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	result, derr := dsp.DspService.GetBalanceHistory(addrBase58, limitStr)
+	if derr != nil {
+		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
+	}
+	resp["Result"] = result
+	return resp
+}
+
 //get merkle proof by transaction hash
 func GetMerkleProof(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)

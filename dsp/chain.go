@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/saveio/edge/common/config"
 	hcomm "github.com/saveio/edge/http/common"
@@ -258,6 +259,123 @@ func (this *Endpoint) GetBalance(address string) ([]*BalanceResp, *DspErr) {
 		BalanceFormat: "0",
 	})
 	return bals, nil
+}
+
+type BalanceHistoryResp struct {
+	TxsCount        uint32
+	TxsSendCount    uint32
+	TxsReceiveCount uint32
+	Asset           string
+	Balance         uint64
+	BalanceFormat   string
+}
+
+//get balance history of address
+func (this *Endpoint) GetBalanceHistory(address, limitStr string) (map[string]*BalanceHistoryResp, *DspErr) {
+	addr, err := common.AddressFromBase58(address)
+	if err != nil {
+		return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
+	}
+	limit, err := strconv.ParseUint(limitStr, 10, 64)
+	if err != nil || limit < 0 || limit > 31 {
+		return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
+	}
+
+	bal, err := this.Dsp.Chain.Native.Usdt.BalanceOf(addr)
+	if err != nil {
+		return nil, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
+	}
+
+	var balanceHistoryDates []string
+	balanceHistoryMap := make(map[string]*BalanceHistoryResp)
+
+	index := 0
+	for index > int(-limit) {
+		dateStr := time.Now().AddDate(0, 0, index).Format("2006-01-02")
+		balanceHistoryDates = append(balanceHistoryDates, dateStr)
+		balanceHistoryMap[dateStr] = &BalanceHistoryResp{
+			TxsCount:        0,
+			TxsSendCount:    0,
+			TxsReceiveCount: 0,
+			Asset:           "save",
+			Balance:         bal,
+			BalanceFormat:   utils.FormatUsdt(bal),
+		}
+		index--
+	}
+
+	heightForRequest := ""
+	limitForRequest := "30" // can use for paging, ex. "30", "" means getall
+	skipForRequest := ""
+	flagForRequest := true
+	for flagForRequest {
+		txs, derr := this.GetTxByHeightAndLimit(address, "save", TxTypeAll, string(heightForRequest), limitForRequest, string(skipForRequest))
+		// fmt.Printf("txs: %+v\n", txs)
+		if derr != nil {
+			return nil, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
+		}
+		if len(txs) == 0 {
+			flagForRequest = false
+		}
+
+		tEndStr := time.Now().AddDate(0, 0, int(-limit)).Format("2006-01-02")
+		for _, tx := range txs {
+			tTxStr := time.Unix(int64(tx.Timestamp), 0).Format("2006-01-02")
+			// fmt.Printf("\ntTxStr: %s, tAmountFormat: %s, tFeeFormat: %s, tType: %u, tHeight: %u \n", tTxStr, tx.AmountFormat, tx.FeeFormat, tx.Type, tx.BlockHeight)
+			if tTxStr < tEndStr {
+				// fmt.Printf("tTxStr: %s ,tEndStr: %s\n", tTxStr, tEndStr)
+				flagForRequest = false
+				break
+			}
+
+			txBlockHeightStr := strconv.FormatUint(uint64(tx.BlockHeight), 10)
+			if heightForRequest != txBlockHeightStr {
+				heightForRequest = txBlockHeightStr
+				skipForRequest = "1"
+			} else {
+				skipForRequestI, err := strconv.ParseUint(skipForRequest, 10, 32)
+				if err != nil {
+					return nil, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
+				}
+				skipForRequestI++
+				skipForRequest = strconv.FormatUint(skipForRequestI, 10)
+			}
+			// fmt.Printf("txBlockHeiStr: %s, heightForRequest: %s, skipForRequest: %s\n", txBlockHeightStr, heightForRequest, skipForRequest)
+
+			for _, dateItemStr := range balanceHistoryDates {
+				// fmt.Printf("\ndateItemStr: %s ;", dateItemStr)
+				if dateItemStr < tTxStr {
+					// fmt.Printf("dateItemStr < tTxStr isTrue;")
+					if tx.Type == TxTypeSend || tx.From == address {
+						balanceHistoryMap[dateItemStr].Balance += tx.Amount + utils.ParseUsdt(tx.FeeFormat)
+						balanceHistoryMap[dateItemStr].BalanceFormat = utils.FormatUsdt(balanceHistoryMap[dateItemStr].Balance)
+					} else if tx.Type == TxTypeReceive || tx.To == address {
+						balanceHistoryMap[dateItemStr].Balance -= tx.Amount
+						balanceHistoryMap[dateItemStr].BalanceFormat = utils.FormatUsdt(balanceHistoryMap[dateItemStr].Balance)
+					} else {
+						// fmt.Println("unknown tx type")
+					}
+				}
+				if dateItemStr == tTxStr {
+					// fmt.Printf("dateItemStr == tTxStr isTrue.")
+					if tx.Type == TxTypeSend {
+						balanceHistoryMap[dateItemStr].TxsSendCount++
+					} else if tx.Type == TxTypeReceive {
+						balanceHistoryMap[dateItemStr].TxsReceiveCount++
+					}
+					balanceHistoryMap[dateItemStr].TxsCount++
+				}
+			}
+			// fmt.Println("")
+			// for mapKey, mapVal := range balanceHistoryMap {
+			// 	fmt.Println(mapKey, mapVal)
+			// }
+		}
+		// use for debug paging, if there are difference with on paging
+		// flagForRequest = false
+	}
+
+	return balanceHistoryMap, nil
 }
 
 //get merkle proof by transaction hash
