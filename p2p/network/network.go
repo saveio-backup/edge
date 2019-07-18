@@ -350,7 +350,7 @@ func (this *Network) Send(msg proto.Message, toAddr string) error {
 	return nil
 }
 
-// Request. send msg to peer and wait for response synchronously
+// Request. send msg to peer and wait for response synchronously with timeout
 func (this *Network) Request(msg proto.Message, peer string) (proto.Message, error) {
 	client := this.P2p.GetPeerClient(peer)
 	if client == nil {
@@ -404,9 +404,10 @@ func (this *Network) Broadcast(addrs []string, msg proto.Message, needReply bool
 	done := make(chan *broadcastResp, 0)
 	for i := 0; i < maxRoutines; i++ {
 		go func() {
+
 			for {
 				req, ok := <-dispatch
-				log.Debugf("receive msg from %s, ok %t", req, ok)
+				log.Debugf("receive request from %s, ok %t", req, ok)
 				if !ok || req == nil {
 					break
 				}
@@ -428,7 +429,6 @@ func (this *Network) Broadcast(addrs []string, msg proto.Message, needReply bool
 				} else {
 					res, err = this.Request(msg, req.addr)
 				}
-
 				if err != nil {
 					log.Errorf("broadcast msg to %s err %s", req.addr, err)
 					done <- &broadcastResp{
@@ -493,6 +493,7 @@ func (this *Network) PeerStateChange(fn func(*keepalive.PeerStateEvent)) {
 
 //P2P network msg receive. transfer to actor_channel
 func (this *Network) Receive(ctx *network.ComponentContext, message proto.Message, from string) error {
+	// TODO check message is nil
 	log.Debug("[P2pNetwork] Receive msgBus is accepting for syncNet messages ")
 	switch msg := message.(type) {
 	case *messages.Processed:

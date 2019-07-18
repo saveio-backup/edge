@@ -97,6 +97,7 @@ type downloadFileInfo struct {
 	Size      uint64
 	Fee       uint64
 	FeeFormat string
+	Path      string
 }
 
 type fileShareIncome struct {
@@ -574,6 +575,7 @@ func (this *Endpoint) GetDownloadFileInfo(url string) (*downloadFileInfo, *DspEr
 	}
 	info.Fee = blockNum * dspCom.CHUNK_SIZE * common.DSP_DOWNLOAD_UNIT_PRICE
 	info.FeeFormat = utils.FormatUsdt(info.Fee)
+	info.Path = this.getDownloadFilePath(info.Name)
 	return info, nil
 }
 
@@ -852,7 +854,7 @@ func (this *Endpoint) GetDownloadFiles(fileType DspFileListType, offset, limit u
 			LastShareAt:   lastSharedAt,
 			Profit:        profit,
 			ProfitFormat:  utils.FormatUsdt(profit),
-			Path:          config.FsFileRootPath() + "/" + info.FileName,
+			Path:          this.getDownloadFilePath(info.FileName),
 			Privilege:     privilege,
 		})
 		if uint64(len(fileInfos)) > limit {
@@ -1171,7 +1173,7 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 				pInfo.Progress = float64(pInfo.DownloadSize) / float64(pInfo.FileSize)
 			}
 			//TODO: use from progress
-			pInfo.Path = config.FsFileRootPath() + "/" + pInfo.FileName
+			pInfo.Path = this.getDownloadFilePath(pInfo.FileName)
 		}
 	}
 	if len(info.ErrorMsg) != 0 {
@@ -1182,4 +1184,8 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 		pInfo.Result = info.Result
 	}
 	return pInfo
+}
+
+func (this *Endpoint) getDownloadFilePath(fileName string) string {
+	return config.FsFileRootPath() + "/" + fileName
 }
