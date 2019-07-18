@@ -91,13 +91,14 @@ type transferlistResp struct {
 }
 
 type downloadFileInfo struct {
-	Hash      string
-	Name      string
-	Ext       string
-	Size      uint64
-	Fee       uint64
-	FeeFormat string
-	Path      string
+	Hash        string
+	Name        string
+	Ext         string
+	Size        uint64
+	Fee         uint64
+	FeeFormat   string
+	Path        string
+	DownloadDir string
 }
 
 type fileShareIncome struct {
@@ -576,6 +577,7 @@ func (this *Endpoint) GetDownloadFileInfo(url string) (*downloadFileInfo, *DspEr
 	info.Fee = blockNum * dspCom.CHUNK_SIZE * common.DSP_DOWNLOAD_UNIT_PRICE
 	info.FeeFormat = utils.FormatUsdt(info.Fee)
 	info.Path = this.getDownloadFilePath(info.Name)
+	info.DownloadDir = this.getDownloadFilePath("")
 	return info, nil
 }
 
@@ -1187,5 +1189,8 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 }
 
 func (this *Endpoint) getDownloadFilePath(fileName string) string {
+	if len(fileName) == 0 {
+		return config.FsFileRootPath()
+	}
 	return config.FsFileRootPath() + "/" + fileName
 }
