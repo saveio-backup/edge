@@ -517,10 +517,8 @@ func (this *Endpoint) CalculateUploadFee(filePath string, durationVal, intervalV
 				duration = float64(userspace.ExpireHeight) - float64(currentHeight)
 			}
 			log.Debugf("userspace.ExpireHeight %d, current %d, duration :%v, times :%v", userspace.ExpireHeight, currentHeight, duration, times)
-			times = math.Ceil(duration / float64(interval))
-		} else {
-			times = math.Ceil(duration / float64(fssetting.DefaultProvePeriod))
 		}
+		times = math.Ceil(duration / float64(interval))
 	}
 	copynum, err := OptionStrToFloat64(copynumVal, float64(fssetting.DefaultCopyNum))
 	if err != nil {
