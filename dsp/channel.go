@@ -155,12 +155,11 @@ func (this *Endpoint) OpenPaymentChannel(partnerAddr string, amount uint64) (cha
 		return 0, &DspErr{Code: DSP_CHANNEL_OPEN_FAILED, Error: err}
 	}
 
-	for dnsWallet, dnsUrl := range this.Dsp.DNS.OnlineDNS {
-		if dnsWallet == partnerAddr {
-			this.Dsp.DNS.DNSNode = &dsp.DNSNodeInfo{
-				WalletAddr:  dnsWallet,
-				ChannelAddr: dnsUrl,
-			}
+	url, ok := this.Dsp.DNS.OnlineDNS[partnerAddr]
+	if ok {
+		this.Dsp.DNS.DNSNode = &dsp.DNSNodeInfo{
+			WalletAddr: partnerAddr,
+			HostAddr:   url,
 		}
 	}
 	return id, nil
