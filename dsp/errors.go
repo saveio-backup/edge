@@ -17,6 +17,7 @@ const (
 	INSUFFICIENT_BALANCE = 40006
 	NO_ACCOUNT           = 40007
 	ACCOUNT_EXIST        = 40008
+	NO_DNS               = 40009
 
 	CHAIN_INTERNAL_ERROR              = 50000
 	CHAIN_GET_HEIGHT_FAILED           = 50001
@@ -109,6 +110,7 @@ var ErrMaps = map[int64]error{
 	INSUFFICIENT_BALANCE: errors.New("insufficient balance"),
 	NO_ACCOUNT:           errors.New("no account"),
 	ACCOUNT_EXIST:        errors.New("account exist"),
+	NO_DNS:               errors.New("no dns"),
 
 	CHAIN_INTERNAL_ERROR:              errors.New("chain internal error"),
 	CHAIN_GET_HEIGHT_FAILED:           errors.New("chain get height failed"),

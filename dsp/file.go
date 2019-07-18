@@ -316,6 +316,9 @@ func (this *Endpoint) GetFsConfig() (*FsContractSettingResp, *DspErr) {
 }
 
 func (this *Endpoint) DownloadFile(fileHash, url, link, password string, max uint64, setFileName bool) *DspErr {
+	if this.Dsp.DNS == nil {
+		return &DspErr{Code: NO_DNS, Error: ErrMaps[NO_DNS]}
+	}
 	if len(fileHash) > 0 {
 		go func() {
 			// TODO: get file name
