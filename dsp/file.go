@@ -183,6 +183,15 @@ type FsContractSettingResp struct {
 
 func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, timesVal, privilegeVal, copynumVal, storageTypeVal interface{},
 	encryptPwd, url string, whitelist []string, share bool) *DspErr {
+
+	f, err := os.Stat(path)
+	if err != nil {
+		return &DspErr{Code: FS_UPLOAD_FILEPATH_ERROR, Error: fmt.Errorf("os stat file %s error: %s", path, err.Error())}
+	}
+	if f.IsDir() {
+		return &DspErr{Code: FS_UPLOAD_FILEPATH_ERROR, Error: fmt.Errorf("uploadFile error: %s is a directory", path)}
+	}
+
 	currentAccount := this.Dsp.CurrentAccount()
 	fssetting, err := this.Dsp.Chain.Native.Fs.GetSetting()
 	if err != nil {
