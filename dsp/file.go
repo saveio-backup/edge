@@ -486,7 +486,7 @@ func (this *Endpoint) CalculateUploadFee(filePath string, durationVal, intervalV
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: err}
 	}
 	interval, err := OptionStrToFloat64(intervalVal, float64(fssetting.DefaultProvePeriod))
-	if err != nil {
+	if err != nil || interval == 0 {
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: err}
 	}
 	times, err := OptionStrToFloat64(timesVal, 0)
@@ -1050,7 +1050,7 @@ func (this *Endpoint) GetUserSpace(addr string) (*userspace, *DspErr) {
 			log.Debugf(" space[0] expiredAt %d ", expiredAt)
 		}
 	}
-	log.Debugf("expiredAt %d, now %d ", expiredAt, now)
+	log.Debugf("expiredAt %d, now %d  space.ExpireHeight:%d", expiredAt, now, space.ExpireHeight)
 	if expiredAt <= now {
 		return &userspace{
 			Used:      0,
