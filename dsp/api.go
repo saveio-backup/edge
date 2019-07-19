@@ -77,7 +77,7 @@ func Init(walletDir, pwd string) (*Endpoint, error) {
 		return nil, err
 	}
 	this.sqliteDB = sqliteDB
-	log.Debug("Endpoint init successed")
+	log.Debug("Endpoint init success")
 	DspService = this
 	return this, nil
 }
@@ -89,12 +89,14 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		FsRepoRoot:           config.FsRepoRootPath(),
 		FsFileRoot:           config.FsFileRootPath(),
 		FsType:               dspCfg.FSType(config.Parameters.FsConfig.FsType),
+		FsGcPeriod:           config.Parameters.FsConfig.FsGCPeriod,
 		ChainRpcAddr:         config.Parameters.BaseConfig.ChainRpcAddr,
 		ChannelClientType:    config.Parameters.BaseConfig.ChannelClientType,
 		ChannelListenAddr:    channelListenAddr,
 		ChannelProtocol:      config.Parameters.BaseConfig.ChannelProtocol,
 		ChannelRevealTimeout: config.Parameters.BaseConfig.ChannelRevealTimeout,
 		ChannelDBPath:        config.ChannelDBPath(),
+		ChannelSettleTimeout: config.Parameters.BaseConfig.ChannelSettleTimeout,
 		AutoSetupDNSEnable:   config.Parameters.BaseConfig.AutoSetupDNSEnable,
 		DnsNodeMaxNum:        config.Parameters.BaseConfig.DnsNodeMaxNum,
 		SeedInterval:         config.Parameters.BaseConfig.SeedInterval,
