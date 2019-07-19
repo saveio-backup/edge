@@ -195,16 +195,16 @@ func (this *Network) Start(address string) error {
 		log.Error("[P2pNetwork] Start builder.Build error: ", err.Error())
 		return err
 	}
-
 	once.Do(func() {
 		for k, v := range opCodes {
 			err := opcode.RegisterMessageType(k, v)
 			if err != nil {
-				panic("register messages failed")
+				log.Errorf("register messages failed %v", k)
 			}
 		}
 		opcode.RegisterMessageType(opcode.Opcode(common.MSG_OP_CODE), &pb.Message{})
 	})
+	log.Debugf("this.proxyAddr %s", this.proxyAddr)
 	if len(this.proxyAddr) > 0 {
 		this.P2p.EnableProxyMode(true)
 		this.P2p.SetProxyServer(this.proxyAddr)
@@ -225,7 +225,6 @@ func (this *Network) Start(address string) error {
 			this.P2p.BlockUntilQuicProxyFinish()
 		case "tcp":
 			this.P2p.BlockUntilTcpProxyFinish()
-
 		}
 	}
 	log.Debugf("finish BlockUntilProxyFinish...")
