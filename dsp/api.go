@@ -38,13 +38,13 @@ type Endpoint struct {
 	progress sync.Map
 	db       *store.LevelDBStore // TODO: remove this
 	sqliteDB *storage.SQLiteStorage
-	closhCh  chan struct{}
+	closeCh  chan struct{}
 	p2pActor *p2p_actor.P2PActor
 }
 
 func Init(walletDir, pwd string) (*Endpoint, error) {
 	this := &Endpoint{
-		closhCh: make(chan struct{}, 1),
+		closeCh: make(chan struct{}, 1),
 	}
 	log.Debugf("walletDir: %s, %d", walletDir, len(walletDir))
 	if len(walletDir) == 0 {
@@ -213,7 +213,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		go endpoint.RegisterShareNotificationCh()
 	}
 	go endpoint.CheckLogFileSize()
-	log.Info("Dsp start successed.")
+	log.Info("Dsp start success.")
 	return nil
 }
 
@@ -294,7 +294,7 @@ func (this *Endpoint) SetupDNSNodeBackground() {
 			if setup() {
 				return
 			}
-		case <-this.closhCh:
+		case <-this.closeCh:
 			return
 		}
 	}
@@ -313,7 +313,7 @@ func (this *Endpoint) CheckLogFileSize() {
 				logFullPath := filepath.Join(baseDir, logPath) + "/"
 				log.InitLog(int(config.Parameters.BaseConfig.LogLevel), logFullPath, log.Stdout)
 			}
-		case <-this.closhCh:
+		case <-this.closeCh:
 			return
 		}
 	}
@@ -327,7 +327,7 @@ func (this *Endpoint) Stop() error {
 			return err
 		}
 	}
-	close(this.closhCh)
+	close(this.closeCh)
 	err := this.db.Close()
 	if err != nil {
 		return err

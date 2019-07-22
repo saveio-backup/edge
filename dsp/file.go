@@ -71,6 +71,7 @@ type transfer struct {
 	FileName       string
 	Type           TransferType
 	Status         transferStatus
+	DetailStatus   task.TaskProgressState
 	Path           string
 	IsUploadAction bool
 	UploadSize     uint64
@@ -81,7 +82,8 @@ type transfer struct {
 	CreatedAt      uint64
 	UpdatedAt      uint64
 	Result         interface{} `json:",omitempty"`
-	ErrMsg         string      `json:",omitempty"`
+	ErrorCode      uint64
+	ErrMsg         string `json:",omitempty"`
 	StoreType      dspCom.FileStoreType
 }
 
@@ -132,8 +134,8 @@ type downloadFilesInfo struct {
 	Hash          string
 	Name          string
 	Path          string
-	Url           string
 	OwnerAddress  string
+	Url           string
 	Size          uint64
 	DownloadCount uint64
 	DownloadAt    uint64
@@ -207,7 +209,6 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, ti
 	times, ok := timesVal.(float64)
 	storageType, _ := storageTypeVal.(float64)
 	if !ok || times == 0 {
-		//TODO
 		if dspCom.FileStoreType(storageType) == dspCom.FileStoreTypeNormal {
 			userspace, err := this.Dsp.Chain.Native.Fs.GetUserSpace(currentAccount.Address)
 			if err != nil {
@@ -255,7 +256,6 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, ti
 	if find != nil || err == nil {
 		return &DspErr{Code: DSP_UPLOAD_URL_EXIST, Error: fmt.Errorf("url exist err %s", err)}
 	}
-
 	opt := &dspCom.UploadOption{
 		FileDesc:        desc,
 		ProveInterval:   uint64(interval),
@@ -273,9 +273,14 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, ti
 	}
 	optBuf, _ := json.Marshal(opt)
 	log.Debugf("path %s, UploadOption :%s\n", path, optBuf)
+	taskExist := this.Dsp.UploadTaskExist(path)
+	if taskExist {
+		return &DspErr{Code: DSP_UPLOAD_FILE_EXIST, Error: ErrMaps[DSP_UPLOAD_FILE_EXIST]}
+	}
+	// this.Dsp.
 	go func() {
 		log.Debugf("upload file path %s", path)
-		ret, err := this.Dsp.UploadFile(path, opt)
+		ret, err := this.Dsp.UploadFile("", path, opt)
 		if err != nil {
 			log.Errorf("upload failed err %s", err)
 			return
@@ -388,15 +393,15 @@ func (this *Endpoint) RegisterProgressCh() {
 				log.Errorf("add progress err %s", err)
 			}
 			infoRet, ok := v.Result.(*dspCom.UploadResult)
-			fmt.Printf("inforet %v, ok %t\n", infoRet, ok)
+			log.Debugf("%s State %v\n", v.FileHash, v.State)
 			if ok && infoRet != nil {
 				this.SetUrlForHash(v.FileHash, infoRet.Url)
 			}
-			log.Debugf("progress store file %s, %v, ok %t", v.TaskKey, v, ok)
+			// log.Debugf("progress store file %s, %v, ok %t", v.TaskId, v, ok)
 			for node, cnt := range v.Count {
-				log.Infof("prorgess type:%d file:%s, hash:%s, total:%d, peer:%s, uploaded:%d, progress:%f", v.Type, v.FileName, v.FileHash, v.Total, node, cnt, float64(cnt)/float64(v.Total))
+				log.Infof("progress type:%d file:%s, hash:%s, total:%d, peer:%s, uploaded:%d, progress:%f", v.Type, v.FileName, v.FileHash, v.Total, node, cnt, float64(cnt)/float64(v.Total))
 			}
-		case <-this.closhCh:
+		case <-this.closeCh:
 			this.Dsp.CloseProgressChannel()
 			return
 		}
@@ -702,7 +707,7 @@ func (this *Endpoint) RegisterShareNotificationCh() {
 				log.Warn("unknown state type")
 			}
 
-		case <-this.closhCh:
+		case <-this.closeCh:
 			this.Dsp.CloseShareNotificationChannel()
 			return
 		}
@@ -780,7 +785,7 @@ type fileInfoResp struct {
 	CopyNum    uint64
 	Interval   uint64
 	ProveTimes uint64
-	Priviledge uint64
+	Privilege  uint64
 	Whitelist  []string
 	ExpiredAt  uint64
 }
@@ -805,7 +810,7 @@ func (this *Endpoint) GetFileInfo(fileHashStr string) (*fileInfoResp, *DspErr) {
 		CopyNum:    info.CopyNum,
 		Interval:   info.ChallengeRate,
 		ProveTimes: info.ChallengeTimes,
-		Priviledge: info.Privilege,
+		Privilege:  info.Privilege,
 		Whitelist:  []string{},
 		ExpiredAt:  expiredAt,
 	}
@@ -870,9 +875,9 @@ func (this *Endpoint) GetDownloadFiles(fileType DspFileListType, offset, limit u
 		fileInfos = append(fileInfos, &downloadFilesInfo{
 			Hash:          file,
 			Name:          info.FileName,
-			Url:           url,
 			OwnerAddress:  owner,
-			Size:          uint64(len(info.BlockHashes)) * dspCom.CHUNK_SIZE / 1024,
+			Url:           url,
+			Size:          info.TotalBlockCount * dspCom.CHUNK_SIZE / 1024,
 			DownloadCount: downloadedCount,
 			DownloadAt:    info.CreatedAt,
 			LastShareAt:   lastSharedAt,
@@ -1054,6 +1059,7 @@ func (this *Endpoint) GetUserSpace(addr string) (*userspace, *DspErr) {
 	expiredAt := uint64(0)
 	updateHeight := space.UpdateHeight
 	now := uint64(time.Now().Unix())
+	log.Debugf("space.ExpireHeight %v\n", space.ExpireHeight)
 	if space.ExpireHeight > uint64(currentHeight) {
 		blk, err := this.Dsp.Chain.GetBlockByHeight(uint32(updateHeight))
 		if err != nil {
@@ -1137,15 +1143,16 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 		npros = append(npros, pros)
 	}
 	pInfo := &transfer{
-		Id:        info.TaskKey,
-		FileHash:  info.FileHash,
-		FileName:  info.FileName,
-		Type:      pType,
-		Status:    transferStatusDoing,
-		FileSize:  info.Total * dspCom.CHUNK_SIZE / 1024,
-		Nodes:     npros,
-		CreatedAt: info.CreatedAt,
-		UpdatedAt: info.UpdatedAt,
+		Id:           info.TaskId,
+		FileHash:     info.FileHash,
+		FileName:     info.FileName,
+		Type:         pType,
+		Status:       transferStatusDoing,
+		DetailStatus: info.State,
+		FileSize:     info.Total * dspCom.CHUNK_SIZE / 1024,
+		Nodes:        npros,
+		CreatedAt:    info.CreatedAt,
+		UpdatedAt:    info.UpdatedAt,
 	}
 	pInfo.IsUploadAction = (info.Type == task.TaskTypeUpload)
 	pInfo.Progress = 0
@@ -1203,6 +1210,7 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 	if len(info.ErrorMsg) != 0 {
 		pInfo.ErrMsg = info.ErrorMsg
 		pInfo.Status = transferStatusFailed
+		pInfo.ErrorCode = info.ErrorCode
 	}
 	if info.Result != nil {
 		pInfo.Result = info.Result

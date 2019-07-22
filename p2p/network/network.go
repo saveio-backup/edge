@@ -174,7 +174,7 @@ func (this *Network) Start(address string) error {
 	backoff_options := []backoff.ComponentOption{
 		backoff.WithInitialDelay(3 * time.Second),
 		backoff.WithMaxAttempts(10),
-		backoff.WithPriority(10),
+		backoff.WithPriority(65535),
 	}
 	builder.AddComponent(backoff.New(backoff_options...))
 	if len(this.proxyAddr) > 0 {
@@ -403,7 +403,6 @@ func (this *Network) Broadcast(addrs []string, msg proto.Message, needReply bool
 	done := make(chan *broadcastResp, 0)
 	for i := 0; i < maxRoutines; i++ {
 		go func() {
-
 			for {
 				req, ok := <-dispatch
 				log.Debugf("receive request from %s, ok %t", req, ok)
@@ -493,8 +492,7 @@ func (this *Network) PeerStateChange(fn func(*keepalive.PeerStateEvent)) {
 //P2P network msg receive. transfer to actor_channel
 func (this *Network) Receive(ctx *network.ComponentContext, message proto.Message, from string) error {
 	// TODO check message is nil
-	log.Debug("[P2pNetwork] Receive msgBus is accepting for syncNet messages ")
-	switch msg := message.(type) {
+	switch message.(type) {
 	case *messages.Processed:
 		act.OnBusinessMessage(message, from)
 	case *messages.Delivered:
@@ -526,11 +524,11 @@ func (this *Network) Receive(ctx *network.ComponentContext, message proto.Messag
 			this.handler(ctx)
 		}
 	default:
-		if len(msg.String()) == 0 {
-			log.Warnf("Receive keepalive/keepresponse msg from %s", from)
-			return nil
-		}
-		log.Errorf("[P2pNetwork Receive] unknown message type:%s type %T", msg.String(), message)
+		// if len(msg.String()) == 0 {
+		// 	log.Warnf("Receive keepalive/keepresponse msg from %s", from)
+		// 	return nil
+		// }
+		// log.Errorf("[P2pNetwork Receive] unknown message type:%s type %T", msg.String(), message)
 	}
 
 	return nil

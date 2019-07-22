@@ -61,6 +61,7 @@ const (
 	DSP_WHITELIST_OP_FAILED              = 55019
 	DSP_GET_WHITELIST_FAILED             = 55020
 	DSP_UPDATE_CONFIG_FAILED             = 55021
+	DSP_UPLOAD_FILE_EXIST                = 55022
 	DSP_NODE_REGISTER_FAILED             = 55030
 	DSP_NODE_UNREGISTER_FAILED           = 55031
 	DSP_NODE_UPDATE_FAILED               = 55032
@@ -155,6 +156,7 @@ var ErrMaps = map[int64]error{
 	DSP_WHITELIST_OP_FAILED:              errors.New("dsp whitelist op failed"),
 	DSP_GET_WHITELIST_FAILED:             errors.New("dsp get whitelist failed"),
 	DSP_UPDATE_CONFIG_FAILED:             errors.New("dsp update config failed"),
+	DSP_UPLOAD_FILE_EXIST:                errors.New("dsp upload file exist"),
 	DSP_NODE_REGISTER_FAILED:             errors.New("dsp node register failed"),
 	DSP_NODE_UNREGISTER_FAILED:           errors.New("dsp node unregister failed"),
 	DSP_NODE_UPDATE_FAILED:               errors.New("dsp node update failed"),
