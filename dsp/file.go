@@ -316,9 +316,30 @@ func (this *Endpoint) GetFsConfig() (*FsContractSettingResp, *DspErr) {
 }
 
 func (this *Endpoint) DownloadFile(fileHash, url, link, password string, max uint64, setFileName bool) *DspErr {
-	if this.Dsp.DNS == nil {
-		return &DspErr{Code: NO_DNS, Error: ErrMaps[NO_DNS]}
+	// if balance of current channel is not enouth, reject
+	if this.Dsp.DNS == nil || this.Dsp.DNS.DNSNode == nil || this.Dsp.DNS.DNSNode.WalletAddr == "" {
+		return &DspErr{Code: DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST, Error: ErrMaps[DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST]}
 	}
+
+	fileInfo, err := this.GetDownloadFileInfo(url)
+	if err != nil {
+		return err
+	}
+
+	canDownload := false
+	//[NOTE] when this.QueryChannel works, replace this.GetAllChannels logic
+	all := this.Dsp.Channel.AllChannels()
+	for _, ch := range all.Channels {
+		if ch.Address == this.Dsp.DNS.DNSNode.WalletAddr && ch.Balance >= fileInfo.Fee {
+			canDownload = true
+			break
+		}
+	}
+
+	if !canDownload {
+		return &DspErr{Code: DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH, Error: ErrMaps[DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH]}
+	}
+
 	if len(fileHash) > 0 {
 		go func() {
 			// TODO: get file name

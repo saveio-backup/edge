@@ -262,6 +262,7 @@ func (this *Endpoint) GetBalance(address string) ([]*BalanceResp, *DspErr) {
 }
 
 type BalanceHistoryResp struct {
+	DateAt          int64
 	TxsCount        uint32
 	TxsSendCount    uint32
 	TxsReceiveCount uint32
@@ -271,7 +272,7 @@ type BalanceHistoryResp struct {
 }
 
 //get balance history of address
-func (this *Endpoint) GetBalanceHistory(address, limitStr string) (map[string]*BalanceHistoryResp, *DspErr) {
+func (this *Endpoint) GetBalanceHistory(address, limitStr string) ([]*BalanceHistoryResp, *DspErr) {
 	addr, err := common.AddressFromBase58(address)
 	if err != nil {
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
@@ -288,12 +289,18 @@ func (this *Endpoint) GetBalanceHistory(address, limitStr string) (map[string]*B
 
 	var balanceHistoryDates []string
 	balanceHistoryMap := make(map[string]*BalanceHistoryResp)
+	var balanceHistoryArr []*BalanceHistoryResp
 
 	index := 0
+	t := time.Now()
+	zeroDate := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
 	for index > int(-limit) {
-		dateStr := time.Now().AddDate(0, 0, index).Format("2006-01-02")
+		// dateStr := time.Now().AddDate(0, 0, index).Format("2006-01-02")
+		dateT := zeroDate.AddDate(0, 0, index)
+		dateStr := dateT.Format("2006-01-02")
 		balanceHistoryDates = append(balanceHistoryDates, dateStr)
 		balanceHistoryMap[dateStr] = &BalanceHistoryResp{
+			DateAt:          dateT.Unix(),
 			TxsCount:        0,
 			TxsSendCount:    0,
 			TxsReceiveCount: 0,
@@ -318,11 +325,11 @@ func (this *Endpoint) GetBalanceHistory(address, limitStr string) (map[string]*B
 			flagForRequest = false
 		}
 
-		tEndStr := time.Now().AddDate(0, 0, int(-limit)).Format("2006-01-02")
+		tEndStr := zeroDate.AddDate(0, 0, int(-limit)).Format("2006-01-02")
 		for _, tx := range txs {
 			tTxStr := time.Unix(int64(tx.Timestamp), 0).Format("2006-01-02")
 			// fmt.Printf("\ntTxStr: %s, tAmountFormat: %s, tFeeFormat: %s, tType: %u, tHeight: %u \n", tTxStr, tx.AmountFormat, tx.FeeFormat, tx.Type, tx.BlockHeight)
-			if tTxStr < tEndStr {
+			if tTxStr <= tEndStr {
 				// fmt.Printf("tTxStr: %s ,tEndStr: %s\n", tTxStr, tEndStr)
 				flagForRequest = false
 				break
@@ -371,11 +378,18 @@ func (this *Endpoint) GetBalanceHistory(address, limitStr string) (map[string]*B
 			// 	fmt.Println(mapKey, mapVal)
 			// }
 		}
-		// use for debug paging, if there are difference with on paging
+		// use for debug paging, if there are difference with no paging
 		// flagForRequest = false
 	}
 
-	return balanceHistoryMap, nil
+	for limit > 0 {
+		dateT := zeroDate.AddDate(0, 0, int(-limit+1))
+		dateStr := dateT.Format("2006-01-02")
+		balanceHistoryArr = append(balanceHistoryArr, balanceHistoryMap[dateStr])
+		limit--
+	}
+
+	return balanceHistoryArr, nil
 }
 
 //get merkle proof by transaction hash
