@@ -349,9 +349,9 @@ func (this *Endpoint) GetBalanceHistory(address, limitStr string) ([]*BalanceHis
 			}
 			// fmt.Printf("txBlockHeiStr: %s, heightForRequest: %s, skipForRequest: %s\n", txBlockHeightStr, heightForRequest, skipForRequest)
 
-			for _, dateItemStr := range balanceHistoryDates {
+			for itemI, dateItemStr := range balanceHistoryDates {
 				// fmt.Printf("\ndateItemStr: %s ;", dateItemStr)
-				if dateItemStr < tTxStr {
+				if dateItemStr <= tTxStr {
 					// fmt.Printf("dateItemStr < tTxStr isTrue;")
 					if tx.Type == TxTypeSend || tx.From == address {
 						balanceHistoryMap[dateItemStr].Balance += tx.Amount + utils.ParseUsdt(tx.FeeFormat)
@@ -364,13 +364,16 @@ func (this *Endpoint) GetBalanceHistory(address, limitStr string) ([]*BalanceHis
 					}
 				}
 				if dateItemStr == tTxStr {
-					// fmt.Printf("dateItemStr == tTxStr isTrue.")
-					if tx.Type == TxTypeSend {
-						balanceHistoryMap[dateItemStr].TxsSendCount++
-					} else if tx.Type == TxTypeReceive {
-						balanceHistoryMap[dateItemStr].TxsReceiveCount++
+					if itemI > 0 {
+						dateItemStrYsdt := balanceHistoryDates[itemI-1]
+						// fmt.Printf("dateItemStr == tTxStr isTrue.")
+						if tx.Type == TxTypeSend {
+							balanceHistoryMap[dateItemStrYsdt].TxsSendCount++
+						} else if tx.Type == TxTypeReceive {
+							balanceHistoryMap[dateItemStrYsdt].TxsReceiveCount++
+						}
+						balanceHistoryMap[dateItemStrYsdt].TxsCount++
 					}
-					balanceHistoryMap[dateItemStr].TxsCount++
 				}
 			}
 			// fmt.Println("")
