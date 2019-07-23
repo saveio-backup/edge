@@ -4,7 +4,7 @@ import (
 	"strconv"
 )
 
-func UploadFile(path, desc string, WhiteList []string, encryptPassword, url string, share bool, duration, interval, times string, privilege uint64, copyNum string) ([]byte, error) {
+func UploadFile(path, desc string, WhiteList []string, encryptPassword, url string, share bool, duration, interval, times string, privilege uint64, copyNum string, storeType int64) ([]byte, error) {
 	var err error
 	var durationVal, intervalVal, timesVal, copyNumVal interface{}
 	if len(duration) > 0 {
@@ -31,7 +31,7 @@ func UploadFile(path, desc string, WhiteList []string, encryptPassword, url stri
 			return nil, err
 		}
 	}
-	ret, dErr := sendRpcRequest("uploadfile", []interface{}{path, desc, WhiteList, encryptPassword, url, share, durationVal, intervalVal, timesVal, float64(privilege), copyNumVal})
+	ret, dErr := sendRpcRequest("uploadfile", []interface{}{path, desc, WhiteList, encryptPassword, url, share, durationVal, intervalVal, timesVal, float64(privilege), copyNumVal, storeType})
 	if dErr != nil {
 		return nil, dErr.Error
 	}

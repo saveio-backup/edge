@@ -34,6 +34,7 @@ var FileCommand = cli.Command{
 				flags.DspUploadEncryptPasswordFlag,
 				flags.DspFileUrlFlag,
 				flags.DspUploadShareFlag,
+				flags.DspUploadStoreTypeFlag,
 				flags.TestFlag,
 				flags.DspSizeFlag,
 			},
@@ -175,6 +176,7 @@ func fileUpload(ctx *cli.Context) error {
 	encryptPwd := ctx.String(flags.GetFlagName(flags.DspUploadEncryptPasswordFlag))
 	uploadUrl := ctx.String(flags.GetFlagName(flags.DspFileUrlFlag))
 	share := ctx.Bool(flags.GetFlagName(flags.DspUploadShareFlag))
+	storeType := ctx.Int64(flags.GetFlagName(flags.DspUploadStoreTypeFlag))
 	test := ctx.Bool(flags.GetFlagName(flags.TestFlag))
 	if test {
 		dataSize := ctx.Uint64(flags.GetFlagName(flags.DspSizeFlag))
@@ -193,7 +195,7 @@ func fileUpload(ctx *cli.Context) error {
 		ioutil.WriteFile(fileName, data, 0666)
 		PrintInfoMsg("filemd5 is %s", hex.EncodeToString(md5Ret[:]))
 	}
-	_, err := utils.UploadFile(fileName, fileDesc, nil, encryptPwd, uploadUrl, share, duration, rate, challengeTimes, uploadPrivilege, copyNum)
+	_, err := utils.UploadFile(fileName, fileDesc, nil, encryptPwd, uploadUrl, share, duration, rate, challengeTimes, uploadPrivilege, copyNum, storeType)
 	if err != nil {
 		PrintErrorMsg("upload file err %s", err)
 		return err

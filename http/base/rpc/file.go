@@ -8,10 +8,10 @@ import (
 // file apis
 
 func UploadFile(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 11 {
+	if len(cmd) < 12 {
 		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
-	params := convertSliceToMap(cmd, []string{"Path", "Desc", "WhiteList", "EncryptPassword", "Url", "Share", "Duration", "Interval", "Times", "Privilege", "CopyNum"})
+	params := convertSliceToMap(cmd, []string{"Path", "Desc", "WhiteList", "EncryptPassword", "Url", "Share", "Duration", "Interval", "Times", "Privilege", "CopyNum", "StoreType"})
 	v := rest.UploadFile(params)
 	ret, err := parseRestResult(v)
 	if err != nil {

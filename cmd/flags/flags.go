@@ -249,6 +249,10 @@ var (
 		Usage: "File transfer type",
 		Value: "0",
 	}
+	DspUploadStoreTypeFlag = cli.Int64Flag{
+		Name:  "storeType",
+		Usage: "store type",
+	}
 
 	////////////////Dsp File(delete) Setting///////////////////
 	DspDeleteLocalFlag = cli.BoolFlag{
