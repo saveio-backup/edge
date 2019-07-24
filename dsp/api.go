@@ -301,7 +301,7 @@ func (this *Endpoint) SetupDNSNodeBackground() {
 }
 
 func (this *Endpoint) CheckLogFileSize() {
-	ti := time.NewTicker(time.Second)
+	ti := time.NewTicker(time.Minute)
 	for {
 		select {
 		case <-ti.C:

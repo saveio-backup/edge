@@ -97,6 +97,7 @@ const (
 	DSP_CHANNEL_EXIST                    = 56011
 	DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST   = 56012
 	DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH   = 56013
+	DSP_CHANNEL_WITHDRAW_WRONG_AMOUNT    = 56014
 
 	DB_FIND_SHARE_RECORDS_FAILED     = 59000
 	DB_SUM_SHARE_PROFIT_FAILED       = 59001
@@ -192,6 +193,7 @@ var ErrMaps = map[int64]error{
 	DSP_CHANNEL_EXIST:                    errors.New("channel has exists or not settled"),
 	DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST:   errors.New("dsp channel of current dns does not exist"),
 	DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH:   errors.New("dsp channel balance of current dns does not enough"),
+	DSP_CHANNEL_WITHDRAW_WRONG_AMOUNT:    errors.New("dsp channel withdraw wrong amount"),
 
 	DB_FIND_SHARE_RECORDS_FAILED:     errors.New("db find share records failed"),
 	DB_SUM_SHARE_PROFIT_FAILED:       errors.New("db sum share profit failed"),

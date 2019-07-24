@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -512,10 +511,12 @@ func (this *restServer) initGetHandler() {
 			var req = make(map[string]interface{})
 			var resp map[string]interface{}
 
-			fmt.Printf("get path for %v\n", r.URL.Path)
 			url := this.getPath(r.URL.Path)
 			if h, ok := this.getMap[url]; ok {
 				req = this.getParams(r, url, req)
+				if url != GET_BALANCE && url != GET_BALANCE_HISTORY && url != DSP_GET_FILE_TRANSFERLIST {
+					log.Debugf("rest handle get url: %s, req: %v", url, req)
+				}
 				resp = h.handler(req)
 				resp["Action"] = h.name
 			} else {
@@ -542,6 +543,7 @@ func (this *restServer) initPostHandler() {
 			if h, ok := this.postMap[url]; ok {
 				if err := json.Unmarshal(body, &req); err == nil {
 					req = this.getParams(r, url, req)
+					log.Debugf("rest handle post url: %s, req: %v", url, req)
 					resp = h.handler(req)
 					resp["Action"] = h.name
 				} else {

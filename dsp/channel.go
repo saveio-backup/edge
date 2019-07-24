@@ -247,6 +247,9 @@ func (this *Endpoint) ChannelWithdraw(partnerAddr string, realAmount uint64) *Ds
 	if totalbal-realAmount != totalWithdraw {
 		return &DspErr{Code: DSP_CHANNEL_WITHDRAW_OVERFLOW, Error: err}
 	}
+	if totalbal == 0 {
+		return &DspErr{Code: DSP_CHANNEL_WITHDRAW_WRONG_AMOUNT, Error: ErrMaps[DSP_CHANNEL_WITHDRAW_WRONG_AMOUNT]}
+	}
 	success, err := this.Dsp.Channel.Withdraw(partnerAddr, totalbal)
 	if err != nil {
 		return &DspErr{Code: DSP_CHANNEL_WITHDRAW_FAILED, Error: err}

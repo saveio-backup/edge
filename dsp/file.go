@@ -127,6 +127,8 @@ type fileResp struct {
 	UpdatedAt     uint64
 	Profit        uint64
 	Privilege     uint64
+	CurrentHeight uint64
+	ExpiredHeight uint64
 	StoreType     dspCom.FileStoreType
 }
 
@@ -152,10 +154,12 @@ type WhiteListRule struct {
 }
 
 type userspace struct {
-	Used      uint64
-	Remain    uint64
-	ExpiredAt uint64
-	Balance   uint64
+	Used          uint64
+	Remain        uint64
+	ExpiredAt     uint64
+	Balance       uint64
+	CurrentHeight uint64
+	ExpiredHeight uint64
 }
 
 type UserspaceRecordResp struct {
@@ -766,10 +770,12 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uin
 			DownloadCount: downloadedCount,
 			ExpiredAt:     expiredAt,
 			// TODO fix by db
-			UpdatedAt: updatedAt,
-			Profit:    profit,
-			Privilege: fi.Privilege,
-			StoreType: dspCom.FileStoreType(fi.StorageType),
+			UpdatedAt:     updatedAt,
+			Profit:        profit,
+			Privilege:     fi.Privilege,
+			CurrentHeight: uint64(now),
+			ExpiredHeight: expired,
+			StoreType:     dspCom.FileStoreType(fi.StorageType),
 		}
 		files = append(files, fr)
 		if limit > 0 && uint64(len(files)) >= limit {
@@ -780,14 +786,16 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uin
 }
 
 type fileInfoResp struct {
-	FileHash   string
-	CreatedAt  uint64
-	CopyNum    uint64
-	Interval   uint64
-	ProveTimes uint64
-	Privilege  uint64
-	Whitelist  []string
-	ExpiredAt  uint64
+	FileHash      string
+	CreatedAt     uint64
+	CopyNum       uint64
+	Interval      uint64
+	ProveTimes    uint64
+	Privilege     uint64
+	Whitelist     []string
+	ExpiredAt     uint64
+	CurrentHeight uint64
+	ExpiredHeight uint64
 }
 
 func (this *Endpoint) GetFileInfo(fileHashStr string) (*fileInfoResp, *DspErr) {
@@ -806,13 +814,15 @@ func (this *Endpoint) GetFileInfo(fileHashStr string) (*fileInfoResp, *DspErr) {
 	expired := info.BlockHeight + (info.ChallengeRate * info.ChallengeTimes)
 	expiredAt := uint64(time.Now().Unix()) + (expired - uint64(now))
 	result := &fileInfoResp{
-		FileHash:   string(info.FileHash),
-		CopyNum:    info.CopyNum,
-		Interval:   info.ChallengeRate,
-		ProveTimes: info.ChallengeTimes,
-		Privilege:  info.Privilege,
-		Whitelist:  []string{},
-		ExpiredAt:  expiredAt,
+		FileHash:      string(info.FileHash),
+		CopyNum:       info.CopyNum,
+		Interval:      info.ChallengeRate,
+		ProveTimes:    info.ChallengeTimes,
+		Privilege:     info.Privilege,
+		Whitelist:     []string{},
+		ExpiredAt:     expiredAt,
+		CurrentHeight: uint64(now),
+		ExpiredHeight: expired,
 	}
 	block, _ := this.Dsp.Chain.GetBlockByHeight(uint32(info.BlockHeight))
 	if block == nil {
@@ -965,8 +975,8 @@ func (this *Endpoint) SetUserSpace(walletAddr string, size, sizeOpType, blockCou
 		return "", &DspErr{Code: CHAIN_WAIT_TX_COMFIRMED_TIMEOUT, Error: err}
 	}
 	event, err := this.Dsp.Chain.GetSmartContractEvent(tx)
-	log.Debugf("get event err %s, event :%v", err, event)
 	if err != nil || event == nil {
+		log.Debugf("get event err %s, event :%v", err, event)
 		_, err := this.sqliteDB.InsertUserspaceRecord(tx, walletAddr, size, storage.UserspaceOperation(sizeOpType), blockCount, storage.UserspaceOperation(countOpType), 0, storage.TransferTypeNone)
 		if err != nil {
 			log.Errorf("insert userspace record err %s", err)
@@ -1044,7 +1054,6 @@ func (this *Endpoint) GetUserSpaceCost(walletAddr string, size, sizeOpType, bloc
 func (this *Endpoint) GetUserSpace(addr string) (*userspace, *DspErr) {
 	space, err := this.Dsp.GetUserSpace(addr)
 	if err != nil || space == nil {
-		log.Errorf("get user space err %s, space %v", err, space)
 		return &userspace{
 			Used:      0,
 			Remain:    0,
@@ -1068,29 +1077,33 @@ func (this *Endpoint) GetUserSpace(addr string) (*userspace, *DspErr) {
 		expiredAt = uint64(blk.Header.Timestamp) + (space.ExpireHeight - uint64(updateHeight))
 		log.Debugf("expiredAt %d height %d, expiredheight %d updatedheight %d", expiredAt, blk.Header.Timestamp, space.ExpireHeight, updateHeight)
 	} else {
-		space, err := this.GetUserspaceRecords(addr, 0, 1)
-		if err != nil || len(space) == 0 {
+		spaceRecord, err := this.GetUserspaceRecords(addr, 0, 1)
+		if err != nil || len(spaceRecord) == 0 {
 			expiredAt = now
 			log.Debugf("no space expiredAt %d ", expiredAt)
 		} else {
-			expiredAt = space[0].ExpiredAt
+			expiredAt = spaceRecord[0].ExpiredAt
 			log.Debugf(" space[0] expiredAt %d ", expiredAt)
 		}
 	}
 	log.Debugf("expiredAt %d, now %d  space.ExpireHeight:%d", expiredAt, now, space.ExpireHeight)
 	if expiredAt <= now {
 		return &userspace{
-			Used:      0,
-			Remain:    0,
-			ExpiredAt: expiredAt,
-			Balance:   space.Balance,
+			Used:          0,
+			Remain:        0,
+			ExpiredAt:     expiredAt,
+			Balance:       space.Balance,
+			CurrentHeight: uint64(currentHeight),
+			ExpiredHeight: space.ExpireHeight,
 		}, nil
 	}
 	return &userspace{
-		Used:      space.Used,
-		Remain:    space.Remain,
-		ExpiredAt: expiredAt,
-		Balance:   space.Balance,
+		Used:          space.Used,
+		Remain:        space.Remain,
+		ExpiredAt:     expiredAt,
+		Balance:       space.Balance,
+		CurrentHeight: uint64(currentHeight),
+		ExpiredHeight: space.ExpireHeight,
 	}, nil
 }
 
