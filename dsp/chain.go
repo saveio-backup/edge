@@ -312,9 +312,10 @@ func (this *Endpoint) GetBalanceHistory(address, limitStr string) ([]*BalanceHis
 	}
 
 	heightForRequest := ""
-	limitForRequest := "30" // can use for paging, ex. "30", "" means getall
+	limitForRequest := "" // can use for paging, ex. "30", "" means getall
 	skipForRequest := ""
 	flagForRequest := true
+	filterFeeWithSameTxId := ""
 	for flagForRequest {
 		txs, derr := this.GetTxByHeightAndLimit(address, "save", TxTypeAll, string(heightForRequest), limitForRequest, string(skipForRequest))
 		// fmt.Printf("txs: %+v\n", txs)
@@ -328,8 +329,13 @@ func (this *Endpoint) GetBalanceHistory(address, limitStr string) ([]*BalanceHis
 		tEndStr := zeroDate.AddDate(0, 0, int(-limit)).Format("2006-01-02")
 		for _, tx := range txs {
 			tTxStr := time.Unix(int64(tx.Timestamp), 0).Format("2006-01-02")
-			// fmt.Printf("\ntTxStr: %s, tAmountFormat: %s, tFeeFormat: %s, tType: %u, tHeight: %u \n", tTxStr, tx.AmountFormat, tx.FeeFormat, tx.Type, tx.BlockHeight)
-			if tTxStr <= tEndStr {
+			txToHexStr, err := common.AddressFromBase58(tx.To)
+			if err != nil {
+				return nil, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
+			}
+
+			// fmt.Printf("\ntTxId: %s, tTxStr: %s, tAmountFormat: %s, tFeeFormat: %s, tType: %u, tHeight: %u, tFrom: %s, tTo: %s, tToHex: %s, %d \n", tx.Txid, tTxStr, tx.AmountFormat, tx.FeeFormat, tx.Type, tx.BlockHeight, tx.From, tx.To, txToHexStr.ToHexString(), tx.Amount)
+			if tTxStr < tEndStr {
 				// fmt.Printf("tTxStr: %s ,tEndStr: %s\n", tTxStr, tEndStr)
 				flagForRequest = false
 				break
@@ -349,20 +355,35 @@ func (this *Endpoint) GetBalanceHistory(address, limitStr string) ([]*BalanceHis
 			}
 			// fmt.Printf("txBlockHeiStr: %s, heightForRequest: %s, skipForRequest: %s\n", txBlockHeightStr, heightForRequest, skipForRequest)
 
+			// filter tx with same txid , only process once
+			if filterFeeWithSameTxId == tx.Txid {
+				continue
+			}
+
 			for itemI, dateItemStr := range balanceHistoryDates {
+				// Balance calculate time until dateItemStr
 				// fmt.Printf("\ndateItemStr: %s ;", dateItemStr)
 				if dateItemStr <= tTxStr {
 					// fmt.Printf("dateItemStr < tTxStr isTrue;")
 					if tx.Type == TxTypeSend || tx.From == address {
-						balanceHistoryMap[dateItemStr].Balance += tx.Amount + utils.ParseUsdt(tx.FeeFormat)
+						if tx.Amount == 10000000 && strings.Contains(txToHexStr.ToHexString(), "0000000000000000000000000000000000000") {
+							balanceHistoryMap[dateItemStr].Balance += tx.Amount
+						} else {
+							balanceHistoryMap[dateItemStr].Balance += tx.Amount + utils.ParseUsdt(tx.FeeFormat)
+						}
 						balanceHistoryMap[dateItemStr].BalanceFormat = utils.FormatUsdt(balanceHistoryMap[dateItemStr].Balance)
 					} else if tx.Type == TxTypeReceive || tx.To == address {
-						balanceHistoryMap[dateItemStr].Balance -= tx.Amount
+						if balanceHistoryMap[dateItemStr].Balance > tx.Amount {
+							balanceHistoryMap[dateItemStr].Balance -= tx.Amount
+						} else {
+							balanceHistoryMap[dateItemStr].Balance = 0
+						}
 						balanceHistoryMap[dateItemStr].BalanceFormat = utils.FormatUsdt(balanceHistoryMap[dateItemStr].Balance)
 					} else {
 						// fmt.Println("unknown tx type")
 					}
 				}
+				// Txs count calculate, without the last day
 				if dateItemStr == tTxStr {
 					if itemI > 0 {
 						dateItemStrYsdt := balanceHistoryDates[itemI-1]
@@ -375,6 +396,19 @@ func (this *Endpoint) GetBalanceHistory(address, limitStr string) ([]*BalanceHis
 						balanceHistoryMap[dateItemStrYsdt].TxsCount++
 					}
 				}
+
+				filterFeeWithSameTxId = tx.Txid
+			}
+
+			// process the last day, calcalate txs count
+			if tTxStr == tEndStr {
+				// fmt.Printf("tTxStr == tEndStr isTrue.")
+				if tx.Type == TxTypeSend {
+					balanceHistoryMap[balanceHistoryDates[limit-1]].TxsSendCount++
+				} else if tx.Type == TxTypeReceive {
+					balanceHistoryMap[balanceHistoryDates[limit-1]].TxsReceiveCount++
+				}
+				balanceHistoryMap[balanceHistoryDates[limit-1]].TxsCount++
 			}
 			// fmt.Println("")
 			// for mapKey, mapVal := range balanceHistoryMap {
