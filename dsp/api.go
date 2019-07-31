@@ -110,6 +110,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		DnsNodeMaxNum:        config.Parameters.BaseConfig.DnsNodeMaxNum,
 		SeedInterval:         config.Parameters.BaseConfig.SeedInterval,
 		DnsChannelDeposit:    config.Parameters.BaseConfig.DnsChannelDeposit,
+		Trackers:             config.Parameters.BaseConfig.Trackers,
 	}
 	log.Debugf("dspConfig.dbpath %v, repo: %s, channelDB: %s, wallet: %s, enable backup: %t", dspConfig.DBPath, dspConfig.FsRepoRoot, dspConfig.ChannelDBPath, config.WalletDatFilePath(), config.Parameters.FsConfig.EnableBackup)
 	//Skip init fs if Dsp doesn't start listen
@@ -222,7 +223,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 func (this *Endpoint) RegisterChannelEndpoint(walletAddr chainCom.Address, publicAddr string) error {
 	for i := 0; i < common.MAX_REG_CHANNEL_TIMES; i++ {
 		err := this.Dsp.RegNodeEndpoint(walletAddr, publicAddr)
-		log.Debugf("register endpoint for channel %s", publicAddr)
+		log.Debugf("register endpoint for channel %s, err %s", publicAddr, err)
 		if err == nil {
 			return nil
 		}

@@ -52,11 +52,12 @@ type BaseConfig struct {
 	DspProtocol        string `json:"DspProtocol"`
 	DspPortOffset      int    `json:"DspPortOffset"`
 
-	AutoSetupDNSEnable bool   `json:"AutoSetupDNSEnable"`
-	TrackerPortOffset  int    `json:"TrackerPortOffset"`
-	DnsNodeMaxNum      int    `json:"DnsNodeMaxNum"`
-	SeedInterval       int    `json:"SeedInterval"`
-	DnsChannelDeposit  uint64 `json:"DnsChannelDeposit"`
+	AutoSetupDNSEnable bool     `json:"AutoSetupDNSEnable"`
+	TrackerPortOffset  int      `json:"TrackerPortOffset"`
+	DnsNodeMaxNum      int      `json:"DnsNodeMaxNum"`
+	SeedInterval       int      `json:"SeedInterval"`
+	DnsChannelDeposit  uint64   `json:"DnsChannelDeposit"`
+	Trackers           []string `json:"Trackers"`
 
 	WalletPwd string `json:"WalletPwd"`
 	WalletDir string `json:"WalletDir"`
