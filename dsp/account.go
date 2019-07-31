@@ -49,6 +49,14 @@ func (this *Endpoint) GetAccount(path, password string) (*account.Account, *DspE
 }
 
 func (this *Endpoint) GetCurrentAccount() (*AccountResp, *DspErr) {
+	if this.Account != nil {
+		return &AccountResp{
+			PublicKey: hex.EncodeToString(keypair.SerializePublicKey(this.Account.PublicKey)),
+			Address:   this.Account.Address.ToBase58(),
+			SigScheme: this.Account.SigScheme,
+			Label:     this.AccountLabel,
+		}, nil
+	}
 	wal, err := wallet.OpenWallet(config.WalletDatFilePath())
 	if err != nil {
 		return nil, &DspErr{Code: WALLET_FILE_NOT_EXIST, Error: err}
@@ -262,6 +270,7 @@ func (this *Endpoint) Logout() *DspErr {
 	err := this.Stop()
 	this.Account = nil
 	this.Dsp.Account = nil
+	this.AccountLabel = ""
 	this.Dsp.Chain.Native.SetDefaultAccount(nil)
 	this.Dsp.Chain.Native.SetDefaultAccount(nil)
 	if err != nil {

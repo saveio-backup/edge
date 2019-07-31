@@ -63,10 +63,11 @@ type BaseConfig struct {
 }
 
 type FsConfig struct {
-	FsRepoRoot string `json:"FsRepoRoot"`
-	FsFileRoot string `json:"FsFileRoot"`
-	FsType     int    `json:"FsType"`
-	FsGCPeriod string `json:"FsGCPeriod"`
+	FsRepoRoot   string `json:"FsRepoRoot"`
+	FsFileRoot   string `json:"FsFileRoot"`
+	FsType       int    `json:"FsType"`
+	FsGCPeriod   string `json:"FsGCPeriod"`
+	EnableBackup bool   `json:"EnableBackup"`
 }
 
 type BootstrapConfig struct {
@@ -115,9 +116,10 @@ func TestnetConfig() *DspConfig {
 			WalletDir:            "./wallet.dat",
 		},
 		FsConfig: FsConfig{
-			FsRepoRoot: "./FS",
-			FsFileRoot: "./Downloads",
-			FsType:     0,
+			FsRepoRoot:   "./FS",
+			FsFileRoot:   "./Downloads",
+			FsType:       0,
+			EnableBackup: true,
 		},
 	}
 }

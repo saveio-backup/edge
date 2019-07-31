@@ -88,9 +88,15 @@ const (
 	DSP_GET_FILE_TRANSFERLIST    = "/api/v1/dsp/file/transferlist/:type/:offset/:limit"
 	DSP_GET_FILE_TRANSFER_DETAIL = "/api/v1/dsp/file/transferdetail/:url"
 	DSP_FILE_UPLOAD              = "/api/v1/dsp/file/upload"
+	DSP_FILE_UPLOAD_PAUSE        = "/api/v1/dsp/file/upload/pause"
+	DSP_FILE_UPLOAD_RESUME       = "/api/v1/dsp/file/upload/resume"
+	DSP_FILE_UPLOAD_RETRY        = "/api/v1/dsp/file/upload/retry"
 	DSP_FILE_UPLOAD_FEE          = "/api/v1/dsp/file/uploadfee/:file"
 	DSP_FILE_DELETE              = "/api/v1/dsp/file/delete"
 	DSP_FILE_DOWNLOAD            = "/api/v1/dsp/file/download"
+	DSP_FILE_DOWNLOAD_PAUSE      = "/api/v1/dsp/file/download/pause"
+	DSP_FILE_DOWNLOAD_RESUME     = "/api/v1/dsp/file/download/resume"
+	DSP_FILE_DOWNLOAD_RETRY      = "/api/v1/dsp/file/download/retry"
 	DSP_FILE_DOWNLOAD_INFO       = "/api/v1/dsp/file/downloadinfo/:url"
 	DSP_FILE_ENCRYPT             = "/api/v1/dsp/file/encrypt"
 	DSP_FILE_DECRYPT             = "/api/v1/dsp/file/decrypt"
@@ -110,6 +116,7 @@ const (
 	QUERY_CHANNEL_DEPOSIT     = "/api/v1/channel/query/deposit/:partneraddr"
 	QUERY_CHANNEL             = "/api/v1/channel/query/detail/:partneraddr"
 	QUERY_CHANNEL_BY_ID       = "/api/v1/channel/query/:id"
+	CHANNEL_SYNCING           = "/api/v1/channel/syncing"
 
 	ALL_DNS              = "/api/v1/dns"
 	DNS_REGISTER         = "/api/v1/dns/register"
@@ -124,6 +131,8 @@ const (
 	DNS_QUERY_HOST_INFOS = "/api/v1/dns/hostinfos"
 	DNS_QUERY_REG_INFO   = "/api/v1/dns/reginfo/:pubkey"
 	DNS_QUERY_HOST_INFO  = "/api/v1/dns/hostinfo/:addr"
+
+	NETWORK_STATE = "/api/v1/network/state"
 )
 
 //init restful server
@@ -145,6 +154,7 @@ func (this *restServer) Start() error {
 		log.Fatal("Not configure HttpRestPort port ")
 		return nil
 	}
+	log.Debugf("start rest at %v", retPort)
 
 	tlsFlag := false
 	if tlsFlag || retPort%1000 == TLS_PORT {
@@ -227,6 +237,7 @@ func (this *restServer) registryMethod() {
 		QUERY_CHANNEL_DEPOSIT: {name: "querydeposit", handler: QueryChannelDeposit},
 		QUERY_CHANNEL:         {name: "querychannel", handler: QueryChannel},
 		QUERY_CHANNEL_BY_ID:   {name: "querychannelbyid", handler: QueryChannelByID},
+		CHANNEL_SYNCING:       {name: "channelsyncing", handler: IsChannelSyncing},
 
 		ALL_DNS:              {name: "getalldns", handler: GetAllDNS},
 		DNS_REGISTER_DNS:     {name: "registerdns", handler: RegisterDns},
@@ -238,6 +249,7 @@ func (this *restServer) registryMethod() {
 		DNS_QUERY_HOST_INFOS: {name: "queryhostinfos", handler: QueryHostInfos},
 		DNS_QUERY_REG_INFO:   {name: "queryreginfo", handler: QueryRegInfo},
 		DNS_QUERY_HOST_INFO:  {name: "queryhostinfo", handler: QueryHostInfo},
+		NETWORK_STATE:        {name: "networkstate", handler: GetNetworkState},
 	}
 	this.getMap = getMethodMap
 
@@ -256,8 +268,14 @@ func (this *restServer) registryMethod() {
 		DSP_SET_USER_SPACE:             {name: "setuserspace", handler: SetUserSpace},
 		DSP_GET_UPDATE_USER_SPACE_COST: {name: "setuserspace", handler: GetUserSpaceCost},
 		DSP_FILE_UPLOAD:                {name: "uploadfile", handler: UploadFile},
+		DSP_FILE_UPLOAD_RESUME:         {name: "resumeuploadfile", handler: ResumeUploadFile},
+		DSP_FILE_UPLOAD_PAUSE:          {name: "pauseuploadfile", handler: PauseUploadFile},
+		DSP_FILE_UPLOAD_RETRY:          {name: "retryuploadfile", handler: RetryUploadFile},
 		DSP_FILE_DELETE:                {name: "deletefile", handler: DeleteFile},
 		DSP_FILE_DOWNLOAD:              {name: "downloadfile", handler: DownloadFile},
+		DSP_FILE_DOWNLOAD_RESUME:       {name: "resumedownloadfile", handler: ResumeDownloadFile},
+		DSP_FILE_DOWNLOAD_PAUSE:        {name: "pausedownloadfile", handler: PauseDownloadFile},
+		DSP_FILE_DOWNLOAD_RETRY:        {name: "retrydownloadfile", handler: RetryDownloadFile},
 		DSP_FILE_ENCRYPT:               {name: "encryptfile", handler: EncryptFile},
 		DSP_FILE_DECRYPT:               {name: "decryptfile", handler: DecryptFile},
 		DSP_UPDATE_FILE_WHITELIST:      {name: "updatewhitelist", handler: WhiteListOperate},
@@ -362,6 +380,8 @@ func (this *restServer) getPath(url string) string {
 		return QUERY_CHANNEL_BY_ID
 	} else if strings.Contains(url, GET_CHANNEL_INIT_PROGRESS) {
 		return GET_CHANNEL_INIT_PROGRESS
+	} else if strings.Contains(url, CHANNEL_SYNCING) {
+		return CHANNEL_SYNCING
 	}
 
 	//path for DNS

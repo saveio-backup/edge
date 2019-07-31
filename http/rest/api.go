@@ -41,9 +41,13 @@ func ResponsePackWithErrMsg(errCode int64, errMsg string) map[string]interface{}
 // get node verison
 func GetNodeVersion(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
-	version, err := dsp.DspService.GetNodeVersion()
-	if err != nil {
-		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
+	var version string
+	if dsp.DspService != nil {
+		var err *dsp.DspErr
+		version, err = dsp.DspService.GetNodeVersion()
+		if err != nil {
+			return ResponsePackWithErrMsg(err.Code, err.Error.Error())
+		}
 	}
 	resp["Result"] = version
 	return resp
@@ -507,6 +511,16 @@ func PreExecSmartContract(cmd map[string]interface{}) map[string]interface{} {
 func GetFsContractSetting(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	ret, derr := dsp.DspService.GetFsConfig()
+	if derr != nil {
+		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
+	}
+	resp["Result"] = ret
+	return resp
+}
+
+func GetNetworkState(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	ret, derr := dsp.DspService.GetNetworkState()
 	if derr != nil {
 		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
 	}

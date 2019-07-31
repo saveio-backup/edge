@@ -8,6 +8,10 @@ import (
 
 func GetCurrentAccount(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
+	log.Debugf("dsp.DspService %v", dsp.DspService)
+	if dsp.DspService == nil {
+		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
+	}
 	acc, err := dsp.DspService.GetCurrentAccount()
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())

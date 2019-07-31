@@ -46,22 +46,29 @@ const (
 	FS_USER_SPACE_PERMISSION_DENIED = 54008
 	FS_UPLOAD_FILEPATH_ERROR        = 54009
 
-	DSP_INIT_FAILED                      = 55000
-	DSP_START_FAILED                     = 55001
-	DSP_STOP_FAILED                      = 55002
-	DSP_UPLOAD_FILE_FAILED               = 55010
-	DSP_USER_SPACE_EXPIRED               = 55011
-	DSP_USER_SPACE_NOT_ENOUGH            = 55012
-	DSP_UPLOAD_URL_EXIST                 = 55013
-	DSP_DELETE_FILE_FAILED               = 55014
-	DSP_CALC_UPLOAD_FEE_FAILED           = 55015
-	DSP_GET_FILE_LINK_FAILED             = 55016
-	DSP_ENCRYPTED_FILE_FAILED            = 55017
-	DSP_DECRYPTED_FILE_FAILED            = 55018
-	DSP_WHITELIST_OP_FAILED              = 55019
-	DSP_GET_WHITELIST_FAILED             = 55020
-	DSP_UPDATE_CONFIG_FAILED             = 55021
-	DSP_UPLOAD_FILE_EXIST                = 55022
+	DSP_INIT_FAILED            = 55000
+	DSP_START_FAILED           = 55001
+	DSP_STOP_FAILED            = 55002
+	DSP_UPLOAD_FILE_FAILED     = 55010
+	DSP_USER_SPACE_EXPIRED     = 55011
+	DSP_USER_SPACE_NOT_ENOUGH  = 55012
+	DSP_UPLOAD_URL_EXIST       = 55013
+	DSP_DELETE_FILE_FAILED     = 55014
+	DSP_CALC_UPLOAD_FEE_FAILED = 55015
+	DSP_GET_FILE_LINK_FAILED   = 55016
+	DSP_ENCRYPTED_FILE_FAILED  = 55017
+	DSP_DECRYPTED_FILE_FAILED  = 55018
+	DSP_WHITELIST_OP_FAILED    = 55019
+	DSP_GET_WHITELIST_FAILED   = 55020
+	DSP_UPDATE_CONFIG_FAILED   = 55021
+	DSP_UPLOAD_FILE_EXIST      = 55022
+	DSP_PAUSE_UPLOAD_FAIELD    = 55023
+	DSP_RESUME_UPLOAD_FAIELD   = 55024
+	DSP_RETRY_UPLOAD_FAIELD    = 55025
+	DSP_PAUSE_DOWNLOAD_FAIELD  = 55026
+	DSP_RESUME_DOWNLOAD_FAIELD = 55027
+	DSP_RETRY_DOWNLOAD_FAIELD  = 55028
+
 	DSP_NODE_REGISTER_FAILED             = 55030
 	DSP_NODE_UNREGISTER_FAILED           = 55031
 	DSP_NODE_UPDATE_FAILED               = 55032
@@ -98,6 +105,9 @@ const (
 	DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST   = 56012
 	DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH   = 56013
 	DSP_CHANNEL_WITHDRAW_WRONG_AMOUNT    = 56014
+	DSP_CHANNEL_SYNCING                  = 56015
+
+	DSP_TASK_NOT_EXIST = 58000
 
 	DB_FIND_SHARE_RECORDS_FAILED     = 59000
 	DB_SUM_SHARE_PROFIT_FAILED       = 59001
@@ -158,6 +168,7 @@ var ErrMaps = map[int64]error{
 	DSP_GET_WHITELIST_FAILED:             errors.New("dsp get whitelist failed"),
 	DSP_UPDATE_CONFIG_FAILED:             errors.New("dsp update config failed"),
 	DSP_UPLOAD_FILE_EXIST:                errors.New("dsp upload file exist"),
+	DSP_PAUSE_UPLOAD_FAIELD:              errors.New("dsp pause upload faield"),
 	DSP_NODE_REGISTER_FAILED:             errors.New("dsp node register failed"),
 	DSP_NODE_UNREGISTER_FAILED:           errors.New("dsp node unregister failed"),
 	DSP_NODE_UPDATE_FAILED:               errors.New("dsp node update failed"),
@@ -194,6 +205,9 @@ var ErrMaps = map[int64]error{
 	DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST:   errors.New("dsp channel of current dns does not exist"),
 	DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH:   errors.New("dsp channel balance of current dns does not enough"),
 	DSP_CHANNEL_WITHDRAW_WRONG_AMOUNT:    errors.New("dsp channel withdraw wrong amount"),
+	DSP_CHANNEL_SYNCING:                  errors.New("dsp channel syncing"),
+
+	DSP_TASK_NOT_EXIST: errors.New("dsp task not exist"),
 
 	DB_FIND_SHARE_RECORDS_FAILED:     errors.New("db find share records failed"),
 	DB_SUM_SHARE_PROFIT_FAILED:       errors.New("db sum share profit failed"),

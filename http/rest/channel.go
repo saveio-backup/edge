@@ -22,6 +22,19 @@ func GetAllChannels(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
+func IsChannelSyncing(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	if dsp.DspService == nil {
+		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
+	}
+	ret, err := dsp.DspService.IsChannelProcessBlocks()
+	if err != nil {
+		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
+	}
+	resp["Result"] = map[string]interface{}{"Syncing": ret}
+	return resp
+}
+
 //Handle for channel
 func OpenChannel(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)

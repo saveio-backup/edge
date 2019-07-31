@@ -61,6 +61,7 @@ func main() {
 func dspInit(ctx *cli.Context) {
 	config.SetDspConfig(ctx)
 	initLog(ctx)
+	log.Debugf("set dsp config, config %v", config.Parameters)
 	initRest()
 	initJsonRpc()
 
@@ -73,12 +74,12 @@ func dspInit(ctx *cli.Context) {
 		// for test
 		// if err := dsp.StartDspNode(endpoint, false, false, false); err != nil {
 		if err := dsp.StartDspNode(endpoint, true, true, true); err != nil {
-			log.Error(err.Error())
-			os.Exit(1)
+			log.Errorf("start dsp node err %s", err.Error())
+			// os.Exit(1)
 		}
 		if err := initLocalRpc(); err != nil {
-			log.Error(err.Error())
-			os.Exit(1)
+			log.Errorf("init local rpc err %s", err.Error())
+			// os.Exit(1)
 		}
 	} else {
 		log.Infof("current wallet is empty, please create one")

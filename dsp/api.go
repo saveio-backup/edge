@@ -33,13 +33,16 @@ import (
 var DspService *Endpoint
 
 type Endpoint struct {
-	Dsp      *dsp.Dsp
-	Account  *account.Account
-	progress sync.Map
-	db       *store.LevelDBStore // TODO: remove this
-	sqliteDB *storage.SQLiteStorage
-	closeCh  chan struct{}
-	p2pActor *p2p_actor.P2PActor
+	Dsp          *dsp.Dsp
+	Account      *account.Account
+	AccountLabel string
+	progress     sync.Map
+	db           *store.LevelDBStore // TODO: remove this
+	sqliteDB     *storage.SQLiteStorage
+	closeCh      chan struct{}
+	p2pActor     *p2p_actor.P2PActor
+	dspNet       *network.Network
+	channelNet   *network.Network
 }
 
 func Init(walletDir, pwd string) (*Endpoint, error) {
@@ -64,6 +67,11 @@ func Init(walletDir, pwd string) (*Endpoint, error) {
 		log.Error("Client get default account Error, msg:", err)
 		return nil, err
 	}
+	accData, err := wallet.GetDefaultAccountData()
+	if err != nil {
+		return nil, err
+	}
+	this.AccountLabel = accData.Label
 	config.SetCurrentUserWalletAddress(this.Account.Address.ToBase58())
 	db, err := store.NewLevelDBStore(config.ClientLevelDBPath())
 	if err != nil {
@@ -90,6 +98,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		FsFileRoot:           config.FsFileRootPath(),
 		FsType:               dspCfg.FSType(config.Parameters.FsConfig.FsType),
 		FsGcPeriod:           config.Parameters.FsConfig.FsGCPeriod,
+		EnableBackup:         config.Parameters.FsConfig.EnableBackup,
 		ChainRpcAddr:         config.Parameters.BaseConfig.ChainRpcAddr,
 		ChannelClientType:    config.Parameters.BaseConfig.ChannelClientType,
 		ChannelListenAddr:    channelListenAddr,
@@ -102,10 +111,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		SeedInterval:         config.Parameters.BaseConfig.SeedInterval,
 		DnsChannelDeposit:    config.Parameters.BaseConfig.DnsChannelDeposit,
 	}
-	log.Debugf("dspConfig.dbpath %v", dspConfig.DBPath)
-	log.Debugf("dspConfig.FsRepoRoot %v", dspConfig.FsRepoRoot)
-	log.Debugf("dspConfig.ChannelDBPath %v", dspConfig.ChannelDBPath)
-	log.Debugf("WalletDatFilePath %v", config.WalletDatFilePath())
+	log.Debugf("dspConfig.dbpath %v, repo: %s, channelDB: %s, wallet: %s, enable backup: %t", dspConfig.DBPath, dspConfig.FsRepoRoot, dspConfig.ChannelDBPath, config.WalletDatFilePath(), config.Parameters.FsConfig.EnableBackup)
 	//Skip init fs if Dsp doesn't start listen
 	if !startListen {
 		dspConfig.FsRepoRoot = ""
@@ -178,14 +184,8 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		endpoint.UpdateNodeIfNeeded()
 
 		log.Debugf("update node finished")
-		err = dspSrv.RegNodeEndpoint(dspSrv.CurrentAccount().Address, channelNetwork.PublicAddr())
-		log.Debugf("register endpoint for channel %s", channelNetwork.PublicAddr())
-		if err != nil {
-			log.Errorf("register endpoint failed %s", err)
-			return err
-		}
-		// testGetIp, err := dspSrv.GetExternalIP(dspSrv.CurrentAccount().Address.ToBase58())
-		// log.Debugf("test get ip %s err %s", testGetIp, err)
+		go endpoint.RegisterChannelEndpoint(dspSrv.CurrentAccount().Address, channelNetwork.PublicAddr())
+
 		// setup filter block range before start
 		endpoint.SetFilterBlockRange()
 		err = dspSrv.Start()
@@ -198,6 +198,8 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 			endpoint.Dsp.PushLocalFilesToTrackers()
 			go dspSrv.StartShareServices()
 		}
+		endpoint.dspNet = dspNetwork
+		endpoint.channelNet = channelNetwork
 	}
 	// start channel only
 	if !startListen && startChannel {
@@ -215,6 +217,22 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 	go endpoint.CheckLogFileSize()
 	log.Info("Dsp start success.")
 	return nil
+}
+
+func (this *Endpoint) RegisterChannelEndpoint(walletAddr chainCom.Address, publicAddr string) error {
+	for i := 0; i < common.MAX_REG_CHANNEL_TIMES; i++ {
+		err := this.Dsp.RegNodeEndpoint(walletAddr, publicAddr)
+		log.Debugf("register endpoint for channel %s", publicAddr)
+		if err == nil {
+			return nil
+		}
+		log.Errorf("register endpoint failed %s", err)
+		time.Sleep(time.Duration(common.MAX_REG_CHANNEL_BACKOFF) * time.Second)
+	}
+	log.Errorf("register channel endpoint timeout")
+	// testGetIp, err := dspSrv.GetExternalIP(dspSrv.CurrentAccount().Address.ToBase58())
+	// log.Debugf("test get ip %s err %s", testGetIp, err)
+	return fmt.Errorf("register channel endpoint timeout")
 }
 
 func (this *Endpoint) UpdateNodeIfNeeded() {

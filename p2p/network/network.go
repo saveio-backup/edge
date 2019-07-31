@@ -87,7 +87,7 @@ func NewP2P() *Network {
 	n.ActivePeers = new(sync.Map)
 	n.addressForHealthCheck = new(sync.Map)
 	n.kill = make(chan struct{})
-	n.peerStateChan = make(chan *keepalive.PeerStateEvent, 16)
+	n.peerStateChan = make(chan *keepalive.PeerStateEvent, 100)
 	return n
 
 }

@@ -16,7 +16,7 @@ type ShareRecord struct {
 	UpdatedAt    time.Time
 }
 
-// InsertShareRecord. inser a new miner_record or replace it
+// InsertShareRecord. insert a new miner_record or replace it
 func (this *SQLiteStorage) InsertShareRecord(id, fileHash, toWalletAddr string, profit uint64) (bool, error) {
 	sql := fmt.Sprintf("INSERT OR REPLACE INTO %s (id, fileHash, downloader, profit, createdAt, updatedAt) VALUES(?, ?, ?, ?, ?, ?)", SHARE_RECORDS_TABLE_NAME)
 	return this.Exec(sql, id, fileHash, toWalletAddr, profit, time.Now(), time.Now())

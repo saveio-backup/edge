@@ -544,7 +544,6 @@ func GetStorageNodesInfo(cmd map[string]interface{}) map[string]interface{} {
 
 func GetUploadFileInfo(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
-	log.Debugf("cmd: %v\n", cmd)
 	hash, ok := cmd["FileHash"].(string)
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
@@ -553,6 +552,120 @@ func GetUploadFileInfo(cmd map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
+	resp["Result"] = ret
+	return resp
+}
+
+func PauseUploadFile(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	v, ok := cmd["Ids"].([]interface{})
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	ids := make([]string, 0, len(v))
+	for _, str := range v {
+		id, ok := str.(string)
+		if !ok {
+			continue
+		}
+		ids = append(ids, id)
+	}
+	ret := dsp.DspService.PauseUploadFile(ids)
+	resp["Result"] = ret
+	return resp
+}
+
+func ResumeUploadFile(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	v, ok := cmd["Ids"].([]interface{})
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	ids := make([]string, 0, len(v))
+	for _, str := range v {
+		id, ok := str.(string)
+		if !ok {
+			continue
+		}
+		ids = append(ids, id)
+	}
+	ret := dsp.DspService.ResumeUploadFile(ids)
+	resp["Result"] = ret
+	return resp
+}
+
+func RetryUploadFile(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	v, ok := cmd["Ids"].([]interface{})
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	ids := make([]string, 0, len(v))
+	for _, str := range v {
+		id, ok := str.(string)
+		if !ok {
+			continue
+		}
+		ids = append(ids, id)
+	}
+	ret := dsp.DspService.RetryUploadFile(ids)
+	resp["Result"] = ret
+	return resp
+}
+
+func PauseDownloadFile(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	v, ok := cmd["Ids"].([]interface{})
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	ids := make([]string, 0, len(v))
+	for _, str := range v {
+		id, ok := str.(string)
+		if !ok {
+			continue
+		}
+		ids = append(ids, id)
+	}
+	ret := dsp.DspService.PauseDownloadFile(ids)
+	resp["Result"] = ret
+	return resp
+}
+
+func ResumeDownloadFile(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	v, ok := cmd["Ids"].([]interface{})
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	ids := make([]string, 0, len(v))
+	for _, str := range v {
+		id, ok := str.(string)
+		if !ok {
+			continue
+		}
+		ids = append(ids, id)
+	}
+	ret := dsp.DspService.ResumeDownloadFile(ids)
+	resp["Result"] = ret
+	return resp
+}
+
+func RetryDownloadFile(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	v, ok := cmd["Ids"].([]interface{})
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	ids := make([]string, 0, len(v))
+	for _, str := range v {
+		id, ok := str.(string)
+		if !ok {
+			continue
+		}
+		ids = append(ids, id)
+	}
+	ret := dsp.DspService.RetryDownloadFile(ids)
 	resp["Result"] = ret
 	return resp
 }

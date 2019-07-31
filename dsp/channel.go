@@ -39,25 +39,30 @@ type ChannelInfosResp struct {
 	Channels      []*ChannelInfo
 }
 
-var startChannelHeight, endChannelHeight uint32
+var startChannelHeight uint32
 
 func (this *Endpoint) SetFilterBlockRange() {
 	currentBlockHeight, err := this.Dsp.Chain.GetCurrentBlockHeight()
 	startChannelHeight = this.Dsp.Channel.GetCurrentFilterBlockHeight()
-	endChannelHeight = currentBlockHeight
-	log.Debugf("set filter block range %d %s %d %d", currentBlockHeight, err, startChannelHeight, endChannelHeight)
+	// endChannelHeight = currentBlockHeight
+	log.Debugf("set filter block range %d %s %d %d", currentBlockHeight, err, startChannelHeight)
 }
 
 func (this *Endpoint) ResetChannelProgress() {
 	log.Debugf("ResetChannelProgress")
 	startChannelHeight = 0
-	endChannelHeight = 0
+	// endChannelHeight = 0
 }
 
 func (this *Endpoint) GetFilterBlockProgress() (*FilterBlockProgress, *DspErr) {
 	progress := &FilterBlockProgress{}
 	if this.Dsp == nil {
 		return progress, nil
+	}
+	endChannelHeight, err := this.Dsp.Chain.GetCurrentBlockHeight()
+	if err != nil {
+		log.Debugf("get channel err %s", err)
+		return progress, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: ErrMaps[CHAIN_INTERNAL_ERROR]}
 	}
 	if endChannelHeight == 0 {
 		return progress, nil
@@ -77,12 +82,13 @@ func (this *Endpoint) GetFilterBlockProgress() (*FilterBlockProgress, *DspErr) {
 		return progress, nil
 	}
 	p := float32(now-startChannelHeight) / float32(rangeHeight)
-	log.Debugf("GetFilterBlockProgress start %d, now %d, end %d, progress %f", startChannelHeight, now, endChannelHeight, progress)
 	progress.Progress = p
+	log.Debugf("GetFilterBlockProgress start %d, now %d, end %d, progress %v", startChannelHeight, now, endChannelHeight, progress)
 	return progress, nil
 }
 
 func (this *Endpoint) GetAllChannels() (interface{}, *DspErr) {
+	log.Debugf("GetAllChannels")
 	if this.Account == nil {
 		return nil, &DspErr{Code: NO_ACCOUNT, Error: ErrMaps[NO_ACCOUNT]}
 	}
@@ -119,17 +125,18 @@ func (this *Endpoint) GetAllChannels() (interface{}, *DspErr) {
 		}
 		resp.Channels = append(resp.Channels, newch)
 	}
+	log.Debugf("GetAllChannels done")
 	return resp, nil
 }
 
 //oniChannel api
 func (this *Endpoint) OpenPaymentChannel(partnerAddr string, amount uint64) (chanCom.ChannelID, *DspErr) {
-	progress, derr := this.GetFilterBlockProgress()
-	if derr != nil {
-		return 0, derr
+	syncing, syncErr := this.IsChannelProcessBlocks()
+	if syncErr != nil {
+		return 0, syncErr
 	}
-	if progress.Progress != 1.0 {
-		return 0, &DspErr{Code: DSP_CHANNEL_INIT_NOT_FINISH, Error: ErrMaps[DSP_CHANNEL_INIT_NOT_FINISH]}
+	if syncing {
+		return 0, &DspErr{Code: DSP_CHANNEL_SYNCING, Error: ErrMaps[DSP_CHANNEL_SYNCING]}
 	}
 	log.Debugf("OpenPaymentChannel %s", partnerAddr)
 	channelExist := this.Dsp.Channel.ChannelExist(partnerAddr)
@@ -144,12 +151,12 @@ func (this *Endpoint) OpenPaymentChannel(partnerAddr string, amount uint64) (cha
 	if err != nil {
 		return 0, &DspErr{Code: DSP_CHANNEL_INTERNAL_ERROR, Error: err}
 	}
-	err = this.Dsp.Channel.WaitForConnected(partnerAddr, time.Duration(common.WAIT_CHANNEL_CONNECT_TIMEOUT)*time.Second)
-	log.Debugf("openchannel wait for connected dns %s, partneraddr %s, err %s", dnsUrl, partnerAddr, err)
-	if err != nil {
-		log.Errorf("wait channel connected err %s %s", partnerAddr, err)
-		return 0, &DspErr{Code: DSP_CHANNEL_INTERNAL_ERROR, Error: err}
-	}
+	// err = this.Dsp.Channel.WaitForConnected(partnerAddr, time.Duration(common.WAIT_CHANNEL_CONNECT_TIMEOUT)*time.Second)
+	// log.Debugf("openchannel wait for connected dns %s, partneraddr %s, err %s", dnsUrl, partnerAddr, err)
+	// if err != nil {
+	// 	log.Errorf("wait channel connected err %s %s", partnerAddr, err)
+	// 	return 0, &DspErr{Code: DSP_CHANNEL_INTERNAL_ERROR, Error: err}
+	// }
 	id, err := this.Dsp.Channel.OpenChannel(partnerAddr, amount)
 	if err != nil {
 		return 0, &DspErr{Code: DSP_CHANNEL_OPEN_FAILED, Error: err}
@@ -166,6 +173,13 @@ func (this *Endpoint) OpenPaymentChannel(partnerAddr string, amount uint64) (cha
 }
 
 func (this *Endpoint) ClosePaymentChannel(partnerAddr string) *DspErr {
+	syncing, syncErr := this.IsChannelProcessBlocks()
+	if syncErr != nil {
+		return syncErr
+	}
+	if syncing {
+		return &DspErr{Code: DSP_CHANNEL_SYNCING, Error: ErrMaps[DSP_CHANNEL_SYNCING]}
+	}
 	err := this.Dsp.Channel.ChannelClose(partnerAddr)
 	if err != nil {
 		return &DspErr{Code: DSP_CHANNEL_CLOSE_FAILED, Error: err}
@@ -174,6 +188,13 @@ func (this *Endpoint) ClosePaymentChannel(partnerAddr string) *DspErr {
 }
 
 func (this *Endpoint) DepositToChannel(partnerAddr string, realAmount uint64) *DspErr {
+	syncing, syncErr := this.IsChannelProcessBlocks()
+	if syncErr != nil {
+		return syncErr
+	}
+	if syncing {
+		return &DspErr{Code: DSP_CHANNEL_SYNCING, Error: ErrMaps[DSP_CHANNEL_SYNCING]}
+	}
 	bal, err := this.QuerySpecialChannelDeposit(partnerAddr)
 	if err != nil {
 		return err
@@ -186,6 +207,13 @@ func (this *Endpoint) DepositToChannel(partnerAddr string, realAmount uint64) *D
 }
 
 func (this *Endpoint) MediaTransfer(paymentId int32, amount uint64, to string) *DspErr {
+	syncing, syncErr := this.IsChannelProcessBlocks()
+	if syncErr != nil {
+		return syncErr
+	}
+	if syncing {
+		return &DspErr{Code: DSP_CHANNEL_SYNCING, Error: ErrMaps[DSP_CHANNEL_SYNCING]}
+	}
 	url, err := this.Dsp.GetExternalIP(to)
 	if err != nil {
 		return &DspErr{Code: DSP_DNS_GET_EXTERNALIP_FAILED, Error: err}
@@ -231,6 +259,13 @@ func (this *Endpoint) QuerySpecialChannelAvaliable(partnerAddr string) (uint64, 
 
 // ChannelWithdraw. withdraw amount of asset from channel
 func (this *Endpoint) ChannelWithdraw(partnerAddr string, realAmount uint64) *DspErr {
+	syncing, syncErr := this.IsChannelProcessBlocks()
+	if syncErr != nil {
+		return syncErr
+	}
+	if syncing {
+		return &DspErr{Code: DSP_CHANNEL_SYNCING, Error: ErrMaps[DSP_CHANNEL_SYNCING]}
+	}
 	bal, derr := this.QuerySpecialChannelDeposit(partnerAddr)
 	if derr != nil {
 		return derr
@@ -262,6 +297,13 @@ func (this *Endpoint) ChannelWithdraw(partnerAddr string, realAmount uint64) *Ds
 
 // ChannelCooperativeSettle. settle channel cooperatively
 func (this *Endpoint) ChannelCooperativeSettle(partnerAddr string) *DspErr {
+	syncing, syncErr := this.IsChannelProcessBlocks()
+	if syncErr != nil {
+		return syncErr
+	}
+	if syncing {
+		return &DspErr{Code: DSP_CHANNEL_SYNCING, Error: ErrMaps[DSP_CHANNEL_SYNCING]}
+	}
 	err := this.Dsp.Channel.CooperativeSettle(partnerAddr)
 	if err != nil {
 		return &DspErr{Code: DSP_CHANNEL_CO_SETTLE_FAILED, Error: err}
