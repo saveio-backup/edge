@@ -94,6 +94,9 @@ func (this *Endpoint) GetAllChannels() (interface{}, *DspErr) {
 	}
 	resp := &ChannelInfosResp{}
 	all := this.Dsp.Channel.AllChannels()
+	if all == nil {
+		return nil, nil
+	}
 	resp.Balance = all.Balance
 	resp.BalanceFormat = all.BalanceFormat
 	resp.Channels = make([]*ChannelInfo, 0)

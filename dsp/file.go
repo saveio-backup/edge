@@ -180,9 +180,11 @@ type FsContractSettingResp struct {
 }
 
 type FileTask struct {
-	Id    string
-	State int
-	*DspErr
+	Id     string
+	State  int
+	Result interface{}
+	Code   uint64
+	Error  string
 }
 
 type FileTaskResp struct {
@@ -305,13 +307,15 @@ func (this *Endpoint) PauseUploadFile(taskIds []string) *FileTaskResp {
 
 		exist := this.Dsp.IsTaskExist(id)
 		if !exist {
-			taskResp.DspErr = &DspErr{Code: DSP_TASK_NOT_EXIST, Error: ErrMaps[DSP_TASK_NOT_EXIST]}
+			taskResp.Code = DSP_TASK_NOT_EXIST
+			taskResp.Error = ErrMaps[DSP_TASK_NOT_EXIST].Error()
 			resp.Tasks = append(resp.Tasks, taskResp)
 			continue
 		}
 		err := this.Dsp.PauseUpload(id)
 		if err != nil {
-			taskResp.DspErr = &DspErr{Code: DSP_PAUSE_UPLOAD_FAIELD, Error: err}
+			taskResp.Code = DSP_PAUSE_UPLOAD_FAIELD
+			taskResp.Error = err.Error()
 		}
 		taskResp.State = int(this.Dsp.GetTaskState(id))
 		resp.Tasks = append(resp.Tasks, taskResp)
@@ -329,14 +333,16 @@ func (this *Endpoint) ResumeUploadFile(taskIds []string) *FileTaskResp {
 		}
 		exist := this.Dsp.IsTaskExist(id)
 		if !exist {
-			taskResp.DspErr = &DspErr{Code: DSP_TASK_NOT_EXIST, Error: ErrMaps[DSP_TASK_NOT_EXIST]}
+			taskResp.Code = DSP_TASK_NOT_EXIST
+			taskResp.Error = ErrMaps[DSP_TASK_NOT_EXIST].Error()
 			resp.Tasks = append(resp.Tasks, taskResp)
 			continue
 		}
 		err := this.Dsp.ResumeUpload(id)
 		log.Errorf("resume upload err %v", err)
 		if err != nil {
-			taskResp.DspErr = &DspErr{Code: DSP_RESUME_UPLOAD_FAIELD, Error: err}
+			taskResp.Code = DSP_RESUME_UPLOAD_FAIELD
+			taskResp.Error = err.Error()
 		}
 		taskResp.State = int(this.Dsp.GetTaskState(id))
 		resp.Tasks = append(resp.Tasks, taskResp)
@@ -354,13 +360,15 @@ func (this *Endpoint) RetryUploadFile(taskIds []string) *FileTaskResp {
 		}
 		exist := this.Dsp.IsTaskExist(id)
 		if !exist {
-			taskResp.DspErr = &DspErr{Code: DSP_TASK_NOT_EXIST, Error: ErrMaps[DSP_TASK_NOT_EXIST]}
+			taskResp.Code = DSP_TASK_NOT_EXIST
+			taskResp.Error = ErrMaps[DSP_TASK_NOT_EXIST].Error()
 			resp.Tasks = append(resp.Tasks, taskResp)
 			continue
 		}
 		err := this.Dsp.RetryUpload(id)
 		if err != nil {
-			taskResp.DspErr = &DspErr{Code: DSP_RETRY_UPLOAD_FAIELD, Error: err}
+			taskResp.Code = DSP_RETRY_UPLOAD_FAIELD
+			taskResp.Error = err.Error()
 		}
 		taskResp.State = int(this.Dsp.GetTaskState(id))
 		resp.Tasks = append(resp.Tasks, taskResp)
@@ -374,23 +382,29 @@ func (this *Endpoint) CancelUploadFile(taskIds []string) *FileTaskResp {
 	}
 	for _, id := range taskIds {
 		taskResp := &FileTask{
-			Id: id,
+			Id:    id,
+			State: int(task.TaskStateCancel),
 		}
 		exist := this.Dsp.IsTaskExist(id)
 		if !exist {
-			taskResp.DspErr = &DspErr{Code: DSP_TASK_NOT_EXIST, Error: ErrMaps[DSP_TASK_NOT_EXIST]}
+			taskResp.Code = DSP_TASK_NOT_EXIST
+			taskResp.Error = ErrMaps[DSP_TASK_NOT_EXIST].Error()
 			resp.Tasks = append(resp.Tasks, taskResp)
 			continue
 		}
-		_, err := this.Dsp.CancelUpload(id)
+		deleteResp, err := this.Dsp.CancelUpload(id)
 		if err != nil {
-			taskResp.DspErr = &DspErr{Code: DSP_CANCEL_TASK_FAILED, Error: err}
+			taskResp.Code = DSP_CANCEL_TASK_FAILED
+			taskResp.Error = err.Error()
+			resp.Tasks = append(resp.Tasks, taskResp)
+			continue
 		}
+		taskResp.Result = deleteResp
 		err = this.DeleteProgress([]string{id})
 		if err != nil {
-			taskResp.DspErr = &DspErr{Code: DSP_CANCEL_TASK_FAILED, Error: err}
+			taskResp.Code = DSP_CANCEL_TASK_FAILED
+			taskResp.Error = err.Error()
 		}
-		taskResp.State = int(task.TaskStateCancel)
 		resp.Tasks = append(resp.Tasks, taskResp)
 	}
 	return resp
@@ -406,17 +420,20 @@ func (this *Endpoint) CancelDownloadFile(taskIds []string) *FileTaskResp {
 		}
 		exist := this.Dsp.IsTaskExist(id)
 		if !exist {
-			taskResp.DspErr = &DspErr{Code: DSP_TASK_NOT_EXIST, Error: ErrMaps[DSP_TASK_NOT_EXIST]}
+			taskResp.Code = DSP_TASK_NOT_EXIST
+			taskResp.Error = ErrMaps[DSP_TASK_NOT_EXIST].Error()
 			resp.Tasks = append(resp.Tasks, taskResp)
 			continue
 		}
 		err := this.Dsp.CancelDownload(id)
 		if err != nil {
-			taskResp.DspErr = &DspErr{Code: DSP_CANCEL_TASK_FAILED, Error: err}
+			taskResp.Code = DSP_CANCEL_TASK_FAILED
+			taskResp.Error = err.Error()
 		}
 		err = this.DeleteProgress([]string{id})
 		if err != nil {
-			taskResp.DspErr = &DspErr{Code: DSP_CANCEL_TASK_FAILED, Error: err}
+			taskResp.Code = DSP_CANCEL_TASK_FAILED
+			taskResp.Error = err.Error()
 		}
 		taskResp.State = int(task.TaskStateCancel)
 		resp.Tasks = append(resp.Tasks, taskResp)
@@ -553,13 +570,15 @@ func (this *Endpoint) PauseDownloadFile(taskIds []string) *FileTaskResp {
 
 		exist := this.Dsp.IsTaskExist(id)
 		if !exist {
-			taskResp.DspErr = &DspErr{Code: DSP_TASK_NOT_EXIST, Error: ErrMaps[DSP_TASK_NOT_EXIST]}
+			taskResp.Code = DSP_TASK_NOT_EXIST
+			taskResp.Error = ErrMaps[DSP_TASK_NOT_EXIST].Error()
 			resp.Tasks = append(resp.Tasks, taskResp)
 			continue
 		}
 		err := this.Dsp.PauseDownload(id)
 		if err != nil {
-			taskResp.DspErr = &DspErr{Code: DSP_PAUSE_DOWNLOAD_FAIELD, Error: err}
+			taskResp.Code = DSP_PAUSE_DOWNLOAD_FAIELD
+			taskResp.Error = err.Error()
 		}
 		taskResp.State = int(this.Dsp.GetTaskState(id))
 		resp.Tasks = append(resp.Tasks, taskResp)
@@ -577,13 +596,15 @@ func (this *Endpoint) ResumeDownloadFile(taskIds []string) *FileTaskResp {
 		}
 		exist := this.Dsp.IsTaskExist(id)
 		if !exist {
-			taskResp.DspErr = &DspErr{Code: DSP_TASK_NOT_EXIST, Error: ErrMaps[DSP_TASK_NOT_EXIST]}
+			taskResp.Code = DSP_TASK_NOT_EXIST
+			taskResp.Error = ErrMaps[DSP_TASK_NOT_EXIST].Error()
 			resp.Tasks = append(resp.Tasks, taskResp)
 			continue
 		}
 		err := this.Dsp.ResumeDownload(id)
 		if err != nil {
-			taskResp.DspErr = &DspErr{Code: DSP_RESUME_DOWNLOAD_FAIELD, Error: err}
+			taskResp.Code = DSP_RESUME_DOWNLOAD_FAIELD
+			taskResp.Error = err.Error()
 		}
 		taskResp.State = int(this.Dsp.GetTaskState(id))
 		resp.Tasks = append(resp.Tasks, taskResp)
@@ -601,13 +622,15 @@ func (this *Endpoint) RetryDownloadFile(taskIds []string) *FileTaskResp {
 		}
 		exist := this.Dsp.IsTaskExist(id)
 		if !exist {
-			taskResp.DspErr = &DspErr{Code: DSP_TASK_NOT_EXIST, Error: ErrMaps[DSP_TASK_NOT_EXIST]}
+			taskResp.Code = DSP_TASK_NOT_EXIST
+			taskResp.Error = ErrMaps[DSP_TASK_NOT_EXIST].Error()
 			resp.Tasks = append(resp.Tasks, taskResp)
 			continue
 		}
 		err := this.Dsp.RetryDownload(id)
 		if err != nil {
-			taskResp.DspErr = &DspErr{Code: DSP_RETRY_DOWNLOAD_FAIELD, Error: err}
+			taskResp.Code = DSP_RETRY_DOWNLOAD_FAIELD
+			taskResp.Error = err.Error()
 			log.Errorf("retry download failed %s", err)
 		}
 		taskResp.State = int(this.Dsp.GetTaskState(id))

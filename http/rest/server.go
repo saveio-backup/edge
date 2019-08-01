@@ -91,6 +91,7 @@ const (
 	DSP_FILE_UPLOAD_PAUSE        = "/api/v1/dsp/file/upload/pause"
 	DSP_FILE_UPLOAD_RESUME       = "/api/v1/dsp/file/upload/resume"
 	DSP_FILE_UPLOAD_RETRY        = "/api/v1/dsp/file/upload/retry"
+	DSP_FILE_UPLOAD_CANCEL       = "/api/v1/dsp/file/upload/cancel"
 	DSP_FILE_UPLOAD_FEE          = "/api/v1/dsp/file/uploadfee/:file"
 	DSP_FILE_DELETE              = "/api/v1/dsp/file/delete"
 	DSP_FILE_DOWNLOAD            = "/api/v1/dsp/file/download"
@@ -271,6 +272,7 @@ func (this *restServer) registryMethod() {
 		DSP_FILE_UPLOAD_RESUME:         {name: "resumeuploadfile", handler: ResumeUploadFile},
 		DSP_FILE_UPLOAD_PAUSE:          {name: "pauseuploadfile", handler: PauseUploadFile},
 		DSP_FILE_UPLOAD_RETRY:          {name: "retryuploadfile", handler: RetryUploadFile},
+		DSP_FILE_UPLOAD_CANCEL:         {name: "canceluploadfile", handler: CancelUploadFile},
 		DSP_FILE_DELETE:                {name: "deletefile", handler: DeleteFile},
 		DSP_FILE_DOWNLOAD:              {name: "downloadfile", handler: DownloadFile},
 		DSP_FILE_DOWNLOAD_RESUME:       {name: "resumedownloadfile", handler: ResumeDownloadFile},
