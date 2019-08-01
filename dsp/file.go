@@ -1401,7 +1401,7 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 			pInfo.Path = this.getDownloadFilePath(pInfo.FileName)
 		}
 	}
-	if len(info.ErrorMsg) != 0 {
+	if info.TaskState == task.TaskStateFailed {
 		pInfo.ErrMsg = info.ErrorMsg
 		pInfo.ErrorCode = info.ErrorCode
 	}
