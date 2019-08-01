@@ -78,6 +78,7 @@ type Network struct {
 	ActivePeers           *sync.Map
 	addressForHealthCheck *sync.Map
 	handler               func(*network.ComponentContext)
+	backOff               *backoff.Component
 }
 
 func NewP2P() *Network {
@@ -145,13 +146,14 @@ func (this *Network) Start(address string) error {
 		return errors.New("invalid address")
 	}
 	protocol := address[:protocolIndex]
-	log.Debugf("channel protocol %s", protocol)
+	this.protocol = protocol
+	log.Debugf("Network protocol %s", protocol)
 	builder := network.NewBuilderWithOptions(network.WriteFlushLatency(1 * time.Millisecond))
 	if this.Keys != nil {
-		log.Debugf("channel use account key")
+		log.Debugf("Network use account key")
 		builder.SetKeys(this.Keys)
 	} else {
-		log.Debugf("channel use RandomKeyPair key")
+		log.Debugf("Network use RandomKeyPair key")
 		builder.SetKeys(ed25519.RandomKeyPair())
 	}
 
@@ -176,7 +178,8 @@ func (this *Network) Start(address string) error {
 		backoff.WithMaxAttempts(10),
 		backoff.WithPriority(65535),
 	}
-	builder.AddComponent(backoff.New(backoff_options...))
+	this.backOff = backoff.New(backoff_options...)
+	builder.AddComponent(this.backOff)
 	if len(this.proxyAddr) > 0 {
 		switch protocol {
 		case "udp":
@@ -550,5 +553,10 @@ func (this *Network) syncPeerState(state *keepalive.PeerStateEvent) {
 		log.Debugf("[syncPeerState] addr: %s state: NetworkUnreachable\n", state.Address)
 		nodeNetworkState = transfer.NetworkUnreachable
 		act.SetNodeNetworkState(state.Address, nodeNetworkState)
+		client := this.P2p.GetPeerClient(state.Address)
+		if client == nil {
+			return
+		}
+		this.backOff.PeerDisconnect(client)
 	}
 }
