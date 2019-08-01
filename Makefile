@@ -1,9 +1,7 @@
 GOFMT=gofmt
 GC=go build --tags "json1"
 VERSION := $(shell git describe --abbrev=4 --always --tags)
-#BUILD_DSP_PAR = -ldflags "-X github.com/saveio/edge/common/config.VERSION=$(VERSION)"
-BUILD_DSP_SERVER_PAR =
-BUILD_DSP_CLIENT_PAR =
+BUILD_EDGE_PAR =-x -v -ldflags "-s -w -X github.com/saveio/edge/dsp.GitCommit=$(GITCOMMIT)"
 
 SRC_FILES = $(shell git ls-files | grep -e .go$ | grep -v _test.go)
 
@@ -16,16 +14,16 @@ client:
 do-cross: w-dsp l-dsp d-dsp
 
 w-dsp:
-	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GC) $(BUILD_DSP_SERVER_PAR) -o do-windows-amd64-ddns.exe ./bin/ddns/main.go
-	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GC) $(BUILD_DSP_CLIENT_PAR) -o do-windows-amd64-dsp.exe ./bin/dsp/main.go
+	$(eval GITCOMMIT=$(shell git log -1 --pretty=format:"%H"))
+	CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ GOOS=windows GOARCH=amd64 $(GC) $(BUILD_EDGE_PAR) -o edge-windows-amd64.exe ./bin/edge/main.go
 
 l-dsp:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GC) $(BUILD_DSP_SERVER_PAR) -o do-linux-amd64-ddns ./bin/ddns/main.go
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GC) $(BUILD_DSP_CLIENT_PAR) -o do-linux-amd64-dsp ./bin/dsp/main.go
+	$(eval GITCOMMIT=$(shell git log -1 --pretty=format:"%H"))
+	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 $(GC) $(BUILD_EDGE_PAR) -o edge-linux-amd64 ./bin/edge/main.go
 
 d-dsp:
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(GC) $(BUILD_DSP_SERVER_PAR) -o do-darwin-amd64-ddns ./bin/ddns/main.go
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(GC) $(BUILD_DSP_CLIENT_PAR) -o do-darwin-amd64-dsp ./bin/dsp/main.go
+	$(eval GITCOMMIT=$(shell git log -1 --pretty=format:"%H"))
+	CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 $(GC) $(BUILD_EDGE_PAR) -o edge-darwin-amd64 ./bin/edge/main.go
 
 format:
 	$(GOFMT) -w main.go
