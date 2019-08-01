@@ -59,6 +59,36 @@ func (this *Endpoint) GetProgress(taskId string) (*task.ProgressInfo, error) {
 	return p, nil
 }
 
+func (this *Endpoint) DeleteProgress(taskIds []string) error {
+	allTasks := make([]string, 0)
+	listKeys, err := this.db.Get([]byte(PROGRESS_LIST_LEY))
+	if err == nil || len(listKeys) > 0 {
+		err = json.Unmarshal(listKeys, &allTasks)
+		return err
+	}
+	taskIdM := make(map[string]struct{}, 0)
+	this.db.NewBatch()
+	for _, taskId := range taskIds {
+		taskIdM[taskId] = struct{}{}
+		this.db.BatchDelete([]byte(taskId))
+	}
+	newTaskIds := make([]string, 0, len(allTasks)-len(taskIds))
+	for _, id := range allTasks {
+		_, ok := taskIdM[id]
+		if ok {
+			continue
+		}
+		newTaskIds = append(newTaskIds, id)
+	}
+	newTaskBuf, err := json.Marshal(newTaskIds)
+	if err != nil {
+		return err
+	}
+	this.db.BatchPut([]byte(PROGRESS_LIST_LEY), newTaskBuf)
+	err = this.db.BatchCommit()
+	return err
+}
+
 func (this *Endpoint) GetAllProgressKeys() ([]string, error) {
 	buf, err := this.db.Get([]byte(PROGRESS_LIST_LEY))
 	if err != nil {

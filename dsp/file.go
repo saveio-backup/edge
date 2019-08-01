@@ -368,6 +368,62 @@ func (this *Endpoint) RetryUploadFile(taskIds []string) *FileTaskResp {
 	return resp
 }
 
+func (this *Endpoint) CancelUploadFile(taskIds []string) *FileTaskResp {
+	resp := &FileTaskResp{
+		Tasks: make([]*FileTask, 0, len(taskIds)),
+	}
+	for _, id := range taskIds {
+		taskResp := &FileTask{
+			Id: id,
+		}
+		exist := this.Dsp.IsTaskExist(id)
+		if !exist {
+			taskResp.DspErr = &DspErr{Code: DSP_TASK_NOT_EXIST, Error: ErrMaps[DSP_TASK_NOT_EXIST]}
+			resp.Tasks = append(resp.Tasks, taskResp)
+			continue
+		}
+		_, err := this.Dsp.CancelUpload(id)
+		if err != nil {
+			taskResp.DspErr = &DspErr{Code: DSP_CANCEL_TASK_FAILED, Error: err}
+		}
+		err = this.DeleteProgress([]string{id})
+		if err != nil {
+			taskResp.DspErr = &DspErr{Code: DSP_CANCEL_TASK_FAILED, Error: err}
+		}
+		taskResp.State = int(task.TaskStateCancel)
+		resp.Tasks = append(resp.Tasks, taskResp)
+	}
+	return resp
+}
+
+func (this *Endpoint) CancelDownloadFile(taskIds []string) *FileTaskResp {
+	resp := &FileTaskResp{
+		Tasks: make([]*FileTask, 0, len(taskIds)),
+	}
+	for _, id := range taskIds {
+		taskResp := &FileTask{
+			Id: id,
+		}
+		exist := this.Dsp.IsTaskExist(id)
+		if !exist {
+			taskResp.DspErr = &DspErr{Code: DSP_TASK_NOT_EXIST, Error: ErrMaps[DSP_TASK_NOT_EXIST]}
+			resp.Tasks = append(resp.Tasks, taskResp)
+			continue
+		}
+		err := this.Dsp.CancelDownload(id)
+		if err != nil {
+			taskResp.DspErr = &DspErr{Code: DSP_CANCEL_TASK_FAILED, Error: err}
+		}
+		err = this.DeleteProgress([]string{id})
+		if err != nil {
+			taskResp.DspErr = &DspErr{Code: DSP_CANCEL_TASK_FAILED, Error: err}
+		}
+		taskResp.State = int(task.TaskStateCancel)
+		resp.Tasks = append(resp.Tasks, taskResp)
+	}
+	return resp
+}
+
 func (this *Endpoint) DeleteFile(fileHash string) (*DeleteFileResp, *DspErr) {
 	fi, err := this.Dsp.Chain.Native.Fs.GetFileInfo(fileHash)
 	if fi != nil && err == nil && fi.FileOwner.ToBase58() == this.Dsp.WalletAddress() {

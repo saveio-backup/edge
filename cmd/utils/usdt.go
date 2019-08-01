@@ -20,7 +20,7 @@ const (
 )
 
 var chain = sdk.NewChain()
-var restClient = chain.NewRestClient().SetAddress(config.Parameters.BaseConfig.ChainRestAddr)
+var restClient = chain.NewRestClient().SetAddress([]string{config.Parameters.BaseConfig.ChainRestAddr})
 
 //Return balance of address in base58 code
 func GetBalance(address string) (*httpcom.BalanceOfRsp, error) {
