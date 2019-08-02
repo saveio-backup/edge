@@ -20,7 +20,7 @@ const (
 )
 
 var chain = sdk.NewChain()
-var restClient = chain.NewRestClient().SetAddress([]string{config.Parameters.BaseConfig.ChainRestAddr})
+var rpcClient = chain.NewRpcClient().SetAddress([]string{config.Parameters.BaseConfig.ChainRpcAddr})
 
 //Return balance of address in base58 code
 func GetBalance(address string) (*httpcom.BalanceOfRsp, error) {
@@ -223,7 +223,6 @@ func GetBlockData(hashOrHeight interface{}) ([]byte, error) {
 }
 
 func GetBlockCount() (uint32, error) {
-
 	return chain.GetCurrentBlockHeight()
 }
 

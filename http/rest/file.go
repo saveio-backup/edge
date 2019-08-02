@@ -688,3 +688,41 @@ func RetryDownloadFile(cmd map[string]interface{}) map[string]interface{} {
 	resp["Result"] = ret
 	return resp
 }
+
+func CancelDownloadFile(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	v, ok := cmd["Ids"].([]interface{})
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	ids := make([]string, 0, len(v))
+	for _, str := range v {
+		id, ok := str.(string)
+		if !ok {
+			continue
+		}
+		ids = append(ids, id)
+	}
+	ret := dsp.DspService.CancelDownloadFile(ids)
+	resp["Result"] = ret
+	return resp
+}
+
+func DeleteTransferRecord(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	v, ok := cmd["Ids"].([]interface{})
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	ids := make([]string, 0, len(v))
+	for _, str := range v {
+		id, ok := str.(string)
+		if !ok {
+			continue
+		}
+		ids = append(ids, id)
+	}
+	ret := dsp.DspService.DeleteTransferRecord(ids)
+	resp["Result"] = ret
+	return resp
+}

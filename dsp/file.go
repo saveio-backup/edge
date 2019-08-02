@@ -262,6 +262,13 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, ti
 	if find != nil || err == nil {
 		return &DspErr{Code: DSP_UPLOAD_URL_EXIST, Error: fmt.Errorf("url exist err %s", err)}
 	}
+	// check whitelist format
+	for _, whitelistAddr := range whitelist {
+		_, err := chainCom.AddressFromBase58(whitelistAddr)
+		if err != nil {
+			return &DspErr{Code: INVALID_WALLET_ADDRESS, Error: err}
+		}
+	}
 	opt := &dspCom.UploadOption{
 		FileDesc:        desc,
 		ProveInterval:   uint64(interval),
@@ -405,37 +412,6 @@ func (this *Endpoint) CancelUploadFile(taskIds []string) *FileTaskResp {
 			taskResp.Code = DSP_CANCEL_TASK_FAILED
 			taskResp.Error = err.Error()
 		}
-		resp.Tasks = append(resp.Tasks, taskResp)
-	}
-	return resp
-}
-
-func (this *Endpoint) CancelDownloadFile(taskIds []string) *FileTaskResp {
-	resp := &FileTaskResp{
-		Tasks: make([]*FileTask, 0, len(taskIds)),
-	}
-	for _, id := range taskIds {
-		taskResp := &FileTask{
-			Id: id,
-		}
-		exist := this.Dsp.IsTaskExist(id)
-		if !exist {
-			taskResp.Code = DSP_TASK_NOT_EXIST
-			taskResp.Error = ErrMaps[DSP_TASK_NOT_EXIST].Error()
-			resp.Tasks = append(resp.Tasks, taskResp)
-			continue
-		}
-		err := this.Dsp.CancelDownload(id)
-		if err != nil {
-			taskResp.Code = DSP_CANCEL_TASK_FAILED
-			taskResp.Error = err.Error()
-		}
-		err = this.DeleteProgress([]string{id})
-		if err != nil {
-			taskResp.Code = DSP_CANCEL_TASK_FAILED
-			taskResp.Error = err.Error()
-		}
-		taskResp.State = int(task.TaskStateCancel)
 		resp.Tasks = append(resp.Tasks, taskResp)
 	}
 	return resp
@@ -639,6 +615,37 @@ func (this *Endpoint) RetryDownloadFile(taskIds []string) *FileTaskResp {
 	return resp
 }
 
+func (this *Endpoint) CancelDownloadFile(taskIds []string) *FileTaskResp {
+	resp := &FileTaskResp{
+		Tasks: make([]*FileTask, 0, len(taskIds)),
+	}
+	for _, id := range taskIds {
+		taskResp := &FileTask{
+			Id: id,
+		}
+		exist := this.Dsp.IsTaskExist(id)
+		if !exist {
+			taskResp.Code = DSP_TASK_NOT_EXIST
+			taskResp.Error = ErrMaps[DSP_TASK_NOT_EXIST].Error()
+			resp.Tasks = append(resp.Tasks, taskResp)
+			continue
+		}
+		err := this.Dsp.CancelDownload(id)
+		if err != nil {
+			taskResp.Code = DSP_CANCEL_TASK_FAILED
+			taskResp.Error = err.Error()
+		}
+		err = this.DeleteProgress([]string{id})
+		if err != nil {
+			taskResp.Code = DSP_CANCEL_TASK_FAILED
+			taskResp.Error = err.Error()
+		}
+		taskResp.State = int(task.TaskStateCancel)
+		resp.Tasks = append(resp.Tasks, taskResp)
+	}
+	return resp
+}
+
 func (this *Endpoint) RegisterProgressCh() {
 	if this.Dsp == nil {
 		log.Errorf("this.Dsp is nil")
@@ -667,6 +674,25 @@ func (this *Endpoint) RegisterProgressCh() {
 			return
 		}
 	}
+}
+
+func (this *Endpoint) DeleteTransferRecord(taskIds []string) *FileTaskResp {
+	resp := &FileTaskResp{
+		Tasks: make([]*FileTask, 0, len(taskIds)),
+	}
+	for _, id := range taskIds {
+		taskResp := &FileTask{
+			Id:    id,
+			State: int(task.TaskStateCancel),
+		}
+		err := this.DeleteProgress([]string{id})
+		if err != nil {
+			taskResp.Code = DSP_CANCEL_TASK_FAILED
+			taskResp.Error = err.Error()
+		}
+		resp.Tasks = append(resp.Tasks, taskResp)
+	}
+	return resp
 }
 
 // GetTransferList. get transfer progress list

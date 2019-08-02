@@ -86,6 +86,7 @@ const (
 	DSP_GET_UPLOAD_FILELIST      = "/api/v1/dsp/file/uploadlist/:type/:offset/:limit"
 	DSP_GET_DOWNLOAD_FILELIST    = "/api/v1/dsp/file/downloadlist/:type/:offset/:limit"
 	DSP_GET_FILE_TRANSFERLIST    = "/api/v1/dsp/file/transferlist/:type/:offset/:limit"
+	DSP_DELETE_TRANSFER_RECORD   = "/api/v1/dsp/file/transferlist/delete"
 	DSP_GET_FILE_TRANSFER_DETAIL = "/api/v1/dsp/file/transferdetail/:url"
 	DSP_FILE_UPLOAD              = "/api/v1/dsp/file/upload"
 	DSP_FILE_UPLOAD_PAUSE        = "/api/v1/dsp/file/upload/pause"
@@ -98,6 +99,7 @@ const (
 	DSP_FILE_DOWNLOAD_PAUSE      = "/api/v1/dsp/file/download/pause"
 	DSP_FILE_DOWNLOAD_RESUME     = "/api/v1/dsp/file/download/resume"
 	DSP_FILE_DOWNLOAD_RETRY      = "/api/v1/dsp/file/download/retry"
+	DSP_FILE_DOWNLOAD_CANCEL     = "/api/v1/dsp/file/download/cancel"
 	DSP_FILE_DOWNLOAD_INFO       = "/api/v1/dsp/file/downloadinfo/:url"
 	DSP_FILE_ENCRYPT             = "/api/v1/dsp/file/encrypt"
 	DSP_FILE_DECRYPT             = "/api/v1/dsp/file/decrypt"
@@ -278,9 +280,11 @@ func (this *restServer) registryMethod() {
 		DSP_FILE_DOWNLOAD_RESUME:       {name: "resumedownloadfile", handler: ResumeDownloadFile},
 		DSP_FILE_DOWNLOAD_PAUSE:        {name: "pausedownloadfile", handler: PauseDownloadFile},
 		DSP_FILE_DOWNLOAD_RETRY:        {name: "retrydownloadfile", handler: RetryDownloadFile},
+		DSP_FILE_DOWNLOAD_CANCEL:       {name: "canceldownloadfile", handler: CancelDownloadFile},
 		DSP_FILE_ENCRYPT:               {name: "encryptfile", handler: EncryptFile},
 		DSP_FILE_DECRYPT:               {name: "decryptfile", handler: DecryptFile},
 		DSP_UPDATE_FILE_WHITELIST:      {name: "updatewhitelist", handler: WhiteListOperate},
+		DSP_DELETE_TRANSFER_RECORD:     {name: "deletetransnferlist", handler: DeleteTransferRecord},
 
 		DEPOSIT_CHANNEL:  {name: "depositchannel", handler: DepositChannel},
 		WITHDRAW_CHANNEL: {name: "withdrawchannel", handler: WithdrawChannel},

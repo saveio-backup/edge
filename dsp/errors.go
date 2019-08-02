@@ -8,16 +8,17 @@ type DspErr struct {
 }
 
 const (
-	SUCCESS              = 0
-	INTERNAL_ERROR       = 40001
-	INVALID_PARAMS       = 40002
-	NO_DSP               = 40003
-	NO_DB                = 40004
-	CONTRACT_ERROR       = 40005
-	INSUFFICIENT_BALANCE = 40006
-	NO_ACCOUNT           = 40007
-	ACCOUNT_EXIST        = 40008
-	NO_DNS               = 40009
+	SUCCESS                = 0
+	INTERNAL_ERROR         = 40001
+	INVALID_PARAMS         = 40002
+	NO_DSP                 = 40003
+	NO_DB                  = 40004
+	CONTRACT_ERROR         = 40005
+	INSUFFICIENT_BALANCE   = 40006
+	NO_ACCOUNT             = 40007
+	ACCOUNT_EXIST          = 40008
+	NO_DNS                 = 40009
+	INVALID_WALLET_ADDRESS = 40010
 
 	CHAIN_INTERNAL_ERROR              = 50000
 	CHAIN_GET_HEIGHT_FAILED           = 50001

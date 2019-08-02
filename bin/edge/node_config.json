@@ -32,6 +32,7 @@
     "DnsNodeMaxNum": 100,
     "SeedInterval": 3600,
     "DnsChannelDeposit": 1000000000,
+    "Trackers": [],
     "WalletPwd": "pwd",
     "WalletDir": "./wallet.dat"
   },

@@ -86,7 +86,18 @@ type DspConfig struct {
 	BootstrapsConfig []BootstrapConfig `json:"Bootstraps"`
 }
 
-func TestnetConfig() *DspConfig {
+func DefaultConfig() *DspConfig {
+	configDir = "." + DEFAULT_CONFIG_DIR
+	existed := common.FileExisted(configDir)
+	if !existed {
+		return TestConfig()
+	}
+	cfg := &DspConfig{}
+	common.GetJsonObjectFromFile(configDir, cfg)
+	return cfg
+}
+
+func TestConfig() *DspConfig {
 	return &DspConfig{
 		BaseConfig: BaseConfig{
 			BaseDir:              ".",
@@ -104,8 +115,8 @@ func TestnetConfig() *DspConfig {
 			ChannelClientType:    "rpc",
 			ChannelRevealTimeout: "250",
 			DBPath:               "./DB",
-			ChainRestAddr:        "http://221.179.156.57:15334",
-			ChainRpcAddr:         "http://221.179.156.57:15336",
+			ChainRestAddr:        "http://127.0.0.1:20334",
+			ChainRpcAddr:         "http://127.0.0.1:20336",
 			NATProxyServerAddr:   "udp://40.73.100.114:6008",
 			DspProtocol:          "udp",
 			DspPortOffset:        201,
@@ -126,7 +137,7 @@ func TestnetConfig() *DspConfig {
 }
 
 //current testnet config config
-var Parameters = TestnetConfig()
+var Parameters = DefaultConfig()
 var configDir string
 var curUsrWalAddr string
 
@@ -155,6 +166,7 @@ func Init(ctx *cli.Context) {
 	} else {
 		configDir = "." + DEFAULT_CONFIG_DIR
 	}
+	log.Debugf("configDir %v", configDir)
 	existed := common.FileExisted(configDir)
 	if !existed {
 		log.Infof("config file is not exist: %s, use default config", configDir)
