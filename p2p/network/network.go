@@ -48,7 +48,9 @@ const (
 
 // TODO: remove this
 const (
-	TempOpCodeTorrent = 1015
+	TempOpCodeRegistry   = 1013
+	TempOpCodeUnRegistry = 1014
+	TempOpCodeTorrent    = 1015
 )
 
 var opCodes = map[opcode.Opcode]proto.Message{
@@ -66,6 +68,8 @@ var opCodes = map[opcode.Opcode]proto.Message{
 	OpCodeCooperativeSettleRequest: &messages.CooperativeSettleRequest{},
 	OpCodeCooperativeSettle:        &messages.CooperativeSettle{},
 	TempOpCodeTorrent:              &pm.Torrent{}, // TODO: remove this after scan refactoring
+	TempOpCodeRegistry:             &pm.Registry{},
+	TempOpCodeUnRegistry:           &pm.UnRegistry{},
 }
 
 type Network struct {
