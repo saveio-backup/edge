@@ -4,9 +4,9 @@ import (
 	"strconv"
 )
 
-func UploadFile(path, desc string, WhiteList []string, encryptPassword, url string, share bool, duration, interval, times string, privilege uint64, copyNum string, storeType int64) ([]byte, error) {
+func UploadFile(path, desc string, WhiteList []string, encryptPassword, url string, share bool, duration, interval string, privilege uint64, copyNum string, storeType int64) ([]byte, error) {
 	var err error
-	var durationVal, intervalVal, timesVal, copyNumVal interface{}
+	var durationVal, intervalVal, copyNumVal interface{}
 	if len(duration) > 0 {
 		durationVal, err = strconv.ParseFloat(duration, 64)
 		if err != nil {
@@ -19,19 +19,13 @@ func UploadFile(path, desc string, WhiteList []string, encryptPassword, url stri
 			return nil, err
 		}
 	}
-	if len(times) > 0 {
-		timesVal, err = strconv.ParseFloat(times, 64)
-		if err != nil {
-			return nil, err
-		}
-	}
 	if len(copyNum) > 0 {
 		copyNumVal, err = strconv.ParseFloat(copyNum, 64)
 		if err != nil {
 			return nil, err
 		}
 	}
-	ret, dErr := sendRpcRequest("uploadfile", []interface{}{path, desc, WhiteList, encryptPassword, url, share, durationVal, intervalVal, timesVal, float64(privilege), copyNumVal, storeType})
+	ret, dErr := sendRpcRequest("uploadfile", []interface{}{path, desc, WhiteList, encryptPassword, url, share, durationVal, intervalVal, float64(privilege), copyNumVal, storeType})
 	if dErr != nil {
 		return nil, dErr.Error
 	}

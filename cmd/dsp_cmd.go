@@ -27,8 +27,7 @@ var FileCommand = cli.Command{
 				flags.DspUploadFileNameFlag,
 				flags.DspUploadFileDescFlag,
 				flags.DspUploadDurationFlag,
-				flags.DspUploadChallengeRateFlag,
-				flags.DspUploadChallengeTimesFlag,
+				flags.DspUploadProveIntervalFlag,
 				flags.DspUploadPrivilegeFlag,
 				flags.DspUploadCopyNumFlag,
 				flags.DspUploadEncryptPasswordFlag,
@@ -169,8 +168,7 @@ func fileUpload(ctx *cli.Context) error {
 	fileName := ctx.String(flags.GetFlagName(flags.DspUploadFileNameFlag))
 	fileDesc := ctx.String(flags.GetFlagName(flags.DspUploadFileDescFlag))
 	duration := ctx.String(flags.GetFlagName(flags.DspUploadDurationFlag))
-	rate := ctx.String(flags.GetFlagName(flags.DspUploadChallengeRateFlag))
-	challengeTimes := ctx.String(flags.GetFlagName(flags.DspUploadChallengeTimesFlag))
+	rate := ctx.String(flags.GetFlagName(flags.DspUploadProveIntervalFlag))
 	uploadPrivilege := ctx.Uint64(flags.GetFlagName(flags.DspUploadPrivilegeFlag))
 	copyNum := ctx.String(flags.GetFlagName(flags.DspUploadCopyNumFlag))
 	encryptPwd := ctx.String(flags.GetFlagName(flags.DspUploadEncryptPasswordFlag))
@@ -195,7 +193,7 @@ func fileUpload(ctx *cli.Context) error {
 		ioutil.WriteFile(fileName, data, 0666)
 		PrintInfoMsg("filemd5 is %s", hex.EncodeToString(md5Ret[:]))
 	}
-	_, err := utils.UploadFile(fileName, fileDesc, nil, encryptPwd, uploadUrl, share, duration, rate, challengeTimes, uploadPrivilege, copyNum, storeType)
+	_, err := utils.UploadFile(fileName, fileDesc, nil, encryptPwd, uploadUrl, share, duration, rate, uploadPrivilege, copyNum, storeType)
 	if err != nil {
 		PrintErrorMsg("upload file err %s", err)
 		return err

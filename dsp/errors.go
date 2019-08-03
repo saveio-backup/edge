@@ -46,6 +46,9 @@ const (
 	FS_USER_SPACE_SECOND_TOO_SMALL  = 54007
 	FS_USER_SPACE_PERMISSION_DENIED = 54008
 	FS_UPLOAD_FILEPATH_ERROR        = 54009
+	FS_UPLOAD_INTERVAL_TOO_SMALL    = 54010
+	FS_UPLOAD_GET_FILESIZE_FAILED   = 54011
+	FS_UPLOAD_CALC_FEE_FAILED       = 54012
 
 	DSP_INIT_FAILED            = 55000
 	DSP_START_FAILED           = 55001
@@ -91,6 +94,7 @@ const (
 	DSP_DNS_QUERY_ALLINFOS_FAILED        = 55060
 	DSP_DNS_GET_EXTERNALIP_FAILED        = 55061
 	DSP_USER_SPACE_PERIOD_NOT_ENOUGH     = 55062
+	DSP_CUSTOM_EXPIRED_NOT_ENOUGH        = 55063
 	DSP_FILE_INFO_NOT_FOUND              = 55100
 	DSP_CHANNEL_INTERNAL_ERROR           = 56000
 	DSP_CHANNEL_OPEN_FAILED              = 56001
@@ -153,6 +157,10 @@ var ErrMaps = map[int64]error{
 	FS_NO_USER_SPACE_TO_REVOKE:      errors.New("fs no user space to revoke"),
 	FS_USER_SPACE_SECOND_TOO_SMALL:  errors.New("fs user space second too small"),
 	FS_USER_SPACE_PERMISSION_DENIED: errors.New("fs user space permission denied"),
+	FS_UPLOAD_FILEPATH_ERROR:        errors.New("fs upload filepath error"),
+	FS_UPLOAD_INTERVAL_TOO_SMALL:    errors.New("fs upload interval too small"),
+	FS_UPLOAD_GET_FILESIZE_FAILED:   errors.New("fs upload get file size failed"),
+	FS_UPLOAD_CALC_FEE_FAILED:       errors.New("fs upload calculate fee failed"),
 
 	DSP_INIT_FAILED:                      errors.New("dsp init failed"),
 	DSP_START_FAILED:                     errors.New("dsp start failed"),

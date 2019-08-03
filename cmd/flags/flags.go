@@ -200,13 +200,13 @@ var (
 		Name:  "url",
 		Usage: "File search url",
 	}
-	DspUploadChallengeRateFlag = cli.StringFlag{
+	DspUploadProveIntervalFlag = cli.StringFlag{
 		Name:  "interval",
 		Usage: "File challenge interval",
 	}
-	DspUploadChallengeTimesFlag = cli.StringFlag{
-		Name:  "challengeTimes",
-		Usage: "Total challenge times",
+	DspUploadExpiredHeightFlag = cli.StringFlag{
+		Name:  "expiredHeight",
+		Usage: "expired height",
 	}
 	DspUploadPrivilegeFlag = cli.Uint64Flag{
 		Name:  "privilege",

@@ -6,7 +6,7 @@ import (
 	"github.com/saveio/themis/common"
 	"github.com/saveio/themis/common/log"
 	"github.com/saveio/themis/smartcontract/service/native/dns"
-	fs "github.com/saveio/themis/smartcontract/service/native/onifs"
+	fs "github.com/saveio/themis/smartcontract/service/native/savefs"
 )
 
 //Dsp api
