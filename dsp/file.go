@@ -222,7 +222,7 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, pr
 	opt := &fs.UploadOption{
 		FileDesc:      []byte(desc),
 		ProveInterval: uint64(interval),
-		StorageType:   fs.FileStoreType(storageType),
+		StorageType:   uint64(storageType),
 	}
 	if fs.FileStoreType(storageType) == fs.FileStoreTypeNormal {
 		userspace, err := this.Dsp.Chain.Native.Fs.GetUserSpace(currentAccount.Address)
@@ -268,18 +268,22 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, pr
 	opt.RegisterDNS = len(url) > 0
 	opt.BindDNS = len(url) > 0
 	// check whitelist format
-	for _, whitelistAddr := range whitelist {
-		_, err := chainCom.AddressFromBase58(whitelistAddr)
+	whitelistObj := fs.WhiteList{
+		Num:  uint64(len(whitelist)),
+		List: make([]fs.Rule, 0, uint64(len(whitelist))),
+	}
+	for i, whitelistAddr := range whitelist {
+		addr, err := chainCom.AddressFromBase58(whitelistAddr)
 		if err != nil {
 			return &DspErr{Code: INVALID_WALLET_ADDRESS, Error: err}
 		}
+		whitelistObj.List[i] = fs.Rule{
+			Addr:         addr,
+			BaseHeight:   uint64(currentHeight),
+			ExpireHeight: opt.ExpiredHeight,
+		}
 	}
-	opt.WhiteLstCnt = uint64(len(whitelist))
-	whitelistBytes := make([][]byte, 0, opt.WhiteLstCnt)
-	for _, addr := range whitelist {
-		whitelistBytes = append(whitelistBytes, []byte(addr))
-	}
-	opt.WhiteList = whitelistBytes
+	opt.WhiteList = whitelistObj
 	opt.Share = share
 	opt.Encrypt = len(encryptPwd) > 0
 	opt.EncryptPassword = []byte(encryptPwd)
@@ -818,13 +822,26 @@ func (this *Endpoint) CalculateUploadFee(filePath string, durationVal, intervalV
 	if err != nil {
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: err}
 	}
-	opt := &fs.UploadOption{
-		FileSize:      uint64(fileStat.Size()),
-		ProveInterval: uint64(interval),
-		CopyNum:       uint64(copyNum),
-		StorageType:   fs.FileStoreType(sType),
-		WhiteLstCnt:   uint64(wh),
+	whitelist := fs.WhiteList{
+		Num:  uint64(wh),
+		List: make([]fs.Rule, uint64(wh)),
 	}
+	opt := &fs.UploadOption{
+		FileDesc:        []byte{},
+		FileSize:        uint64(fileStat.Size()),
+		ProveInterval:   uint64(interval),
+		CopyNum:         uint64(copyNum),
+		StorageType:     uint64(sType),
+		Encrypt:         false,
+		EncryptPassword: []byte{},
+		RegisterDNS:     true,
+		BindDNS:         true,
+		DnsURL:          nil,
+		WhiteList:       whitelist,
+		Share:           false,
+		Privilege:       1,
+	}
+
 	currentHeight, err := this.Dsp.Chain.GetCurrentBlockHeight()
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
@@ -844,6 +861,7 @@ func (this *Endpoint) CalculateUploadFee(filePath string, durationVal, intervalV
 		log.Debugf("userspace.ExpireHeight %d, current %d, interval:%v", userspace.ExpireHeight, currentHeight, interval)
 		fee, err := this.Dsp.CalculateUploadFee(opt)
 		if err != nil {
+			log.Debugf("fee :%v, err %s", fee, err)
 			return nil, &DspErr{Code: FS_UPLOAD_CALC_FEE_FAILED, Error: ErrMaps[FS_UPLOAD_CALC_FEE_FAILED]}
 		}
 		return &CalculateResp{
@@ -861,7 +879,9 @@ func (this *Endpoint) CalculateUploadFee(filePath string, durationVal, intervalV
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: err}
 	}
 	opt.ExpiredHeight = uint64(currentHeight) + uint64(duration)
+	log.Debugf("opt :%v\n", opt)
 	fee, err := this.Dsp.CalculateUploadFee(opt)
+	log.Debugf("fee :%v\n", fee)
 	if err != nil {
 		return nil, &DspErr{Code: DSP_CALC_UPLOAD_FEE_FAILED, Error: err}
 	}
