@@ -1176,13 +1176,16 @@ func (this *Endpoint) GetDownloadFiles(fileType DspFileListType, offset, limit u
 	if this.Dsp == nil {
 		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
-	files := this.Dsp.AllDownloadFiles()
+	infos, _, err := this.Dsp.AllDownloadFiles()
+	if err != nil {
+		return nil, &DspErr{Code: DB_GET_FILEINFO_FAILED, Error: ErrMaps[DB_GET_FILEINFO_FAILED]}
+	}
 	offsetCnt := uint64(0)
-	for _, file := range files {
-		info, err := this.Dsp.DownloadedFileInfo(file)
-		if err != nil || info == nil {
+	for _, info := range infos {
+		if info == nil {
 			continue
 		}
+		file := info.FileHash
 		url, err := this.GetUrlFromHash(file)
 		if err != nil {
 			log.Errorf("get url from hash %s, err %s", file, err)
@@ -1218,7 +1221,7 @@ func (this *Endpoint) GetDownloadFiles(fileType DspFileListType, offset, limit u
 			LastShareAt:   lastSharedAt,
 			Profit:        profit,
 			ProfitFormat:  utils.FormatUsdt(profit),
-			Path:          this.getDownloadFilePath(info.FileName),
+			Path:          info.FilePath,
 			Privilege:     privilege,
 		})
 		if uint64(len(fileInfos)) > limit {
@@ -1484,6 +1487,7 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 		Id:           info.TaskId,
 		FileHash:     info.FileHash,
 		FileName:     info.FileName,
+		Path:         info.FilePath,
 		Type:         pType,
 		Status:       info.TaskState,
 		DetailStatus: info.ProgressState,
@@ -1539,8 +1543,6 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 			if pInfo.FileSize > 0 {
 				pInfo.Progress = float64(pInfo.DownloadSize) / float64(pInfo.FileSize)
 			}
-			//TODO: use from progress
-			pInfo.Path = this.getDownloadFilePath(pInfo.FileName)
 		}
 	}
 	if info.TaskState == task.TaskStateFailed {

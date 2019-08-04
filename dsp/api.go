@@ -299,6 +299,7 @@ func (this *Endpoint) SetupDNSNodeBackground() {
 		}
 		err = this.Dsp.SetupDNSChannels()
 		if err != nil {
+			log.Errorf("setup dns channel err %s", err)
 			return false
 		}
 		return true

@@ -119,6 +119,7 @@ const (
 	DB_SUM_SHARE_PROFIT_FAILED       = 59001
 	DB_FIND_USER_SPACE_RECORD_FAILED = 59002
 	DB_ADD_USER_SPACE_RECORD_FAILED  = 59003
+	DB_GET_FILEINFO_FAILED           = 59004
 )
 
 var ErrMaps = map[int64]error{
@@ -224,4 +225,5 @@ var ErrMaps = map[int64]error{
 	DB_SUM_SHARE_PROFIT_FAILED:       errors.New("db sum share profit failed"),
 	DB_FIND_USER_SPACE_RECORD_FAILED: errors.New("db find user space record failed"),
 	DB_ADD_USER_SPACE_RECORD_FAILED:  errors.New("db add user space record failed"),
+	DB_GET_FILEINFO_FAILED:           errors.New("db get fileinfo failed"),
 }
