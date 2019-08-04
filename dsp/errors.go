@@ -211,6 +211,7 @@ var ErrMaps = map[int64]error{
 	DSP_CHANNEL_CO_SETTLE_FAILED:         errors.New("dsp channel co settle failed"),
 	DSP_CHANNEL_INIT_NOT_FINISH:          errors.New("dsp channel init not finish"),
 	DSP_USER_SPACE_PERIOD_NOT_ENOUGH:     errors.New("dsp user space period not enough"),
+	DSP_CUSTOM_EXPIRED_NOT_ENOUGH:        errors.New("dsp custom expired height not enough"),
 	DSP_CHANNEL_EXIST:                    errors.New("channel has exists or not settled"),
 	DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST:   errors.New("dsp channel of current dns does not exist"),
 	DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH:   errors.New("dsp channel balance of current dns does not enough"),

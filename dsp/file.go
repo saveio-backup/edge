@@ -35,7 +35,7 @@ const (
 )
 
 type DeleteFileResp struct {
-	Tx         string
+	dspCom.DeleteUploadFileResp
 	IsUploaded bool
 }
 
@@ -235,9 +235,10 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, pr
 		}
 		opt.ExpiredHeight = userspace.ExpireHeight
 	} else {
-		duration, _ := durationVal.(uint64)
-		opt.ExpiredHeight = uint64(currentHeight) + duration
+		duration, _ := durationVal.(float64)
+		opt.ExpiredHeight = uint64(currentHeight) + uint64(duration)
 	}
+	log.Debugf("opt.ExpiredHeight :%d, minInterval :%d, current: %d", opt.ExpiredHeight, fssetting.MinProveInterval, currentHeight)
 	if opt.ExpiredHeight < fssetting.MinProveInterval+uint64(currentHeight) {
 		return &DspErr{Code: DSP_CUSTOM_EXPIRED_NOT_ENOUGH, Error: ErrMaps[DSP_CUSTOM_EXPIRED_NOT_ENOUGH]}
 	}
@@ -423,17 +424,20 @@ func (this *Endpoint) CancelUploadFile(taskIds []string) *FileTaskResp {
 func (this *Endpoint) DeleteFile(fileHash string) (*DeleteFileResp, *DspErr) {
 	fi, err := this.Dsp.Chain.Native.Fs.GetFileInfo(fileHash)
 	if fi != nil && err == nil && fi.FileOwner.ToBase58() == this.Dsp.WalletAddress() {
-		resp, err := this.Dsp.DeleteUploadedFile(fileHash)
+		result, err := this.Dsp.DeleteUploadedFile(fileHash)
 		if err != nil {
 			return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: err}
 		}
-		return &DeleteFileResp{Tx: resp.Tx, IsUploaded: false}, nil
+		resp := &DeleteFileResp{IsUploaded: true}
+		resp.Tx = result.Tx
+		resp.Nodes = result.Nodes
+		return resp, nil
 	}
 	err = this.Dsp.DeleteDownloadedFile(fileHash)
 	if err != nil {
 		return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: err}
 	}
-	return &DeleteFileResp{IsUploaded: true}, nil
+	return &DeleteFileResp{IsUploaded: false}, nil
 }
 
 func (this *Endpoint) GetFsConfig() (*FsContractSettingResp, *DspErr) {

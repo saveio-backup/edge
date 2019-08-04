@@ -64,7 +64,9 @@ func (this *Endpoint) DeleteProgress(taskIds []string) error {
 	listKeys, err := this.db.Get([]byte(PROGRESS_LIST_LEY))
 	if err == nil || len(listKeys) > 0 {
 		err = json.Unmarshal(listKeys, &allTasks)
-		return err
+		if err != nil {
+			return err
+		}
 	}
 	taskIdM := make(map[string]struct{}, 0)
 	this.db.NewBatch()
