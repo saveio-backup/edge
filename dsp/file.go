@@ -273,16 +273,18 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, pr
 		Num:  uint64(len(whitelist)),
 		List: make([]fs.Rule, 0, uint64(len(whitelist))),
 	}
+	log.Debugf("whitelist :%v, len: %d %d", whitelist, len(whitelistObj.List), cap(whitelistObj.List))
 	for i, whitelistAddr := range whitelist {
 		addr, err := chainCom.AddressFromBase58(whitelistAddr)
 		if err != nil {
 			return &DspErr{Code: INVALID_WALLET_ADDRESS, Error: err}
 		}
-		whitelistObj.List[i] = fs.Rule{
+		log.Debugf("index :%d", i)
+		whitelistObj.List = append(whitelistObj.List, fs.Rule{
 			Addr:         addr,
 			BaseHeight:   uint64(currentHeight),
 			ExpireHeight: opt.ExpiredHeight,
-		}
+		})
 	}
 	opt.WhiteList = whitelistObj
 	opt.Share = share

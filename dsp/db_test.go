@@ -18,11 +18,9 @@ func TestClientDB(t *testing.T) {
 	defer os.Remove("./edge_test")
 	ep.db = db
 	task1 := &task.ProgressInfo{
-		TaskKey:  "1",
 		FileName: "1",
 	}
 	task2 := &task.ProgressInfo{
-		TaskKey:  "2",
 		FileName: "2",
 	}
 	err = ep.AddProgress(task1)

@@ -383,7 +383,7 @@ func (this *Network) RequestWithRetry(msg proto.Message, peer string, retry int)
 	var res proto.Message
 	var err error
 	for i := 0; i < retry; i++ {
-		log.Debugf("send request msg to %s with retry %d", peer, retry)
+		log.Debugf("send request msg to %s with retry %d", peer, i)
 		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(common.REQUEST_MSG_TIMEOUT)*time.Second)
 		defer cancel()
 		res, err = client.Request(ctx, msg)
