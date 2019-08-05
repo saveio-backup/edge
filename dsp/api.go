@@ -92,6 +92,7 @@ func Init(walletDir, pwd string) (*Endpoint, error) {
 
 func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool) error {
 	channelListenAddr := fmt.Sprintf("%s:%d", "127.0.0.1", int(config.Parameters.BaseConfig.PortBase+uint32(config.Parameters.BaseConfig.ChannelPortOffset)))
+	log.Debugf("config.Parameters.BaseConfig.ChainRpcAddrs: %v", config.Parameters.BaseConfig.ChainRpcAddrs)
 	dspConfig := &dspCfg.DspConfig{
 		DBPath:               config.DspDBPath(),
 		FsRepoRoot:           config.FsRepoRootPath(),
@@ -99,7 +100,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		FsType:               dspCfg.FSType(config.Parameters.FsConfig.FsType),
 		FsGcPeriod:           config.Parameters.FsConfig.FsGCPeriod,
 		EnableBackup:         config.Parameters.FsConfig.EnableBackup,
-		ChainRpcAddr:         config.Parameters.BaseConfig.ChainRpcAddr,
+		ChainRpcAddrs:        config.Parameters.BaseConfig.ChainRpcAddrs,
 		ChannelClientType:    config.Parameters.BaseConfig.ChannelClientType,
 		ChannelListenAddr:    channelListenAddr,
 		ChannelProtocol:      config.Parameters.BaseConfig.ChannelProtocol,

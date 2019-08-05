@@ -42,11 +42,11 @@ type BaseConfig struct {
 	ChannelRevealTimeout string `json:"ChannelRevealTimeout"`
 	ChannelSettleTimeout string `json:"ChannelSettleTimeout"`
 
-	DBPath        string   `json:"DBPath"`
-	PpListenAddr  string   `json:"PpListenAddr"`
-	PpBootstrap   []string `json:"PpBootstrap"`
-	ChainRestAddr string   `json:"ChainRestAddr"`
-	ChainRpcAddr  string   `json:"ChainRpcAddr"`
+	DBPath         string   `json:"DBPath"`
+	PpListenAddr   string   `json:"PpListenAddr"`
+	PpBootstrap    []string `json:"PpBootstrap"`
+	ChainRestAddrs []string `json:"ChainRestAddrs"`
+	ChainRpcAddrs  []string `json:"ChainRpcAddrs"`
 
 	NATProxyServerAddr string `json:"NATProxyServerAddr"`
 	DspProtocol        string `json:"DspProtocol"`
@@ -115,8 +115,8 @@ func TestConfig() *DspConfig {
 			ChannelClientType:    "rpc",
 			ChannelRevealTimeout: "250",
 			DBPath:               "./DB",
-			ChainRestAddr:        "http://127.0.0.1:20334",
-			ChainRpcAddr:         "http://127.0.0.1:20336",
+			ChainRestAddrs:       []string{"http://127.0.0.1:20334"},
+			ChainRpcAddrs:        []string{"http://127.0.0.1:20336"},
 			NATProxyServerAddr:   "udp://40.73.100.114:6008",
 			DspProtocol:          "udp",
 			DspPortOffset:        201,
