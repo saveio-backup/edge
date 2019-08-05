@@ -561,7 +561,7 @@ func (this *Network) syncPeerState(state *keepalive.PeerStateEvent) {
 		log.Debugf("[syncPeerState] addr: %s state: PEER_UNKNOWN\n", state.Address)
 	case keepalive.PEER_UNREACHABLE:
 		this.ActivePeers.Delete(state.Address)
-		log.Debugf("[syncPeerState] addr: %s state: NetworkUnreachable\n", state.Address)
+		log.Debugf("[syncPeerState] addr: %s state: NetworkUnreachable, exist: %t\n", state.Address, this.P2p.ConnectionStateExists(state.Address))
 		nodeNetworkState = transfer.NetworkUnreachable
 		act.SetNodeNetworkState(state.Address, nodeNetworkState)
 		client := this.P2p.GetPeerClient(state.Address)
