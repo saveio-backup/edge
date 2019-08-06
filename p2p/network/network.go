@@ -23,7 +23,6 @@ import (
 	"github.com/saveio/edge/common/config"
 	act "github.com/saveio/pylons/actor/server"
 	"github.com/saveio/pylons/network/transport/messages"
-	"github.com/saveio/pylons/transfer"
 	pm "github.com/saveio/scan/messages/protoMessages"
 	"github.com/saveio/themis/common/log"
 )
@@ -86,7 +85,6 @@ type Network struct {
 	keepaliveTimeout      time.Duration
 	peerStateChan         chan *keepalive.PeerStateEvent
 	kill                  chan struct{}
-	ActivePeers           *sync.Map
 	addressForHealthCheck *sync.Map
 	handler               func(*network.ComponentContext)
 	backOff               *backoff.Component
@@ -97,7 +95,6 @@ func NewP2P() *Network {
 	n := &Network{
 		P2p: new(network.Network),
 	}
-	n.ActivePeers = new(sync.Map)
 	n.addressForHealthCheck = new(sync.Map)
 	n.kill = make(chan struct{})
 	n.peerStateChan = make(chan *keepalive.PeerStateEvent, 100)
@@ -306,13 +303,11 @@ func (this *Network) Stop() {
 }
 
 func (this *Network) Connect(tAddr string) error {
-	if _, ok := this.ActivePeers.Load(tAddr); ok {
-		// node is active, no need to connect
-		pse := &keepalive.PeerStateEvent{
-			Address: tAddr,
-			State:   keepalive.PEER_REACHABLE,
-		}
-		this.peerStateChan <- pse
+	if this == nil {
+		return fmt.Errorf("[Connect] this is nil")
+	}
+	peerState, _ := this.GetPeerStateByAddress(tAddr)
+	if peerState == keepalive.PEER_REACHABLE {
 		return nil
 	}
 	if _, ok := this.addressForHealthCheck.Load(tAddr); ok {
@@ -555,26 +550,6 @@ func (this *Network) Broadcast(addrs []string, msg proto.Message, needReply bool
 	}
 }
 
-func (this *Network) PeerStateChange(fn func(*keepalive.PeerStateEvent)) {
-	ka, reg := this.P2p.Component(keepalive.ComponentID)
-	if !reg {
-		log.Error("keepalive component do not reg")
-		return
-	}
-	peerStateChan := ka.(*keepalive.Component).GetPeerStateChan()
-	stopCh := ka.(*keepalive.Component).GetStopChan()
-	for {
-		select {
-		case event := <-peerStateChan:
-			fn(event)
-
-		case <-stopCh:
-			return
-
-		}
-	}
-}
-
 //P2P network msg receive. transfer to actor_channel
 func (this *Network) Receive(ctx *network.ComponentContext, message proto.Message, from string) error {
 	// TODO check message is nil
@@ -626,31 +601,6 @@ func getProtocolFromAddr(addr string) string {
 		return "tcp"
 	}
 	return addr[:idx]
-}
-
-func (this *Network) syncPeerState(state *keepalive.PeerStateEvent) {
-	var nodeNetworkState string
-
-	log.Debugf("[syncPeerState] addr: %s state: %v", state.Address, state.State)
-	switch state.State {
-	case keepalive.PEER_REACHABLE:
-		log.Debugf("[syncPeerState] addr: %s state: NetworkReachable\n", state.Address)
-		this.ActivePeers.LoadOrStore(state.Address, struct{}{})
-		nodeNetworkState = transfer.NetworkReachable
-		act.SetNodeNetworkState(state.Address, nodeNetworkState)
-	case keepalive.PEER_UNKNOWN:
-		log.Debugf("[syncPeerState] addr: %s state: PEER_UNKNOWN\n", state.Address)
-	case keepalive.PEER_UNREACHABLE:
-		this.ActivePeers.Delete(state.Address)
-		log.Debugf("[syncPeerState] addr: %s state: NetworkUnreachable, exist: %t\n", state.Address, this.P2p.ConnectionStateExists(state.Address))
-		nodeNetworkState = transfer.NetworkUnreachable
-		act.SetNodeNetworkState(state.Address, nodeNetworkState)
-		client := this.P2p.GetPeerClient(state.Address)
-		if client == nil {
-			return
-		}
-		this.backOff.PeerDisconnect(client)
-	}
 }
 
 func (this *Network) healthCheckProxyServer() error {
