@@ -17,7 +17,6 @@ import (
 	"github.com/saveio/edge/common/config"
 	"github.com/saveio/edge/dsp/storage"
 	chainSdkFs "github.com/saveio/themis-go-sdk/fs"
-	"github.com/saveio/themis-go-sdk/usdt"
 	"github.com/saveio/themis/cmd/utils"
 	chainCom "github.com/saveio/themis/common"
 	"github.com/saveio/themis/common/log"
@@ -153,7 +152,7 @@ type Userspace struct {
 type UserspaceRecordResp struct {
 	Size       uint64
 	ExpiredAt  uint64
-	Cost       uint64
+	Cost       int64
 	CostFormat string
 }
 
@@ -1319,7 +1318,7 @@ func (this *Endpoint) SetUserSpace(walletAddr string, size, sizeOpType, blockCou
 		}
 		from := states[1].(string)
 		to := states[2].(string)
-		if n.ContractAddress != usdt.USDT_CONTRACT_ADDRESS.ToHexString() || to != chainSdkFs.FS_CONTRACT_ADDRESS.ToBase58() {
+		if n.ContractAddress != chainSdkFs.FS_CONTRACT_ADDRESS.ToHexString() || (to != chainSdkFs.FS_CONTRACT_ADDRESS.ToBase58() && to != this.Dsp.WalletAddress()) {
 			continue
 		}
 		hasTransfer = true
@@ -1444,11 +1443,17 @@ func (this *Endpoint) GetUserspaceRecords(walletAddr string, offset, limit uint6
 	}
 
 	for _, record := range records {
+		amount := int64(record.Amount)
+		amountFormat := utils.FormatUsdt(record.Amount)
+		if record.TransferType == storage.TransferTypeOut {
+			amount = -amount
+			amountFormat = fmt.Sprintf("-%s", amountFormat)
+		}
 		resp = append(resp, &UserspaceRecordResp{
 			Size:       record.TotalSize,
 			ExpiredAt:  record.ExpiredAt,
-			Cost:       record.Amount,
-			CostFormat: utils.FormatUsdt(record.Amount),
+			Cost:       amount,
+			CostFormat: amountFormat,
 		})
 	}
 	return resp, nil
