@@ -152,7 +152,6 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		dspNetwork := network.NewP2P()
 		dspNetwork.SetNetworkKey(networkKey)
 		dspNetwork.SetHandler(dspSrv.Receive)
-		dspNetwork.SetProxyServer(config.Parameters.BaseConfig.NATProxyServerAddr)
 		dspListenAddr := fmt.Sprintf("%s://%s:%d", config.Parameters.BaseConfig.DspProtocol, "127.0.0.1", dspListenPort)
 		err = dspNetwork.Start(dspListenAddr)
 		if err != nil {
@@ -174,7 +173,6 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		}
 		log.Debugf("dsp pubkey:%s\n", hex.EncodeToString(networkKey.PublicKey))
 		log.Debugf("channel pubkey:%s\n", hex.EncodeToString(channelNetwork.Keys.PublicKey))
-		channelNetwork.SetProxyServer(config.Parameters.BaseConfig.NATProxyServerAddr)
 		req.SetChannelPid(dspSrv.Channel.GetChannelPid())
 		listenAddr := fmt.Sprintf("%s://%s", config.Parameters.BaseConfig.ChannelProtocol, dspConfig.ChannelListenAddr)
 		log.Debugf("goto start channel network %s", listenAddr)

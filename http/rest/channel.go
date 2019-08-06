@@ -157,7 +157,7 @@ func WithdrawChannel(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
 	}
 	derr = dsp.DspService.ChannelWithdraw(partnerAddrstr, realAmount)
-	if err != nil {
+	if derr != nil {
 		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
 	}
 	return resp

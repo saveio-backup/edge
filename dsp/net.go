@@ -1,7 +1,5 @@
 package dsp
 
-import "github.com/saveio/edge/common/config"
-
 type networkState int
 
 const (
@@ -30,10 +28,10 @@ func (this *Endpoint) GetNetworkState() (*NetworkStateResp, *DspErr) {
 	if !this.channelNet.IsConnectionExists(this.Dsp.DNS.DNSNode.HostAddr) {
 		state.DNSState = networkStateUnReachable
 	}
-	if !this.dspNet.IsConnectionExists(config.Parameters.BaseConfig.NATProxyServerAddr) {
+	if !this.dspNet.IsConnectionExists(this.dspNet.GetProxyServer()) {
 		state.DspProxyState = networkStateUnReachable
 	}
-	if !this.channelNet.IsConnectionExists(config.Parameters.BaseConfig.NATProxyServerAddr) {
+	if !this.channelNet.IsConnectionExists(this.channelNet.GetProxyServer()) {
 		state.ChannelProxyState = networkStateUnReachable
 	}
 	return state, nil

@@ -269,14 +269,13 @@ func (this *Endpoint) ChannelWithdraw(partnerAddr string, realAmount uint64) *Ds
 	if syncing {
 		return &DspErr{Code: DSP_CHANNEL_SYNCING, Error: ErrMaps[DSP_CHANNEL_SYNCING]}
 	}
-	bal, derr := this.QuerySpecialChannelDeposit(partnerAddr)
-	if derr != nil {
-		return derr
+	bal, err := this.Dsp.Channel.GetAvailableBalance(partnerAddr)
+	if err != nil {
+		return &DspErr{Code: DSP_CHANNEL_INTERNAL_ERROR, Error: err}
 	}
 	if realAmount > bal {
 		return &DspErr{Code: INSUFFICIENT_BALANCE, Error: ErrMaps[INSUFFICIENT_BALANCE]}
 	}
-
 	totalWithdraw, err := this.Dsp.Channel.GetTotalWithdraw(partnerAddr)
 	if err != nil {
 		return &DspErr{Code: DSP_CHANNEL_WITHDRAW_FAILED, Error: err}

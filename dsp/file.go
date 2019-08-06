@@ -292,7 +292,10 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, pr
 	opt.EncryptPassword = []byte(encryptPwd)
 	optBuf, _ := json.Marshal(opt)
 	log.Debugf("path %s, UploadOption :%s\n", path, optBuf)
-	taskExist := this.Dsp.UploadTaskExist(path)
+	taskExist, err := this.Dsp.UploadTaskExist(path)
+	if err != nil {
+		return &DspErr{Code: INTERNAL_ERROR, Error: err}
+	}
 	if taskExist {
 		return &DspErr{Code: DSP_UPLOAD_FILE_EXIST, Error: ErrMaps[DSP_UPLOAD_FILE_EXIST]}
 	}

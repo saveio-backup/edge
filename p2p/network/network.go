@@ -90,6 +90,7 @@ type Network struct {
 	addressForHealthCheck *sync.Map
 	handler               func(*network.ComponentContext)
 	backOff               *backoff.Component
+	keepalive             *keepalive.Component
 }
 
 func NewP2P() *Network {
@@ -108,6 +109,10 @@ func (this *Network) SetProxyServer(address string) {
 	this.proxyAddr = address
 }
 
+func (this *Network) GetProxyServer() string {
+	return this.proxyAddr
+}
+
 func (this *Network) SetNetworkKey(key *crypto.KeyPair) {
 	this.Keys = key
 }
@@ -117,11 +122,7 @@ func (this *Network) SetHandler(handler func(*network.ComponentContext)) {
 }
 
 func (this *Network) Protocol() string {
-	idx := strings.Index(this.PublicAddr(), "://")
-	if idx == -1 {
-		return "tcp"
-	}
-	return this.PublicAddr()[:idx]
+	return getProtocolFromAddr(this.PublicAddr())
 }
 
 func (this *Network) ListenAddr() string {
@@ -143,7 +144,6 @@ func (this *Network) GetPeersIfExist() error {
 // SetPID sets p2p actor
 func (this *Network) SetPID(pid *actor.PID) {
 	this.pid = pid
-	//this.msgRouter.SetPID(pid)
 }
 
 // GetPID returns p2p actor
@@ -152,14 +152,11 @@ func (this *Network) GetPID() *actor.PID {
 }
 
 func (this *Network) Start(address string) error {
-	protocolIndex := strings.Index(address, "://")
-	if protocolIndex == -1 {
-		return errors.New("invalid address")
-	}
-	protocol := address[:protocolIndex]
-	this.protocol = protocol
-	log.Debugf("Network protocol %s", protocol)
+	this.protocol = getProtocolFromAddr(address)
+	log.Debugf("Network protocol %s", this.protocol)
 	builder := network.NewBuilderWithOptions(network.WriteFlushLatency(1 * time.Millisecond))
+
+	// set keys
 	if this.Keys != nil {
 		log.Debugf("Network use account key")
 		builder.SetKeys(this.Keys)
@@ -169,6 +166,12 @@ func (this *Network) Start(address string) error {
 	}
 
 	builder.SetAddress(address)
+	// add msg receiver
+	component := new(NetComponent)
+	component.Net = this
+	builder.AddComponent(component)
+
+	// add keepalive
 	if this.keepaliveInterval == 0 {
 		this.keepaliveInterval = keepalive.DefaultKeepaliveInterval
 	}
@@ -180,10 +183,10 @@ func (this *Network) Start(address string) error {
 		keepalive.WithKeepaliveTimeout(this.keepaliveTimeout),
 		keepalive.WithPeerStateChan(this.peerStateChan),
 	}
-	component := new(NetComponent)
-	component.Net = this
-	builder.AddComponent(component)
-	builder.AddComponent(keepalive.New(options...))
+	this.keepalive = keepalive.New(options...)
+	builder.AddComponent(this.keepalive)
+
+	// add backoff
 	backoff_options := []backoff.ComponentOption{
 		backoff.WithInitialDelay(3 * time.Second),
 		backoff.WithMaxAttempts(10),
@@ -191,18 +194,8 @@ func (this *Network) Start(address string) error {
 	}
 	this.backOff = backoff.New(backoff_options...)
 	builder.AddComponent(this.backOff)
-	if len(this.proxyAddr) > 0 {
-		switch protocol {
-		case "udp":
-			builder.AddComponent(new(proxy.UDPProxyComponent))
-		case "kcp":
-			builder.AddComponent(new(proxy.KCPProxyComponent))
-		case "quic":
-			builder.AddComponent(new(proxy.QuicProxyComponent))
-		case "tcp":
-			builder.AddComponent(new(proxy.TcpProxyComponent))
-		}
-	}
+	this.AddProxyComponents(builder)
+
 	var err error
 	this.P2p, err = builder.Build()
 	if err != nil {
@@ -218,34 +211,90 @@ func (this *Network) Start(address string) error {
 		}
 		opcode.RegisterMessageType(opcode.Opcode(common.MSG_OP_CODE), &pb.Message{})
 	})
-	log.Debugf("this.proxyAddr %s", this.proxyAddr)
-	if len(this.proxyAddr) > 0 {
+
+	if len(config.Parameters.BaseConfig.NATProxyServerAddrs) > 0 {
 		this.P2p.EnableProxyMode(true)
-		this.P2p.SetProxyServer(this.proxyAddr)
+		this.P2p.SetProxyServer(config.Parameters.BaseConfig.NATProxyServerAddrs)
 	}
+
 	this.P2p.SetNetworkID(config.Parameters.BaseConfig.NetworkId)
 	go this.P2p.Listen()
-	go this.PeerStateChange(this.syncPeerState)
-
+	// go this.PeerStateChange(this.syncPeerState)
 	this.P2p.BlockUntilListening()
-	log.Debugf("channel will BlockUntilProxyFinish..., networkid %d", config.Parameters.BaseConfig.NetworkId)
-	if len(this.proxyAddr) > 0 {
-		switch protocol {
-		case "udp":
-			this.P2p.BlockUntilUDPProxyFinish()
-		case "kcp":
-			this.P2p.BlockUntilKCPProxyFinish()
-		case "quic":
-			this.P2p.BlockUntilQuicProxyFinish()
-		case "tcp":
-			this.P2p.BlockUntilTcpProxyFinish()
-		}
+	err = this.StartProxy(builder)
+	if err != nil {
+		return err
 	}
-	log.Debugf("finish BlockUntilProxyFinish...")
 	if len(this.P2p.ID.Address) == 6 {
 		return errors.New("invalid address")
 	}
 	return nil
+}
+
+func (this *Network) AddProxyComponents(builder *network.Builder) {
+	servers := strings.Split(config.Parameters.BaseConfig.NATProxyServerAddrs, ",")
+	hasAdd := make(map[string]struct{})
+	for _, proxyAddr := range servers {
+		if len(proxyAddr) == 0 {
+			continue
+		}
+		protocol := getProtocolFromAddr(proxyAddr)
+		_, ok := hasAdd[protocol]
+		if ok {
+			continue
+		}
+		switch protocol {
+		case "udp":
+			builder.AddComponent(new(proxy.UDPProxyComponent))
+		case "kcp":
+			builder.AddComponent(new(proxy.KCPProxyComponent))
+		case "quic":
+			builder.AddComponent(new(proxy.QuicProxyComponent))
+		case "tcp":
+			builder.AddComponent(new(proxy.TcpProxyComponent))
+		}
+		hasAdd[protocol] = struct{}{}
+	}
+}
+
+func (this *Network) StartProxy(builder *network.Builder) error {
+	var err error
+	log.Debugf("NATProxyServerAddrs :%v", config.Parameters.BaseConfig.NATProxyServerAddrs)
+	servers := strings.Split(config.Parameters.BaseConfig.NATProxyServerAddrs, ",")
+	for _, proxyAddr := range servers {
+		if len(proxyAddr) == 0 {
+			continue
+		}
+		this.P2p.EnableProxyMode(true)
+		this.P2p.SetProxyServer(proxyAddr)
+		protocol := getProtocolFromAddr(proxyAddr)
+		log.Debugf("start proxy will blocking...%s %s, networkId: %d", protocol, proxyAddr, config.Parameters.BaseConfig.NetworkId)
+		done := make(chan struct{}, 1)
+		go func() {
+			switch protocol {
+			case "udp":
+				this.P2p.BlockUntilUDPProxyFinish()
+			case "kcp":
+				this.P2p.BlockUntilKCPProxyFinish()
+			case "quic":
+				this.P2p.BlockUntilQuicProxyFinish()
+			case "tcp":
+				this.P2p.BlockUntilTcpProxyFinish()
+			}
+			done <- struct{}{}
+		}()
+		select {
+		case <-done:
+			this.proxyAddr = proxyAddr
+			log.Debugf("start proxy finish, publicAddr: %s", this.P2p.ID.Address)
+			return nil
+		case <-time.After(time.Minute):
+			err = fmt.Errorf("proxy: %s timeout", proxyAddr)
+			log.Debugf("start proxy err :%s", err)
+			break
+		}
+	}
+	return err
 }
 
 func (this *Network) Stop() {
@@ -288,17 +337,20 @@ func (this *Network) ConnectAndWait(addr string) error {
 	return nil
 }
 
+func (this *Network) GetPeerStateByAddress(addr string) (keepalive.PeerState, error) {
+	return this.keepalive.GetPeerStateByAddress(addr)
+}
+
 func (this *Network) WaitForConnected(addr string, timeout time.Duration) error {
-	log.Debugf("[DSPNetwork] WaitForConnected")
 	interval := time.Duration(1) * time.Second
 	secs := int(timeout / interval)
 	if secs <= 0 {
 		secs = 1
 	}
 	for i := 0; i < secs; i++ {
-		_, ok := this.ActivePeers.Load(addr)
-		log.Debugf("active peer %s ok %t", addr, ok)
-		if ok {
+		state, _ := this.GetPeerStateByAddress(addr)
+		log.Debugf("this.keepalive: %p, GetPeerStateByAddress state addr:%s, :%d", this.keepalive, addr, state)
+		if state == keepalive.PEER_REACHABLE {
 			return nil
 		}
 		<-time.After(interval)
@@ -347,7 +399,11 @@ func (this *Network) IsConnectionExists(addr string) bool {
 // Send send msg to peer asynchronous
 // peer can be addr(string) or client(*network.peerClient)
 func (this *Network) Send(msg proto.Message, toAddr string) error {
-	if _, ok := this.ActivePeers.Load(toAddr); !ok {
+	// if _, ok := this.ActivePeers.Load(toAddr); !ok {
+	// 	return fmt.Errorf("can not send to inactive peer %s", toAddr)
+	// }
+	state, _ := this.keepalive.GetPeerStateByAddress(toAddr)
+	if state != keepalive.PEER_REACHABLE {
 		return fmt.Errorf("can not send to inactive peer %s", toAddr)
 	}
 	signed, err := this.P2p.PrepareMessage(context.Background(), msg)
@@ -548,8 +604,17 @@ func (this *Network) Receive(ctx *network.ComponentContext, message proto.Messag
 	return nil
 }
 
+func getProtocolFromAddr(addr string) string {
+	idx := strings.Index(addr, "://")
+	if idx == -1 {
+		return "tcp"
+	}
+	return addr[:idx]
+}
+
 func (this *Network) syncPeerState(state *keepalive.PeerStateEvent) {
 	var nodeNetworkState string
+
 	log.Debugf("[syncPeerState] addr: %s state: %v", state.Address, state.State)
 	switch state.State {
 	case keepalive.PEER_REACHABLE:

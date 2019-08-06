@@ -48,9 +48,9 @@ type BaseConfig struct {
 	ChainRestAddrs []string `json:"ChainRestAddrs"`
 	ChainRpcAddrs  []string `json:"ChainRpcAddrs"`
 
-	NATProxyServerAddr string `json:"NATProxyServerAddr"`
-	DspProtocol        string `json:"DspProtocol"`
-	DspPortOffset      int    `json:"DspPortOffset"`
+	NATProxyServerAddrs string `json:"NATProxyServerAddrs"`
+	DspProtocol         string `json:"DspProtocol"`
+	DspPortOffset       int    `json:"DspPortOffset"`
 
 	AutoSetupDNSEnable bool     `json:"AutoSetupDNSEnable"`
 	TrackerPortOffset  int      `json:"TrackerPortOffset"`
@@ -117,7 +117,7 @@ func TestConfig() *DspConfig {
 			DBPath:               "./DB",
 			ChainRestAddrs:       []string{"http://127.0.0.1:20334"},
 			ChainRpcAddrs:        []string{"http://127.0.0.1:20336"},
-			NATProxyServerAddr:   "udp://40.73.100.114:6008",
+			NATProxyServerAddrs:  "udp://40.73.100.114:6008",
 			DspProtocol:          "udp",
 			DspPortOffset:        201,
 			AutoSetupDNSEnable:   true,
