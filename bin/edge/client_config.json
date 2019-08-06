@@ -40,7 +40,7 @@
       "http://221.179.156.57:15336",
       "http://221.179.156.57:16336"
     ],
-    "NATProxyServerAddr": "tcp://40.73.100.114:6007",
+    "NATProxyServerAddrs": "tcp://40.73.103.72:6007,tcp://40.73.100.114:6007",
     "DspProtocol": "tcp",
     "DspPortOffset": 4024,
     "AutoSetupDNSEnable": true,

@@ -261,6 +261,9 @@ func (this *Network) StartProxy(builder *network.Builder) error {
 	var err error
 	log.Debugf("NATProxyServerAddrs :%v", config.Parameters.BaseConfig.NATProxyServerAddrs)
 	servers := strings.Split(config.Parameters.BaseConfig.NATProxyServerAddrs, ",")
+	if len(config.Parameters.BaseConfig.NATProxyServerAddrs) > 0 && len(servers) == 0 {
+		return fmt.Errorf("invalid proxy config: %s", config.Parameters.BaseConfig.NATProxyServerAddrs)
+	}
 	for _, proxyAddr := range servers {
 		if len(proxyAddr) == 0 {
 			continue
@@ -399,9 +402,10 @@ func (this *Network) IsConnectionExists(addr string) bool {
 // Send send msg to peer asynchronous
 // peer can be addr(string) or client(*network.peerClient)
 func (this *Network) Send(msg proto.Message, toAddr string) error {
-	// if _, ok := this.ActivePeers.Load(toAddr); !ok {
-	// 	return fmt.Errorf("can not send to inactive peer %s", toAddr)
-	// }
+	err := this.healthCheckProxyServer()
+	if err != nil {
+		return err
+	}
 	state, _ := this.keepalive.GetPeerStateByAddress(toAddr)
 	if state != keepalive.PEER_REACHABLE {
 		return fmt.Errorf("can not send to inactive peer %s", toAddr)
@@ -421,6 +425,10 @@ func (this *Network) Send(msg proto.Message, toAddr string) error {
 
 // Request. send msg to peer and wait for response synchronously with timeout
 func (this *Network) Request(msg proto.Message, peer string) (proto.Message, error) {
+	err := this.healthCheckProxyServer()
+	if err != nil {
+		return nil, err
+	}
 	client := this.P2p.GetPeerClient(peer)
 	if client == nil {
 		return nil, fmt.Errorf("get peer client is nil %s", peer)
@@ -432,12 +440,16 @@ func (this *Network) Request(msg proto.Message, peer string) (proto.Message, err
 
 // RequestWithRetry. send msg to peer and wait for response synchronously
 func (this *Network) RequestWithRetry(msg proto.Message, peer string, retry int) (proto.Message, error) {
+	var err error
+	err = this.healthCheckProxyServer()
+	if err != nil {
+		return nil, err
+	}
 	client := this.P2p.GetPeerClient(peer)
 	if client == nil {
 		return nil, fmt.Errorf("get peer client is nil %s", peer)
 	}
 	var res proto.Message
-	var err error
 	for i := 0; i < retry; i++ {
 		log.Debugf("send request msg to %s with retry %d", peer, i)
 		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(common.REQUEST_MSG_TIMEOUT)*time.Second)
@@ -457,6 +469,10 @@ func (this *Network) RequestWithRetry(msg proto.Message, peer string, retry int)
 // If one msg is sent failed, return err. But the previous success msgs can not be recalled.
 // callback(responseMsg, responseToAddr).
 func (this *Network) Broadcast(addrs []string, msg proto.Message, needReply bool, stop func() bool, callback func(proto.Message, string)) (map[string]error, error) {
+	err := this.healthCheckProxyServer()
+	if err != nil {
+		return nil, err
+	}
 	log.Debugf("[DSPNetwork] broadcast")
 	maxRoutines := common.MAX_GOROUTINES_IN_LOOP
 	if len(addrs) <= common.MAX_GOROUTINES_IN_LOOP {
@@ -635,4 +651,27 @@ func (this *Network) syncPeerState(state *keepalive.PeerStateEvent) {
 		}
 		this.backOff.PeerDisconnect(client)
 	}
+}
+
+func (this *Network) healthCheckProxyServer() error {
+	if len(this.proxyAddr) == 0 {
+		return nil
+	}
+	proxyState, err := this.GetPeerStateByAddress(this.proxyAddr)
+	if err != nil {
+		return err
+	}
+	if proxyState == keepalive.PEER_REACHABLE {
+		return nil
+	}
+	client := this.P2p.GetPeerClient(this.proxyAddr)
+	if client == nil {
+		return fmt.Errorf("get peer client is nil: %s", this.proxyAddr)
+	}
+	this.backOff.PeerDisconnect(client)
+	proxyState, err = this.GetPeerStateByAddress(this.proxyAddr)
+	if err != nil || proxyState != keepalive.PEER_REACHABLE {
+		return fmt.Errorf("back off proxy failed state: %d, err: %s", proxyState, err)
+	}
+	return nil
 }
