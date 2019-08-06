@@ -72,7 +72,7 @@ type Transfer struct {
 	Result         interface{} `json:",omitempty"`
 	ErrorCode      uint64
 	ErrMsg         string `json:",omitempty"`
-	StoreType      fs.FileStoreType
+	StoreType      uint64
 }
 
 type TransferlistResp struct {
@@ -737,7 +737,6 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint64) 
 			continue
 		}
 		pInfo := this.getTransferDetail(pType, info)
-		// log.Debugf("get pinfo  %v of %v", pInfo, key)
 		if pInfo == nil {
 			continue
 		}
@@ -748,14 +747,6 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint64) 
 		if off < offset {
 			off++
 			continue
-		}
-		// log.Debugf("#%d set transfer type %d info.FileHash %v, fileName %s, progress:%v, result %v, err %s, status %d", idx, pType, pInfo.FileHash, pInfo.FileName, pInfo.Progress, pInfo.Result, pInfo.ErrMsg, pInfo.Status)
-		if pType == transferTypeUploading {
-			pInfo.StoreType = fs.FileStoreTypeNormal
-			fileInfo, _ := this.Dsp.Chain.Native.Fs.GetFileInfo(info.FileHash)
-			if fileInfo != nil && fileInfo.StorageType != fs.FileStorageTypeUseSpace {
-				pInfo.StoreType = fs.FileStoreTypeProfessional
-			}
 		}
 		infos = append(infos, pInfo)
 		off++
@@ -1494,6 +1485,7 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 		FileName:     info.FileName,
 		Path:         info.FilePath,
 		Type:         pType,
+		StoreType:    info.StoreType,
 		Status:       info.TaskState,
 		DetailStatus: info.ProgressState,
 		FileSize:     info.Total * dspCom.CHUNK_SIZE / 1024,
