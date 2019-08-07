@@ -265,12 +265,13 @@ func (this *Endpoint) SetupDNSNodeBackground() {
 	allChannels := this.Dsp.Channel.GetAllPartners()
 	log.Debugf("setup dns node len %v", len(allChannels))
 	setup := func() bool {
-		progress, derr := this.GetFilterBlockProgress()
+		syncing, derr := this.IsChannelProcessBlocks()
+		// progress, derr := this.GetFilterBlockProgress()
 		if derr != nil {
-			log.Errorf("setup dns failed filter block err %s", derr)
+			log.Errorf("setup dns channel syncing block err %s", derr)
 			return false
 		}
-		if progress.Progress != 1.0 {
+		if syncing {
 			log.Debugf("setup dns wait for init channel")
 			return false
 		}
