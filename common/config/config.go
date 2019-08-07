@@ -58,6 +58,7 @@ type BaseConfig struct {
 	SeedInterval       int      `json:"SeedInterval"`
 	DnsChannelDeposit  uint64   `json:"DnsChannelDeposit"`
 	Trackers           []string `json:"Trackers"`
+	DNSWalletAddrs     []string `json:"DNSWalletAddrs"`
 
 	WalletPwd string `json:"WalletPwd"`
 	WalletDir string `json:"WalletDir"`

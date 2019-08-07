@@ -112,6 +112,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		SeedInterval:         config.Parameters.BaseConfig.SeedInterval,
 		DnsChannelDeposit:    config.Parameters.BaseConfig.DnsChannelDeposit,
 		Trackers:             config.Parameters.BaseConfig.Trackers,
+		DNSWalletAddrs:       config.Parameters.BaseConfig.DNSWalletAddrs,
 	}
 	log.Debugf("dspConfig.dbpath %v, repo: %s, channelDB: %s, wallet: %s, enable backup: %t", dspConfig.DBPath, dspConfig.FsRepoRoot, dspConfig.ChannelDBPath, config.WalletDatFilePath(), config.Parameters.FsConfig.EnableBackup)
 	//Skip init fs if Dsp doesn't start listen
