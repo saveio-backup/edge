@@ -95,6 +95,7 @@ func (this *Endpoint) GetAllChannels() (interface{}, *DspErr) {
 	resp := &ChannelInfosResp{}
 	all := this.Dsp.Channel.AllChannels()
 	if all == nil {
+		log.Debugf("dsp get all channel is nil")
 		return nil, nil
 	}
 	resp.Balance = all.Balance
@@ -128,7 +129,7 @@ func (this *Endpoint) GetAllChannels() (interface{}, *DspErr) {
 		}
 		resp.Channels = append(resp.Channels, newch)
 	}
-	log.Debugf("GetAllChannels done")
+	log.Debugf("GetAllChannels done: %s", resp)
 	return resp, nil
 }
 

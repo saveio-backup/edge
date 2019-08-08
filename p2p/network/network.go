@@ -413,9 +413,8 @@ func (this *Network) Send(msg proto.Message, toAddr string) error {
 	if err != nil {
 		return fmt.Errorf("failed to sign message")
 	}
-	log.Debugf("write msg to %s", toAddr)
 	err = this.P2p.Write(toAddr, signed)
-	log.Debugf("write msg done to %s", toAddr)
+	log.Debugf("write msg done sender:%s, to %s, nonce: %d", signed.GetSender().Address, toAddr, signed.GetMessageNonce())
 	if err != nil {
 		return fmt.Errorf("failed to send message to %s", toAddr)
 	}

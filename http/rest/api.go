@@ -414,7 +414,7 @@ func AssetTransferDirect(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
-	_, derr := dsp.DspService.GetAccount(dsp.DspService.GetWallatFilePath(), password)
+	_, derr := dsp.DspService.GetAccount(dsp.DspService.GetWalletFilePath(), password)
 	if derr != nil {
 		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
 	}
@@ -463,7 +463,7 @@ func InvokeSmartContract(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
-	_, derr := dsp.DspService.GetAccount(dsp.DspService.GetWallatFilePath(), password)
+	_, derr := dsp.DspService.GetAccount(dsp.DspService.GetWalletFilePath(), password)
 	if derr != nil {
 		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
 	}

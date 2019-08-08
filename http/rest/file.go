@@ -465,7 +465,7 @@ func SetUserSpace(cmd map[string]interface{}) map[string]interface{} {
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
-	_, derr := dsp.DspService.GetAccount(dsp.DspService.GetWallatFilePath(), password)
+	_, derr := dsp.DspService.GetAccount(dsp.DspService.GetWalletFilePath(), password)
 	if derr != nil {
 		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
 	}
@@ -622,7 +622,7 @@ func CancelUploadFile(cmd map[string]interface{}) map[string]interface{} {
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
-	_, derr := dsp.DspService.GetAccount(dsp.DspService.GetWallatFilePath(), password)
+	_, derr := dsp.DspService.GetAccount(dsp.DspService.GetWalletFilePath(), password)
 	if derr != nil {
 		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
 	}

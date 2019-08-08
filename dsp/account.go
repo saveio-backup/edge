@@ -32,7 +32,7 @@ func (this *Endpoint) AccountExists() bool {
 	return false
 }
 
-func (this *Endpoint) GetWallatFilePath() string {
+func (this *Endpoint) GetWalletFilePath() string {
 	return config.WalletDatFilePath()
 }
 
