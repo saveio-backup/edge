@@ -19,11 +19,11 @@ w-dsp:
 
 l-dsp:
 	$(eval GITCOMMIT=$(shell git log -1 --pretty=format:"%H"))
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GC) $(BUILD_EDGE_PAR) -o edge-linux-amd64 ./bin/edge/main.go
+	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 $(GC) $(BUILD_EDGE_PAR) -o edge-linux-amd64 ./bin/edge/main.go
 
 d-dsp:
 	$(eval GITCOMMIT=$(shell git log -1 --pretty=format:"%H"))
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(GC) $(BUILD_EDGE_PAR) -o edge-darwin-amd64 ./bin/edge/main.go
+	CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 $(GC) $(BUILD_EDGE_PAR) -o edge-darwin-amd64 ./bin/edge/main.go
 
 format:
 	$(GOFMT) -w main.go
