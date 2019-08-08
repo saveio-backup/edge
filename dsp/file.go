@@ -59,6 +59,7 @@ type Transfer struct {
 	Type           TransferType
 	Status         task.TaskState
 	DetailStatus   task.TaskProgressState
+	CopyNum        uint64
 	Path           string
 	IsUploadAction bool
 	UploadSize     uint64
@@ -332,7 +333,13 @@ func (this *Endpoint) PauseUploadFile(taskIds []string) *FileTaskResp {
 			taskResp.Code = DSP_PAUSE_UPLOAD_FAIELD
 			taskResp.Error = err.Error()
 		}
-		taskResp.State = int(this.Dsp.GetTaskState(id))
+		state, err := this.Dsp.GetTaskState(id)
+		if err != nil {
+			taskResp.Code = DSP_RESUME_UPLOAD_FAIELD
+			taskResp.Error = err.Error()
+			log.Errorf("pause upload failed %s", err)
+		}
+		taskResp.State = int(state)
 		resp.Tasks = append(resp.Tasks, taskResp)
 	}
 	return resp
@@ -354,12 +361,18 @@ func (this *Endpoint) ResumeUploadFile(taskIds []string) *FileTaskResp {
 			continue
 		}
 		err := this.Dsp.ResumeUpload(id)
-		log.Errorf("resume upload err %v", err)
+		log.Debugf("resume upload err %v", err)
 		if err != nil {
 			taskResp.Code = DSP_RESUME_UPLOAD_FAIELD
 			taskResp.Error = err.Error()
 		}
-		taskResp.State = int(this.Dsp.GetTaskState(id))
+		state, err := this.Dsp.GetTaskState(id)
+		if err != nil {
+			taskResp.Code = DSP_RESUME_UPLOAD_FAIELD
+			taskResp.Error = err.Error()
+			log.Errorf("resume upload failed %s", err)
+		}
+		taskResp.State = int(state)
 		resp.Tasks = append(resp.Tasks, taskResp)
 	}
 	return resp
@@ -385,7 +398,13 @@ func (this *Endpoint) RetryUploadFile(taskIds []string) *FileTaskResp {
 			taskResp.Code = DSP_RETRY_UPLOAD_FAIELD
 			taskResp.Error = err.Error()
 		}
-		taskResp.State = int(this.Dsp.GetTaskState(id))
+		state, err := this.Dsp.GetTaskState(id)
+		if err != nil {
+			taskResp.Code = DSP_RETRY_UPLOAD_FAIELD
+			taskResp.Error = err.Error()
+			log.Errorf("retry upload failed %s", err)
+		}
+		taskResp.State = int(state)
 		resp.Tasks = append(resp.Tasks, taskResp)
 	}
 	return resp
@@ -567,7 +586,13 @@ func (this *Endpoint) PauseDownloadFile(taskIds []string) *FileTaskResp {
 			taskResp.Code = DSP_PAUSE_DOWNLOAD_FAIELD
 			taskResp.Error = err.Error()
 		}
-		taskResp.State = int(this.Dsp.GetTaskState(id))
+		state, err := this.Dsp.GetTaskState(id)
+		if err != nil {
+			taskResp.Code = DSP_PAUSE_DOWNLOAD_FAIELD
+			taskResp.Error = err.Error()
+			log.Errorf("pause download failed %s", err)
+		}
+		taskResp.State = int(state)
 		resp.Tasks = append(resp.Tasks, taskResp)
 	}
 	return resp
@@ -593,7 +618,13 @@ func (this *Endpoint) ResumeDownloadFile(taskIds []string) *FileTaskResp {
 			taskResp.Code = DSP_RESUME_DOWNLOAD_FAIELD
 			taskResp.Error = err.Error()
 		}
-		taskResp.State = int(this.Dsp.GetTaskState(id))
+		state, err := this.Dsp.GetTaskState(id)
+		if err != nil {
+			taskResp.Code = DSP_RESUME_DOWNLOAD_FAIELD
+			taskResp.Error = err.Error()
+			log.Errorf("resume download failed %s", err)
+		}
+		taskResp.State = int(state)
 		resp.Tasks = append(resp.Tasks, taskResp)
 	}
 	return resp
@@ -620,7 +651,13 @@ func (this *Endpoint) RetryDownloadFile(taskIds []string) *FileTaskResp {
 			taskResp.Error = err.Error()
 			log.Errorf("retry download failed %s", err)
 		}
-		taskResp.State = int(this.Dsp.GetTaskState(id))
+		state, err := this.Dsp.GetTaskState(id)
+		if err != nil {
+			taskResp.Code = DSP_RETRY_DOWNLOAD_FAIELD
+			taskResp.Error = err.Error()
+			log.Errorf("retry download failed %s", err)
+		}
+		taskResp.State = int(state)
 		resp.Tasks = append(resp.Tasks, taskResp)
 	}
 	return resp
@@ -1470,6 +1507,11 @@ func (this *Endpoint) GetStorageNodesInfo() (map[string]interface{}, *DspErr) {
 }
 
 func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressInfo) *Transfer {
+	// update state by task cache
+	state, err := this.Dsp.GetTaskState(info.TaskId)
+	if err == nil {
+		info.TaskState = state
+	}
 	sum := uint64(0)
 	npros := make([]*NodeProgress, 0)
 	for haddr, cnt := range info.Count {
@@ -1489,6 +1531,7 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 		FileHash:     info.FileHash,
 		FileName:     info.FileName,
 		Path:         info.FilePath,
+		CopyNum:      info.CopyNum,
 		Type:         pType,
 		StoreType:    info.StoreType,
 		Status:       info.TaskState,
