@@ -231,6 +231,9 @@ func (this *Endpoint) GetBalance(address string) ([]*BalanceResp, *DspErr) {
 	if err != nil {
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
 	}
+	if this.Dsp == nil {
+		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
 	usdt, err := this.Dsp.Chain.Native.Usdt.BalanceOf(addr)
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}

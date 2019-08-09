@@ -92,42 +92,66 @@ func (this *Endpoint) GetAllChannels() (interface{}, *DspErr) {
 	if this.Account == nil {
 		return nil, &DspErr{Code: NO_ACCOUNT, Error: ErrMaps[NO_ACCOUNT]}
 	}
-	resp := &ChannelInfosResp{}
-	all := this.Dsp.Channel.AllChannels()
-	if all == nil {
-		log.Debugf("dsp get all channel is nil")
-		return nil, nil
+	if this.Dsp == nil {
+		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
-	resp.Balance = all.Balance
-	resp.BalanceFormat = all.BalanceFormat
+	resp := &ChannelInfosResp{}
+	chResp, err := this.Dsp.Channel.AllChannels()
+	if err != nil {
+		log.Errorf("get all channels err %s", err)
+		return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
+	}
+	if chResp == nil {
+		log.Debugf("dsp get all channel is nil")
+		return resp, nil
+	}
+	resp.Balance = chResp.Balance
+	resp.BalanceFormat = chResp.BalanceFormat
 	resp.Channels = make([]*ChannelInfo, 0)
-	for _, ch := range all.Channels {
-		newch := &ChannelInfo{
+	if len(chResp.Channels) == 0 {
+		log.Errorf("all channel is nil")
+	}
+	for _, ch := range chResp.Channels {
+		hostAddr, _ := this.Dsp.GetExternalIP(ch.Address)
+		chInfo, err := this.Dsp.Chain.Native.Channel.GetChannelInfo(uint64(ch.ChannelId), chainCom.ADDRESS_EMPTY, chainCom.ADDRESS_EMPTY)
+		if err != nil {
+			log.Errorf("get channel info err %s", err)
+		}
+		state1 := 1
+		if chInfo != nil && chInfo.Participant1.IsCloser {
+			state1 = 0
+		}
+		state2 := 1
+		if chInfo != nil && chInfo.Participant2.IsCloser {
+			state2 = 0
+		}
+		newCh := &ChannelInfo{
 			ChannelId:         ch.ChannelId,
 			Balance:           ch.Balance,
 			BalanceFormat:     ch.BalanceFormat,
 			Address:           ch.Address,
-			HostAddr:          ch.HostAddr,
+			HostAddr:          hostAddr,
 			TokenAddr:         ch.TokenAddr,
-			Participant1State: ch.Participant1State,
-			ParticiPant2State: ch.ParticiPant2State,
+			Participant1State: state1,
+			ParticiPant2State: state2,
 		}
-
 		address, err := chainCom.AddressFromBase58(ch.Address)
 		if err != nil {
-			resp.Channels = append(resp.Channels, newch)
+			resp.Channels = append(resp.Channels, newCh)
+			log.Errorf("parse from base58 err %s", err)
 			continue
 		}
 		info, err := this.Dsp.Chain.Native.Dns.GetDnsNodeByAddr(address)
 		if err != nil || info == nil {
-			resp.Channels = append(resp.Channels, newch)
+			resp.Channels = append(resp.Channels, newCh)
+			log.Errorf("err %s, info is nil %v", err, info)
 			continue
 		}
-		newch.IsDNS = true
-		if this.Dsp.DNS.DNSNode != nil && newch.Address == this.Dsp.DNS.DNSNode.WalletAddr {
-			newch.Connected = true
+		newCh.IsDNS = true
+		if this.Dsp.DNS.DNSNode != nil && newCh.Address == this.Dsp.DNS.DNSNode.WalletAddr {
+			newCh.Connected = true
 		}
-		resp.Channels = append(resp.Channels, newch)
+		resp.Channels = append(resp.Channels, newCh)
 	}
 	log.Debugf("GetAllChannels done: %s", resp)
 	return resp, nil

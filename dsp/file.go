@@ -504,7 +504,14 @@ func (this *Endpoint) DownloadFile(fileHash, url, link, password string, max uin
 
 	canDownload := false
 	//[NOTE] when this.QueryChannel works, replace this.GetAllChannels logic
-	all := this.Dsp.Channel.AllChannels()
+	all, getChannelErr := this.Dsp.Channel.AllChannels()
+	if getChannelErr != nil {
+		return &DspErr{Code: INTERNAL_ERROR, Error: getChannelErr}
+	}
+	if all == nil || len(all.Channels) == 0 {
+		return &DspErr{Code: DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH, Error: ErrMaps[DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH]}
+	}
+
 	for _, ch := range all.Channels {
 		if ch.Address == this.Dsp.DNS.DNSNode.WalletAddr && ch.Balance >= fileInfo.Fee {
 			canDownload = true
