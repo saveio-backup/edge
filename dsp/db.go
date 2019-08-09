@@ -13,11 +13,11 @@ const (
 )
 
 func (this *Endpoint) AddProgress(v *task.ProgressInfo) error {
-	existed, err := this.GetProgress(v.TaskId)
+	key := genProgressKey(this.Account.Address.ToBase58(), v.TaskId)
+	existed, err := this.GetProgress(key)
 	if existed != nil && err == nil && existed.Result != nil {
 		return nil
 	}
-	key := genProgressKey(this.Account.Address.ToBase58(), v.TaskId)
 	if existed == nil || err != nil {
 		allTasks := make([]string, 0)
 		listKeys, err := this.db.Get([]byte(PROGRESS_LIST_LEY))
@@ -52,8 +52,7 @@ func genProgressKey(walletAddr, taskId string) string {
 	return fmt.Sprintf("file-progress:%s-%s", walletAddr, taskId)
 }
 
-func (this *Endpoint) GetProgress(taskId string) (*task.ProgressInfo, error) {
-	key := genProgressKey(this.Account.Address.ToBase58(), taskId)
+func (this *Endpoint) GetProgress(key string) (*task.ProgressInfo, error) {
 	buf, err := this.db.Get([]byte(key))
 	if err != nil {
 		return nil, err
