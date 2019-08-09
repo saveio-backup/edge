@@ -2,12 +2,13 @@ package dsp
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/saveio/dsp-go-sdk/task"
 )
 
 const (
-	PROGRESS_LIST_LEY = "edges:progressinfo-listkey:"
+	PROGRESS_LIST_LEY = "edges:progress-info-listkey:"
 	FILE_HASH_URL_LEY = "edges:file-hash-urlkey:"
 )
 
@@ -16,6 +17,7 @@ func (this *Endpoint) AddProgress(v *task.ProgressInfo) error {
 	if existed != nil && err == nil && existed.Result != nil {
 		return nil
 	}
+	key := genProgressKey(this.Account.Address.ToBase58(), v.TaskId)
 	if existed == nil || err != nil {
 		allTasks := make([]string, 0)
 		listKeys, err := this.db.Get([]byte(PROGRESS_LIST_LEY))
@@ -25,7 +27,7 @@ func (this *Endpoint) AddProgress(v *task.ProgressInfo) error {
 				allTasks = make([]string, 0)
 			}
 		}
-		allTasks = append([]string{v.TaskId}, allTasks...)
+		allTasks = append([]string{key}, allTasks...)
 		allTaskBuf, err := json.Marshal(allTasks)
 		if err != nil {
 			return err
@@ -39,15 +41,20 @@ func (this *Endpoint) AddProgress(v *task.ProgressInfo) error {
 	if err != nil {
 		return err
 	}
-	err = this.db.Put([]byte(v.TaskId), progressBuf)
+	err = this.db.Put([]byte(key), progressBuf)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
+func genProgressKey(walletAddr, taskId string) string {
+	return fmt.Sprintf("file-progress:%s-%s", walletAddr, taskId)
+}
+
 func (this *Endpoint) GetProgress(taskId string) (*task.ProgressInfo, error) {
-	buf, err := this.db.Get([]byte(taskId))
+	key := genProgressKey(this.Account.Address.ToBase58(), taskId)
+	buf, err := this.db.Get([]byte(key))
 	if err != nil {
 		return nil, err
 	}
@@ -60,29 +67,30 @@ func (this *Endpoint) GetProgress(taskId string) (*task.ProgressInfo, error) {
 }
 
 func (this *Endpoint) DeleteProgress(taskIds []string) error {
-	allTasks := make([]string, 0)
+	allProgressId := make([]string, 0)
 	listKeys, err := this.db.Get([]byte(PROGRESS_LIST_LEY))
 	if err == nil || len(listKeys) > 0 {
-		err = json.Unmarshal(listKeys, &allTasks)
+		err = json.Unmarshal(listKeys, &allProgressId)
 		if err != nil {
 			return err
 		}
 	}
-	taskIdM := make(map[string]struct{}, 0)
+	keyM := make(map[string]struct{}, 0)
 	this.db.NewBatch()
 	for _, taskId := range taskIds {
-		taskIdM[taskId] = struct{}{}
-		this.db.BatchDelete([]byte(taskId))
+		key := genProgressKey(this.Account.Address.ToBase58(), taskId)
+		keyM[key] = struct{}{}
+		this.db.BatchDelete([]byte(key))
 	}
-	newTaskIds := make([]string, 0, len(allTasks)-len(taskIds))
-	for _, id := range allTasks {
-		_, ok := taskIdM[id]
+	newProgressIds := make([]string, 0, len(allProgressId)-len(taskIds))
+	for _, id := range allProgressId {
+		_, ok := keyM[id]
 		if ok {
 			continue
 		}
-		newTaskIds = append(newTaskIds, id)
+		newProgressIds = append(newProgressIds, id)
 	}
-	newTaskBuf, err := json.Marshal(newTaskIds)
+	newTaskBuf, err := json.Marshal(newProgressIds)
 	if err != nil {
 		return err
 	}
