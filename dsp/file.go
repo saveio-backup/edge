@@ -1020,6 +1020,7 @@ func (this *Endpoint) GetFileShareIncome(start, end, offset, limit uint64) (*Fil
 		if info != nil {
 			fileName = info.FileName
 		}
+		// TODO: get owner from DB
 		fileInfo, _ := this.Dsp.Chain.Native.Fs.GetFileInfo(record.FileHash)
 		owner := ""
 		if fileInfo != nil {
