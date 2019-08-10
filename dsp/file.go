@@ -762,7 +762,6 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint64) 
 	if err != nil {
 		return resp
 	}
-	// log.Debugf("allTasksKey :%v", allTasksKey)
 	for idx, key := range allTasksKey {
 		info, err := this.GetProgress(key)
 		if err != nil {
@@ -1515,10 +1514,12 @@ func (this *Endpoint) GetStorageNodesInfo() (map[string]interface{}, *DspErr) {
 }
 
 func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressInfo) *Transfer {
-	// update state by task cache
-	state, err := this.Dsp.GetTaskState(info.TaskId)
-	if err == nil {
-		info.TaskState = state
+	if info.TaskState != task.TaskStateDone && info.TaskState != task.TaskStateFailed {
+		// update state by task cache
+		state, err := this.Dsp.GetTaskState(info.TaskId)
+		if err == nil {
+			info.TaskState = state
+		}
 	}
 	sum := uint64(0)
 	npros := make([]*NodeProgress, 0)
