@@ -262,6 +262,9 @@ func GetBalance(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
+	if dsp.DspService == nil {
+		return ResponsePackWithErrMsg(dsp.NO_DSP, dsp.ErrMaps[dsp.NO_DSP].Error())
+	}
 	balance, err := dsp.DspService.GetBalance(addrBase58)
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())

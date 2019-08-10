@@ -75,11 +75,11 @@ func (this *Endpoint) DeleteProgress(taskIds []string) error {
 		}
 	}
 	keyM := make(map[string]struct{}, 0)
-	this.db.NewBatch()
+	batch := this.db.NewBatch()
 	for _, taskId := range taskIds {
 		key := genProgressKey(this.Account.Address.ToBase58(), taskId)
 		keyM[key] = struct{}{}
-		this.db.BatchDelete([]byte(key))
+		this.db.BatchDelete(batch, []byte(key))
 	}
 	newProgressIds := make([]string, 0, len(allProgressId)-len(taskIds))
 	for _, id := range allProgressId {
@@ -93,8 +93,8 @@ func (this *Endpoint) DeleteProgress(taskIds []string) error {
 	if err != nil {
 		return err
 	}
-	this.db.BatchPut([]byte(PROGRESS_LIST_LEY), newTaskBuf)
-	err = this.db.BatchCommit()
+	this.db.BatchPut(batch, []byte(PROGRESS_LIST_LEY), newTaskBuf)
+	err = this.db.BatchCommit(batch)
 	return err
 }
 
