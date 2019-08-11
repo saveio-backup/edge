@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/saveio/dsp-go-sdk/task"
+	"github.com/saveio/themis/common/log"
 )
 
 const (
@@ -18,30 +19,43 @@ func (this *Endpoint) AddProgress(v *task.ProgressInfo) error {
 	if existed != nil && err == nil && existed.Result != nil {
 		return nil
 	}
-	if existed == nil || err != nil {
-		allTasks := make([]string, 0)
-		listKeys, err := this.db.Get([]byte(PROGRESS_LIST_LEY))
-		if err == nil || len(listKeys) > 0 {
-			err = json.Unmarshal(listKeys, &allTasks)
-			if err != nil {
-				allTasks = make([]string, 0)
-			}
-		}
-		allTasks = append([]string{key}, allTasks...)
-		allTaskBuf, err := json.Marshal(allTasks)
-		if err != nil {
-			return err
-		}
-		err = this.db.Put([]byte(PROGRESS_LIST_LEY), allTaskBuf)
-		if err != nil {
-			return err
-		}
-	}
 	progressBuf, err := json.Marshal(v)
 	if err != nil {
 		return err
 	}
 	err = this.db.Put([]byte(key), progressBuf)
+	if err != nil {
+		return err
+	}
+	if existed != nil && err == nil {
+		return nil
+	}
+	allTasks := make([]string, 0)
+	listKeys, err := this.db.Get([]byte(PROGRESS_LIST_LEY))
+	if err == nil || len(listKeys) > 0 {
+		err = json.Unmarshal(listKeys, &allTasks)
+		if err != nil {
+			allTasks = make([]string, 0)
+		}
+	}
+	keyHasExist := false
+	for _, k := range allTasks {
+		if k == key {
+			keyHasExist = true
+			break
+		}
+	}
+	if keyHasExist {
+		log.Warn("progress key has exists")
+		return nil
+	}
+	allTasks = append([]string{key}, allTasks...)
+	log.Debugf("add task : %s %t", key, keyHasExist)
+	allTaskBuf, err := json.Marshal(allTasks)
+	if err != nil {
+		return err
+	}
+	err = this.db.Put([]byte(PROGRESS_LIST_LEY), allTaskBuf)
 	if err != nil {
 		return err
 	}

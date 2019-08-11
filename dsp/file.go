@@ -769,7 +769,6 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint64) 
 			continue
 		}
 		if len(info.TaskId) == 0 {
-			// log.Warnf("task id is empty")
 			continue
 		}
 		if pType == transferTypeUploading && info.Type != task.TaskTypeUpload {
@@ -1581,18 +1580,24 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 				return nil
 			}
 			pInfo.UploadSize = sum * dspCom.CHUNK_SIZE / 1024
+			if pInfo.UploadSize == 0 {
+				return nil
+			}
 			if pInfo.Status != task.TaskStateDone && pInfo.FileSize > 0 && pInfo.UploadSize == pInfo.FileSize*uint64(len(pInfo.Nodes)) {
+				log.Warnf("task:%s taskstate is %d, status:%d, but it has done", info.TaskId, info.TaskState, pInfo.Status)
 				pInfo.Status = task.TaskStateDone
-				log.Warn("task:%s taskstate is %d, but it has done", info.TaskId, info.TaskState)
 			}
 			if len(pInfo.Nodes) > 0 && pInfo.FileSize > 0 {
 				pInfo.Progress = (float64(pInfo.UploadSize) / float64(pInfo.FileSize)) / float64(len(pInfo.Nodes))
 			}
 		} else if info.Type == task.TaskTypeDownload {
 			pInfo.DownloadSize = sum * dspCom.CHUNK_SIZE / 1024
+			if pInfo.DownloadSize == 0 {
+				return nil
+			}
 			if pInfo.Status != task.TaskStateDone && pInfo.FileSize > 0 && pInfo.DownloadSize == pInfo.FileSize {
 				pInfo.Status = task.TaskStateDone
-				log.Warn("task:%s taskstate is %d, but it has done", info.TaskId, info.TaskState)
+				log.Warnf("task:%s taskstate is %d, but it has done", info.TaskId, info.TaskState)
 			}
 			if pInfo.FileSize > 0 {
 				pInfo.Progress = float64(pInfo.DownloadSize) / float64(pInfo.FileSize)
