@@ -765,7 +765,7 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint64) 
 	for idx, key := range allTasksKey {
 		info, err := this.GetProgress(key)
 		if err != nil {
-			log.Errorf("get progress failed %d for %s info %v err %s", idx, key, info, err)
+			log.Warnf("get progress failed %d for %s info %v err %s", idx, key, info, err)
 			continue
 		}
 		if len(info.TaskId) == 0 {
