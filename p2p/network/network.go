@@ -20,6 +20,7 @@ import (
 	"github.com/saveio/dsp-go-sdk/network/common"
 	"github.com/saveio/dsp-go-sdk/network/message/pb"
 	dspmsg "github.com/saveio/dsp-go-sdk/network/message/pb"
+	edgeCom "github.com/saveio/edge/common"
 	"github.com/saveio/edge/common/config"
 	act "github.com/saveio/pylons/actor/server"
 	"github.com/saveio/pylons/network/transport/messages"
@@ -88,7 +89,7 @@ type Network struct {
 	addressForHealthCheck *sync.Map
 	handler               func(*network.ComponentContext)
 	backOff               *backoff.Component
-	keepalive             *keepalive.Component
+	// keepalive             *keepalive.Component
 }
 
 func NewP2P() *Network {
@@ -180,8 +181,7 @@ func (this *Network) Start(address string) error {
 		keepalive.WithKeepaliveTimeout(this.keepaliveTimeout),
 		keepalive.WithPeerStateChan(this.peerStateChan),
 	}
-	this.keepalive = keepalive.New(options...)
-	builder.AddComponent(this.keepalive)
+	builder.AddComponent(keepalive.New(options...))
 
 	// add backoff
 	backoff_options := []backoff.ComponentOption{
@@ -224,6 +224,9 @@ func (this *Network) Start(address string) error {
 	}
 	if len(this.P2p.ID.Address) == 6 {
 		return errors.New("invalid address")
+	}
+	if len(config.Parameters.BaseConfig.NATProxyServerAddrs) > 0 {
+		go this.healthCheckProxyService()
 	}
 	return nil
 }
@@ -307,7 +310,7 @@ func (this *Network) Connect(tAddr string) error {
 		return fmt.Errorf("[Connect] this is nil")
 	}
 	peerState, _ := this.GetPeerStateByAddress(tAddr)
-	if peerState == keepalive.PEER_REACHABLE {
+	if peerState == network.PEER_REACHABLE {
 		return nil
 	}
 	if _, ok := this.addressForHealthCheck.Load(tAddr); ok {
@@ -335,8 +338,8 @@ func (this *Network) ConnectAndWait(addr string) error {
 	return nil
 }
 
-func (this *Network) GetPeerStateByAddress(addr string) (keepalive.PeerState, error) {
-	return this.keepalive.GetPeerStateByAddress(addr)
+func (this *Network) GetPeerStateByAddress(addr string) (network.PeerState, error) {
+	return this.P2p.GetRealConnState(addr)
 }
 
 func (this *Network) WaitForConnected(addr string, timeout time.Duration) error {
@@ -347,8 +350,8 @@ func (this *Network) WaitForConnected(addr string, timeout time.Duration) error 
 	}
 	for i := 0; i < secs; i++ {
 		state, _ := this.GetPeerStateByAddress(addr)
-		log.Debugf("this.keepalive: %p, GetPeerStateByAddress state addr:%s, :%d", this.keepalive, addr, state)
-		if state == keepalive.PEER_REACHABLE {
+		log.Debugf("GetPeerStateByAddress state addr:%s, :%d", addr, state)
+		if state == network.PEER_REACHABLE {
 			return nil
 		}
 		<-time.After(interval)
@@ -405,8 +408,8 @@ func (this *Network) Send(msg proto.Message, toAddr string) error {
 	if err != nil {
 		return err
 	}
-	state, _ := this.keepalive.GetPeerStateByAddress(toAddr)
-	if state != keepalive.PEER_REACHABLE {
+	state, _ := this.GetPeerStateByAddress(toAddr)
+	if state != network.PEER_REACHABLE {
 		return fmt.Errorf("can not send to inactive peer %s", toAddr)
 	}
 	signed, err := this.P2p.PrepareMessage(context.Background(), msg)
@@ -606,12 +609,17 @@ func (this *Network) Receive(ctx *network.ComponentContext, message proto.Messag
 	return nil
 }
 
-func getProtocolFromAddr(addr string) string {
-	idx := strings.Index(addr, "://")
-	if idx == -1 {
-		return "tcp"
+func (this *Network) healthCheckProxyService() {
+	ti := time.NewTicker(time.Duration(edgeCom.MAX_HEALTH_CHECK_INTERVAL) * time.Second)
+	for {
+		select {
+		case <-ti.C:
+			this.healthCheckPeer(this.proxyAddr)
+		case <-this.kill:
+			log.Debugf("stop health check proxy service when receive kill")
+			return
+		}
 	}
-	return addr[:idx]
 }
 
 func (this *Network) healthCheckPeer(addr string) error {
@@ -622,7 +630,7 @@ func (this *Network) healthCheckPeer(addr string) error {
 	if err != nil {
 		return err
 	}
-	if proxyState == keepalive.PEER_REACHABLE {
+	if proxyState == network.PEER_REACHABLE {
 		return nil
 	}
 	log.Debugf("health check peer: %s unreachable ", addr)
@@ -641,8 +649,16 @@ func (this *Network) healthCheckPeer(addr string) error {
 		log.Debugf("reconnect peer success: %s", addr)
 	}
 	proxyState, err = this.GetPeerStateByAddress(addr)
-	if err != nil || proxyState != keepalive.PEER_REACHABLE {
+	if err != nil || proxyState != network.PEER_REACHABLE {
 		return fmt.Errorf("back off proxy failed state: %d, err: %s", proxyState, err)
 	}
 	return nil
+}
+
+func getProtocolFromAddr(addr string) string {
+	idx := strings.Index(addr, "://")
+	if idx == -1 {
+		return "tcp"
+	}
+	return addr[:idx]
 }
