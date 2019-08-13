@@ -1122,7 +1122,13 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uin
 
 		expired := fi.ExpiredHeight
 		expiredAt := uint64(time.Now().Unix()) + (expired - uint64(now))
-		updatedAt := uint64(time.Now().Unix()) + (fi.BlockHeight - uint64(now))
+		updatedAt := uint64(time.Now().Unix())
+		if fi.BlockHeight > uint64(now) {
+			updatedAt += (fi.BlockHeight - uint64(now))
+		} else {
+			updatedAt += uint64(now) - fi.BlockHeight
+		}
+		log.Debugf("blockHeight :%d", fi.BlockHeight)
 		url, _ := this.GetUrlFromHash(string(hash.Hash))
 		downloadedCount, _ := this.sqliteDB.CountRecordByFileHash(string(hash.Hash))
 		profit, _ := this.sqliteDB.SumRecordsProfitByFileHash(string(hash.Hash))

@@ -135,19 +135,20 @@ func (this *Endpoint) GetAllChannels() (interface{}, *DspErr) {
 			Participant1State: state1,
 			ParticiPant2State: state2,
 		}
-		address, err := chainCom.AddressFromBase58(ch.Address)
-		if err != nil {
-			resp.Channels = append(resp.Channels, newCh)
-			log.Errorf("parse from base58 err %s", err)
-			continue
-		}
-		info, err := this.Dsp.Chain.Native.Dns.GetDnsNodeByAddr(address)
-		if err != nil || info == nil {
-			resp.Channels = append(resp.Channels, newCh)
-			log.Errorf("err %s, info is nil %v", err, info)
-			continue
-		}
-		newCh.IsDNS = true
+		// TODO: feature to be discussed
+		// address, err := chainCom.AddressFromBase58(ch.Address)
+		// if err != nil {
+		// 	resp.Channels = append(resp.Channels, newCh)
+		// 	log.Errorf("parse from base58 err %s", err)
+		// 	continue
+		// }
+		// info, err := this.Dsp.Chain.Native.Dns.GetDnsNodeByAddr(address)
+		// if err != nil || info == nil {
+		// 	resp.Channels = append(resp.Channels, newCh)
+		// 	log.Errorf("err %s, info is nil %v", err, info)
+		// 	continue
+		// }
+		// newCh.IsDNS = true
 		if this.Dsp.DNS.DNSNode != nil && newCh.Address == this.Dsp.DNS.DNSNode.WalletAddr {
 			newCh.Connected = true
 		}
