@@ -623,20 +623,18 @@ func (this *Network) healthCheckPeer(addr string) error {
 		return nil
 	}
 	proxyState, err := this.GetPeerStateByAddress(addr)
-	if err != nil {
-		return err
-	}
-	if proxyState == network.PEER_REACHABLE {
+	if err == nil && proxyState == network.PEER_REACHABLE {
 		return nil
 	}
-	log.Debugf("health check peer: %s unreachable ", addr)
+	log.Debugf("health check peer: %s unreachable, err: %s ", addr, err)
 	if addr == this.proxyAddr {
-		client := this.P2p.GetPeerClient(this.proxyAddr)
-		if client == nil {
-			return fmt.Errorf("get peer client is nil: %s", this.proxyAddr)
+		log.Debugf("backoff proxy server ....")
+		err = this.P2p.ReconnectProxyServer(this.proxyAddr)
+		if err != nil {
+			log.Errorf("proxy reconnect failed, err %s", err)
+			return err
 		}
-		this.backOff.PeerDisconnect(client)
-		log.Debugf("backoff proxyserver peerDisconnect")
+		log.Debugf("backoff proxyserver success")
 	} else {
 		err := this.P2p.ReconnectPeer(addr)
 		if err != nil {
