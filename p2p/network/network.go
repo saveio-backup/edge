@@ -602,9 +602,14 @@ func (this *Network) Receive(ctx *network.ComponentContext, message proto.Messag
 
 func (this *Network) healthCheckProxyService() {
 	ti := time.NewTicker(time.Duration(edgeCom.MAX_HEALTH_CHECK_INTERVAL) * time.Second)
+	first := false
 	for {
 		select {
 		case <-ti.C:
+			if !first {
+				log.Debugf("start check proxy %s", this.proxyAddr)
+				first = true
+			}
 			this.healthCheckPeer(this.proxyAddr)
 		case <-this.kill:
 			log.Debugf("stop health check proxy service when receive kill")
