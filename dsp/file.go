@@ -182,11 +182,12 @@ type FsContractSettingResp struct {
 }
 
 type FileTask struct {
-	Id     string
-	State  int
-	Result interface{}
-	Code   uint64
-	Error  string
+	Id       string
+	FileName string
+	State    int
+	Result   interface{}
+	Code     uint64
+	Error    string
 }
 
 type FileTaskResp struct {
@@ -416,8 +417,9 @@ func (this *Endpoint) CancelUploadFile(taskIds []string) *FileTaskResp {
 	}
 	for _, id := range taskIds {
 		taskResp := &FileTask{
-			Id:    id,
-			State: int(task.TaskStateCancel),
+			Id:       id,
+			FileName: this.Dsp.GetTaskFileName(id),
+			State:    int(task.TaskStateCancel),
 		}
 		exist := this.Dsp.IsTaskExist(id)
 		if !exist {
@@ -676,7 +678,8 @@ func (this *Endpoint) CancelDownloadFile(taskIds []string) *FileTaskResp {
 	}
 	for _, id := range taskIds {
 		taskResp := &FileTask{
-			Id: id,
+			Id:       id,
+			FileName: this.Dsp.GetTaskFileName(id),
 		}
 		exist := this.Dsp.IsTaskExist(id)
 		if !exist {
