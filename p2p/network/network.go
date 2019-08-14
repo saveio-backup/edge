@@ -601,13 +601,17 @@ func (this *Network) Receive(ctx *network.ComponentContext, message proto.Messag
 
 func (this *Network) healthCheckProxyService() {
 	ti := time.NewTicker(time.Duration(edgeCom.MAX_HEALTH_CHECK_INTERVAL) * time.Second)
-	first := false
+	startedAt := time.Now().Unix()
 	for {
 		select {
 		case <-ti.C:
-			if !first {
-				log.Debugf("start check proxy %s", this.proxyAddr)
-				first = true
+			if (time.Now().Unix()-startedAt)%60 == 0 {
+				proxyState, err := this.GetPeerStateByAddress(this.proxyAddr)
+				if err != nil {
+					log.Errorf("publicAddr: %s, proxy state: %d, err: %s", this.PublicAddr(), proxyState, err)
+				} else {
+					log.Debugf("publicAddr: %s, proxy state: %d", this.PublicAddr(), proxyState)
+				}
 			}
 			this.healthCheckPeer(this.proxyAddr)
 		case <-this.kill:
