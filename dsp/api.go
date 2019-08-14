@@ -161,6 +161,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 			return err
 		}
 		p2pActor.SetDspNetwork(dspNetwork)
+		endpoint.dspNet = dspNetwork
 		endpoint.dspPublicAddr = dspNetwork.PublicAddr()
 		log.Debugf("start dsp at %s", endpoint.dspPublicAddr)
 		// start channel net
@@ -184,6 +185,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		}
 		p2pActor.SetChannelNetwork(channelNetwork)
 		endpoint.channelPublicAddr = channelNetwork.PublicAddr()
+		endpoint.channelNet = channelNetwork
 		log.Debugf("start channel at %s", endpoint.channelPublicAddr)
 		endpoint.updateStorageNodeHost()
 		log.Debugf("update node finished")
@@ -201,8 +203,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 			endpoint.Dsp.PushLocalFilesToTrackers()
 			go dspSrv.StartShareServices()
 		}
-		endpoint.dspNet = dspNetwork
-		endpoint.channelNet = channelNetwork
+
 	}
 	// start channel only
 	if !startListen && startChannel {
