@@ -33,16 +33,18 @@ import (
 var DspService *Endpoint
 
 type Endpoint struct {
-	Dsp          *dsp.Dsp
-	Account      *account.Account
-	AccountLabel string
-	progress     sync.Map
-	db           *store.LevelDBStore // TODO: remove this
-	sqliteDB     *storage.SQLiteStorage
-	closeCh      chan struct{}
-	p2pActor     *p2p_actor.P2PActor
-	dspNet       *network.Network
-	channelNet   *network.Network
+	Dsp               *dsp.Dsp
+	Account           *account.Account
+	AccountLabel      string
+	progress          sync.Map
+	db                *store.LevelDBStore // TODO: remove this
+	sqliteDB          *storage.SQLiteStorage
+	closeCh           chan struct{}
+	p2pActor          *p2p_actor.P2PActor
+	dspNet            *network.Network
+	dspPublicAddr     string
+	channelNet        *network.Network
+	channelPublicAddr string
 }
 
 func Init(walletDir, pwd string) (*Endpoint, error) {
@@ -159,7 +161,8 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 			return err
 		}
 		p2pActor.SetDspNetwork(dspNetwork)
-		log.Debugf("start dsp at %s", dspNetwork.PublicAddr())
+		endpoint.dspPublicAddr = dspNetwork.PublicAddr()
+		log.Debugf("start dsp at %s", endpoint.dspPublicAddr)
 		// start channel net
 		channelNetwork := network.NewP2P()
 		channelPubKey, channelPrivateKey, err := ed25519.GenerateKey(&accountReader{
@@ -172,20 +175,19 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 			PublicKey:  channelPubKey,
 			PrivateKey: channelPrivateKey,
 		}
-		log.Debugf("dsp pubkey:%s\n", hex.EncodeToString(networkKey.PublicKey))
-		log.Debugf("channel pubkey:%s\n", hex.EncodeToString(channelNetwork.Keys.PublicKey))
+		log.Debugf("dsp pubKey:%s, channel pubKey: %s", hex.EncodeToString(networkKey.PublicKey), hex.EncodeToString(channelNetwork.Keys.PublicKey))
 		req.SetChannelPid(dspSrv.Channel.GetChannelPid())
 		listenAddr := fmt.Sprintf("%s://%s", config.Parameters.BaseConfig.ChannelProtocol, dspConfig.ChannelListenAddr)
-		log.Debugf("goto start channel network %s", listenAddr)
 		err = channelNetwork.Start(listenAddr)
 		if err != nil {
 			return err
 		}
 		p2pActor.SetChannelNetwork(channelNetwork)
-		endpoint.UpdateNodeIfNeeded()
-
+		endpoint.channelPublicAddr = channelNetwork.PublicAddr()
+		log.Debugf("start channel at %s", endpoint.channelPublicAddr)
+		endpoint.updateStorageNodeHost()
 		log.Debugf("update node finished")
-		go endpoint.RegisterChannelEndpoint(dspSrv.CurrentAccount().Address, channelNetwork.PublicAddr())
+		go endpoint.registerChannelEndpoint()
 
 		// setup filter block range before start
 		endpoint.SetFilterBlockRange()
@@ -211,16 +213,39 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 	}
 
 	if startListen {
-		go endpoint.SetupDNSNodeBackground()
+		go endpoint.setupDNSNodeBackground()
 		go endpoint.RegisterProgressCh()
 		go endpoint.RegisterShareNotificationCh()
 	}
-	go endpoint.CheckLogFileSize()
+	go endpoint.stateChangeService()
 	log.Info("Dsp start success.")
 	return nil
 }
 
-func (this *Endpoint) RegisterChannelEndpoint(walletAddr chainCom.Address, publicAddr string) error {
+// Stop. stop endpoint instance
+func (this *Endpoint) Stop() error {
+	if this.p2pActor != nil {
+		err := this.p2pActor.Stop()
+		if err != nil {
+			return err
+		}
+	}
+	close(this.closeCh)
+	err := this.db.Close()
+	if err != nil {
+		return err
+	}
+	err = this.sqliteDB.Close()
+	if err != nil {
+		return err
+	}
+	this.ResetChannelProgress()
+	return this.Dsp.Stop()
+}
+
+func (this *Endpoint) registerChannelEndpoint() error {
+	walletAddr := this.Dsp.Account.Address
+	publicAddr := this.channelNet.PublicAddr()
 	for i := 0; i < common.MAX_REG_CHANNEL_TIMES; i++ {
 		err := this.Dsp.RegNodeEndpoint(walletAddr, publicAddr)
 		log.Debugf("register endpoint for channel %s, err %s", publicAddr, err)
@@ -236,7 +261,7 @@ func (this *Endpoint) RegisterChannelEndpoint(walletAddr chainCom.Address, publi
 	return fmt.Errorf("register channel endpoint timeout")
 }
 
-func (this *Endpoint) UpdateNodeIfNeeded() {
+func (this *Endpoint) updateStorageNodeHost() {
 	nodeInfo, err := this.NodeQuery(this.Account.Address.ToBase58())
 	if err != nil || nodeInfo == nil {
 		return
@@ -252,13 +277,11 @@ func (this *Endpoint) UpdateNodeIfNeeded() {
 	log.Debugf("update node result")
 	if err != nil {
 		log.Errorf("update node addr failed, err %s", err)
-		panic(err)
 	}
-
 }
 
 // SetupDNSNodeBackground. setup a dns node background when received first payments.
-func (this *Endpoint) SetupDNSNodeBackground() {
+func (this *Endpoint) setupDNSNodeBackground() {
 	if !config.Parameters.BaseConfig.AutoSetupDNSEnable {
 		return
 	}
@@ -321,18 +344,22 @@ func (this *Endpoint) SetupDNSNodeBackground() {
 	}
 }
 
-func (this *Endpoint) CheckLogFileSize() {
-	ti := time.NewTicker(time.Minute)
+func (this *Endpoint) stateChangeService() {
+	ti := time.NewTicker(time.Duration(common.MAX_STATE_CHANGE_CHECK_INTERVAL) * time.Second)
 	for {
 		select {
 		case <-ti.C:
-			isNeedNewFile := log.CheckIfNeedNewFile()
-			if isNeedNewFile {
-				log.ClosePrintLog()
-				logPath := config.Parameters.BaseConfig.LogPath
-				baseDir := config.Parameters.BaseConfig.BaseDir
-				logFullPath := filepath.Join(baseDir, logPath) + "/"
-				log.InitLog(int(config.Parameters.BaseConfig.LogLevel), logFullPath, log.Stdout)
+			// check log file size
+			go this.checkLogFileSize()
+			if this.dspPublicAddr != this.dspNet.PublicAddr() {
+				log.Debugf("dsp public address has change, old addr: %s, new addr:%s", this.dspPublicAddr, this.dspNet.PublicAddr())
+				this.dspPublicAddr = this.dspNet.PublicAddr()
+				go this.updateStorageNodeHost()
+			}
+			if this.channelPublicAddr != this.channelNet.PublicAddr() {
+				log.Debugf("channel public address has change, old addr: %s, new addr:%s", this.channelPublicAddr, this.channelNet.PublicAddr())
+				this.channelPublicAddr = this.channelNet.PublicAddr()
+				go this.registerChannelEndpoint()
 			}
 		case <-this.closeCh:
 			return
@@ -340,23 +367,14 @@ func (this *Endpoint) CheckLogFileSize() {
 	}
 }
 
-// Stop. stop endpoint instance
-func (this *Endpoint) Stop() error {
-	if this.p2pActor != nil {
-		err := this.p2pActor.Stop()
-		if err != nil {
-			return err
-		}
+func (this *Endpoint) checkLogFileSize() {
+	isNeedNewFile := log.CheckIfNeedNewFile()
+	if !isNeedNewFile {
+		return
 	}
-	close(this.closeCh)
-	err := this.db.Close()
-	if err != nil {
-		return err
-	}
-	err = this.sqliteDB.Close()
-	if err != nil {
-		return err
-	}
-	this.ResetChannelProgress()
-	return this.Dsp.Stop()
+	log.ClosePrintLog()
+	logPath := config.Parameters.BaseConfig.LogPath
+	baseDir := config.Parameters.BaseConfig.BaseDir
+	logFullPath := filepath.Join(baseDir, logPath) + "/"
+	log.InitLog(int(config.Parameters.BaseConfig.LogLevel), logFullPath, log.Stdout)
 }

@@ -70,7 +70,7 @@ type Transfer struct {
 	CreatedAt      uint64
 	UpdatedAt      uint64
 	Result         interface{} `json:",omitempty"`
-	ErrorCode      uint64
+	ErrorCode      uint32
 	ErrMsg         string `json:",omitempty"`
 	StoreType      uint64
 }
@@ -1128,7 +1128,6 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uin
 		} else {
 			updatedAt += uint64(now) - fi.BlockHeight
 		}
-		log.Debugf("blockHeight :%d", fi.BlockHeight)
 		url, _ := this.GetUrlFromHash(string(hash.Hash))
 		downloadedCount, _ := this.sqliteDB.CountRecordByFileHash(string(hash.Hash))
 		profit, _ := this.sqliteDB.SumRecordsProfitByFileHash(string(hash.Hash))
