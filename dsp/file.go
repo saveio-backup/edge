@@ -441,6 +441,7 @@ func (this *Endpoint) CancelUploadFile(taskIds []string) *FileTaskResp {
 			taskResp.Code = DSP_CANCEL_TASK_FAILED
 			taskResp.Error = err.Error()
 		}
+		log.Debugf("cancel upload file, id :%s, resp :%v", id, taskResp)
 		resp.Tasks = append(resp.Tasks, taskResp)
 	}
 	return resp
@@ -699,6 +700,7 @@ func (this *Endpoint) CancelDownloadFile(taskIds []string) *FileTaskResp {
 			taskResp.Error = err.Error()
 		}
 		taskResp.State = int(task.TaskStateCancel)
+		log.Debugf("cancel download file, id :%s, resp :%v", id, taskResp)
 		resp.Tasks = append(resp.Tasks, taskResp)
 	}
 	return resp

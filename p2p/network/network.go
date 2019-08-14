@@ -473,7 +473,6 @@ func (this *Network) Broadcast(addrs []string, msg proto.Message, needReply bool
 	if err != nil {
 		return nil, err
 	}
-	log.Debugf("[DSPNetwork] broadcast")
 	maxRoutines := common.MAX_GOROUTINES_IN_LOOP
 	if len(addrs) <= common.MAX_GOROUTINES_IN_LOOP {
 		maxRoutines = len(addrs)

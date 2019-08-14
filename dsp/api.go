@@ -346,6 +346,7 @@ func (this *Endpoint) setupDNSNodeBackground() {
 }
 
 func (this *Endpoint) stateChangeService() {
+	log.Debugf("start stateChangeService")
 	ti := time.NewTicker(time.Duration(common.MAX_STATE_CHANGE_CHECK_INTERVAL) * time.Second)
 	for {
 		select {
