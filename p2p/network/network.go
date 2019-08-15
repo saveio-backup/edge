@@ -174,13 +174,14 @@ func (this *Network) Start(address string) error {
 		this.keepaliveInterval = keepalive.DefaultKeepaliveInterval
 	}
 	if this.keepaliveTimeout == 0 {
-		this.keepaliveTimeout = keepalive.DefaultKeepaliveTimeout
+		this.keepaliveTimeout = 10 * time.Second
 	}
 	options := []keepalive.ComponentOption{
 		keepalive.WithKeepaliveInterval(this.keepaliveInterval),
 		keepalive.WithKeepaliveTimeout(this.keepaliveTimeout),
 		keepalive.WithPeerStateChan(this.peerStateChan),
 	}
+	log.Debugf("keepalive interval: %d, timeout: %d", this.keepaliveInterval, this.keepaliveTimeout)
 	builder.AddComponent(keepalive.New(options...))
 
 	// add backoff
