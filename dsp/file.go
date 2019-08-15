@@ -423,8 +423,12 @@ func (this *Endpoint) CancelUploadFile(taskIds []string) *FileTaskResp {
 		}
 		exist := this.Dsp.IsTaskExist(id)
 		if !exist {
-			taskResp.Code = DSP_TASK_NOT_EXIST
-			taskResp.Error = ErrMaps[DSP_TASK_NOT_EXIST].Error()
+			err := this.DeleteProgress([]string{id})
+			if err != nil {
+				taskResp.Code = DSP_CANCEL_TASK_FAILED
+				taskResp.Error = err.Error()
+			}
+			log.Debugf("cancel upload file, id :%s, resp :%v", id, taskResp)
 			resp.Tasks = append(resp.Tasks, taskResp)
 			continue
 		}
@@ -535,17 +539,7 @@ func (this *Endpoint) DownloadFile(fileHash, url, link, password string, max uin
 
 	if len(fileHash) > 0 {
 		go func() {
-			// TODO: get file name
-			opt := &dspCom.DownloadOption{
-				FileName:    "",
-				Asset:       dspCom.ASSET_USDT,
-				InOrder:     true,
-				DecryptPwd:  password,
-				Free:        false,
-				SetFileName: setFileName,
-				MaxPeerCnt:  int(max),
-			}
-			err := this.Dsp.DownloadFile("", fileHash, opt)
+			err := this.Dsp.DownloadFileByHash(fileHash, dspCom.ASSET_USDT, true, password, false, setFileName, int(max))
 			if err != nil {
 				log.Errorf("Downloadfile from url failed %s", err)
 			}
@@ -684,8 +678,11 @@ func (this *Endpoint) CancelDownloadFile(taskIds []string) *FileTaskResp {
 		}
 		exist := this.Dsp.IsTaskExist(id)
 		if !exist {
-			taskResp.Code = DSP_TASK_NOT_EXIST
-			taskResp.Error = ErrMaps[DSP_TASK_NOT_EXIST].Error()
+			err := this.DeleteProgress([]string{id})
+			if err != nil {
+				taskResp.Code = DSP_CANCEL_TASK_FAILED
+				taskResp.Error = err.Error()
+			}
 			resp.Tasks = append(resp.Tasks, taskResp)
 			continue
 		}
@@ -1583,6 +1580,9 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 		}
 	case transferTypeComplete:
 		if sum < info.Total || info.Total == 0 {
+			return nil
+		}
+		if info.TaskState == task.TaskStateFailed {
 			return nil
 		}
 		if info.Type == task.TaskTypeUpload {

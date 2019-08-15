@@ -437,10 +437,6 @@ func (this *Network) Request(msg proto.Message, peer string) (proto.Message, err
 
 // RequestWithRetry. send msg to peer and wait for response synchronously
 func (this *Network) RequestWithRetry(msg proto.Message, peer string, retry int) (proto.Message, error) {
-	client := this.P2p.GetPeerClient(peer)
-	if client == nil {
-		return nil, fmt.Errorf("get peer client is nil %s", peer)
-	}
 	var err error
 	var res proto.Message
 	for i := 0; i < retry; i++ {
@@ -453,6 +449,11 @@ func (this *Network) RequestWithRetry(msg proto.Message, peer string, retry int)
 			return nil, err
 		}
 		log.Debugf("send request msg to %s with retry %d", peer, i)
+		client := this.P2p.GetPeerClient(peer)
+		if client == nil {
+			log.Errorf("get peer client is nil %s", peer)
+			continue
+		}
 		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(common.REQUEST_MSG_TIMEOUT)*time.Second)
 		defer cancel()
 		res, err = client.Request(ctx, msg)
