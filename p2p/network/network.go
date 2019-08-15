@@ -436,21 +436,21 @@ func (this *Network) Request(msg proto.Message, peer string) (proto.Message, err
 
 // RequestWithRetry. send msg to peer and wait for response synchronously
 func (this *Network) RequestWithRetry(msg proto.Message, peer string, retry int) (proto.Message, error) {
-	var err error
-	err = this.healthCheckPeer(this.proxyAddr)
-	if err != nil {
-		return nil, err
-	}
-	err = this.healthCheckPeer(peer)
-	if err != nil {
-		return nil, err
-	}
 	client := this.P2p.GetPeerClient(peer)
 	if client == nil {
 		return nil, fmt.Errorf("get peer client is nil %s", peer)
 	}
+	var err error
 	var res proto.Message
 	for i := 0; i < retry; i++ {
+		err = this.healthCheckPeer(this.proxyAddr)
+		if err != nil {
+			return nil, err
+		}
+		err = this.healthCheckPeer(peer)
+		if err != nil {
+			return nil, err
+		}
 		log.Debugf("send request msg to %s with retry %d", peer, i)
 		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(common.REQUEST_MSG_TIMEOUT)*time.Second)
 		defer cancel()
@@ -519,6 +519,8 @@ func (this *Network) Broadcast(addrs []string, msg proto.Message, needReply bool
 						err:  err,
 					}
 					continue
+				} else {
+					log.Debugf("receive reply msg from %s, msg :%v", req.addr, res)
 				}
 				if callback != nil {
 					callback(res, req.addr)
@@ -557,6 +559,8 @@ func (this *Network) Broadcast(addrs []string, msg proto.Message, needReply bool
 //P2P network msg receive. transfer to actor_channel
 func (this *Network) Receive(ctx *network.ComponentContext, message proto.Message, from string) error {
 	// TODO check message is nil
+	state, err := this.GetPeerStateByAddress(from)
+	log.Debugf("Network.Receive %T Msg %s, state: %d, err: %s", message, from, state, err)
 	switch message.(type) {
 	case *messages.Processed:
 		act.OnBusinessMessage(message, from)
