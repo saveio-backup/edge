@@ -522,7 +522,7 @@ func (this *Network) Broadcast(addrs []string, msg proto.Message, needReply bool
 					}
 					continue
 				} else {
-					log.Debugf("receive reply msg from %s, msg :%v", req.addr, res)
+					log.Debugf("receive reply msg from %s", req.addr)
 				}
 				if callback != nil {
 					callback(res, req.addr)
