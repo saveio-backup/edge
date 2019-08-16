@@ -12,6 +12,7 @@ import (
 
 	dspCom "github.com/saveio/dsp-go-sdk/common"
 	"github.com/saveio/dsp-go-sdk/task"
+	dspUtils "github.com/saveio/dsp-go-sdk/utils"
 	"github.com/saveio/edge/common"
 	clicom "github.com/saveio/edge/common"
 	"github.com/saveio/edge/common/config"
@@ -547,6 +548,10 @@ func (this *Endpoint) DownloadFile(fileHash, url, link, password string, max uin
 		return nil
 	}
 	if len(url) > 0 {
+		hash := this.Dsp.GetFileHashFromUrl(url)
+		if len(hash) == 0 {
+			return &DspErr{Code: INTERNAL_ERROR, Error: fmt.Errorf("file hash not found for url %s", url)}
+		}
 		go func() {
 			hash := this.Dsp.GetFileHashFromUrl(url)
 			this.SetUrlForHash(hash, url)
@@ -558,8 +563,12 @@ func (this *Endpoint) DownloadFile(fileHash, url, link, password string, max uin
 		return nil
 	}
 	if len(link) > 0 {
+		hash := dspUtils.GetFileHashFromLink(link)
+		if len(hash) == 0 {
+			return &DspErr{Code: INTERNAL_ERROR, Error: fmt.Errorf("file hash not found for url %s", hash)}
+		}
 		go func() {
-			err := this.Dsp.DownloadFileByLink(fileHash, dspCom.ASSET_USDT, true, password, false, setFileName, int(max))
+			err := this.Dsp.DownloadFileByLink(link, dspCom.ASSET_USDT, true, password, false, setFileName, int(max))
 			if err != nil {
 				log.Errorf("Downloadfile from url failed %s", err)
 			}
