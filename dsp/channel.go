@@ -172,20 +172,6 @@ func (this *Endpoint) OpenPaymentChannel(partnerAddr string, amount uint64) (cha
 	if !channelExist {
 		return 0, &DspErr{Code: DSP_CHANNEL_EXIST, Error: ErrMaps[DSP_CHANNEL_EXIST]}
 	}
-	dnsUrl, err := this.Dsp.GetExternalIP(partnerAddr)
-	if err != nil {
-		return 0, &DspErr{Code: DSP_DNS_GET_EXTERNALIP_FAILED, Error: err}
-	}
-	err = this.Dsp.Channel.SetHostAddr(partnerAddr, dnsUrl)
-	if err != nil {
-		return 0, &DspErr{Code: DSP_CHANNEL_INTERNAL_ERROR, Error: err}
-	}
-	// err = this.Dsp.Channel.WaitForConnected(partnerAddr, time.Duration(common.WAIT_CHANNEL_CONNECT_TIMEOUT)*time.Second)
-	// log.Debugf("openchannel wait for connected dns %s, partneraddr %s, err %s", dnsUrl, partnerAddr, err)
-	// if err != nil {
-	// 	log.Errorf("wait channel connected err %s %s", partnerAddr, err)
-	// 	return 0, &DspErr{Code: DSP_CHANNEL_INTERNAL_ERROR, Error: err}
-	// }
 	id, err := this.Dsp.Channel.OpenChannel(partnerAddr, amount)
 	if err != nil {
 		return 0, &DspErr{Code: DSP_CHANNEL_OPEN_FAILED, Error: err}
@@ -243,15 +229,7 @@ func (this *Endpoint) MediaTransfer(paymentId int32, amount uint64, to string) *
 	if syncing {
 		return &DspErr{Code: DSP_CHANNEL_SYNCING, Error: ErrMaps[DSP_CHANNEL_SYNCING]}
 	}
-	url, err := this.Dsp.GetExternalIP(to)
-	if err != nil {
-		return &DspErr{Code: DSP_DNS_GET_EXTERNALIP_FAILED, Error: err}
-	}
-	err = this.Dsp.Channel.SetHostAddr(to, url)
-	if err != nil {
-		return &DspErr{Code: DSP_CHANNEL_INTERNAL_ERROR, Error: err}
-	}
-	err = this.Dsp.Channel.WaitForConnected(to, time.Duration(common.WAIT_CHANNEL_CONNECT_TIMEOUT)*time.Second)
+	err := this.Dsp.Channel.WaitForConnected(to, time.Duration(common.WAIT_CHANNEL_CONNECT_TIMEOUT)*time.Second)
 	if err != nil {
 		log.Errorf("wait channel connected err %s %s", to, err)
 		return &DspErr{Code: DSP_CHANNEL_INTERNAL_ERROR, Error: err}
