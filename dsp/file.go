@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -486,6 +487,9 @@ func (this *Endpoint) GetFsConfig() (*FsContractSettingResp, *DspErr) {
 }
 
 func (this *Endpoint) IsChannelProcessBlocks() (bool, *DspErr) {
+	if this.Dsp == nil || this.Dsp.Channel == nil {
+		return false, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
 	filterBlockHeight := this.Dsp.Channel.GetCurrentFilterBlockHeight()
 	now, getHeightErr := this.Dsp.Chain.GetCurrentBlockHeight()
 	log.Debugf("IsChannelProcessBlocks filterBlockHeight: %d, now :%d", filterBlockHeight, now)
@@ -811,39 +815,20 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint64) 
 }
 
 // GetTransferList. get transfer progress list
-func (this *Endpoint) GetTransferDetail(tType task.TaskType, fileHash, url string) (*Transfer, *DspErr) {
-	if len(url) == 0 && len(fileHash) == 0 {
+func (this *Endpoint) GetTransferDetail(id string) (*Transfer, *DspErr) {
+	if len(id) == 0 {
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
 	}
 	resp := &Transfer{}
-	allTasksKey, err := this.GetAllProgressKeys()
+	info, err := this.GetProgress(id)
 	if err != nil {
-		return resp, &DspErr{Code: INTERNAL_ERROR, Error: err}
+		return nil, &DspErr{Code: INVALID_PARAMS, Error: err}
 	}
-	hash := fileHash
-	if len(hash) == 0 {
-		hash = this.Dsp.GetFileHashFromUrl(url)
+	pInfo := this.getTransferDetail(0, info)
+	if pInfo == nil {
+		return resp, &DspErr{Code: INTERNAL_ERROR, Error: ErrMaps[INTERNAL_ERROR]}
 	}
-	log.Debugf("get hash from url %s %s", url, hash)
-	for _, key := range allTasksKey {
-		info, err := this.GetProgress(key)
-		if err != nil {
-			continue
-		}
-		if info.Type != task.TaskTypeDownload {
-			continue
-		}
-		if info.FileHash != hash {
-			continue
-		}
-		// pInfo := this.getTransferDetail(pType, info)
-		// if pInfo == nil {
-		// 	return resp, &DspErr{Code: INTERNAL_ERROR, Error: ErrMaps[INTERNAL_ERROR]}
-		// }
-		// resp = pInfo
-		break
-	}
-	return resp, nil
+	return pInfo, nil
 }
 
 func (this *Endpoint) CalculateUploadFee(filePath string, durationVal, intervalVal, timesVal, copynumVal, whitelistVal, storeType interface{}) (*CalculateResp, *DspErr) {
@@ -1245,7 +1230,11 @@ func (this *Endpoint) GetDownloadFiles(fileType DspFileListType, offset, limit u
 			log.Errorf("get url from hash %s, err %s", file, err)
 		}
 		// 0: all, 1. image, 2. document. 3. video, 4. music
-		fileName := strings.ToLower(info.FileName)
+		fileNameFromPath := filepath.Base(info.FilePath)
+		if len(fileNameFromPath) == 0 {
+			fileNameFromPath = info.FileName
+		}
+		fileName := strings.ToLower(fileNameFromPath)
 		if !FileNameMatchType(fileType, fileName) {
 			continue
 		}

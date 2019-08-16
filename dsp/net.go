@@ -25,8 +25,12 @@ func (this *Endpoint) GetNetworkState() (*NetworkStateResp, *DspErr) {
 	if err != nil {
 		state.ChainState = networkStateUnReachable
 	}
-	if !this.channelNet.IsConnectionExists(this.Dsp.DNS.DNSNode.HostAddr) {
+	if this.Dsp.DNS == nil || this.Dsp.DNS.DNSNode == nil {
 		state.DNSState = networkStateUnReachable
+	} else {
+		if !this.channelNet.IsConnectionExists(this.Dsp.DNS.DNSNode.HostAddr) {
+			state.DNSState = networkStateUnReachable
+		}
 	}
 	if !this.dspNet.IsConnectionExists(this.dspNet.GetProxyServer()) {
 		state.DspProxyState = networkStateUnReachable
