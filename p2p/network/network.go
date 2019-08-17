@@ -430,8 +430,12 @@ func (this *Network) Request(msg proto.Message, peer string) (proto.Message, err
 	if client == nil {
 		return nil, fmt.Errorf("get peer client is nil %s", peer)
 	}
+	log.Debugf("send request msg to %s", peer)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(common.REQUEST_MSG_TIMEOUT)*time.Second)
-	defer cancel()
+	defer func() {
+		log.Debugf("cancel send request msg to peer %s", peer)
+		cancel()
+	}()
 	return client.Request(ctx, msg)
 }
 

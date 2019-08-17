@@ -15,6 +15,14 @@ type NetworkStateResp struct {
 }
 
 func (this *Endpoint) GetNetworkState() (*NetworkStateResp, *DspErr) {
+	if this.Dsp == nil {
+		return &NetworkStateResp{
+			ChainState:        networkStateUnReachable,
+			DNSState:          networkStateUnReachable,
+			DspProxyState:     networkStateUnReachable,
+			ChannelProxyState: networkStateUnReachable,
+		}, nil
+	}
 	state := &NetworkStateResp{
 		ChainState:        networkStateReachable,
 		DNSState:          networkStateReachable,
