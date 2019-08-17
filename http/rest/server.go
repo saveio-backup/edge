@@ -87,7 +87,7 @@ const (
 	DSP_GET_DOWNLOAD_FILELIST    = "/api/v1/dsp/file/downloadlist/:type/:offset/:limit"
 	DSP_GET_FILE_TRANSFERLIST    = "/api/v1/dsp/file/transferlist/:type/:offset/:limit"
 	DSP_DELETE_TRANSFER_RECORD   = "/api/v1/dsp/file/transferlist/delete"
-	DSP_GET_FILE_TRANSFER_DETAIL = "/api/v1/dsp/file/transferdetail/:url"
+	DSP_GET_FILE_TRANSFER_DETAIL = "/api/v1/dsp/file/transfer/detail/:type/:id"
 	DSP_FILE_UPLOAD              = "/api/v1/dsp/file/upload"
 	DSP_FILE_UPLOAD_PAUSE        = "/api/v1/dsp/file/upload/pause"
 	DSP_FILE_UPLOAD_RESUME       = "/api/v1/dsp/file/upload/resume"
@@ -217,21 +217,22 @@ func (this *restServer) registryMethod() {
 
 		FS_CONTRACT_SETTING: {name: "getfscontractsetting", handler: GetFsContractSetting},
 
-		DSP_NODE_UNREGISTER:       {name: "unregisternode", handler: UnregisterNode},
-		DSP_NODE_QUERY:            {name: "querynode", handler: NodeQuery},
-		DSP_NODE_WITHDRAW:         {name: "withdrawnode", handler: NodeWithdrawProfit},
-		DSP_NODES_INFO:            {name: "getnodesinfo", handler: GetStorageNodesInfo},
-		DSP_CLIENT_GET_USER_SPACE: {name: "getuserspacesss", handler: GetUserSpace},
-		DSP_USERSPACE_RECORDS:     {name: "getuserspacerecords", handler: GetUserSpaceRecords},
-		DSP_GET_UPLOAD_FILELIST:   {name: "getuploadfilelist", handler: GetUploadFiles},
-		DSP_GET_DOWNLOAD_FILELIST: {name: "getdownloadfilelist", handler: GetDownloadFiles},
-		DSP_GET_FILE_TRANSFERLIST: {name: "gettransferlist", handler: GetTransferList},
-		DSP_FILE_UPLOAD_FEE:       {name: "uploadfilefee", handler: CalculateUploadFee},
-		DSP_FILE_DOWNLOAD_INFO:    {name: "getdownloadinfo", handler: GetDownloadFileInfo},
-		DSP_FILE_SHARE_INCOME:     {name: "getfileshareincome", handler: GetFileShareIncome},
-		DSP_FILE_SHARE_REVENUE:    {name: "getfilesharerevenue", handler: GetFileShareRevenue},
-		DSP_GET_FILE_WHITELIST:    {name: "getwhitelist", handler: GetFileWhiteList},
-		DSP_FILE_UPLOAD_INFO:      {name: "getuploadfileinfo", handler: GetUploadFileInfo},
+		DSP_NODE_UNREGISTER:          {name: "unregisternode", handler: UnregisterNode},
+		DSP_NODE_QUERY:               {name: "querynode", handler: NodeQuery},
+		DSP_NODE_WITHDRAW:            {name: "withdrawnode", handler: NodeWithdrawProfit},
+		DSP_NODES_INFO:               {name: "getnodesinfo", handler: GetStorageNodesInfo},
+		DSP_CLIENT_GET_USER_SPACE:    {name: "getuserspacesss", handler: GetUserSpace},
+		DSP_USERSPACE_RECORDS:        {name: "getuserspacerecords", handler: GetUserSpaceRecords},
+		DSP_GET_UPLOAD_FILELIST:      {name: "getuploadfilelist", handler: GetUploadFiles},
+		DSP_GET_DOWNLOAD_FILELIST:    {name: "getdownloadfilelist", handler: GetDownloadFiles},
+		DSP_GET_FILE_TRANSFERLIST:    {name: "gettransferlist", handler: GetTransferList},
+		DSP_GET_FILE_TRANSFER_DETAIL: {name: "gettransferdetail", handler: GetTransferDetail},
+		DSP_FILE_UPLOAD_FEE:          {name: "uploadfilefee", handler: CalculateUploadFee},
+		DSP_FILE_DOWNLOAD_INFO:       {name: "getdownloadinfo", handler: GetDownloadFileInfo},
+		DSP_FILE_SHARE_INCOME:        {name: "getfileshareincome", handler: GetFileShareIncome},
+		DSP_FILE_SHARE_REVENUE:       {name: "getfilesharerevenue", handler: GetFileShareRevenue},
+		DSP_GET_FILE_WHITELIST:       {name: "getwhitelist", handler: GetFileWhiteList},
+		DSP_FILE_UPLOAD_INFO:         {name: "getuploadfileinfo", handler: GetUploadFileInfo},
 
 		GET_CHANNEL_INIT_PROGRESS: {name: "channelinitprogress", handler: GetChannelInitProgress},
 		GET_ALL_CHANNEL:           {name: "getallchannels", handler: GetAllChannels},
@@ -347,6 +348,7 @@ func (this *restServer) getPath(url string) string {
 	// }
 
 	//path for Dsp
+	log.Debugf("url: %s, suffix: %s, right: %s", url, strings.TrimSuffix(DSP_GET_FILE_TRANSFER_DETAIL, ":type/:id"), strings.TrimRight(DSP_GET_FILE_TRANSFER_DETAIL, ":type/:id"))
 	if strings.Contains(url, strings.TrimSuffix(DSP_NODE_QUERY, ":addr")) {
 		return DSP_NODE_QUERY
 	} else if strings.Contains(url, strings.TrimSuffix(DSP_CLIENT_GET_USER_SPACE, ":addr")) {
@@ -371,6 +373,8 @@ func (this *restServer) getPath(url string) string {
 		return DSP_USERSPACE_RECORDS
 	} else if strings.Contains(url, strings.TrimRight(DSP_FILE_UPLOAD_INFO, ":hash")) {
 		return DSP_FILE_UPLOAD_INFO
+	} else if strings.Contains(url, strings.TrimSuffix(DSP_GET_FILE_TRANSFER_DETAIL, ":type/:id")) {
+		return DSP_GET_FILE_TRANSFER_DETAIL
 	}
 
 	//path for channel
@@ -491,6 +495,8 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 		req["FileHash"] = getParam(r, "hash")
 	case DSP_USERSPACE_RECORDS:
 		req["Addr"], req["Offset"], req["Limit"] = getParam(r, "addr"), getParam(r, "offset"), getParam(r, "limit")
+	case DSP_GET_FILE_TRANSFER_DETAIL:
+		req["Type"], req["Id"] = getParam(r, "type"), getParam(r, "id")
 	default:
 	}
 

@@ -32,6 +32,9 @@ const (
 var GitCommit string
 
 func (this *Endpoint) GetNodeVersion() (string, *DspErr) {
+	if this == nil || this.Dsp == nil {
+		return "", nil
+	}
 	version, err := this.Dsp.Chain.GetVersion()
 	if err != nil {
 		return "", &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}

@@ -197,29 +197,29 @@ type FileTaskResp struct {
 }
 
 func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, privilegeVal, copyNumVal, storageTypeVal interface{},
-	encryptPwd, url string, whitelist []string, share bool) *DspErr {
+	encryptPwd, url string, whitelist []string, share bool) (*fs.UploadOption, *DspErr) {
 	f, err := os.Stat(path)
 	if err != nil {
-		return &DspErr{Code: FS_UPLOAD_FILEPATH_ERROR, Error: fmt.Errorf("os stat file %s error: %s", path, err.Error())}
+		return nil, &DspErr{Code: FS_UPLOAD_FILEPATH_ERROR, Error: fmt.Errorf("os stat file %s error: %s", path, err.Error())}
 	}
 	if f.IsDir() {
-		return &DspErr{Code: FS_UPLOAD_FILEPATH_ERROR, Error: fmt.Errorf("uploadFile error: %s is a directory", path)}
+		return nil, &DspErr{Code: FS_UPLOAD_FILEPATH_ERROR, Error: fmt.Errorf("uploadFile error: %s is a directory", path)}
 	}
 	currentAccount := this.Dsp.CurrentAccount()
 	fssetting, err := this.Dsp.Chain.Native.Fs.GetSetting()
 	if err != nil {
-		return &DspErr{Code: FS_GET_SETTING_FAILED, Error: err}
+		return nil, &DspErr{Code: FS_GET_SETTING_FAILED, Error: err}
 	}
 	currentHeight, err := this.Dsp.Chain.GetCurrentBlockHeight()
 	if err != nil {
-		return &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
+		return nil, &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
 	}
 	interval, ok := intervalVal.(float64)
 	if !ok || interval == 0 {
 		interval = float64(fssetting.DefaultProvePeriod)
 	}
 	if uint64(interval) < fssetting.MinProveInterval {
-		return &DspErr{Code: FS_UPLOAD_INTERVAL_TOO_SMALL, Error: ErrMaps[FS_UPLOAD_INTERVAL_TOO_SMALL]}
+		return nil, &DspErr{Code: FS_UPLOAD_INTERVAL_TOO_SMALL, Error: ErrMaps[FS_UPLOAD_INTERVAL_TOO_SMALL]}
 	}
 	storageType, _ := storageTypeVal.(float64)
 	opt := &fs.UploadOption{
@@ -230,11 +230,11 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, pr
 	if fs.FileStoreType(storageType) == fs.FileStoreTypeNormal {
 		userspace, err := this.Dsp.Chain.Native.Fs.GetUserSpace(currentAccount.Address)
 		if err != nil {
-			return &DspErr{Code: FS_GET_USER_SPACE_FAILED, Error: err}
+			return nil, &DspErr{Code: FS_GET_USER_SPACE_FAILED, Error: err}
 		}
 		log.Debugf("storageType %d, userspace.ExpireHeight %d, current: %d", storageType, userspace.ExpireHeight, currentHeight)
 		if userspace.ExpireHeight <= uint64(currentHeight) {
-			return &DspErr{Code: DSP_USER_SPACE_EXPIRED, Error: ErrMaps[DSP_USER_SPACE_EXPIRED]}
+			return nil, &DspErr{Code: DSP_USER_SPACE_EXPIRED, Error: ErrMaps[DSP_USER_SPACE_EXPIRED]}
 		}
 		opt.ExpiredHeight = userspace.ExpireHeight
 	} else {
@@ -243,7 +243,7 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, pr
 	}
 	log.Debugf("opt.ExpiredHeight :%d, minInterval :%d, current: %d", opt.ExpiredHeight, fssetting.MinProveInterval, currentHeight)
 	if opt.ExpiredHeight < fssetting.MinProveInterval+uint64(currentHeight) {
-		return &DspErr{Code: DSP_CUSTOM_EXPIRED_NOT_ENOUGH, Error: ErrMaps[DSP_CUSTOM_EXPIRED_NOT_ENOUGH]}
+		return nil, &DspErr{Code: DSP_CUSTOM_EXPIRED_NOT_ENOUGH, Error: ErrMaps[DSP_CUSTOM_EXPIRED_NOT_ENOUGH]}
 	}
 	privilege, ok := privilegeVal.(float64)
 	if !ok {
@@ -260,13 +260,13 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, pr
 		b := make([]byte, clicom.DSP_URL_RAMDOM_NAME_LEN/2)
 		_, err := rand.Read(b)
 		if err != nil {
-			return &DspErr{Code: INTERNAL_ERROR, Error: err}
+			return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
 		}
 		url = this.Dsp.Chain.Native.Dns.GetCustomUrlHeader() + hex.EncodeToString(b)
 	}
 	find, err := this.Dsp.Chain.Native.Dns.QueryUrl(url, this.Dsp.CurrentAccount().Address)
 	if find != nil || err == nil {
-		return &DspErr{Code: DSP_UPLOAD_URL_EXIST, Error: fmt.Errorf("url exist err %s", err)}
+		return nil, &DspErr{Code: DSP_UPLOAD_URL_EXIST, Error: fmt.Errorf("url exist err %s", err)}
 	}
 	opt.DnsURL = []byte(url)
 	opt.RegisterDNS = len(url) > 0
@@ -280,7 +280,7 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, pr
 	for i, whitelistAddr := range whitelist {
 		addr, err := chainCom.AddressFromBase58(whitelistAddr)
 		if err != nil {
-			return &DspErr{Code: INVALID_WALLET_ADDRESS, Error: err}
+			return nil, &DspErr{Code: INVALID_WALLET_ADDRESS, Error: err}
 		}
 		log.Debugf("index :%d", i)
 		whitelistObj.List = append(whitelistObj.List, fs.Rule{
@@ -297,12 +297,11 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, pr
 	log.Debugf("path %s, UploadOption :%s\n", path, optBuf)
 	taskExist, err := this.Dsp.UploadTaskExist(path)
 	if err != nil {
-		return &DspErr{Code: INTERNAL_ERROR, Error: err}
+		return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
 	}
 	if taskExist {
-		return &DspErr{Code: DSP_UPLOAD_FILE_EXIST, Error: ErrMaps[DSP_UPLOAD_FILE_EXIST]}
+		return nil, &DspErr{Code: DSP_UPLOAD_FILE_EXIST, Error: ErrMaps[DSP_UPLOAD_FILE_EXIST]}
 	}
-	// this.Dsp.
 	go func() {
 		log.Debugf("upload file path %s", path)
 		ret, err := this.Dsp.UploadFile("", path, opt)
@@ -312,7 +311,7 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, pr
 		}
 		log.Info(ret)
 	}()
-	return nil
+	return opt, nil
 }
 
 func (this *Endpoint) PauseUploadFile(taskIds []string) *FileTaskResp {
@@ -778,7 +777,7 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint64) 
 		return resp
 	}
 	for idx, key := range allTasksKey {
-		info, err := this.GetProgress(key)
+		info, err := this.GetProgressByKey(key)
 		if err != nil {
 			log.Warnf("get progress failed %d for %s info %v err %s", idx, key, info, err)
 			continue
@@ -815,16 +814,16 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint64) 
 }
 
 // GetTransferList. get transfer progress list
-func (this *Endpoint) GetTransferDetail(id string) (*Transfer, *DspErr) {
+func (this *Endpoint) GetTransferDetail(pType TransferType, id string) (*Transfer, *DspErr) {
 	if len(id) == 0 {
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
 	}
 	resp := &Transfer{}
-	info, err := this.GetProgress(id)
+	info, err := this.GetProgress(this.Dsp.WalletAddress(), id)
 	if err != nil {
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: err}
 	}
-	pInfo := this.getTransferDetail(0, info)
+	pInfo := this.getTransferDetail(pType, info)
 	if pInfo == nil {
 		return resp, &DspErr{Code: INTERNAL_ERROR, Error: ErrMaps[INTERNAL_ERROR]}
 	}

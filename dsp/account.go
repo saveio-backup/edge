@@ -49,7 +49,7 @@ func (this *Endpoint) GetAccount(path, password string) (*account.Account, *DspE
 }
 
 func (this *Endpoint) GetCurrentAccount() (*AccountResp, *DspErr) {
-	if this.Account != nil {
+	if this != nil && this.Account != nil {
 		return &AccountResp{
 			PublicKey: hex.EncodeToString(keypair.SerializePublicKey(this.Account.PublicKey)),
 			Address:   this.Account.Address.ToBase58(),
@@ -276,6 +276,6 @@ func (this *Endpoint) Logout() *DspErr {
 	if err != nil {
 		return &DspErr{Code: DSP_STOP_FAILED, Error: err}
 	}
-	DspService = nil
+	DspService = &Endpoint{}
 	return nil
 }

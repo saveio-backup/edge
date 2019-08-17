@@ -15,7 +15,7 @@ type NetworkStateResp struct {
 }
 
 func (this *Endpoint) GetNetworkState() (*NetworkStateResp, *DspErr) {
-	if this.Dsp == nil {
+	if this == nil || this.Dsp == nil {
 		return &NetworkStateResp{
 			ChainState:        networkStateUnReachable,
 			DNSState:          networkStateUnReachable,

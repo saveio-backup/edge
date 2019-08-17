@@ -34,10 +34,24 @@ func UploadFile(cmd map[string]interface{}) map[string]interface{} {
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
-	err := dsp.DspService.UploadFile(path, desc, cmd["Duration"], cmd["Interval"], cmd["Privilege"], cmd["CopyNum"], cmd["StoreType"], pwd, url, whitelist, share)
+	opt, err := dsp.DspService.UploadFile(path, desc, cmd["Duration"], cmd["Interval"], cmd["Privilege"], cmd["CopyNum"], cmd["StoreType"], pwd, url, whitelist, share)
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
+	uploadOption := make(map[string]interface{})
+	uploadOption["FileName"] = string(opt.FileDesc)
+	uploadOption["FileSize"] = opt.FileSize
+	uploadOption["ProveInterval"] = opt.ProveInterval
+	uploadOption["ExpiredHeight"] = opt.ExpiredHeight
+	uploadOption["Privilege"] = opt.Privilege
+	uploadOption["CopyNum"] = opt.CopyNum
+	uploadOption["Encrypt"] = opt.Encrypt
+	uploadOption["EncryptPassword"] = string(opt.EncryptPassword)
+	uploadOption["Url"] = string(opt.DnsURL)
+	uploadOption["WhiteList"] = whitelist
+	uploadOption["Share"] = opt.Share
+	uploadOption["StorageType"] = opt.StorageType
+	resp["Result"] = uploadOption
 	return resp
 }
 
@@ -735,5 +749,33 @@ func DeleteTransferRecord(cmd map[string]interface{}) map[string]interface{} {
 	}
 	ret := dsp.DspService.DeleteTransferRecord(ids)
 	resp["Result"] = ret
+	return resp
+}
+
+func GetTransferDetail(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	id, ok := cmd["Id"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	realId, err := hex.DecodeString(id)
+	if err != nil {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, err.Error())
+	}
+	tt, ok := cmd["Type"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	transferTypeInt, err := strconv.ParseUint(tt, 10, 64)
+	if err != nil {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, err.Error())
+	}
+	transferType := dsp.TransferType(transferTypeInt)
+
+	transfer, dspErr := dsp.DspService.GetTransferDetail(transferType, string(realId))
+	if dspErr != nil {
+		return ResponsePackWithErrMsg(dspErr.Code, dspErr.Error.Error())
+	}
+	resp["Result"] = transfer
 	return resp
 }
