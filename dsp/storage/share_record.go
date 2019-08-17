@@ -9,6 +9,8 @@ import (
 
 type ShareRecord struct {
 	Id           string
+	FileName     string
+	FileOwner    string
 	FileHash     string
 	ToWalletAddr string
 	Profit       uint64
@@ -17,9 +19,9 @@ type ShareRecord struct {
 }
 
 // InsertShareRecord. insert a new miner_record or replace it
-func (this *SQLiteStorage) InsertShareRecord(id, fileHash, toWalletAddr string, profit uint64) (bool, error) {
-	sql := fmt.Sprintf("INSERT OR REPLACE INTO %s (id, fileHash, downloader, profit, createdAt, updatedAt) VALUES(?, ?, ?, ?, ?, ?)", SHARE_RECORDS_TABLE_NAME)
-	return this.Exec(sql, id, fileHash, toWalletAddr, profit, time.Now(), time.Now())
+func (this *SQLiteStorage) InsertShareRecord(id, fileHash, fileName, fileOwner, toWalletAddr string, profit uint64) (bool, error) {
+	sql := fmt.Sprintf("INSERT OR REPLACE INTO %s (id, fileHash, fileName, fileOwner,downloader, profit, createdAt, updatedAt) VALUES(?, ?, ?, ?, ?, ?, ?, ?)", SHARE_RECORDS_TABLE_NAME)
+	return this.Exec(sql, id, fileHash, fileName, fileOwner, toWalletAddr, profit, time.Now(), time.Now())
 }
 
 // IncreaseShareRecordProfit. increase miner profit by increment
@@ -46,7 +48,7 @@ func (this *SQLiteStorage) FindShareRecordById(id string) (*ShareRecord, error) 
 	defer rows.Close()
 	record := &ShareRecord{}
 	for rows.Next() {
-		rows.Scan(&record.Id, &record.FileHash, &record.ToWalletAddr, &record.Profit, &record.CreatedAt, &record.UpdatedAt)
+		rows.Scan(&record.Id, &record.FileHash, &record.FileName, &record.FileOwner, &record.ToWalletAddr, &record.Profit, &record.CreatedAt, &record.UpdatedAt)
 		break
 	}
 	return record, nil
@@ -76,7 +78,7 @@ func (this *SQLiteStorage) FineShareRecordsByCreatedAt(beginedAt, endedAt, offse
 	records := make([]*ShareRecord, 0)
 	for rows.Next() {
 		record := &ShareRecord{}
-		err := rows.Scan(&record.Id, &record.FileHash, &record.ToWalletAddr, &record.Profit, &record.CreatedAt, &record.UpdatedAt)
+		err := rows.Scan(&record.Id, &record.FileHash, &record.FileName, &record.FileOwner, &record.ToWalletAddr, &record.Profit, &record.CreatedAt, &record.UpdatedAt)
 		if err != nil {
 			continue
 		}

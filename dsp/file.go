@@ -1015,20 +1015,9 @@ func (this *Endpoint) GetFileShareIncome(start, end, offset, limit uint64) (*Fil
 			continue
 		}
 		resp.TotalIncome += record.Profit
-		fileName := ""
-		info, _ := this.Dsp.DownloadedFileInfo(record.FileHash)
-		if info != nil {
-			fileName = info.FileName
-		}
-		// TODO: get owner from DB
-		fileInfo, _ := this.Dsp.Chain.Native.Fs.GetFileInfo(record.FileHash)
-		owner := ""
-		if fileInfo != nil {
-			owner = fileInfo.FileOwner.ToBase58()
-		}
 		resp.Incomes = append(resp.Incomes, &FileShareIncome{
-			Name:         fileName,
-			OwnerAddress: owner,
+			Name:         record.FileName,
+			OwnerAddress: record.FileOwner,
 			Profit:       record.Profit,
 			ProfitFormat: utils.FormatUsdt(record.Profit),
 			SharedAt:     uint64(record.CreatedAt.Unix()),
@@ -1055,7 +1044,7 @@ func (this *Endpoint) RegisterShareNotificationCh() {
 			case task.ShareStateBegin:
 				// TODO: repace id with a real id, not random timestamp
 				id := fmt.Sprintf("%s-%d", v.TaskKey, time.Now().Unix())
-				_, err := this.sqliteDB.InsertShareRecord(id, v.FileHash, v.ToWalletAddr, v.PaymentAmount)
+				_, err := this.sqliteDB.InsertShareRecord(id, v.FileHash, v.FileName, v.FileOwner, v.ToWalletAddr, v.PaymentAmount)
 				if err != nil {
 					log.Errorf("insert new share_record failed %s, err %s", id, err)
 				}
