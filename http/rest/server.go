@@ -348,7 +348,6 @@ func (this *restServer) getPath(url string) string {
 	// }
 
 	//path for Dsp
-	log.Debugf("url: %s, suffix: %s, right: %s", url, strings.TrimSuffix(DSP_GET_FILE_TRANSFER_DETAIL, ":type/:id"), strings.TrimRight(DSP_GET_FILE_TRANSFER_DETAIL, ":type/:id"))
 	if strings.Contains(url, strings.TrimSuffix(DSP_NODE_QUERY, ":addr")) {
 		return DSP_NODE_QUERY
 	} else if strings.Contains(url, strings.TrimSuffix(DSP_CLIENT_GET_USER_SPACE, ":addr")) {
