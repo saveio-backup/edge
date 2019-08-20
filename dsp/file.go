@@ -303,13 +303,14 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, pr
 		return nil, &DspErr{Code: DSP_UPLOAD_FILE_EXIST, Error: ErrMaps[DSP_UPLOAD_FILE_EXIST]}
 	}
 	go func() {
-		log.Debugf("upload file path %s", path)
+		log.Debugf("upload file path %s, this.Dsp: %t", path, this.Dsp == nil)
 		ret, err := this.Dsp.UploadFile("", path, opt)
 		if err != nil {
 			log.Errorf("upload failed err %s", err)
 			return
+		} else {
+			log.Infof("upload file success: %v", ret)
 		}
-		log.Info(ret)
 	}()
 	return opt, nil
 }
