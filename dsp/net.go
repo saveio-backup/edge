@@ -15,36 +15,27 @@ type NetworkStateResp struct {
 }
 
 func (this *Endpoint) GetNetworkState() (*NetworkStateResp, *DspErr) {
-	if this == nil || this.Dsp == nil {
-		return &NetworkStateResp{
-			ChainState:        networkStateUnReachable,
-			DNSState:          networkStateUnReachable,
-			DspProxyState:     networkStateUnReachable,
-			ChannelProxyState: networkStateUnReachable,
-		}, nil
-	}
 	state := &NetworkStateResp{
-		ChainState:        networkStateReachable,
-		DNSState:          networkStateReachable,
-		DspProxyState:     networkStateReachable,
-		ChannelProxyState: networkStateReachable,
+		ChainState:        networkStateUnReachable,
+		DNSState:          networkStateUnReachable,
+		DspProxyState:     networkStateUnReachable,
+		ChannelProxyState: networkStateUnReachable,
+	}
+	if this == nil || this.Dsp == nil {
+		return state, nil
 	}
 	_, err := this.Dsp.Chain.GetCurrentBlockHeight()
-	if err != nil {
-		state.ChainState = networkStateUnReachable
+	if err == nil {
+		state.ChainState = networkStateReachable
 	}
-	if this.Dsp.DNS == nil || this.Dsp.DNS.DNSNode == nil {
-		state.DNSState = networkStateUnReachable
-	} else {
-		if !this.channelNet.IsConnectionExists(this.Dsp.DNS.DNSNode.HostAddr) {
-			state.DNSState = networkStateUnReachable
-		}
+	if this.Dsp.DNS != nil && this.Dsp.DNS.DNSNode != nil && this.channelNet.IsConnectionExists(this.Dsp.DNS.DNSNode.HostAddr) {
+		state.DNSState = networkStateReachable
 	}
-	if !this.dspNet.IsConnectionExists(this.dspNet.GetProxyServer()) {
-		state.DspProxyState = networkStateUnReachable
+	if this.dspNet != nil && this.dspNet.IsConnectionExists(this.dspNet.GetProxyServer()) {
+		state.DspProxyState = networkStateReachable
 	}
-	if !this.channelNet.IsConnectionExists(this.channelNet.GetProxyServer()) {
-		state.ChannelProxyState = networkStateUnReachable
+	if this.channelNet != nil && this.channelNet.IsConnectionExists(this.channelNet.GetProxyServer()) {
+		state.ChannelProxyState = networkStateReachable
 	}
 	return state, nil
 }
