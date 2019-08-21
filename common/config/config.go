@@ -41,6 +41,7 @@ type BaseConfig struct {
 	ChannelClientType    string `json:"ChannelClientType"`
 	ChannelRevealTimeout string `json:"ChannelRevealTimeout"`
 	ChannelSettleTimeout string `json:"ChannelSettleTimeout"`
+	BlockDelay           string `json:"BlockDelay"`
 
 	DBPath         string   `json:"DBPath"`
 	PpListenAddr   string   `json:"PpListenAddr"`

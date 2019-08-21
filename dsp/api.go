@@ -109,6 +109,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		ChannelRevealTimeout: config.Parameters.BaseConfig.ChannelRevealTimeout,
 		ChannelDBPath:        config.ChannelDBPath(),
 		ChannelSettleTimeout: config.Parameters.BaseConfig.ChannelSettleTimeout,
+		BlockDelay:           config.Parameters.BaseConfig.BlockDelay,
 		AutoSetupDNSEnable:   config.Parameters.BaseConfig.AutoSetupDNSEnable,
 		DnsNodeMaxNum:        config.Parameters.BaseConfig.DnsNodeMaxNum,
 		SeedInterval:         config.Parameters.BaseConfig.SeedInterval,
