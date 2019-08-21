@@ -23,7 +23,7 @@ func GetCurrentAccount(cmd map[string]interface{}) map[string]interface{} {
 func NewAccount(cmd map[string]interface{}) map[string]interface{} {
 	log.Debugf("NewAccount cmd %v", cmd)
 	resp := ResponsePack(dsp.SUCCESS)
-	if dsp.DspService.AccountExists() {
+	if dsp.DspService != nil && dsp.DspService.AccountExists() {
 		return ResponsePack(dsp.ACCOUNT_EXIST)
 	}
 	password, ok := cmd["Password"].(string)
@@ -60,7 +60,7 @@ func NewAccount(cmd map[string]interface{}) map[string]interface{} {
 
 func ImportWithPrivateKey(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
-	if dsp.DspService.AccountExists() {
+	if dsp.DspService != nil && dsp.DspService.AccountExists() {
 		return ResponsePack(dsp.ACCOUNT_EXIST)
 	}
 	privKeyStr, ok := cmd["PrivateKey"].(string)
@@ -83,7 +83,7 @@ func ImportWithPrivateKey(cmd map[string]interface{}) map[string]interface{} {
 
 func ImportWithWalletData(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
-	if dsp.DspService.AccountExists() {
+	if dsp.DspService != nil && dsp.DspService.AccountExists() {
 		return ResponsePack(dsp.ACCOUNT_EXIST)
 	}
 	walletStr, ok := cmd["Wallet"].(string)
@@ -104,7 +104,11 @@ func ImportWithWalletData(cmd map[string]interface{}) map[string]interface{} {
 
 func ExportWalletFile(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
-	walletResp, err := dsp.DspService.ExportWalletFile()
+	endpoint := dsp.DspService
+	if endpoint == nil {
+		endpoint = &dsp.Endpoint{}
+	}
+	walletResp, err := endpoint.ExportWalletFile()
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
@@ -118,7 +122,11 @@ func ExportWIFPrivateKey(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
-	ret, err := dsp.DspService.ExportWIFPrivateKey(password)
+	endpoint := dsp.DspService
+	if endpoint == nil {
+		endpoint = &dsp.Endpoint{}
+	}
+	ret, err := endpoint.ExportWIFPrivateKey(password)
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
