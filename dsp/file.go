@@ -202,6 +202,7 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, pr
 	if err != nil {
 		return nil, &DspErr{Code: FS_UPLOAD_FILEPATH_ERROR, Error: fmt.Errorf("os stat file %s error: %s", path, err.Error())}
 	}
+	log.Debugf("path: %v, isDir: %t", path, f.IsDir())
 	if f.IsDir() {
 		return nil, &DspErr{Code: FS_UPLOAD_FILEPATH_ERROR, Error: fmt.Errorf("uploadFile error: %s is a directory", path)}
 	}

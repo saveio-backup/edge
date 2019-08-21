@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/saveio/edge/common/config"
+	"github.com/saveio/edge/dsp"
 	berr "github.com/saveio/edge/http/base/error"
 	"github.com/saveio/themis/common/log"
 )
@@ -548,7 +549,11 @@ func (this *restServer) initGetHandler() {
 				if url != GET_BALANCE && url != GET_BALANCE_HISTORY && url != DSP_GET_FILE_TRANSFERLIST {
 					log.Debugf("rest handle get url: %s, req: %v", url, req)
 				}
-				resp = h.handler(req)
+				if dsp.DspService == nil || dsp.DspService.Dsp == nil {
+					resp = ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
+				} else {
+					resp = h.handler(req)
+				}
 				resp["Action"] = h.name
 			} else {
 				resp = ResponsePack(berr.INVALID_METHOD)
@@ -575,7 +580,11 @@ func (this *restServer) initPostHandler() {
 				if err := json.Unmarshal(body, &req); err == nil {
 					req = this.getParams(r, url, req)
 					log.Debugf("rest handle post url: %s, req: %v", url, req)
-					resp = h.handler(req)
+					if dsp.DspService == nil || dsp.DspService.Dsp == nil {
+						resp = ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
+					} else {
+						resp = h.handler(req)
+					}
 					resp["Action"] = h.name
 				} else {
 					resp = ResponsePack(berr.ILLEGAL_DATAFORMAT)
