@@ -549,11 +549,7 @@ func (this *restServer) initGetHandler() {
 				if url != GET_BALANCE && url != GET_BALANCE_HISTORY && url != DSP_GET_FILE_TRANSFERLIST {
 					log.Debugf("rest handle get url: %s, req: %v", url, req)
 				}
-				if dsp.DspService == nil || dsp.DspService.Dsp == nil {
-					resp = ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
-				} else {
-					resp = h.handler(req)
-				}
+				resp = h.handler(req)
 				resp["Action"] = h.name
 			} else {
 				resp = ResponsePack(berr.INVALID_METHOD)
@@ -580,11 +576,7 @@ func (this *restServer) initPostHandler() {
 				if err := json.Unmarshal(body, &req); err == nil {
 					req = this.getParams(r, url, req)
 					log.Debugf("rest handle post url: %s, req: %v", url, req)
-					if dsp.DspService == nil || dsp.DspService.Dsp == nil {
-						resp = ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
-					} else {
-						resp = h.handler(req)
-					}
+					resp = h.handler(req)
 					resp["Action"] = h.name
 				} else {
 					resp = ResponsePack(berr.ILLEGAL_DATAFORMAT)
@@ -610,6 +602,26 @@ func (this *restServer) write(w http.ResponseWriter, data []byte) {
 	w.Header().Set("content-type", "application/json;charset=utf-8")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(data)
+}
+
+func (this *restServer) checkDspService(url, method string) (int, string) {
+	if method == "GET" {
+		if url == NEW_ACCOUNT || url == GET_CURRENT_ACCOUNT {
+			return dsp.SUCCESS, ""
+		}
+		if dsp.DspService == nil || dsp.DspService.Dsp == nil {
+			return dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error()
+		}
+		return dsp.SUCCESS, ""
+	} else {
+		if url == NEW_ACCOUNT {
+			return dsp.SUCCESS, ""
+		}
+		if dsp.DspService == nil || dsp.DspService.Dsp == nil {
+			return dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error()
+		}
+		return dsp.SUCCESS, ""
+	}
 }
 
 //response
