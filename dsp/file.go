@@ -1356,7 +1356,7 @@ func (this *Endpoint) SetUserSpace(walletAddr string, size, sizeOpType, blockCou
 		}
 		from := states[1].(string)
 		to := states[2].(string)
-		if n.ContractAddress != chainSdkFs.FS_CONTRACT_ADDRESS.ToHexString() || (to != chainSdkFs.FS_CONTRACT_ADDRESS.ToBase58() && to != this.Dsp.WalletAddress()) {
+		if to != chainSdkFs.FS_CONTRACT_ADDRESS.ToBase58() && to != this.Dsp.WalletAddress() {
 			continue
 		}
 		hasTransfer = true
