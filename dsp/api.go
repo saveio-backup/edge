@@ -9,8 +9,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/saveio/max/max"
+	"github.com/saveio/pylons"
+
 	"github.com/saveio/carrier/crypto"
 	"github.com/saveio/carrier/crypto/ed25519"
+	carNet "github.com/saveio/carrier/network"
 	dsp "github.com/saveio/dsp-go-sdk"
 	dspActorClient "github.com/saveio/dsp-go-sdk/actor/client"
 	dspCom "github.com/saveio/dsp-go-sdk/common"
@@ -221,6 +225,10 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 	}
 	go endpoint.stateChangeService()
 	log.Info("Dsp start success.")
+	log.Infof("edge version: %s", Version)
+	log.Infof("pylons version: %s", pylons.Version)
+	log.Infof("max version: %s", max.Version)
+	log.Infof("carrier version: %s", carNet.Version)
 	return nil
 }
 

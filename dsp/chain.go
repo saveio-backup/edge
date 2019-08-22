@@ -29,7 +29,7 @@ const (
 	TxTypeReceive = 2
 )
 
-var GitCommit string
+var Version string
 
 func (this *Endpoint) GetNodeVersion() (string, *DspErr) {
 	if this == nil || this.Dsp == nil {
@@ -40,10 +40,10 @@ func (this *Endpoint) GetNodeVersion() (string, *DspErr) {
 		return "", &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
 	max := 6
-	if len(GitCommit) < max {
-		max = len(GitCommit)
+	if len(Version) < max {
+		max = len(Version)
 	}
-	return version + GitCommit[:max], nil
+	return fmt.Sprintf("%s-%s", version, Version[:max]), nil
 }
 
 // get networkid
