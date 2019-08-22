@@ -100,26 +100,24 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 	channelListenAddr := fmt.Sprintf("%s:%d", "127.0.0.1", int(config.Parameters.BaseConfig.PortBase+uint32(config.Parameters.BaseConfig.ChannelPortOffset)))
 	log.Debugf("config.Parameters.BaseConfig.ChainRpcAddrs: %v", config.Parameters.BaseConfig.ChainRpcAddrs)
 	dspConfig := &dspCfg.DspConfig{
-		DBPath:               config.DspDBPath(),
-		FsRepoRoot:           config.FsRepoRootPath(),
-		FsFileRoot:           config.FsFileRootPath(),
-		FsType:               dspCfg.FSType(config.Parameters.FsConfig.FsType),
-		FsGcPeriod:           config.Parameters.FsConfig.FsGCPeriod,
-		EnableBackup:         config.Parameters.FsConfig.EnableBackup,
-		ChainRpcAddrs:        config.Parameters.BaseConfig.ChainRpcAddrs,
-		ChannelClientType:    config.Parameters.BaseConfig.ChannelClientType,
-		ChannelListenAddr:    channelListenAddr,
-		ChannelProtocol:      config.Parameters.BaseConfig.ChannelProtocol,
-		ChannelRevealTimeout: config.Parameters.BaseConfig.ChannelRevealTimeout,
-		ChannelDBPath:        config.ChannelDBPath(),
-		ChannelSettleTimeout: config.Parameters.BaseConfig.ChannelSettleTimeout,
-		BlockDelay:           config.Parameters.BaseConfig.BlockDelay,
-		AutoSetupDNSEnable:   config.Parameters.BaseConfig.AutoSetupDNSEnable,
-		DnsNodeMaxNum:        config.Parameters.BaseConfig.DnsNodeMaxNum,
-		SeedInterval:         config.Parameters.BaseConfig.SeedInterval,
-		DnsChannelDeposit:    config.Parameters.BaseConfig.DnsChannelDeposit,
-		Trackers:             config.Parameters.BaseConfig.Trackers,
-		DNSWalletAddrs:       config.Parameters.BaseConfig.DNSWalletAddrs,
+		DBPath:             config.DspDBPath(),
+		FsRepoRoot:         config.FsRepoRootPath(),
+		FsFileRoot:         config.FsFileRootPath(),
+		FsType:             dspCfg.FSType(config.Parameters.FsConfig.FsType),
+		FsGcPeriod:         config.Parameters.FsConfig.FsGCPeriod,
+		EnableBackup:       config.Parameters.FsConfig.EnableBackup,
+		ChainRpcAddrs:      config.Parameters.BaseConfig.ChainRpcAddrs,
+		ChannelClientType:  config.Parameters.BaseConfig.ChannelClientType,
+		ChannelListenAddr:  channelListenAddr,
+		ChannelProtocol:    config.Parameters.BaseConfig.ChannelProtocol,
+		ChannelDBPath:      config.ChannelDBPath(),
+		BlockDelay:         config.Parameters.BaseConfig.BlockDelay,
+		AutoSetupDNSEnable: config.Parameters.BaseConfig.AutoSetupDNSEnable,
+		DnsNodeMaxNum:      config.Parameters.BaseConfig.DnsNodeMaxNum,
+		SeedInterval:       config.Parameters.BaseConfig.SeedInterval,
+		DnsChannelDeposit:  config.Parameters.BaseConfig.DnsChannelDeposit,
+		Trackers:           config.Parameters.BaseConfig.Trackers,
+		DNSWalletAddrs:     config.Parameters.BaseConfig.DNSWalletAddrs,
 	}
 	log.Debugf("dspConfig.dbpath %v, repo: %s, channelDB: %s, wallet: %s, enable backup: %t", dspConfig.DBPath, dspConfig.FsRepoRoot, dspConfig.ChannelDBPath, config.WalletDatFilePath(), config.Parameters.FsConfig.EnableBackup)
 	//Skip init fs if Dsp doesn't start listen
@@ -225,6 +223,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 	}
 	go endpoint.stateChangeService()
 	log.Info("Dsp start success.")
+	log.Infof("dsp-go-sdk version: %s", dsp.Version)
 	log.Infof("edge version: %s", Version)
 	log.Infof("pylons version: %s", pylons.Version)
 	log.Infof("max version: %s", max.Version)
