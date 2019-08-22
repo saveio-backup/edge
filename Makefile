@@ -12,7 +12,7 @@ BUILD_EDGE_PAR =-x -v -ldflags "-s -w -X github.com/saveio/edge/dsp.Version=$(ED
 all: client
 
 client:
-	$(GC)  $(BUILD_DSP_CLIENT_PAR) -o ./edge ./bin/edge/main.go
+	$(GC)  $(BUILD_EDGE_PAR) -o ./edge ./bin/edge/main.go
 
 
 do-cross: w-dsp l-dsp d-dsp
