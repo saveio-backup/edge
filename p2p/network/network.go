@@ -24,7 +24,8 @@ import (
 	"github.com/saveio/edge/common/config"
 	act "github.com/saveio/pylons/actor/server"
 	"github.com/saveio/pylons/network/transport/messages"
-	pm "github.com/saveio/scan/messages/protoMessages"
+
+	pm "github.com/saveio/scan/p2p/actor/messages"
 	"github.com/saveio/themis/common/log"
 )
 
