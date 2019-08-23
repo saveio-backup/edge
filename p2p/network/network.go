@@ -189,6 +189,7 @@ func (this *Network) Start(address string) error {
 		backoff.WithInitialDelay(3 * time.Second),
 		backoff.WithMaxAttempts(10),
 		backoff.WithPriority(65535),
+		backoff.WithMaxInterval(time.Duration(30) * time.Second),
 	}
 	this.backOff = backoff.New(backoff_options...)
 	builder.AddComponent(this.backOff)
