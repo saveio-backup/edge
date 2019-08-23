@@ -36,6 +36,7 @@ func UploadFile(cmd map[string]interface{}) map[string]interface{} {
 	}
 	opt, err := dsp.DspService.UploadFile(path, desc, cmd["Duration"], cmd["Interval"], cmd["Privilege"], cmd["CopyNum"], cmd["StoreType"], pwd, url, whitelist, share)
 	if err != nil {
+		log.Errorf("upload file failed, err %v", err)
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
 	uploadOption := make(map[string]interface{})
@@ -88,6 +89,7 @@ func DownloadFile(cmd map[string]interface{}) map[string]interface{} {
 	}
 	err := dsp.DspService.DownloadFile(fileHash, url, link, password, uint64(max), setFileName)
 	if err != nil {
+		log.Errorf("download file failed, err %v", err)
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
 	return resp

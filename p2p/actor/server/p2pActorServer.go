@@ -134,6 +134,27 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 			ret, err := this.dspNet.RequestWithRetry(msg.Data, msg.Address, msg.Retry)
 			msg.Response <- &dspact.RequestWithRetryResp{Data: ret, Error: err}
 		}()
+	case *dspact.ReconnectPeerReq:
+		go func() {
+			switch msg.NetType {
+			case dspact.P2pNetTypeDsp:
+				state, err := this.dspNet.GetPeerStateByAddress(msg.Address)
+				if state == p2pNet.PEER_REACHABLE && err == nil {
+					msg.Response <- &dspact.P2pResp{Error: nil}
+					return
+				}
+				err = this.dspNet.ReconnectPeer(msg.Address)
+				msg.Response <- &dspact.P2pResp{Error: err}
+			case dspact.P2pNetTypeChannel:
+				state, err := this.channelNet.GetPeerStateByAddress(msg.Address)
+				if state == p2pNet.PEER_REACHABLE && err == nil {
+					msg.Response <- &dspact.P2pResp{Error: nil}
+					return
+				}
+				err = this.channelNet.ReconnectPeer(msg.Address)
+				msg.Response <- &dspact.P2pResp{Error: err}
+			}
+		}()
 	default:
 		log.Error("[P2PActor] receive unknown message type!")
 	}

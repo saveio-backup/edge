@@ -562,6 +562,10 @@ func (this *Network) Broadcast(addrs []string, msg proto.Message, needReply bool
 	}
 }
 
+func (this *Network) ReconnectPeer(addr string) error {
+	return this.P2p.ReconnectPeer(addr)
+}
+
 //P2P network msg receive. transfer to actor_channel
 func (this *Network) Receive(ctx *network.ComponentContext, message proto.Message, from string) error {
 	// TODO check message is nil
