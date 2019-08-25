@@ -75,6 +75,7 @@ type Transfer struct {
 	ErrorCode      uint32
 	ErrMsg         string `json:",omitempty"`
 	StoreType      uint64
+	Encrypted      bool
 }
 
 type TransferlistResp struct {
@@ -983,7 +984,22 @@ func (this *Endpoint) EncryptFile(path, password string) *DspErr {
 }
 
 func (this *Endpoint) DecryptFile(path, password string) *DspErr {
-	err := this.Dsp.Fs.AESDecryptFile(path, password, path+".temp")
+	sourceFile, err := os.Open(path)
+	if err != nil {
+		return &DspErr{Code: DSP_FILE_NOT_EXISTS, Error: err}
+	}
+	defer sourceFile.Close()
+	prefix := make([]byte, dspUtils.PREFIX_LEN)
+	_, err = sourceFile.Read(prefix)
+	if err != nil {
+		return &DspErr{Code: DSP_DECRYPTED_FILE_FAILED, Error: err}
+	}
+	filePrefix := &dspUtils.FilePrefix{}
+	filePrefix.Deserialize([]byte(prefix))
+	if !dspUtils.VerifyEncryptPassword(password, filePrefix.EncryptSalt, filePrefix.EncryptHash) {
+		return &DspErr{Code: DSP_FILE_DECRYPTED_WRONG_PWD, Error: err}
+	}
+	err = this.Dsp.Fs.AESDecryptFile(path, string(prefix), password, path+".temp")
 	if err != nil {
 		return &DspErr{Code: DSP_DECRYPTED_FILE_FAILED, Error: err}
 	}
@@ -1600,6 +1616,7 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 			if pInfo.FileSize > 0 {
 				pInfo.Progress = float64(pInfo.DownloadSize) / float64(pInfo.FileSize)
 			}
+			pInfo.Encrypted = this.Dsp.IsFileEncrypted(pInfo.Path)
 		}
 	}
 	if info.TaskState == task.TaskStateFailed {
