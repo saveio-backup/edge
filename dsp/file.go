@@ -997,7 +997,7 @@ func (this *Endpoint) DecryptFile(path, password string) *DspErr {
 	filePrefix := &dspUtils.FilePrefix{}
 	filePrefix.Deserialize([]byte(prefix))
 	if !dspUtils.VerifyEncryptPassword(password, filePrefix.EncryptSalt, filePrefix.EncryptHash) {
-		return &DspErr{Code: DSP_FILE_DECRYPTED_WRONG_PWD, Error: err}
+		return &DspErr{Code: DSP_FILE_DECRYPTED_WRONG_PWD, Error: ErrMaps[DSP_FILE_DECRYPTED_WRONG_PWD]}
 	}
 	err = this.Dsp.Fs.AESDecryptFile(path, string(prefix), password, path+".temp")
 	if err != nil {
