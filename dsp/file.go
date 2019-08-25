@@ -121,6 +121,7 @@ type FileResp struct {
 	CurrentHeight uint64
 	ExpiredHeight uint64
 	StoreType     fs.FileStoreType
+	RealFileSize  uint64
 }
 
 type DownloadFilesInfo struct {
@@ -224,10 +225,15 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, pr
 		return nil, &DspErr{Code: FS_UPLOAD_INTERVAL_TOO_SMALL, Error: ErrMaps[FS_UPLOAD_INTERVAL_TOO_SMALL]}
 	}
 	storageType, _ := storageTypeVal.(float64)
+	fileSizeInKB := f.Size() / 1024
+	if fileSizeInKB == 0 {
+		fileSizeInKB = 1
+	}
 	opt := &fs.UploadOption{
 		FileDesc:      []byte(desc),
 		ProveInterval: uint64(interval),
 		StorageType:   uint64(storageType),
+		FileSize:      uint64(fileSizeInKB),
 	}
 	if fs.FileStoreType(storageType) == fs.FileStoreTypeNormal {
 		userspace, err := this.Dsp.Chain.Native.Fs.GetUserSpace(currentAccount.Address)
@@ -1145,6 +1151,7 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uin
 			CurrentHeight: uint64(now),
 			ExpiredHeight: expired,
 			StoreType:     fs.FileStoreType(fi.StorageType),
+			RealFileSize:  fi.RealFileSize,
 		}
 		files = append(files, fr)
 		if limit > 0 && uint64(len(files)) >= limit {
@@ -1166,6 +1173,7 @@ type fileInfoResp struct {
 	Whitelist     []string
 	ExpiredAt     uint64
 	CurrentHeight uint64
+	RealFileSize  uint64
 }
 
 func (this *Endpoint) GetFileInfo(fileHashStr string) (*fileInfoResp, *DspErr) {
@@ -1193,6 +1201,7 @@ func (this *Endpoint) GetFileInfo(fileHashStr string) (*fileInfoResp, *DspErr) {
 		Whitelist:     []string{},
 		ExpiredAt:     expiredAt,
 		CurrentHeight: uint64(now),
+		RealFileSize:  info.RealFileSize,
 	}
 	block, _ := this.Dsp.Chain.GetBlockByHeight(uint32(info.BlockHeight))
 	if block == nil {
