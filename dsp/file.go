@@ -476,7 +476,7 @@ func (this *Endpoint) CancelUploadFile(taskIds []string) *FileTaskResp {
 	return resp
 }
 
-func (this *Endpoint) DeleteFile(fileHash string) (*DeleteFileResp, *DspErr) {
+func (this *Endpoint) DeleteUploadFile(fileHash string) (*DeleteFileResp, *DspErr) {
 	fi, err := this.Dsp.Chain.Native.Fs.GetFileInfo(fileHash)
 	if fi != nil && err == nil && fi.FileOwner.ToBase58() == this.Dsp.WalletAddress() {
 		result, err := this.Dsp.DeleteUploadedFiles([]string{fileHash})
@@ -489,10 +489,16 @@ func (this *Endpoint) DeleteFile(fileHash string) (*DeleteFileResp, *DspErr) {
 		deleteResp := result[0]
 		resp := &DeleteFileResp{IsUploaded: true}
 		resp.Tx = deleteResp.Tx
+		resp.FileHash = deleteResp.FileHash
+		resp.FileName = deleteResp.FileName
 		resp.Nodes = deleteResp.Nodes
 		return resp, nil
 	}
-	err = this.Dsp.DeleteDownloadedFile(fileHash)
+	return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: err}
+}
+
+func (this *Endpoint) DeleteDownloadFile(fileHash string) (*DeleteFileResp, *DspErr) {
+	err := this.Dsp.DeleteDownloadedFile(fileHash)
 	if err != nil {
 		return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: err}
 	}
@@ -511,6 +517,8 @@ func (this *Endpoint) DeleteUploadFiles(fileHashs []string) ([]*DeleteFileResp, 
 	for _, r := range result {
 		resp := &DeleteFileResp{IsUploaded: true}
 		resp.Tx = r.Tx
+		resp.FileHash = r.FileHash
+		resp.FileName = r.FileName
 		resp.Nodes = r.Nodes
 		resps = append(resps, resp)
 	}

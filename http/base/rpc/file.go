@@ -25,7 +25,7 @@ func DeleteFile(cmd []interface{}) map[string]interface{} {
 		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	params := convertSliceToMap(cmd, []string{"Hash"})
-	v := rest.DeleteFile(params)
+	v := rest.DeleteUploadFile(params)
 	ret, err := parseRestResult(v)
 	if err != nil {
 		return responsePackError(err.Code, err.Error.Error())

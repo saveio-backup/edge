@@ -280,7 +280,7 @@ func (this *restServer) registryMethod() {
 		DSP_FILE_UPLOAD_PAUSE:          {name: "pauseuploadfile", handler: PauseUploadFile},
 		DSP_FILE_UPLOAD_RETRY:          {name: "retryuploadfile", handler: RetryUploadFile},
 		DSP_FILE_UPLOAD_CANCEL:         {name: "canceluploadfile", handler: CancelUploadFile},
-		DSP_FILE_DELETE:                {name: "deletefile", handler: DeleteFile},
+		DSP_FILE_DELETE:                {name: "deleteuploadfile", handler: DeleteUploadFile},
 		DSP_FILES_DELETE:               {name: "deletefiles", handler: DeleteUploadFiles},
 		DSP_FILE_DOWNLOAD:              {name: "downloadfile", handler: DownloadFile},
 		DSP_FILE_DOWNLOAD_RESUME:       {name: "resumedownloadfile", handler: ResumeDownloadFile},
