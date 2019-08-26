@@ -11,3 +11,9 @@ const (
 	MAX_HEALTH_CHECK_INTERVAL       = 5   // health check interval
 	MAX_STATE_CHANGE_CHECK_INTERVAL = 5   // state change  check interval
 )
+
+// network common
+
+const (
+	MAX_WAIT_FOR_CONNECTED_TIMEOUT = 10 // wait for connected timeout
+)

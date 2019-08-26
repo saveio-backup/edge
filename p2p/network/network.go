@@ -328,17 +328,19 @@ func (this *Network) Connect(tAddr string) error {
 }
 
 func (this *Network) ConnectAndWait(addr string) error {
+	if _, ok := this.addressForHealthCheck.Load(addr); ok {
+		// already try to connect, don't retry before we get a result
+		log.Info("already try to connect")
+		return this.WaitForConnected(addr, time.Duration(edgeCom.MAX_WAIT_FOR_CONNECTED_TIMEOUT)*time.Second)
+	}
+	this.addressForHealthCheck.Store(addr, struct{}{})
 	if this.IsConnectionExists(addr) {
 		log.Debugf("connection exist %s", addr)
 		return nil
 	}
 	log.Debugf("bootstrap to %v", addr)
 	this.P2p.Bootstrap(addr)
-	err := this.WaitForConnected(addr, time.Duration(5)*time.Second)
-	if err != nil {
-		return err
-	}
-	return nil
+	return this.WaitForConnected(addr, time.Duration(edgeCom.MAX_WAIT_FOR_CONNECTED_TIMEOUT)*time.Second)
 }
 
 func (this *Network) GetPeerStateByAddress(addr string) (network.PeerState, error) {

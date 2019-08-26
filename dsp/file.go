@@ -240,7 +240,7 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, pr
 		if err != nil {
 			return nil, &DspErr{Code: FS_GET_USER_SPACE_FAILED, Error: err}
 		}
-		log.Debugf("storageType %d, userspace.ExpireHeight %d, current: %d", storageType, userspace.ExpireHeight, currentHeight)
+		log.Debugf("storageType %v, userspace.ExpireHeight %d, current: %d", storageType, userspace.ExpireHeight, currentHeight)
 		if userspace.ExpireHeight <= uint64(currentHeight) {
 			return nil, &DspErr{Code: DSP_USER_SPACE_EXPIRED, Error: ErrMaps[DSP_USER_SPACE_EXPIRED]}
 		}

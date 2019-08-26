@@ -154,7 +154,7 @@ func (this *Endpoint) GetAllChannels() (interface{}, *DspErr) {
 		}
 		resp.Channels = append(resp.Channels, newCh)
 	}
-	log.Debugf("GetAllChannels done: %s", resp)
+	log.Debugf("GetAllChannels done: %v", resp)
 	return resp, nil
 }
 
