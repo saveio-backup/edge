@@ -96,6 +96,7 @@ const (
 	DSP_FILE_UPLOAD_CANCEL       = "/api/v1/dsp/file/upload/cancel"
 	DSP_FILE_UPLOAD_FEE          = "/api/v1/dsp/file/uploadfee/:file"
 	DSP_FILE_DELETE              = "/api/v1/dsp/file/delete"
+	DSP_FILES_DELETE             = "/api/v1/dsp/files/delete"
 	DSP_FILE_DOWNLOAD            = "/api/v1/dsp/file/download"
 	DSP_FILE_DOWNLOAD_PAUSE      = "/api/v1/dsp/file/download/pause"
 	DSP_FILE_DOWNLOAD_RESUME     = "/api/v1/dsp/file/download/resume"
@@ -109,6 +110,7 @@ const (
 	DSP_GET_FILE_WHITELIST       = "/api/v1/dsp/file/whitelist/:hash"
 	DSP_UPDATE_FILE_WHITELIST    = "/api/v1/dsp/file/updatewhitelist"
 	DSP_FILE_UPLOAD_INFO         = "/api/v1/dsp/file/upload/info/:hash"
+	DSP_FILE_PROVE_DETAIL        = "/api/v1/dsp/file/prove/detail/:hash"
 
 	GET_CHANNEL_INIT_PROGRESS = "/api/v1/channel/init/progress"
 	GET_ALL_CHANNEL           = "/api/v1/channel"
@@ -234,6 +236,7 @@ func (this *restServer) registryMethod() {
 		DSP_FILE_SHARE_REVENUE:       {name: "getfilesharerevenue", handler: GetFileShareRevenue},
 		DSP_GET_FILE_WHITELIST:       {name: "getwhitelist", handler: GetFileWhiteList},
 		DSP_FILE_UPLOAD_INFO:         {name: "getuploadfileinfo", handler: GetUploadFileInfo},
+		DSP_FILE_PROVE_DETAIL:        {name: "getuploadfileprovedetail", handler: GetUploadFileProveDetail},
 
 		GET_CHANNEL_INIT_PROGRESS: {name: "channelinitprogress", handler: GetChannelInitProgress},
 		GET_ALL_CHANNEL:           {name: "getallchannels", handler: GetAllChannels},
@@ -278,6 +281,7 @@ func (this *restServer) registryMethod() {
 		DSP_FILE_UPLOAD_RETRY:          {name: "retryuploadfile", handler: RetryUploadFile},
 		DSP_FILE_UPLOAD_CANCEL:         {name: "canceluploadfile", handler: CancelUploadFile},
 		DSP_FILE_DELETE:                {name: "deletefile", handler: DeleteFile},
+		DSP_FILES_DELETE:               {name: "deletefiles", handler: DeleteUploadFiles},
 		DSP_FILE_DOWNLOAD:              {name: "downloadfile", handler: DownloadFile},
 		DSP_FILE_DOWNLOAD_RESUME:       {name: "resumedownloadfile", handler: ResumeDownloadFile},
 		DSP_FILE_DOWNLOAD_PAUSE:        {name: "pausedownloadfile", handler: PauseDownloadFile},
@@ -375,6 +379,8 @@ func (this *restServer) getPath(url string) string {
 		return DSP_FILE_UPLOAD_INFO
 	} else if strings.Contains(url, strings.TrimSuffix(DSP_GET_FILE_TRANSFER_DETAIL, ":type/:id")) {
 		return DSP_GET_FILE_TRANSFER_DETAIL
+	} else if strings.Contains(url, strings.TrimRight(DSP_FILE_PROVE_DETAIL, ":hash")) {
+		return DSP_FILE_PROVE_DETAIL
 	}
 
 	//path for channel
@@ -492,6 +498,8 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 	case DSP_GET_FILE_WHITELIST:
 		req["FileHash"] = getParam(r, "hash")
 	case DSP_FILE_UPLOAD_INFO:
+		req["FileHash"] = getParam(r, "hash")
+	case DSP_FILE_PROVE_DETAIL:
 		req["FileHash"] = getParam(r, "hash")
 	case DSP_USERSPACE_RECORDS:
 		req["Addr"], req["Offset"], req["Limit"] = getParam(r, "addr"), getParam(r, "offset"), getParam(r, "limit")

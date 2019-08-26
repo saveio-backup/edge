@@ -73,6 +73,31 @@ func DeleteFile(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
+func DeleteUploadFiles(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	v, ok := cmd["Hash"].([]interface{})
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	if dsp.DspService == nil {
+		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
+	}
+	fileHashes := make([]string, 0, len(v))
+	for _, str := range v {
+		fileHash, ok := str.(string)
+		if !ok {
+			continue
+		}
+		fileHashes = append(fileHashes, fileHash)
+	}
+	ret, err := dsp.DspService.DeleteUploadFiles(fileHashes)
+	if err != nil {
+		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
+	}
+	resp["Result"] = ret
+	return resp
+}
+
 func DownloadFile(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	fileHash, _ := cmd["Hash"].(string)
@@ -779,5 +804,19 @@ func GetTransferDetail(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePackWithErrMsg(dspErr.Code, dspErr.Error.Error())
 	}
 	resp["Result"] = transfer
+	return resp
+}
+
+func GetUploadFileProveDetail(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	hash, ok := cmd["FileHash"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	ret, err := dsp.DspService.GetProveDetail(hash)
+	if err != nil {
+		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
+	}
+	resp["Result"] = ret
 	return resp
 }

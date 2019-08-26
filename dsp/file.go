@@ -425,11 +425,26 @@ func (this *Endpoint) CancelUploadFile(taskIds []string) *FileTaskResp {
 	resp := &FileTaskResp{
 		Tasks: make([]*FileTask, 0, len(taskIds)),
 	}
+
+	// send delete files tx
+	fileHashes := make([]string, 0, len(taskIds))
+	for _, id := range taskIds {
+		fileHash := this.Dsp.GetTaskFileHash(id)
+		fileHashes = append(fileHashes, fileHash)
+	}
+	_, _, deleteTxErr := this.Dsp.DeleteUploadFilesFromChain(fileHashes)
+
 	for _, id := range taskIds {
 		taskResp := &FileTask{
 			Id:       id,
 			FileName: this.Dsp.GetTaskFileName(id),
 			State:    int(task.TaskStateCancel),
+		}
+		if deleteTxErr != nil {
+			taskResp.Code = DSP_CANCEL_TASK_FAILED
+			taskResp.Error = deleteTxErr.Error()
+			resp.Tasks = append(resp.Tasks, taskResp)
+			continue
 		}
 		exist := this.Dsp.IsTaskExist(id)
 		if !exist {
@@ -464,13 +479,17 @@ func (this *Endpoint) CancelUploadFile(taskIds []string) *FileTaskResp {
 func (this *Endpoint) DeleteFile(fileHash string) (*DeleteFileResp, *DspErr) {
 	fi, err := this.Dsp.Chain.Native.Fs.GetFileInfo(fileHash)
 	if fi != nil && err == nil && fi.FileOwner.ToBase58() == this.Dsp.WalletAddress() {
-		result, err := this.Dsp.DeleteUploadedFile(fileHash)
+		result, err := this.Dsp.DeleteUploadedFiles([]string{fileHash})
 		if err != nil {
 			return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: err}
 		}
+		if len(result) == 0 {
+			return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: ErrMaps[DSP_DELETE_FILE_FAILED]}
+		}
+		deleteResp := result[0]
 		resp := &DeleteFileResp{IsUploaded: true}
-		resp.Tx = result.Tx
-		resp.Nodes = result.Nodes
+		resp.Tx = deleteResp.Tx
+		resp.Nodes = deleteResp.Nodes
 		return resp, nil
 	}
 	err = this.Dsp.DeleteDownloadedFile(fileHash)
@@ -478,6 +497,24 @@ func (this *Endpoint) DeleteFile(fileHash string) (*DeleteFileResp, *DspErr) {
 		return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: err}
 	}
 	return &DeleteFileResp{IsUploaded: false}, nil
+}
+
+func (this *Endpoint) DeleteUploadFiles(fileHashs []string) ([]*DeleteFileResp, *DspErr) {
+	result, err := this.Dsp.DeleteUploadedFiles(fileHashs)
+	if err != nil {
+		return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: err}
+	}
+	if len(result) == 0 {
+		return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: ErrMaps[DSP_DELETE_FILE_FAILED]}
+	}
+	resps := make([]*DeleteFileResp, 0, len(result))
+	for _, r := range result {
+		resp := &DeleteFileResp{IsUploaded: true}
+		resp.Tx = r.Tx
+		resp.Nodes = r.Nodes
+		resps = append(resps, resp)
+	}
+	return resps, nil
 }
 
 func (this *Endpoint) GetFsConfig() (*FsContractSettingResp, *DspErr) {
@@ -1089,22 +1126,15 @@ func (this *Endpoint) RegisterShareNotificationCh() {
 }
 
 func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uint64) ([]*FileResp, *DspErr) {
-	fileList, err := this.Dsp.Chain.Native.Fs.GetFileList()
+	fileList, err := this.Dsp.Chain.Native.Fs.GetFileList(this.Dsp.Account.Address)
 	if err != nil {
 		return nil, &DspErr{Code: FS_GET_FILE_LIST_FAILED, Error: err}
 	}
-	// setting, err := this.Dsp.Chain.Native.Fs.GetSetting()
-	// if err != nil {
-	// 	return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
-	// }
+
 	now, err := this.Dsp.Chain.GetCurrentBlockHeight()
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
 	}
-	// space, err := this.Dsp.GetUserSpace(this.Dsp.WalletAddress())
-	// if err != nil {
-	// 	return nil, &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
-	// }
 
 	files := make([]*FileResp, 0)
 	offsetCnt := uint64(0)
@@ -1530,6 +1560,14 @@ func (this *Endpoint) GetStorageNodesInfo() (map[string]interface{}, *DspErr) {
 	m := make(map[string]interface{})
 	m["Count"] = info.NodeNum
 	return m, nil
+}
+
+func (this *Endpoint) GetProveDetail(fileHashStr string) (interface{}, *DspErr) {
+	details, err := this.Dsp.Chain.Native.Fs.GetFileProveDetails(fileHashStr)
+	if err != nil {
+		return nil, &DspErr{Code: CONTRACT_ERROR, Error: err}
+	}
+	return details, nil
 }
 
 func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressInfo) *Transfer {
