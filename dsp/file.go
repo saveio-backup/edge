@@ -1321,7 +1321,7 @@ func (this *Endpoint) GetDownloadFiles(fileType DspFileListType, offset, limit u
 		filePrefix.Deserialize(info.Prefix)
 		fileInfos = append(fileInfos, &DownloadFilesInfo{
 			Hash:          file,
-			Name:          info.FileName,
+			Name:          fileNameFromPath,
 			OwnerAddress:  owner,
 			Url:           url,
 			Size:          info.TotalBlockCount * dspCom.CHUNK_SIZE / 1024,
