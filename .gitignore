@@ -30,3 +30,5 @@ test/*/wallet*
 test/*/dsp*
 ./edge
 edge
+DB/
+FS/

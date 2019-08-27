@@ -111,7 +111,7 @@ func (this *SQLiteStorage) FindLastShareTime(fileHash string) (uint64, error) {
 }
 
 func (this *SQLiteStorage) CountRecordByFileHash(fileHash string) (uint64, error) {
-	sql := fmt.Sprintf("SELECT COUNT (fileHash) FROM %s WHERE fileHash = ?", SHARE_RECORDS_TABLE_NAME)
+	sql := fmt.Sprintf("SELECT COUNT (fileHash) FROM %s WHERE fileHash = ? and profit > 0", SHARE_RECORDS_TABLE_NAME)
 	rows, err := this.Query(sql, fileHash)
 	if err != nil {
 		return 0, err

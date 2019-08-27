@@ -137,6 +137,7 @@ type DownloadFilesInfo struct {
 	Profit        uint64
 	ProfitFormat  string
 	Privilege     uint64
+	RealFileSize  uint64
 }
 
 type WhiteListRule struct {
@@ -1050,14 +1051,14 @@ func (this *Endpoint) DecryptFile(path, password string) *DspErr {
 	if !dspUtils.VerifyEncryptPassword(password, filePrefix.EncryptSalt, filePrefix.EncryptHash) {
 		return &DspErr{Code: DSP_FILE_DECRYPTED_WRONG_PWD, Error: ErrMaps[DSP_FILE_DECRYPTED_WRONG_PWD]}
 	}
-	err = this.Dsp.Fs.AESDecryptFile(path, string(prefix), password, path+".temp")
+	err = this.Dsp.Fs.AESDecryptFile(path, string(prefix), password, dspUtils.GetDecryptedFilePath(path))
 	if err != nil {
 		return &DspErr{Code: DSP_DECRYPTED_FILE_FAILED, Error: err}
 	}
-	err = os.Rename(path+".temp", path)
-	if err != nil {
-		return &DspErr{Code: DSP_DECRYPTED_FILE_FAILED, Error: err}
-	}
+	// err = os.Rename(path+".temp", path)
+	// if err != nil {
+	// 	return &DspErr{Code: DSP_DECRYPTED_FILE_FAILED, Error: err}
+	// }
 	return nil
 }
 
@@ -1114,11 +1115,13 @@ func (this *Endpoint) RegisterShareNotificationCh() {
 				// TODO: repace id with a real id, not random timestamp
 				id := fmt.Sprintf("%s-%d", v.TaskKey, time.Now().Unix())
 				_, err := this.sqliteDB.InsertShareRecord(id, v.FileHash, v.FileName, v.FileOwner, v.ToWalletAddr, v.PaymentAmount)
+				log.Debugf("insert share record : %s, %v", id, v)
 				if err != nil {
 					log.Errorf("insert new share_record failed %s, err %s", id, err)
 				}
 			case task.ShareStateReceivedPaying, task.ShareStateEnd:
 				_, err := this.sqliteDB.IncreaseShareRecordProfit("", v.TaskKey, v.PaymentAmount)
+				log.Debugf("insert share record2 : %s, %v", v)
 				if err != nil {
 					log.Errorf("increase share_record profit failed %s, err %s", v.TaskKey, err)
 				}
@@ -1167,9 +1170,9 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uin
 		expiredAt := uint64(time.Now().Unix()) + (expired - uint64(now))
 		updatedAt := uint64(time.Now().Unix())
 		if fi.BlockHeight > uint64(now) {
-			updatedAt += (fi.BlockHeight - uint64(now))
+			updatedAt -= (fi.BlockHeight - uint64(now))
 		} else {
-			updatedAt += uint64(now) - fi.BlockHeight
+			updatedAt -= uint64(now) - fi.BlockHeight
 		}
 		url, _ := this.GetUrlFromHash(string(hash.Hash))
 		downloadedCount, _ := this.sqliteDB.CountRecordByFileHash(string(hash.Hash))
@@ -1211,6 +1214,7 @@ type fileInfoResp struct {
 	Whitelist     []string
 	ExpiredAt     uint64
 	CurrentHeight uint64
+	Size          uint64
 	RealFileSize  uint64
 }
 
@@ -1239,6 +1243,7 @@ func (this *Endpoint) GetFileInfo(fileHashStr string) (*fileInfoResp, *DspErr) {
 		Whitelist:     []string{},
 		ExpiredAt:     expiredAt,
 		CurrentHeight: uint64(now),
+		Size:          info.FileBlockNum * info.FileBlockSize,
 		RealFileSize:  info.RealFileSize,
 	}
 	block, _ := this.Dsp.Chain.GetBlockByHeight(uint32(info.BlockHeight))
@@ -1277,6 +1282,11 @@ func (this *Endpoint) GetDownloadFiles(fileType DspFileListType, offset, limit u
 		if info == nil {
 			continue
 		}
+		exist := chainCom.FileExisted(info.FilePath)
+		if !exist {
+			log.Debugf("file not exist %s", info.FilePath)
+			continue
+		}
 		file := info.FileHash
 		url, err := this.GetUrlFromHash(file)
 		if err != nil {
@@ -1285,6 +1295,7 @@ func (this *Endpoint) GetDownloadFiles(fileType DspFileListType, offset, limit u
 		// 0: all, 1. image, 2. document. 3. video, 4. music
 		fileNameFromPath := filepath.Base(info.FilePath)
 		if len(fileNameFromPath) == 0 {
+			log.Warnf("can't get file name path :%s %s", info.FilePath, fileNameFromPath)
 			fileNameFromPath = info.FileName
 		}
 		fileName := strings.ToLower(fileNameFromPath)
@@ -1306,6 +1317,8 @@ func (this *Endpoint) GetDownloadFiles(fileType DspFileListType, offset, limit u
 			owner = fileInfo.FileOwner.ToBase58()
 			privilege = fileInfo.Privilege
 		}
+		filePrefix := &dspUtils.FilePrefix{}
+		filePrefix.Deserialize(info.Prefix)
 		fileInfos = append(fileInfos, &DownloadFilesInfo{
 			Hash:          file,
 			Name:          info.FileName,
@@ -1319,6 +1332,7 @@ func (this *Endpoint) GetDownloadFiles(fileType DspFileListType, offset, limit u
 			ProfitFormat:  utils.FormatUsdt(profit),
 			Path:          info.FilePath,
 			Privilege:     privilege,
+			RealFileSize:  filePrefix.FileSize,
 		})
 		if uint64(len(fileInfos)) > limit {
 			break
