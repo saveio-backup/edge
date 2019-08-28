@@ -1512,7 +1512,7 @@ func (this *Endpoint) GetUserSpace(addr string) (*Userspace, *DspErr) {
 		if err != nil {
 			return nil, &DspErr{Code: CHAIN_GET_BLK_BY_HEIGHT_FAILED, Error: err}
 		}
-		expiredAt = uint64(blk.Header.Timestamp) + (space.ExpireHeight - uint64(updateHeight))
+		expiredAt = now + (space.ExpireHeight - uint64(currentHeight))
 		log.Debugf("expiredAt %d height %d, expiredheight %d updatedheight %d", expiredAt, blk.Header.Timestamp, space.ExpireHeight, updateHeight)
 	} else {
 		spaceRecord, err := this.GetUserspaceRecords(addr, 0, 1)
