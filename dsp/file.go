@@ -443,7 +443,7 @@ func (this *Endpoint) CancelUploadFile(taskIds []string) *FileTaskResp {
 		}
 		if deleteTxErr != nil {
 			taskResp.Code = DSP_CANCEL_TASK_FAILED
-			taskResp.Error = deleteTxErr.Error()
+			taskResp.Error = deleteTxErr.Error.Error()
 			resp.Tasks = append(resp.Tasks, taskResp)
 			continue
 		}
