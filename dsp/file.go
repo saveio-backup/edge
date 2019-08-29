@@ -12,6 +12,7 @@ import (
 	"time"
 
 	dspCom "github.com/saveio/dsp-go-sdk/common"
+	sdkErr "github.com/saveio/dsp-go-sdk/error"
 	"github.com/saveio/dsp-go-sdk/task"
 	dspUtils "github.com/saveio/dsp-go-sdk/utils"
 	"github.com/saveio/edge/common"
@@ -441,7 +442,7 @@ func (this *Endpoint) CancelUploadFile(taskIds []string) *FileTaskResp {
 			FileName: this.Dsp.GetTaskFileName(id),
 			State:    int(task.TaskStateCancel),
 		}
-		if deleteTxErr != nil {
+		if deleteTxErr != nil && deleteTxErr.Code != sdkErr.NO_FILE_NEED_DELETED {
 			taskResp.Code = DSP_CANCEL_TASK_FAILED
 			taskResp.Error = deleteTxErr.Error.Error()
 			resp.Tasks = append(resp.Tasks, taskResp)
@@ -1112,16 +1113,14 @@ func (this *Endpoint) RegisterShareNotificationCh() {
 			log.Debugf("share notification taskkey=%s, filehash=%s, walletaddr=%s, state=%d, amount=%d", v.TaskKey, v.FileHash, v.ToWalletAddr, v.State, v.PaymentAmount)
 			switch v.State {
 			case task.ShareStateBegin:
-				// TODO: repace id with a real id, not random timestamp
-				id := fmt.Sprintf("%s-%d", v.TaskKey, time.Now().Unix())
-				_, err := this.sqliteDB.InsertShareRecord(id, v.FileHash, v.FileName, v.FileOwner, v.ToWalletAddr, v.PaymentAmount)
-				log.Debugf("insert share record : %s, %v", id, v)
+				_, err := this.sqliteDB.InsertShareRecord(v.TaskKey, v.FileHash, v.FileName, v.FileOwner, v.ToWalletAddr, v.PaymentAmount)
+				log.Debugf("insert share record : %s, %v", v.TaskKey, v)
 				if err != nil {
-					log.Errorf("insert new share_record failed %s, err %s", id, err)
+					log.Errorf("insert new share_record failed %s, err %s", v.TaskKey, err)
 				}
 			case task.ShareStateReceivedPaying, task.ShareStateEnd:
-				_, err := this.sqliteDB.IncreaseShareRecordProfit("", v.TaskKey, v.PaymentAmount)
-				log.Debugf("insert share record2 : %s, %v", v)
+				_, err := this.sqliteDB.IncreaseShareRecordProfit(v.TaskKey, v.PaymentAmount)
+				log.Debugf("insert share record : %s, %v", v)
 				if err != nil {
 					log.Errorf("increase share_record profit failed %s, err %s", v.TaskKey, err)
 				}
@@ -1151,7 +1150,7 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uin
 	offsetCnt := uint64(0)
 	for _, hash := range fileList.List {
 		fi, err := this.Dsp.Chain.Native.Fs.GetFileInfo(string(hash.Hash))
-		if err != nil {
+		if err != nil || fi == nil {
 			log.Errorf("get file info err %s", err)
 			continue
 		}
@@ -1310,12 +1309,16 @@ func (this *Endpoint) GetDownloadFiles(fileType DspFileListType, offset, limit u
 		downloadedCount, _ := this.sqliteDB.CountRecordByFileHash(file)
 		profit, _ := this.sqliteDB.SumRecordsProfitByFileHash(file)
 		lastSharedAt, _ := this.sqliteDB.FindLastShareTime(file)
+		// TODO: get owner and privilege from DB
 		fileInfo, _ := this.Dsp.Chain.Native.Fs.GetFileInfo(file)
 		owner := ""
 		privilege := uint64(fs.PUBLIC)
 		if fileInfo != nil {
 			owner = fileInfo.FileOwner.ToBase58()
 			privilege = fileInfo.Privilege
+		}
+		if owner == "" && len(info.FileOwner) > 0 {
+			owner = info.FileOwner
 		}
 		filePrefix := &dspUtils.FilePrefix{}
 		filePrefix.Deserialize(info.Prefix)

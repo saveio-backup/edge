@@ -20,18 +20,13 @@ type ShareRecord struct {
 
 // InsertShareRecord. insert a new miner_record or replace it
 func (this *SQLiteStorage) InsertShareRecord(id, fileHash, fileName, fileOwner, toWalletAddr string, profit uint64) (bool, error) {
-	sql := fmt.Sprintf("INSERT OR REPLACE INTO %s (id, fileHash, fileName, fileOwner,downloader, profit, createdAt, updatedAt) VALUES(?, ?, ?, ?, ?, ?, ?, ?)", SHARE_RECORDS_TABLE_NAME)
+	sql := fmt.Sprintf("INSERT INTO %s (id, fileHash, fileName, fileOwner,downloader, profit, createdAt, updatedAt) VALUES(?, ?, ?, ?, ?, ?, ?, ?)", SHARE_RECORDS_TABLE_NAME)
 	return this.Exec(sql, id, fileHash, fileName, fileOwner, toWalletAddr, profit, time.Now(), time.Now())
 }
 
 // IncreaseShareRecordProfit. increase miner profit by increment
-func (this *SQLiteStorage) IncreaseShareRecordProfit(id, idPrefix string, added uint64) (bool, error) {
-	sql := ""
-	if len(idPrefix) > 0 {
-		sql = fmt.Sprintf("UPDATE %s SET profit = profit + ?, updatedAt = ? WHERE id IN (SELECT id FROM %s WHERE id like '%s-%%'  ORDER BY createdAt DESC LIMIT 1)", SHARE_RECORDS_TABLE_NAME, SHARE_RECORDS_TABLE_NAME, idPrefix)
-	} else if len(id) > 0 {
-		sql = fmt.Sprintf("UPDATE  %s SET profit = profit + ?, updatedAt = ? where id = ?", SHARE_RECORDS_TABLE_NAME)
-	}
+func (this *SQLiteStorage) IncreaseShareRecordProfit(id string, added uint64) (bool, error) {
+	sql := fmt.Sprintf("UPDATE  %s SET profit = profit + ?, updatedAt = ? where id = ?", SHARE_RECORDS_TABLE_NAME)
 	log.Debugf("increase profit %s, added %d, now %v", sql, added, time.Now())
 	return this.Exec(sql, added, time.Now())
 }
@@ -39,7 +34,6 @@ func (this *SQLiteStorage) IncreaseShareRecordProfit(id, idPrefix string, added 
 // FindShareRecordById. find miner record by id
 func (this *SQLiteStorage) FindShareRecordById(id string) (*ShareRecord, error) {
 	// SELECT * FROM share_records  WHERE id like 'hash-%'  ORDER BY createdAt DESC LIMIT 1;
-	// sql := fmt.Sprintf("SELECT * FROM %s WHERE id = ?", SHARE_RECORDS_TABLE_NAME)
 	sql := fmt.Sprintf("SELECT * FROM %s  WHERE id like '%%?%%'  ORDER BY createdAt DESC LIMIT 1", SHARE_RECORDS_TABLE_NAME)
 	rows, err := this.Query(sql, id)
 	if err != nil {
@@ -152,6 +146,25 @@ func (this *SQLiteStorage) SumRecordsProfit() (int64, error) {
 func (this *SQLiteStorage) SumRecordsProfitByFileHash(fileHashStr string) (uint64, error) {
 	sql := fmt.Sprintf("SELECT SUM (profit) FROM %s WHERE fileHash = ?", SHARE_RECORDS_TABLE_NAME)
 	rows, err := this.Query(sql, fileHashStr)
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+	count := uint64(0)
+	for rows.Next() {
+		err := rows.Scan(&count)
+		if err != nil {
+			return 0, err
+		}
+		break
+	}
+	return count, nil
+}
+
+// SumRecordsProfitByFileHash. sum profit by one files
+func (this *SQLiteStorage) SumRecordsProfitById(id string) (uint64, error) {
+	sql := fmt.Sprintf("SELECT SUM (profit) FROM %s WHERE id = ?", SHARE_RECORDS_TABLE_NAME)
+	rows, err := this.Query(sql, id)
 	if err != nil {
 		return 0, err
 	}
