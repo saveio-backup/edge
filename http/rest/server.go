@@ -56,6 +56,8 @@ const (
 	GET_MEMPOOL_TXSTATE   = "/api/v1/mempool/txstate/:hash"
 	GET_VERSION           = "/api/v1/version"
 	GET_NETWORKID         = "/api/v1/networkid"
+	GET_CHAINID           = "/api/v1/chainid"
+	SWITCH_CHAINID        = "/api/v1/chainid/switch"
 
 	GET_CURRENT_ACCOUNT            = "/api/v1/account"
 	NEW_ACCOUNT                    = "/api/v1/account"
@@ -213,6 +215,7 @@ func (this *restServer) registryMethod() {
 		GET_MEMPOOL_TXSTATE:   {name: "getmempooltxstate", handler: GetMemPoolTxState},
 		GET_VERSION:           {name: "getversion", handler: GetNodeVersion},
 		GET_NETWORKID:         {name: "getnetworkid", handler: GetNetworkId},
+		GET_CHAINID:           {name: "getchainid", handler: GetChainId},
 
 		GET_CURRENT_ACCOUNT:  {name: "getcurrentaccount", handler: GetCurrentAccount},
 		EXPORT_WALLETFILE:    {name: "exportwalletfile", handler: ExportWalletFile},
@@ -302,6 +305,8 @@ func (this *restServer) registryMethod() {
 		DNS_QUERYLINK: {name: "querylink", handler: QueryLink},
 
 		SET_CONFIG: {name: "setconfig", handler: SetConfig},
+
+		SWITCH_CHAINID: {name: "switchchainid", handler: SwitchChain},
 	}
 	this.postMap = postMethodMap
 }

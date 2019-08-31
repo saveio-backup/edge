@@ -442,6 +442,20 @@ func SetConfig(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
+func SwitchChain(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	chainId, ok := cmd["ChainId"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	config, _ := cmd["Config"].(string)
+	err := dsp.DspService.SwitchChain(chainId, config)
+	if err != nil {
+		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
+	}
+	return resp
+}
+
 func InvokeSmartContract(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	version, ok := cmd["Version"].(string)
@@ -528,5 +542,13 @@ func GetNetworkState(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
 	}
 	resp["Result"] = ret
+	return resp
+}
+
+func GetChainId(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	m := make(map[string]interface{}, 0)
+	m["ChainId"] = dsp.DspService.GetChainId()
+	resp["Result"] = m
 	return resp
 }

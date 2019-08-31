@@ -786,7 +786,7 @@ func (this *Endpoint) RegisterProgressCh() {
 				log.Errorf("add progress err %s", err)
 			}
 			infoRet, ok := v.Result.(*dspCom.UploadResult)
-			fmt.Printf("inforet %v, ok %t\n", infoRet, ok)
+			log.Debugf("inforet %v, ok %t", infoRet, ok)
 			if ok && infoRet != nil {
 				this.SetUrlForHash(v.FileHash, infoRet.Url)
 			}

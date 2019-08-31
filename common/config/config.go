@@ -23,6 +23,7 @@ const (
 type BaseConfig struct {
 	BaseDir            string `json:"BaseDir"`
 	LogPath            string `json:"LogPath"`
+	ChainId            string `json:"ChainId"`
 	NetworkId          uint32 `json:"NetworkId"`
 	PublicIP           string `json:"PublicIP"`
 	PortBase           uint32 `json:"PortBase"`
@@ -178,6 +179,13 @@ func Init(ctx *cli.Context) {
 	common.GetJsonObjectFromFile(configDir, Parameters)
 }
 
+func SwitchConfig(cfgFileName string) {
+	// configDir
+	dir, _ := filepath.Split(configDir)
+	configDir = filepath.Join(dir, cfgFileName)
+	common.GetJsonObjectFromFile(configDir, Parameters)
+}
+
 func Save() error {
 	data, err := json.MarshalIndent(Parameters, "", "\t")
 	if err != nil {
@@ -194,6 +202,14 @@ func SetCurrentUserWalletAddress(addr string) {
 	curUsrWalAddr = addr
 }
 
+func BaseDataDirPath() string {
+	chainId := Parameters.BaseConfig.ChainId
+	if len(chainId) == 0 {
+		chainId = "0"
+	}
+	return filepath.Join(Parameters.BaseConfig.BaseDir, "Chain-"+chainId)
+}
+
 // WalletDatFilePath. wallet.dat file path
 func WalletDatFilePath() string {
 	return filepath.Join(Parameters.BaseConfig.BaseDir, Parameters.BaseConfig.WalletDir)
@@ -201,30 +217,30 @@ func WalletDatFilePath() string {
 
 // ClientLevelDBPath. todo: replace level db with sqlite db
 func ClientLevelDBPath() string {
-	return filepath.Join(Parameters.BaseConfig.BaseDir, Parameters.BaseConfig.DBPath, curUsrWalAddr, "client")
+	return filepath.Join(BaseDataDirPath(), Parameters.BaseConfig.DBPath, curUsrWalAddr, "client")
 }
 
 // ClientSqliteDBPath.
 func ClientSqliteDBPath() string {
-	return filepath.Join(Parameters.BaseConfig.BaseDir, Parameters.BaseConfig.DBPath, curUsrWalAddr, "oniclient-sqlite.db")
+	return filepath.Join(BaseDataDirPath(), Parameters.BaseConfig.DBPath, curUsrWalAddr, "edge-sqlite.db")
 }
 
 // DspDBPath. dsp database path
 func DspDBPath() string {
-	return filepath.Join(Parameters.BaseConfig.BaseDir, Parameters.BaseConfig.DBPath, curUsrWalAddr, "dsp")
+	return filepath.Join(BaseDataDirPath(), Parameters.BaseConfig.DBPath, curUsrWalAddr, "dsp")
 }
 
 // ChannelDBPath. channel database path
 func ChannelDBPath() string {
-	return filepath.Join(Parameters.BaseConfig.BaseDir, Parameters.BaseConfig.DBPath, curUsrWalAddr, "channel")
+	return filepath.Join(BaseDataDirPath(), Parameters.BaseConfig.DBPath, curUsrWalAddr, "channel")
 }
 
 // FsRepoRootPath. fs repo root path
 func FsRepoRootPath() string {
-	return filepath.Join(Parameters.BaseConfig.BaseDir, Parameters.FsConfig.FsRepoRoot, curUsrWalAddr)
+	return filepath.Join(BaseDataDirPath(), Parameters.FsConfig.FsRepoRoot, curUsrWalAddr)
 }
 
 // FsFileRootPath. fs filestore root path
 func FsFileRootPath() string {
-	return filepath.Join(Parameters.BaseConfig.BaseDir, Parameters.FsConfig.FsFileRoot, curUsrWalAddr)
+	return filepath.Join(BaseDataDirPath(), Parameters.FsConfig.FsFileRoot, curUsrWalAddr)
 }

@@ -46,6 +46,10 @@ func (this *Endpoint) GetNodeVersion() (string, *DspErr) {
 	return fmt.Sprintf("%s-%s", version, Version[:max]), nil
 }
 
+func (this *Endpoint) GetChainId() string {
+	return config.Parameters.BaseConfig.ChainId
+}
+
 // get networkid
 func (this *Endpoint) GetNetworkId() string {
 	return fmt.Sprintf("%d", config.Parameters.BaseConfig.NetworkId)
@@ -717,6 +721,29 @@ func (this *Endpoint) AssetTransferDirect(to, asset, amountStr string) (string, 
 		return tx, nil
 	}
 	return "", &DspErr{Code: CHAIN_UNKNOWN_ASSET, Error: ErrMaps[CHAIN_UNKNOWN_ASSET]}
+}
+
+func (this *Endpoint) SwitchChain(chainId, configFileName string) *DspErr {
+	log.Debug("chainId, configName: %s %s", chainId, configFileName)
+	if config.Parameters.BaseConfig.ChainId == chainId {
+		return nil
+	}
+	err := this.Stop()
+	if err != nil {
+		return &DspErr{Code: INTERNAL_ERROR, Error: err}
+	}
+	cfgName := configFileName
+	if len(cfgName) == 0 {
+		cfgName = fmt.Sprintf("config-%s.json", chainId)
+	}
+	config.SwitchConfig(cfgName)
+	go func() {
+		err = StartDspNode(this, true, true, true)
+		if err != nil {
+			log.Errorf("Start dsp node err : %s", err)
+		}
+	}()
+	return nil
 }
 
 func (this *Endpoint) InvokeNativeContract(version byte, contractAddr, method string, params []interface{}) (string, *DspErr) {

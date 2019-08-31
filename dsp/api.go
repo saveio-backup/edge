@@ -79,18 +79,6 @@ func Init(walletDir, pwd string) (*Endpoint, error) {
 	}
 	this.AccountLabel = accData.Label
 	config.SetCurrentUserWalletAddress(this.Account.Address.ToBase58())
-	db, err := store.NewLevelDBStore(config.ClientLevelDBPath())
-	if err != nil {
-		log.Errorf("NewLevelDBStore err %s, config.ClientLevelDBPath():%v", err, config.ClientLevelDBPath())
-		return nil, err
-	}
-	this.db = db
-	sqliteDB, err := storage.NewSQLiteStorage(config.ClientSqliteDBPath())
-	if err != nil {
-		log.Errorf("sqlite err %s", err)
-		return nil, err
-	}
-	this.sqliteDB = sqliteDB
 	log.Debug("Endpoint init success")
 	DspService = this
 	return this, nil
@@ -122,6 +110,19 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		DNSWalletAddrs:       config.Parameters.BaseConfig.DNSWalletAddrs,
 	}
 	log.Debugf("dspConfig.dbpath %v, repo: %s, channelDB: %s, wallet: %s, enable backup: %t", dspConfig.DBPath, dspConfig.FsRepoRoot, dspConfig.ChannelDBPath, config.WalletDatFilePath(), config.Parameters.FsConfig.EnableBackup)
+	levelDb, err := store.NewLevelDBStore(config.ClientLevelDBPath())
+	if err != nil {
+		log.Errorf("NewLevelDBStore err %s, config.ClientLevelDBPath():%v", err, config.ClientLevelDBPath())
+		return err
+	}
+	endpoint.db = levelDb
+	sqliteDB, err := storage.NewSQLiteStorage(config.ClientSqliteDBPath())
+	if err != nil {
+		log.Errorf("sqlite err %s", err)
+		return err
+	}
+	endpoint.sqliteDB = sqliteDB
+	endpoint.closeCh = make(chan struct{}, 1)
 	//Skip init fs if Dsp doesn't start listen
 	if !startListen {
 		dspConfig.FsRepoRoot = ""

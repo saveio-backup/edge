@@ -131,11 +131,13 @@ func (this *Endpoint) GetAllProgressKeys() ([]string, error) {
 }
 
 func (this *Endpoint) SetUrlForHash(hash, url string) error {
+	// key := FILE_HASH_URL_LEY + this.Account.Address.ToBase58() + hash
 	key := FILE_HASH_URL_LEY + hash
 	return this.db.Put([]byte(key), []byte(url))
 }
 
 func (this *Endpoint) GetUrlFromHash(hash string) (string, error) {
+	// key := FILE_HASH_URL_LEY + this.Account.Address.ToBase58() + hash
 	key := FILE_HASH_URL_LEY + hash
 	url, err := this.db.Get([]byte(key))
 	if err != nil {
