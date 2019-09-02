@@ -14,6 +14,12 @@ type NetworkStateResp struct {
 	ChannelProxyState networkState
 }
 
+type ReconnectResp struct {
+	IP    string
+	Code  uint64
+	Error string
+}
+
 func (this *Endpoint) GetNetworkState() (*NetworkStateResp, *DspErr) {
 	state := &NetworkStateResp{
 		ChainState:        networkStateUnReachable,
@@ -38,4 +44,23 @@ func (this *Endpoint) GetNetworkState() (*NetworkStateResp, *DspErr) {
 		state.ChannelProxyState = networkStateReachable
 	}
 	return state, nil
+}
+
+func (this *Endpoint) ReconnectChannelPeers(peers []string) []*ReconnectResp {
+	resp := make([]*ReconnectResp, 0, len(peers))
+	for _, p := range peers {
+		if p == this.channelNet.GetProxyServer() {
+			continue
+		}
+		res := &ReconnectResp{
+			IP: p,
+		}
+		err := this.channelNet.ReconnectPeer(p)
+		if err != nil {
+			res.Code = NET_RECONNECT_PEER_FAILED
+			res.Error = err.Error()
+		}
+		resp = append(resp, res)
+	}
+	return resp
 }

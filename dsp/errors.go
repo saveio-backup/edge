@@ -124,6 +124,8 @@ const (
 	DB_FIND_USER_SPACE_RECORD_FAILED = 59002
 	DB_ADD_USER_SPACE_RECORD_FAILED  = 59003
 	DB_GET_FILEINFO_FAILED           = 59004
+
+	NET_RECONNECT_PEER_FAILED = 59100
 )
 
 var ErrMaps = map[int64]error{
@@ -232,4 +234,6 @@ var ErrMaps = map[int64]error{
 	DB_FIND_USER_SPACE_RECORD_FAILED: errors.New("db find user space record failed"),
 	DB_ADD_USER_SPACE_RECORD_FAILED:  errors.New("db add user space record failed"),
 	DB_GET_FILEINFO_FAILED:           errors.New("db get fileinfo failed"),
+
+	NET_RECONNECT_PEER_FAILED: errors.New("net reconnect peer failed"),
 }

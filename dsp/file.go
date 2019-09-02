@@ -1517,13 +1517,8 @@ func (this *Endpoint) GetUserSpace(addr string) (*Userspace, *DspErr) {
 	now := uint64(time.Now().Unix())
 	log.Debugf("space.ExpireHeight %v\n", space.ExpireHeight)
 	if space.ExpireHeight > uint64(currentHeight) {
-		blk, err := this.Dsp.Chain.GetBlockByHeight(uint32(updateHeight))
-		if err != nil {
-			return nil, &DspErr{Code: CHAIN_GET_BLK_BY_HEIGHT_FAILED, Error: err}
-		}
-		nowUnix := uint64(time.Now().Unix())
-		expiredAt := blockHeightToTimestamp(uint64(now), space.ExpireHeight, nowUnix)
-		log.Debugf("expiredAt %d height %d, expiredheight %d updatedheight %d", expiredAt, blk.Header.Timestamp, space.ExpireHeight, updateHeight)
+		expiredAt = blockHeightToTimestamp(uint64(currentHeight), space.ExpireHeight, now)
+		log.Debugf("expiredAt %d currentHeight %d, expiredheight %d updatedheight %d", expiredAt, currentHeight, space.ExpireHeight, updateHeight)
 	} else {
 		spaceRecord, err := this.GetUserspaceRecords(addr, 0, 1)
 		if err != nil || len(spaceRecord) == 0 {

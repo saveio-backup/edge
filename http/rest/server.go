@@ -140,7 +140,8 @@ const (
 	DNS_QUERY_REG_INFO   = "/api/v1/dns/reginfo/:pubkey"
 	DNS_QUERY_HOST_INFO  = "/api/v1/dns/hostinfo/:addr"
 
-	NETWORK_STATE = "/api/v1/network/state"
+	NETWORK_STATE           = "/api/v1/network/state"
+	RECONNECT_CHANNEL_PEERS = "/api/v1/network/channel/reconnect"
 )
 
 //init restful server
@@ -306,7 +307,8 @@ func (this *restServer) registryMethod() {
 
 		SET_CONFIG: {name: "setconfig", handler: SetConfig},
 
-		SWITCH_CHAINID: {name: "switchchainid", handler: SwitchChain},
+		SWITCH_CHAINID:          {name: "switchchainid", handler: SwitchChain},
+		RECONNECT_CHANNEL_PEERS: {name: "channelreconnectpeers", handler: ReconnectChannelPeers},
 	}
 	this.postMap = postMethodMap
 }

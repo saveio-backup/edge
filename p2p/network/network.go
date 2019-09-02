@@ -556,6 +556,10 @@ func (this *Network) Broadcast(addrs []string, msg proto.Message, needReply bool
 }
 
 func (this *Network) ReconnectPeer(addr string) error {
+	state, err := this.P2p.GetRealConnState(addr)
+	if state == network.PEER_REACHABLE && err == nil {
+		return nil
+	}
 	return this.P2p.ReconnectPeer(addr)
 }
 

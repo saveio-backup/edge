@@ -552,3 +552,24 @@ func GetChainId(cmd map[string]interface{}) map[string]interface{} {
 	resp["Result"] = m
 	return resp
 }
+
+func ReconnectChannelPeers(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	v, ok := cmd["Peers"].([]interface{})
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	peers := make([]string, 0, len(v))
+	for _, str := range v {
+		peer, ok := str.(string)
+		if !ok {
+			continue
+		}
+		peers = append(peers, peer)
+	}
+	res := dsp.DspService.ReconnectChannelPeers(peers)
+	m := make(map[string]interface{}, 0)
+	m["Peers"] = res
+	resp["Result"] = m
+	return resp
+}
