@@ -74,7 +74,6 @@ type Network struct {
 	Keys                  *crypto.KeyPair
 	keepaliveInterval     time.Duration
 	keepaliveTimeout      time.Duration
-	peerStateChan         chan *keepalive.PeerStateEvent
 	kill                  chan struct{}
 	addressForHealthCheck *sync.Map
 	handler               func(*network.ComponentContext)
@@ -88,7 +87,6 @@ func NewP2P() *Network {
 	}
 	n.addressForHealthCheck = new(sync.Map)
 	n.kill = make(chan struct{})
-	n.peerStateChan = make(chan *keepalive.PeerStateEvent, 100)
 	return n
 
 }
@@ -169,7 +167,6 @@ func (this *Network) Start(address string) error {
 	options := []keepalive.ComponentOption{
 		keepalive.WithKeepaliveInterval(this.keepaliveInterval),
 		keepalive.WithKeepaliveTimeout(this.keepaliveTimeout),
-		keepalive.WithPeerStateChan(this.peerStateChan),
 	}
 	log.Debugf("keepalive interval: %d, timeout: %d", this.keepaliveInterval, this.keepaliveTimeout)
 	builder.AddComponent(keepalive.New(options...))
@@ -608,6 +605,17 @@ func (this *Network) Receive(ctx *network.ComponentContext, message proto.Messag
 	}
 
 	return nil
+}
+
+func (this *Network) GetClientTime(addr string) (uint64, error) {
+	client, err := this.P2p.Client(addr)
+	if err != nil {
+		return 0, err
+	}
+	if client == nil {
+		return 0, fmt.Errorf("[network GetClientTime] client is nil: %s", addr)
+	}
+	return uint64(client.Time.Unix()), nil
 }
 
 func (this *Network) healthCheckProxyService() {

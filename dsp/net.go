@@ -1,5 +1,7 @@
 package dsp
 
+import "time"
+
 type networkState int
 
 const (
@@ -7,41 +9,71 @@ const (
 	networkStateReachable
 )
 
+type PeerState struct {
+	HostAddr  string
+	State     networkState
+	UpdatedAt uint64
+}
+
 type NetworkStateResp struct {
-	ChainState        networkState
-	DNSState          networkState
-	DspProxyState     networkState
-	ChannelProxyState networkState
+	Chain        *PeerState
+	DNS          *PeerState
+	DspProxy     *PeerState
+	ChannelProxy *PeerState
 }
 
 type ReconnectResp struct {
-	IP    string
-	Code  uint64
-	Error string
+	HostAddr string
+	Code     uint64
+	Error    string
 }
 
 func (this *Endpoint) GetNetworkState() (*NetworkStateResp, *DspErr) {
 	state := &NetworkStateResp{
-		ChainState:        networkStateUnReachable,
-		DNSState:          networkStateUnReachable,
-		DspProxyState:     networkStateUnReachable,
-		ChannelProxyState: networkStateUnReachable,
+		Chain:        &PeerState{},
+		DNS:          &PeerState{},
+		DspProxy:     &PeerState{},
+		ChannelProxy: &PeerState{},
 	}
 	if this == nil || this.Dsp == nil {
 		return state, nil
 	}
 	_, err := this.Dsp.Chain.GetCurrentBlockHeight()
 	if err == nil {
-		state.ChainState = networkStateReachable
+		now := uint64(time.Now().Unix())
+		state.Chain.State = networkStateReachable
+		state.Chain.UpdatedAt = now
 	}
-	if this.Dsp.DNS != nil && this.Dsp.DNS.DNSNode != nil && this.channelNet.IsConnectionExists(this.Dsp.DNS.DNSNode.HostAddr) {
-		state.DNSState = networkStateReachable
+	if this.Dsp.DNS != nil && this.Dsp.DNS.DNSNode != nil {
+		state.DNS.HostAddr = this.Dsp.DNS.DNSNode.HostAddr
+		updatedAt, _ := this.channelNet.GetClientTime(state.DNS.HostAddr)
+		state.DNS.UpdatedAt = updatedAt
+		if this.channelNet.IsConnectionExists(this.Dsp.DNS.DNSNode.HostAddr) {
+			state.DNS.State = networkStateReachable
+		} else {
+			state.DNS.State = networkStateUnReachable
+		}
 	}
-	if this.dspNet != nil && this.dspNet.IsConnectionExists(this.dspNet.GetProxyServer()) {
-		state.DspProxyState = networkStateReachable
+	if this.dspNet != nil {
+		state.DspProxy.HostAddr = this.dspNet.GetProxyServer()
+		updatedAt, _ := this.dspNet.GetClientTime(state.DspProxy.HostAddr)
+		state.DspProxy.UpdatedAt = updatedAt
+		if this.dspNet.IsConnectionExists(this.dspNet.GetProxyServer()) {
+			state.DspProxy.State = networkStateReachable
+		} else {
+			state.DspProxy.State = networkStateUnReachable
+
+		}
 	}
-	if this.channelNet != nil && this.channelNet.IsConnectionExists(this.channelNet.GetProxyServer()) {
-		state.ChannelProxyState = networkStateReachable
+	if this.channelNet != nil {
+		state.ChannelProxy.HostAddr = this.channelNet.GetProxyServer()
+		updatedAt, _ := this.channelNet.GetClientTime(state.ChannelProxy.HostAddr)
+		state.ChannelProxy.UpdatedAt = updatedAt
+		if this.channelNet.IsConnectionExists(this.channelNet.GetProxyServer()) {
+			state.ChannelProxy.State = networkStateReachable
+		} else {
+			state.ChannelProxy.State = networkStateUnReachable
+		}
 	}
 	return state, nil
 }
@@ -53,7 +85,7 @@ func (this *Endpoint) ReconnectChannelPeers(peers []string) []*ReconnectResp {
 			continue
 		}
 		res := &ReconnectResp{
-			IP: p,
+			HostAddr: p,
 		}
 		err := this.channelNet.ReconnectPeer(p)
 		if err != nil {
