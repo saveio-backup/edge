@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -24,6 +25,7 @@ type BaseConfig struct {
 	BaseDir            string `json:"BaseDir"`
 	LogPath            string `json:"LogPath"`
 	ChainId            string `json:"ChainId"`
+	BlockTime          uint64 `json:"BlockTime"`
 	NetworkId          uint32 `json:"NetworkId"`
 	PublicIP           string `json:"PublicIP"`
 	PortBase           uint32 `json:"PortBase"`
@@ -175,8 +177,8 @@ func Init(ctx *cli.Context) {
 		log.Infof("config file is not exist: %s, use default config", configDir)
 		return
 	}
-	log.Debugf("configDir %s", configDir)
 	common.GetJsonObjectFromFile(configDir, Parameters)
+	fmt.Printf("configDir %s, blockTime: %d\n", configDir, BlockTime())
 }
 
 func SwitchConfig(cfgFileName string) {
@@ -208,6 +210,13 @@ func BaseDataDirPath() string {
 		chainId = "0"
 	}
 	return filepath.Join(Parameters.BaseConfig.BaseDir, "Chain-"+chainId)
+}
+
+func BlockTime() uint64 {
+	if Parameters.BaseConfig.BlockTime > 0 {
+		return Parameters.BaseConfig.BlockTime
+	}
+	return uint64(common.BLOCK_TIME)
 }
 
 // WalletDatFilePath. wallet.dat file path

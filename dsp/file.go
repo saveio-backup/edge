@@ -220,7 +220,7 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, pr
 		return nil, &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
 	}
 	interval, ok := intervalVal.(float64)
-	interval = interval / clicom.BLOCK_TIME
+	interval = interval / float64(config.BlockTime())
 	if !ok || interval == 0 {
 		interval = float64(fssetting.DefaultProvePeriod)
 	}
@@ -250,7 +250,7 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, pr
 		opt.ExpiredHeight = userspace.ExpireHeight
 	} else {
 		duration, _ := durationVal.(float64)
-		opt.ExpiredHeight = uint64(currentHeight) + uint64(duration/clicom.BLOCK_TIME)
+		opt.ExpiredHeight = uint64(currentHeight) + uint64(duration/float64(config.BlockTime()))
 	}
 	log.Debugf("opt.ExpiredHeight :%d, minInterval :%d, current: %d", opt.ExpiredHeight, fssetting.MinProveInterval, currentHeight)
 	if opt.ExpiredHeight < fssetting.MinProveInterval+uint64(currentHeight) {
@@ -900,7 +900,7 @@ func (this *Endpoint) CalculateUploadFee(filePath string, durationVal, intervalV
 		return nil, &DspErr{Code: FS_GET_SETTING_FAILED, Error: err}
 	}
 	interval, err := OptionStrToFloat64(intervalVal, float64(fssetting.DefaultProvePeriod))
-	interval = interval / clicom.BLOCK_TIME
+	interval = interval / float64(config.BlockTime())
 	if err != nil || interval == 0 {
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: err}
 	}
@@ -978,7 +978,7 @@ func (this *Endpoint) CalculateUploadFee(filePath string, durationVal, intervalV
 	if err != nil {
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: err}
 	}
-	opt.ExpiredHeight = uint64(currentHeight) + uint64(duration/clicom.BLOCK_TIME)
+	opt.ExpiredHeight = uint64(currentHeight) + uint64(duration/float64(config.BlockTime()))
 	log.Debugf("opt :%v\n", opt)
 	fee, err := this.Dsp.CalculateUploadFee(opt)
 	log.Debugf("fee :%v\n", fee)
@@ -1180,9 +1180,9 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uin
 		expiredAt := blockHeightToTimestamp(uint64(now), expired, nowUnix)
 		updatedAt := uint64(time.Now().Unix())
 		if fi.BlockHeight > uint64(now) {
-			updatedAt -= (fi.BlockHeight - uint64(now)) * clicom.BLOCK_TIME
+			updatedAt -= (fi.BlockHeight - uint64(now)) * config.BlockTime()
 		} else {
-			updatedAt -= (uint64(now) - fi.BlockHeight) * clicom.BLOCK_TIME
+			updatedAt -= (uint64(now) - fi.BlockHeight) * config.BlockTime()
 		}
 		url, _ := this.GetUrlFromHash(string(hash.Hash))
 		downloadedCount, _ := this.sqliteDB.CountRecordByFileHash(string(hash.Hash))
@@ -1415,7 +1415,7 @@ func (this *Endpoint) SetUserSpace(walletAddr string, size, sizeOpType, blockCou
 	if countOpType == uint64(fs.UserSpaceNone) {
 		blockCount = 0
 	}
-	blockCount = blockCount / clicom.BLOCK_TIME
+	blockCount = blockCount / config.BlockTime()
 	tx, err := this.Dsp.UpdateUserSpace(walletAddr, size, sizeOpType, blockCount, countOpType)
 	if err != nil {
 		return tx, ParseContractError(err)
@@ -1431,7 +1431,7 @@ func (this *Endpoint) SetUserSpace(walletAddr string, size, sizeOpType, blockCou
 	event, err := this.Dsp.Chain.GetSmartContractEvent(tx)
 	if err != nil || event == nil {
 		log.Debugf("get event err %s, event :%v", err, event)
-		_, err := this.sqliteDB.InsertUserspaceRecord(tx, walletAddr, size, storage.UserspaceOperation(sizeOpType), blockCount*clicom.BLOCK_TIME, storage.UserspaceOperation(countOpType), 0, storage.TransferTypeNone)
+		_, err := this.sqliteDB.InsertUserspaceRecord(tx, walletAddr, size, storage.UserspaceOperation(sizeOpType), blockCount*config.BlockTime(), storage.UserspaceOperation(countOpType), 0, storage.TransferTypeNone)
 		if err != nil {
 			log.Errorf("insert userspace record err %s", err)
 			return "", &DspErr{Code: DB_ADD_USER_SPACE_RECORD_FAILED, Error: err}
@@ -1458,14 +1458,14 @@ func (this *Endpoint) SetUserSpace(walletAddr string, size, sizeOpType, blockCou
 		if to == walletAddr {
 			transferType = storage.TransferTypeOut
 		}
-		_, err := this.sqliteDB.InsertUserspaceRecord(tx, walletAddr, size, storage.UserspaceOperation(sizeOpType), blockCount*clicom.BLOCK_TIME, storage.UserspaceOperation(countOpType), amount, transferType)
+		_, err := this.sqliteDB.InsertUserspaceRecord(tx, walletAddr, size, storage.UserspaceOperation(sizeOpType), blockCount*config.BlockTime(), storage.UserspaceOperation(countOpType), amount, transferType)
 		if err != nil {
 			log.Errorf("insert userspace record err %s", err)
 		}
 		log.Debugf("from %s to %s amount %d", from, to, amount)
 	}
 	if len(event.Notify) == 0 || !hasTransfer {
-		_, err := this.sqliteDB.InsertUserspaceRecord(tx, walletAddr, size, storage.UserspaceOperation(sizeOpType), blockCount*clicom.BLOCK_TIME, storage.UserspaceOperation(countOpType), 0, storage.TransferTypeNone)
+		_, err := this.sqliteDB.InsertUserspaceRecord(tx, walletAddr, size, storage.UserspaceOperation(sizeOpType), blockCount*config.BlockTime(), storage.UserspaceOperation(countOpType), 0, storage.TransferTypeNone)
 		if err != nil {
 			log.Errorf("insert userspace record err %s", err)
 			return "", &DspErr{Code: DB_ADD_USER_SPACE_RECORD_FAILED, Error: err}
@@ -1485,7 +1485,7 @@ func (this *Endpoint) GetUserSpaceCost(walletAddr string, size, sizeOpType, bloc
 	if countOpType == uint64(fs.UserSpaceNone) {
 		blockCount = 0
 	}
-	blockCount = blockCount / clicom.BLOCK_TIME
+	blockCount = blockCount / config.BlockTime()
 	cost, err := this.Dsp.GetUpdateUserSpaceCost(walletAddr, size, sizeOpType, blockCount, countOpType)
 	if err != nil {
 		return nil, ParseContractError(err)
@@ -1720,7 +1720,7 @@ func (this *Endpoint) getDownloadFilePath(fileName string) string {
 
 func blockHeightToTimestamp(curBlockHeight, endBlockHeight, now uint64) uint64 {
 	if endBlockHeight > curBlockHeight {
-		return now + uint64(endBlockHeight-curBlockHeight)*clicom.BLOCK_TIME
+		return now + uint64(endBlockHeight-curBlockHeight)*config.BlockTime()
 	}
-	return now - uint64(curBlockHeight-endBlockHeight)*clicom.BLOCK_TIME
+	return now - uint64(curBlockHeight-endBlockHeight)*config.BlockTime()
 }
