@@ -481,9 +481,14 @@ func (this *Endpoint) CancelUploadFile(taskIds []string) *FileTaskResp {
 
 func (this *Endpoint) DeleteUploadFile(fileHash string) (*DeleteFileResp, *DspErr) {
 	fi, err := this.Dsp.Chain.Native.Fs.GetFileInfo(fileHash)
+	if fi == nil && this.Dsp.IsFileInfoDeleted(err) {
+		log.Debugf("file info is deleted: %v, %s", fi, err)
+		return nil, nil
+	}
 	if fi != nil && err == nil && fi.FileOwner.ToBase58() == this.Dsp.WalletAddress() {
 		result, err := this.Dsp.DeleteUploadedFiles([]string{fileHash})
 		if err != nil {
+			log.Errorf("[Endpoint DeleteUploadFile] delete upload file failed, err %s", err)
 			return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: err}
 		}
 		if len(result) == 0 {
@@ -497,6 +502,7 @@ func (this *Endpoint) DeleteUploadFile(fileHash string) (*DeleteFileResp, *DspEr
 		resp.Nodes = deleteResp.Nodes
 		return resp, nil
 	}
+	log.Debugf("fi :%v, err :%v", fi, err)
 	return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: err}
 }
 
@@ -1138,6 +1144,8 @@ func (this *Endpoint) RegisterShareNotificationCh() {
 }
 
 func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uint64) ([]*FileResp, *DspErr) {
+	// addr, _ := chainCom.AddressFromBase58("")
+	// fileList, err := this.Dsp.Chain.Native.Fs.GetFileList(addr)
 	fileList, err := this.Dsp.Chain.Native.Fs.GetFileList(this.Dsp.Account.Address)
 	if err != nil {
 		return nil, &DspErr{Code: FS_GET_FILE_LIST_FAILED, Error: err}
