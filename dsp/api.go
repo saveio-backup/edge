@@ -224,7 +224,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		go endpoint.RegisterShareNotificationCh()
 	}
 	go endpoint.stateChangeService()
-	log.Info("edge start success. version: %s, block time: %d", version, config.BlockTime())
+	log.Infof("edge start success. version: %s, block time: %d", version, config.BlockTime())
 	log.Infof("dsp-go-sdk version: %s", dsp.Version)
 	log.Infof("edge version: %s", Version)
 	log.Infof("pylons version: %s", pylons.Version)

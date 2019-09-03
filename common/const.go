@@ -10,7 +10,7 @@ const (
 	MAX_REG_CHANNEL_BACKOFF         = 10  // max register channel backoff
 	MAX_HEALTH_CHECK_INTERVAL       = 5   // health check interval
 	MAX_STATE_CHANGE_CHECK_INTERVAL = 5   // state change  check interval
-	BLOCK_TIME                      = 5   // block time
+	BLOCK_TIME                      = 1   // block time
 )
 
 // network common

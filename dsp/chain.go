@@ -561,6 +561,7 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 	// TODO: fixed this
 	tempMap := make(map[string]struct{}, 0)
 	hasSkip := uint64(0)
+	log.Debugf("usdt addr %s, hex: %s", usdt.USDT_CONTRACT_ADDRESS.ToBase58(), usdt.USDT_CONTRACT_ADDRESS.ToHexString())
 	for i := len(events) - 1; i >= 0; i-- {
 		event := events[i]
 		blockHeight, err := this.Dsp.Chain.GetBlockHeightByTxHash(event.TxHash)
@@ -572,6 +573,7 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 		}
 		for _, n := range event.Notify {
 			states, ok := n.States.([]interface{})
+			log.Debugf("height: %d, tx: %s,states: %v, n.ContractAddress: %s", blockHeight, event.TxHash, states, n.ContractAddress)
 			if !ok {
 				continue
 			}
@@ -628,66 +630,6 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 			}
 		}
 	}
-	// for i := int32(height); i >= 0; i-- {
-	// 	blk, err := this.Dsp.Chain.GetBlockByHeight(uint32(i))
-	// 	if err != nil || blk == nil {
-	// 		continue
-	// 	}
-	// 	for _, t := range blk.Transactions {
-	// 		hash := t.Hash()
-	// 		event, err := this.Dsp.Chain.GetSmartContractEvent(hash.ToHexString())
-	// 		if err != nil || event == nil {
-	// 			continue
-	// 		}
-	// 		for _, n := range event.Notify {
-	// 			states, ok := n.States.([]interface{})
-	// 			if !ok {
-	// 				continue
-	// 			}
-	// 			if len(states) != 4 || states[0] != "transfer" {
-	// 				continue
-	// 			}
-	// 			from := states[1].(string)
-	// 			to := states[2].(string)
-	// 			if asset == "save" && n.ContractAddress == usdt.USDT_CONTRACT_ADDRESS.ToHexString() {
-	// 				if txType == TxTypeAll && (from != addr && to != addr) {
-	// 					continue
-	// 				}
-	// 				if txType == TxTypeSend && from != addr {
-	// 					continue
-	// 				}
-	// 				if txType == TxTypeReceive && to != addr {
-	// 					continue
-	// 				}
-	// 				amountFormat := utils.FormatUsdt(states[3].(uint64))
-	// 				sendType := TxTypeSend
-	// 				if to == addr {
-	// 					sendType = TxTypeReceive
-	// 				}
-	// 				tx := &TxResp{
-	// 					Txid:         hash.ToHexString(),
-	// 					From:         from,
-	// 					To:           to,
-	// 					Type:         uint(sendType),
-	// 					Asset:        "save",
-	// 					Amount:       states[3].(uint64),
-	// 					AmountFormat: amountFormat,
-	// 					FeeFormat:    utils.FormatUsdt(10000000),
-	// 					BlockHeight:  uint32(i),
-	// 				}
-	// 				tx.Timestamp = blk.Header.Timestamp
-	// 				txs = append(txs, tx)
-	// 				if limit > 0 && uint32(len(txs)) >= limit {
-	// 					return txs, nil
-	// 				}
-	// 				continue
-	// 			}
-	// 		}
-	// 	}
-	// 	if i == 0 {
-	// 		break
-	// 	}
-	// }
 	return txs, nil
 }
 
@@ -736,7 +678,13 @@ func (this *Endpoint) SwitchChain(chainId, configFileName string) *DspErr {
 	if len(cfgName) == 0 {
 		cfgName = fmt.Sprintf("config-%s.json", chainId)
 	}
+	pwd := config.Parameters.BaseConfig.WalletPwd
 	config.SwitchConfig(cfgName)
+	config.Parameters.BaseConfig.WalletPwd = pwd
+	err = config.Save()
+	if err != nil {
+		return &DspErr{Code: INTERNAL_ERROR, Error: err}
+	}
 	go func() {
 		err = StartDspNode(this, true, true, true)
 		if err != nil {
