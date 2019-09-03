@@ -260,6 +260,10 @@ func (this *Endpoint) Logout() *DspErr {
 	if !isExists || this.Dsp == nil || this.Dsp.Account == nil {
 		return &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
+	syncing, _ := this.IsChannelProcessBlocks()
+	if syncing {
+		return &DspErr{Code: DSP_CHANNEL_SYNCING, Error: ErrMaps[DSP_CHANNEL_SYNCING]}
+	}
 	if isExists {
 		err := os.Remove(config.WalletDatFilePath())
 		if err != nil {

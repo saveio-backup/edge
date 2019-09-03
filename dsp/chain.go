@@ -682,6 +682,10 @@ func (this *Endpoint) SwitchChain(chainId, configFileName string) *DspErr {
 	if config.Parameters.BaseConfig.ChainId == chainId {
 		return nil
 	}
+	syncing, _ := this.IsChannelProcessBlocks()
+	if syncing {
+		return &DspErr{Code: DSP_CHANNEL_SYNCING, Error: ErrMaps[DSP_CHANNEL_SYNCING]}
+	}
 	err := this.Stop()
 	if err != nil {
 		return &DspErr{Code: INTERNAL_ERROR, Error: err}
