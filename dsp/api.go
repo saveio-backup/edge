@@ -141,7 +141,6 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 	}
 	endpoint.Dsp = dspSrv
 	version, _ := endpoint.GetNodeVersion()
-	log.Debugf("Create Dsp success, version: %s", version)
 	if startListen {
 		// start dsp net
 		dspListenPort := int(config.Parameters.BaseConfig.PortBase + uint32(config.Parameters.BaseConfig.DspPortOffset))
@@ -225,7 +224,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		go endpoint.RegisterShareNotificationCh()
 	}
 	go endpoint.stateChangeService()
-	log.Info("Dsp start success.")
+	log.Info("edge start success. version: %s, block time: %d", version, config.BlockTime())
 	log.Infof("dsp-go-sdk version: %s", dsp.Version)
 	log.Infof("edge version: %s", Version)
 	log.Infof("pylons version: %s", pylons.Version)

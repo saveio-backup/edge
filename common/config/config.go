@@ -2,10 +2,10 @@ package config
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/saveio/edge/cmd/flags"
 	"github.com/saveio/edge/common"
@@ -16,9 +16,9 @@ import (
 
 //default common parameter
 const (
-	VERSION              = "0.1"
-	DEFAULT_MAX_LOG_SIZE = 20 * 1024 * 1024 //MB
-	DEFAULT_CONFIG_DIR   = "/config.json"
+	VERSION                 = "0.1"
+	DEFAULT_MAX_LOG_SIZE    = 20 * 1024 * 1024 //MB
+	DEFAULT_CONFIG_FILENAME = "config.json"
 )
 
 type BaseConfig struct {
@@ -92,7 +92,7 @@ type DspConfig struct {
 }
 
 func DefaultConfig() *DspConfig {
-	configDir = "." + DEFAULT_CONFIG_DIR
+	configDir = "./" + DEFAULT_CONFIG_FILENAME
 	existed := common.FileExisted(configDir)
 	if !existed {
 		return TestConfig()
@@ -167,18 +167,21 @@ func SetDspConfig(ctx *cli.Context) {
 
 func Init(ctx *cli.Context) {
 	if ctx.GlobalIsSet(flags.GetFlagName(flags.ConfigFlag)) {
-		configDir = ctx.String(flags.GetFlagName(flags.ConfigFlag)) + DEFAULT_CONFIG_DIR
+		path := ctx.String(flags.GetFlagName(flags.ConfigFlag))
+		if strings.Contains(path, ".json") {
+			configDir = path
+		} else {
+			configDir = ctx.String(flags.GetFlagName(flags.ConfigFlag)) + "/" + DEFAULT_CONFIG_FILENAME
+		}
 	} else {
-		configDir = "." + DEFAULT_CONFIG_DIR
+		configDir = "./" + DEFAULT_CONFIG_FILENAME
 	}
-	log.Debugf("configDir %v", configDir)
 	existed := common.FileExisted(configDir)
 	if !existed {
 		log.Infof("config file is not exist: %s, use default config", configDir)
 		return
 	}
 	common.GetJsonObjectFromFile(configDir, Parameters)
-	fmt.Printf("configDir %s, blockTime: %d\n", configDir, BlockTime())
 }
 
 func SwitchConfig(cfgFileName string) {
