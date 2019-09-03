@@ -18,3 +18,9 @@ const (
 const (
 	MAX_WAIT_FOR_CONNECTED_TIMEOUT = 10 // wait for connected timeout
 )
+
+// asset
+
+const (
+	SAVE_ASSET = "save"
+)

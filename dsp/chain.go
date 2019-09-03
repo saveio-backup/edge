@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	edgeCom "github.com/saveio/edge/common"
 	"github.com/saveio/edge/common/config"
 	hcomm "github.com/saveio/edge/http/common"
 	edgeUtils "github.com/saveio/edge/utils"
@@ -21,6 +22,7 @@ import (
 	bcomn "github.com/saveio/themis/http/base/common"
 	"github.com/saveio/themis/smartcontract/service/native/film"
 	cusdt "github.com/saveio/themis/smartcontract/service/native/usdt"
+	sutils "github.com/saveio/themis/smartcontract/service/native/utils"
 )
 
 const (
@@ -505,6 +507,7 @@ type TxResp struct {
 	Asset        string
 	Timestamp    uint32
 	BlockHeight  uint32
+	ContractAddr string
 }
 
 func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, heightStr, limitStr, skipTxCntStr string) ([]*TxResp, *DspErr) {
@@ -561,7 +564,6 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 	// TODO: fixed this
 	tempMap := make(map[string]struct{}, 0)
 	hasSkip := uint64(0)
-	log.Debugf("usdt addr %s, hex: %s", usdt.USDT_CONTRACT_ADDRESS.ToBase58(), usdt.USDT_CONTRACT_ADDRESS.ToHexString())
 	for i := len(events) - 1; i >= 0; i-- {
 		event := events[i]
 		blockHeight, err := this.Dsp.Chain.GetBlockHeightByTxHash(event.TxHash)
@@ -571,18 +573,23 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 		if blockHeight > height {
 			continue
 		}
+		blk, err := this.Dsp.Chain.GetBlockByHeight(blockHeight)
+		if err != nil {
+			continue
+		}
 		for _, n := range event.Notify {
 			states, ok := n.States.([]interface{})
-			log.Debugf("height: %d, tx: %s,states: %v, n.ContractAddress: %s", blockHeight, event.TxHash, states, n.ContractAddress)
 			if !ok {
 				continue
 			}
-			if len(states) != 4 || states[0] != "transfer" {
+			if len(states) < 3 {
 				continue
 			}
+			addrFromHex, _ := common.AddressFromHexString(n.ContractAddress)
+			contractBase58Addr := addrFromHex.ToBase58()
 			from := states[1].(string)
 			to := states[2].(string)
-			if asset == "save" && n.ContractAddress == usdt.USDT_CONTRACT_ADDRESS.ToHexString() {
+			if asset == edgeCom.SAVE_ASSET && to != sutils.GovernanceContractAddress.ToBase58() {
 				if txType == TxTypeAll && (from != addr && to != addr) {
 					continue
 				}
@@ -597,31 +604,36 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 					continue
 				}
 				tempMap[tempKey] = struct{}{}
-				amountFormat := utils.FormatUsdt(states[3].(uint64))
-				sendType := TxTypeSend
+				txType := TxTypeSend
 				if to == addr {
-					sendType = TxTypeReceive
+					txType = TxTypeReceive
 				}
 				tx := &TxResp{
 					Txid:         event.TxHash,
-					From:         from,
-					To:           to,
-					Type:         uint(sendType),
-					Asset:        "save",
-					Amount:       states[3].(uint64),
-					AmountFormat: amountFormat,
-					FeeFormat:    utils.FormatUsdt(10000000),
 					BlockHeight:  uint32(blockHeight),
+					FeeFormat:    utils.FormatUsdt(10000000),
+					Timestamp:    blk.Header.Timestamp,
+					Amount:       0,
+					AmountFormat: "0",
+					Asset:        edgeCom.SAVE_ASSET,
+					Type:         uint(txType),
+					ContractAddr: contractBase58Addr,
+					From:         from,
 				}
-				blk, err := this.Dsp.Chain.GetBlockByHeight(blockHeight)
-				if err != nil {
-					continue
+
+				if contractBase58Addr != sutils.UsdtContractAddress.ToBase58() {
+					// invoke contract tx
+					tx.To = contractBase58Addr
+				} else {
+					tx.To = to
+					amountFormat := utils.FormatUsdt(states[3].(uint64))
+					tx.Amount = states[3].(uint64)
+					tx.AmountFormat = amountFormat
 				}
 				if skipTxCnt > 0 && skipTxCnt > hasSkip {
 					hasSkip++
 					continue
 				}
-				tx.Timestamp = blk.Header.Timestamp
 				txs = append(txs, tx)
 				if limit > 0 && uint32(len(txs)) >= limit {
 					return txs, nil
