@@ -121,7 +121,7 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 		}()
 	case *dspact.BroadcastReq:
 		go func() {
-			m, err := this.dspNet.Broadcast(msg.Addresses, msg.Data, msg.NeedReply, msg.Stop, msg.Action)
+			m, err := this.dspNet.Broadcast(msg.Addresses, msg.Data, msg.NeedReply, msg.Action)
 			msg.Response <- &dspact.BroadcastResp{Result: m, Error: err}
 		}()
 	case *dspact.PublicAddrReq:

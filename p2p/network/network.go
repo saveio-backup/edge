@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
@@ -464,7 +465,7 @@ func (this *Network) RequestWithRetry(msg proto.Message, peer string, retry int)
 // Broadcast. broadcast same msg to peers. Handle action if send msg success.
 // If one msg is sent failed, return err. But the previous success msgs can not be recalled.
 // callback(responseMsg, responseToAddr).
-func (this *Network) Broadcast(addrs []string, msg proto.Message, needReply bool, stop func() bool, callback func(proto.Message, string)) (map[string]error, error) {
+func (this *Network) Broadcast(addrs []string, msg proto.Message, needReply bool, callback func(proto.Message, string) bool) (map[string]error, error) {
 	err := this.healthCheckPeer(this.proxyAddr)
 	if err != nil {
 		return nil, err
@@ -482,6 +483,7 @@ func (this *Network) Broadcast(addrs []string, msg proto.Message, needReply bool
 	}
 	dispatch := make(chan *broadcastReq, 0)
 	done := make(chan *broadcastResp, 0)
+	stop := int32(0)
 	for i := 0; i < maxRoutines; i++ {
 		go func() {
 			for {
@@ -516,15 +518,19 @@ func (this *Network) Broadcast(addrs []string, msg proto.Message, needReply bool
 					}
 					continue
 				} else {
-					log.Debugf("receive reply msg from %s", req.addr)
+					log.Debugf("receive reply msg from %s, msg:%s", req.addr, msg.String())
 				}
 				if callback != nil {
-					callback(res, req.addr)
+					finished := callback(res, req.addr)
+					if finished {
+						atomic.AddInt32(&stop, 1)
+					}
 				}
 				done <- &broadcastResp{
 					addr: req.addr,
 					err:  nil,
 				}
+				log.Debugf("send broadcast to done done")
 			}
 		}()
 	}
@@ -533,21 +539,22 @@ func (this *Network) Broadcast(addrs []string, msg proto.Message, needReply bool
 			dispatch <- &broadcastReq{
 				addr: addr,
 			}
+			if atomic.LoadInt32(&stop) > 0 {
+				return
+			}
 		}
 	}()
 
 	m := make(map[string]error)
 	for {
 		result := <-done
-		m[result.addr] = result.err
-		if stop != nil && stop() {
+		if atomic.LoadInt32(&stop) > 0 {
 			return m, nil
 		}
+		m[result.addr] = result.err
 		if len(m) != len(addrs) {
 			continue
 		}
-		close(dispatch)
-		close(done)
 		return m, nil
 	}
 }
