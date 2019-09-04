@@ -686,16 +686,26 @@ func (this *Endpoint) SwitchChain(chainId, configFileName string) *DspErr {
 	if syncing {
 		return &DspErr{Code: DSP_CHANNEL_SYNCING, Error: ErrMaps[DSP_CHANNEL_SYNCING]}
 	}
-	err := this.Stop()
-	if err != nil {
-		return &DspErr{Code: INTERNAL_ERROR, Error: err}
-	}
 	cfgName := configFileName
 	if len(cfgName) == 0 {
 		cfgName = fmt.Sprintf("config-%s.json", chainId)
 	}
 	pwd := config.Parameters.BaseConfig.WalletPwd
-	config.SwitchConfig(cfgName)
+	newCfg := config.GetConfigFromFile(cfgName)
+	if newCfg == nil {
+		return &DspErr{Code: INTERNAL_ERROR, Error: fmt.Errorf("config file not found: %s", cfgName)}
+	}
+	if newCfg.BaseConfig.ChainId != chainId {
+		return &DspErr{Code: INTERNAL_ERROR, Error: fmt.Errorf("chainId: %s not match id: %s from config file", chainId, newCfg.BaseConfig.ChainId)}
+	}
+	err := this.Stop()
+	if err != nil {
+		return &DspErr{Code: INTERNAL_ERROR, Error: err}
+	}
+	err = config.SwitchConfig(cfgName)
+	if err != nil {
+		return &DspErr{Code: INTERNAL_ERROR, Error: err}
+	}
 	config.Parameters.BaseConfig.WalletPwd = pwd
 	err = config.Save()
 	if err != nil {

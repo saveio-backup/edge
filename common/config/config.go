@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -184,11 +185,31 @@ func Init(ctx *cli.Context) {
 	common.GetJsonObjectFromFile(configDir, Parameters)
 }
 
-func SwitchConfig(cfgFileName string) {
+func GetConfigFromFile(cfgFileName string) *DspConfig {
+	dir, _ := filepath.Split(configDir)
+	path := filepath.Join(dir, cfgFileName)
+	exist := common.FileExisted(path)
+	if !exist {
+		return nil
+	}
+	newCfg := &DspConfig{}
+	err := common.GetJsonObjectFromFile(path, newCfg)
+	if err != nil {
+		return nil
+	}
+	return newCfg
+}
+
+func SwitchConfig(cfgFileName string) error {
 	// configDir
+	newCfg := GetConfigFromFile(cfgFileName)
+	if newCfg == nil {
+		return fmt.Errorf("config file not exist: %s", cfgFileName)
+	}
 	dir, _ := filepath.Split(configDir)
 	configDir = filepath.Join(dir, cfgFileName)
-	common.GetJsonObjectFromFile(configDir, Parameters)
+	Parameters = newCfg
+	return nil
 }
 
 func Save() error {
