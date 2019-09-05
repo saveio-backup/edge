@@ -252,6 +252,7 @@ func (this *restServer) registryMethod() {
 		QUERY_CHANNEL:         {name: "querychannel", handler: QueryChannel},
 		QUERY_CHANNEL_BY_ID:   {name: "querychannelbyid", handler: QueryChannelByID},
 		CHANNEL_SYNCING:       {name: "channelsyncing", handler: IsChannelSyncing},
+		CURRENT_CHANNEL:       {name: "currentchannel", handler: CurrentChannel},
 
 		ALL_DNS:              {name: "getalldns", handler: GetAllDNS},
 		DNS_REGISTER_DNS:     {name: "registerdns", handler: RegisterDns},
@@ -302,7 +303,6 @@ func (this *restServer) registryMethod() {
 		WITHDRAW_CHANNEL: {name: "withdrawchannel", handler: WithdrawChannel},
 		OPEN_CHANNEL:     {name: "openchannel", handler: OpenChannel},
 		CLOSE_CHANNEL:    {name: "closechannel", handler: CloseChannel},
-		CURRENT_CHANNEL:  {name: "currentchannel", handler: CurrentChannel},
 		SWITCH_CHANNEL:   {name: "switchchannel", handler: SwitchChannel},
 
 		DNS_REGISTER:  {name: "registerurl", handler: RegisterUrl},
