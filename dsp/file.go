@@ -273,7 +273,7 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, pr
 		if err != nil {
 			return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
 		}
-		url = this.Dsp.Chain.Native.Dns.GetCustomUrlHeader() + hex.EncodeToString(b)
+		url = dspCom.FILE_URL_CUSTOM_HEADER + hex.EncodeToString(b)
 	}
 	find, err := this.Dsp.Chain.Native.Dns.QueryUrl(url, this.Dsp.CurrentAccount().Address)
 	if find != nil || err == nil {
