@@ -85,7 +85,11 @@ func Init(walletDir, pwd string) (*Endpoint, error) {
 }
 
 func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool) error {
-	channelListenAddr := fmt.Sprintf("%s:%d", "127.0.0.1", int(config.Parameters.BaseConfig.PortBase+uint32(config.Parameters.BaseConfig.ChannelPortOffset)))
+	listenHost := "127.0.0.1"
+	if len(config.Parameters.BaseConfig.PublicIP) > 0 {
+		listenHost = config.Parameters.BaseConfig.PublicIP
+	}
+	channelListenAddr := fmt.Sprintf("%s:%d", listenHost, int(config.Parameters.BaseConfig.PortBase+uint32(config.Parameters.BaseConfig.ChannelPortOffset)))
 	log.Debugf("config.Parameters.BaseConfig.ChainRpcAddrs: %v", config.Parameters.BaseConfig.ChainRpcAddrs)
 	dspConfig := &dspCfg.DspConfig{
 		DBPath:               config.DspDBPath(),
@@ -160,7 +164,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		dspNetwork := network.NewP2P()
 		dspNetwork.SetNetworkKey(networkKey)
 		dspNetwork.SetHandler(dspSrv.Receive)
-		dspListenAddr := fmt.Sprintf("%s://%s:%d", config.Parameters.BaseConfig.DspProtocol, "127.0.0.1", dspListenPort)
+		dspListenAddr := fmt.Sprintf("%s://%s:%d", config.Parameters.BaseConfig.DspProtocol, listenHost, dspListenPort)
 		err = dspNetwork.Start(dspListenAddr)
 		if err != nil {
 			return err
