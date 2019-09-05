@@ -97,6 +97,46 @@ func CloseChannel(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
+func CurrentChannel(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	if dsp.DspService == nil {
+		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
+	}
+	curChannel, err := dsp.DspService.CurrentPaymentChannel()
+	log.Debugf("current channel %s", err)
+	if err != nil {
+		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
+	}
+	resp["Result"] = curChannel
+	return resp
+}
+
+func SwitchChannel(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	log.Debugf("partnerAddrstr :%T, cmd %v", cmd["Partner"], cmd)
+	partnerAddrstr, ok := cmd["Partner"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	password, ok := cmd["Password"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	if dsp.DspService == nil {
+		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
+	}
+	_, derr := dsp.DspService.GetAccount(dsp.DspService.GetWalletFilePath(), password)
+	if derr != nil {
+		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
+	}
+	err := dsp.DspService.SwitchPaymentChannel(partnerAddrstr)
+	log.Debugf("switch channel %s %s", partnerAddrstr, err)
+	if err != nil {
+		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
+	}
+	return resp
+}
+
 func DepositChannel(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	partnerAddrstr, ok := cmd["Partner"].(string)

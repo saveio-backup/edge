@@ -125,6 +125,8 @@ const (
 	QUERY_CHANNEL             = "/api/v1/channel/query/detail/:partneraddr"
 	QUERY_CHANNEL_BY_ID       = "/api/v1/channel/query/:id"
 	CHANNEL_SYNCING           = "/api/v1/channel/syncing"
+	CURRENT_CHANNEL           = "/api/v1/channel/current"
+	SWITCH_CHANNEL            = "/api/v1/channel/switch"
 
 	ALL_DNS              = "/api/v1/dns"
 	DNS_REGISTER         = "/api/v1/dns/register"
@@ -300,6 +302,8 @@ func (this *restServer) registryMethod() {
 		WITHDRAW_CHANNEL: {name: "withdrawchannel", handler: WithdrawChannel},
 		OPEN_CHANNEL:     {name: "openchannel", handler: OpenChannel},
 		CLOSE_CHANNEL:    {name: "closechannel", handler: CloseChannel},
+		CURRENT_CHANNEL:  {name: "currentchannel", handler: CurrentChannel},
+		SWITCH_CHANNEL:   {name: "switchchannel", handler: SwitchChannel},
 
 		DNS_REGISTER:  {name: "registerurl", handler: RegisterUrl},
 		DNS_BIND:      {name: "bindurl", handler: BindUrl},
@@ -405,6 +409,10 @@ func (this *restServer) getPath(url string) string {
 		return GET_CHANNEL_INIT_PROGRESS
 	} else if strings.Contains(url, CHANNEL_SYNCING) {
 		return CHANNEL_SYNCING
+	} else if strings.Contains(url, CURRENT_CHANNEL) {
+		return CURRENT_CHANNEL
+	} else if strings.Contains(url, SWITCH_CHANNEL) {
+		return SWITCH_CHANNEL
 	}
 
 	//path for DNS

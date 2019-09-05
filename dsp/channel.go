@@ -158,6 +158,84 @@ func (this *Endpoint) GetAllChannels() (interface{}, *DspErr) {
 	return resp, nil
 }
 
+func (this *Endpoint) CurrentPaymentChannel() (*ChannelInfo, *DspErr) {
+	syncing, syncErr := this.IsChannelProcessBlocks()
+	if syncErr != nil {
+		return nil, syncErr
+	}
+	if syncing {
+		return nil, &DspErr{Code: DSP_CHANNEL_SYNCING, Error: ErrMaps[DSP_CHANNEL_SYNCING]}
+	}
+	log.Debugf("CurrentPaymentChannel")
+	resp := &ChannelInfo{}
+	if this.Dsp.DNS.DNSNode != nil {
+		curChannel, err := this.Dsp.Channel.GetChannelInfo(this.Dsp.DNS.DNSNode.WalletAddr)
+		if err != nil {
+			return nil, &DspErr{Code: DSP_CHANNEL_GET_ALL_FAILED, Error: ErrMaps[DSP_CHANNEL_GET_ALL_FAILED]}
+		}
+
+		chInfo, err := this.Dsp.Chain.Native.Channel.GetChannelInfo(uint64(curChannel.ChannelId), chainCom.ADDRESS_EMPTY, chainCom.ADDRESS_EMPTY)
+		if err != nil {
+			log.Errorf("get channel info err %s", err)
+		}
+		state1 := 1
+		if chInfo != nil && chInfo.Participant1.IsCloser {
+			state1 = 0
+		}
+		state2 := 1
+		if chInfo != nil && chInfo.Participant2.IsCloser {
+			state2 = 0
+		}
+
+		resp.Address = curChannel.Address
+		resp.Balance = curChannel.Balance
+		resp.BalanceFormat = curChannel.BalanceFormat
+		resp.ChannelId = curChannel.ChannelId
+		resp.HostAddr = curChannel.HostAddr
+		resp.TokenAddr = curChannel.TokenAddr
+		resp.IsDNS = true
+		resp.Participant1State = state1
+		resp.ParticiPant2State = state2
+		resp.Connected = true
+		return resp, nil
+	} else {
+		return nil, &DspErr{Code: DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST, Error: ErrMaps[DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST]}
+	}
+}
+
+func (this *Endpoint) SwitchPaymentChannel(partnerAddr string) *DspErr {
+	syncing, syncErr := this.IsChannelProcessBlocks()
+	if syncErr != nil {
+		return syncErr
+	}
+	if syncing {
+		return &DspErr{Code: DSP_CHANNEL_SYNCING, Error: ErrMaps[DSP_CHANNEL_SYNCING]}
+	}
+	log.Debugf("SwitchPaymentChannel %s", partnerAddr)
+
+	chNotExist := this.Dsp.Channel.ChannelExist(partnerAddr)
+	if chNotExist {
+		return &DspErr{Code: DSP_CHANNEL_EXIST, Error: ErrMaps[DSP_CHANNEL_EXIST]}
+	}
+
+	url, ok := this.Dsp.DNS.OnlineDNS[partnerAddr]
+	if !ok || url == "" {
+		log.Debugf("OnlineDNS %v", this.Dsp.DNS.OnlineDNS)
+		return &DspErr{Code: DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST, Error: ErrMaps[DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST]}
+	}
+
+	err := this.Dsp.RegNodeEndpoint(this.Account.Address, this.channelPublicAddr)
+	if err != nil {
+		return &DspErr{Code: DSP_NODE_REGISTER_FAILED, Error: ErrMaps[DSP_NODE_REGISTER_FAILED]}
+	}
+
+	this.Dsp.DNS.DNSNode = &dsp.DNSNodeInfo{
+		WalletAddr: partnerAddr,
+		HostAddr:   url,
+	}
+	return nil
+}
+
 //oniChannel api
 func (this *Endpoint) OpenPaymentChannel(partnerAddr string, amount uint64) (chanCom.ChannelID, *DspErr) {
 	syncing, syncErr := this.IsChannelProcessBlocks()
