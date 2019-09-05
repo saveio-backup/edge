@@ -639,7 +639,7 @@ func (this *restServer) write(w http.ResponseWriter, data []byte) {
 
 func (this *restServer) checkDspService(url, method string) (int64, string) {
 	if method == "GET" {
-		skipCheck := []string{EXPORT_WALLETFILE, EXPORT_WIFPRIVATEKEY}
+		skipCheck := []string{EXPORT_WALLETFILE, EXPORT_WIFPRIVATEKEY, GET_CURRENT_ACCOUNT}
 		for _, skip := range skipCheck {
 			if url == skip {
 				return dsp.SUCCESS, ""
@@ -668,6 +668,9 @@ func (this *restServer) response(w http.ResponseWriter, resp map[string]interfac
 	desc, ok := resp["Desc"].(string)
 	if ok && len(desc) == 0 {
 		resp["Desc"] = berr.ErrMap[resp["Error"].(int64)]
+		if resp["Error"].(int64) != 0 {
+			log.Errorf("rest handle error: %v", resp["Desc"])
+		}
 	}
 	data, err := json.Marshal(resp)
 	if err != nil {
