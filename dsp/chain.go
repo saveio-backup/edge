@@ -496,6 +496,13 @@ func (this *Endpoint) GetMemPoolTxState(hash string) (interface{}, *DspErr) {
 	return state, nil
 }
 
+type TxInvokeType int
+
+const (
+	TxInvokeUsdtContract TxInvokeType = iota
+	TxInvokeOtherContract
+)
+
 type TxResp struct {
 	Txid         string
 	Type         uint
@@ -508,6 +515,7 @@ type TxResp struct {
 	Timestamp    uint32
 	BlockHeight  uint32
 	ContractAddr string
+	ContractType TxInvokeType
 }
 
 func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, heightStr, limitStr, skipTxCntStr string) ([]*TxResp, *DspErr) {
@@ -619,11 +627,13 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 					Type:         uint(txType),
 					ContractAddr: contractBase58Addr,
 					From:         from,
+					ContractType: TxInvokeUsdtContract,
 				}
 
 				if contractBase58Addr != sutils.UsdtContractAddress.ToBase58() {
 					// invoke contract tx
 					tx.To = contractBase58Addr
+					tx.ContractType = TxInvokeOtherContract
 				} else {
 					tx.To = to
 					amountFormat := utils.FormatUsdt(states[3].(uint64))
