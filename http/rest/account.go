@@ -8,11 +8,14 @@ import (
 
 func GetCurrentAccount(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
-	log.Debugf("dsp.DspService %v", dsp.DspService)
-	if dsp.DspService == nil {
-		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
+	service := dsp.DspService
+	if service == nil {
+		service = &dsp.Endpoint{}
 	}
-	acc, err := dsp.DspService.GetCurrentAccount()
+	if dsp.DspService == nil {
+		log.Warnf("dsp.DspService %v", dsp.DspService)
+	}
+	acc, err := service.GetCurrentAccount()
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
