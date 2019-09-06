@@ -37,6 +37,14 @@ func ResponsePackWithErrMsg(errCode int64, errMsg string) map[string]interface{}
 	return resp
 }
 
+func GetDspService() *dsp.Endpoint {
+	svr := dsp.DspService
+	if svr != nil {
+		return svr
+	}
+	return &dsp.Endpoint{}
+}
+
 // Handle for themis go sdk
 // get node verison
 func GetNodeVersion(cmd map[string]interface{}) map[string]interface{} {
@@ -570,6 +578,18 @@ func ReconnectChannelPeers(cmd map[string]interface{}) map[string]interface{} {
 	res := dsp.DspService.ReconnectChannelPeers(peers)
 	m := make(map[string]interface{}, 0)
 	m["Peers"] = res
+	resp["Result"] = m
+	return resp
+}
+
+func GetChainIdList(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	m := make(map[string]interface{}, 0)
+	ids, derr := GetDspService().GetChainIdList()
+	if derr != nil {
+		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
+	}
+	m["Ids"] = ids
 	resp["Result"] = m
 	return resp
 }

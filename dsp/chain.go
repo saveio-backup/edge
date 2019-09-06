@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"io/ioutil"
 	"reflect"
 	"strconv"
 	"strings"
@@ -728,6 +729,34 @@ func (this *Endpoint) SwitchChain(chainId, configFileName string) *DspErr {
 		}
 	}()
 	return nil
+}
+
+func (this *Endpoint) GetChainIdList() ([]string, *DspErr) {
+	infos, err := ioutil.ReadDir(config.Parameters.BaseConfig.BaseDir)
+	if err != nil {
+		return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
+	}
+	ids := make([]string, 0)
+	idsM := make(map[string]struct{})
+	for _, i := range infos {
+		name := i.Name()
+		if i.IsDir() || !strings.Contains(name, ".json") {
+			continue
+		}
+		cfg := config.GetConfigFromFile(name)
+		if cfg == nil {
+			continue
+		}
+		if len(cfg.BaseConfig.ChainId) == 0 {
+			continue
+		}
+		if _, ok := idsM[cfg.BaseConfig.ChainId]; ok {
+			continue
+		}
+		ids = append(ids, cfg.BaseConfig.ChainId)
+		idsM[cfg.BaseConfig.ChainId] = struct{}{}
+	}
+	return ids, nil
 }
 
 func (this *Endpoint) InvokeNativeContract(version byte, contractAddr, method string, params []interface{}) (string, *DspErr) {

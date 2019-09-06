@@ -57,6 +57,7 @@ const (
 	GET_VERSION           = "/api/v1/version"
 	GET_NETWORKID         = "/api/v1/networkid"
 	GET_CHAINID           = "/api/v1/chainid"
+	GET_CHAINID_LIST      = "/api/v1/chainid/list"
 	SWITCH_CHAINID        = "/api/v1/chainid/switch"
 
 	GET_CURRENT_ACCOUNT            = "/api/v1/account"
@@ -219,6 +220,7 @@ func (this *restServer) registryMethod() {
 		GET_VERSION:           {name: "getversion", handler: GetNodeVersion},
 		GET_NETWORKID:         {name: "getnetworkid", handler: GetNetworkId},
 		GET_CHAINID:           {name: "getchainid", handler: GetChainId},
+		GET_CHAINID_LIST:      {name: "getchainidlist", handler: GetChainIdList},
 
 		GET_CURRENT_ACCOUNT:  {name: "getcurrentaccount", handler: GetCurrentAccount},
 		EXPORT_WALLETFILE:    {name: "exportwalletfile", handler: ExportWalletFile},
