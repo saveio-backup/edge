@@ -12,9 +12,6 @@ func GetCurrentAccount(cmd map[string]interface{}) map[string]interface{} {
 	if service == nil {
 		service = &dsp.Endpoint{}
 	}
-	if dsp.DspService == nil {
-		log.Warnf("dsp.DspService %v", dsp.DspService)
-	}
 	acc, err := service.GetCurrentAccount()
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
