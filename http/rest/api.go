@@ -590,6 +590,11 @@ func GetChainIdList(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
 	}
 	m["Ids"] = ids
+	currentId := ""
+	if dsp.DspService != nil {
+		currentId = GetDspService().GetChainId()
+	}
+	m["CurrentId"] = currentId
 	resp["Result"] = m
 	return resp
 }
