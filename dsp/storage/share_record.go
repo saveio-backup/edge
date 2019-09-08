@@ -27,7 +27,7 @@ func (this *SQLiteStorage) InsertShareRecord(id, fileHash, fileName, fileOwner, 
 // IncreaseShareRecordProfit. increase miner profit by increment
 func (this *SQLiteStorage) IncreaseShareRecordProfit(id string, added uint64) (bool, error) {
 	sql := fmt.Sprintf("UPDATE  %s SET profit = profit + ?, updatedAt = ? where id = ?", SHARE_RECORDS_TABLE_NAME)
-	log.Debugf("increase profit %s, added %d, now %v", sql, added, time.Now())
+	log.Debugf("increase profit %s, added %d, now %v", sql, added, time.Now(), id)
 	return this.Exec(sql, added, time.Now())
 }
 
