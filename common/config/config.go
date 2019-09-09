@@ -39,6 +39,7 @@ type BaseConfig struct {
 	HttpCertPath       string `json:"HttpCertPath"`
 	HttpKeyPath        string `json:"HttpKeyPath"`
 	RestEnable         bool   `json:"RestEnable"`
+	BlockConfirm       uint32 `json:"BlockConfirm"`
 
 	ChannelPortOffset    int    `json:"ChannelPortOffset"`
 	ChannelProtocol      string `json:"ChannelProtocol"`
