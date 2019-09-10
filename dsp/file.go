@@ -437,17 +437,38 @@ func (this *Endpoint) CancelUploadFile(taskIds []string) *FileTaskResp {
 	}
 	_, _, deleteTxErr := this.Dsp.DeleteUploadFilesFromChain(fileHashes)
 
+	args := make([][]interface{}, 0, len(taskIds))
 	for _, id := range taskIds {
+		args = append(args, []interface{}{id})
+	}
+	request := func(arg []interface{}, respCh chan *dspUtils.RequestResponse) {
 		taskResp := &FileTask{
-			Id:       id,
-			FileName: this.Dsp.GetTaskFileName(id),
-			State:    int(task.TaskStateCancel),
+			State: int(task.TaskStateCancel),
 		}
+		if len(arg) != 1 {
+			taskResp.Code = DSP_CANCEL_TASK_FAILED
+			respCh <- &dspUtils.RequestResponse{
+				Result: taskResp,
+			}
+			return
+		}
+		id, ok := arg[0].(string)
+		if !ok {
+			taskResp.Code = DSP_CANCEL_TASK_FAILED
+			respCh <- &dspUtils.RequestResponse{
+				Result: taskResp,
+			}
+			return
+		}
+		taskResp.Id = id
+		taskResp.FileName = this.Dsp.GetTaskFileName(id)
 		if deleteTxErr != nil && deleteTxErr.Code != sdkErr.NO_FILE_NEED_DELETED {
 			taskResp.Code = DSP_CANCEL_TASK_FAILED
 			taskResp.Error = deleteTxErr.Error.Error()
-			resp.Tasks = append(resp.Tasks, taskResp)
-			continue
+			respCh <- &dspUtils.RequestResponse{
+				Result: taskResp,
+			}
+			return
 		}
 		exist := this.Dsp.IsTaskExist(id)
 		if !exist {
@@ -457,15 +478,20 @@ func (this *Endpoint) CancelUploadFile(taskIds []string) *FileTaskResp {
 				taskResp.Error = err.Error()
 			}
 			log.Debugf("cancel upload file, id :%s, resp :%v", id, taskResp)
-			resp.Tasks = append(resp.Tasks, taskResp)
-			continue
+			respCh <- &dspUtils.RequestResponse{
+				Result: taskResp,
+			}
+			return
 		}
+
 		deleteResp, err := this.Dsp.CancelUpload(id)
 		if err != nil {
 			taskResp.Code = DSP_CANCEL_TASK_FAILED
 			taskResp.Error = err.Error()
-			resp.Tasks = append(resp.Tasks, taskResp)
-			continue
+			respCh <- &dspUtils.RequestResponse{
+				Result: taskResp,
+			}
+			return
 		}
 		taskResp.Result = deleteResp
 		err = this.DeleteProgress([]string{id})
@@ -473,8 +499,13 @@ func (this *Endpoint) CancelUploadFile(taskIds []string) *FileTaskResp {
 			taskResp.Code = DSP_CANCEL_TASK_FAILED
 			taskResp.Error = err.Error()
 		}
-		log.Debugf("cancel upload file, id :%s, resp :%v", id, taskResp)
-		resp.Tasks = append(resp.Tasks, taskResp)
+		respCh <- &dspUtils.RequestResponse{
+			Result: taskResp,
+		}
+	}
+	requestResps := dspUtils.CallRequestWithArgs(request, args)
+	for _, r := range requestResps {
+		resp.Tasks = append(resp.Tasks, r.Result.(*FileTask))
 	}
 	return resp
 }

@@ -174,10 +174,10 @@ func (this *Network) Start(address string) error {
 
 	// add backoff
 	backoff_options := []backoff.ComponentOption{
-		backoff.WithInitialDelay(3 * time.Second),
-		backoff.WithMaxAttempts(10),
+		backoff.WithInitialDelay(1 * time.Second),
+		backoff.WithMaxAttempts(50),
 		backoff.WithPriority(65535),
-		backoff.WithMaxInterval(time.Duration(30) * time.Second),
+		backoff.WithMaxInterval(time.Duration(300) * time.Second),
 	}
 	this.backOff = backoff.New(backoff_options...)
 	builder.AddComponent(this.backOff)
@@ -452,7 +452,7 @@ func (this *Network) RequestWithRetry(msg proto.Message, peer string, retry int)
 		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(common.REQUEST_MSG_TIMEOUT)*time.Second)
 		defer cancel()
 		res, err = client.Request(ctx, msg)
-		if err == nil || err.Error() != "context deadline exceeded" {
+		if err == nil {
 			break
 		}
 	}
@@ -648,7 +648,7 @@ func (this *Network) healthCheckProxyService() {
 }
 
 func (this *Network) healthCheckPeer(addr string) error {
-	if len(addr) == 0 {
+	if len(addr) == 0 || len(this.proxyAddr) == 0 {
 		return nil
 	}
 	proxyState, err := this.GetPeerStateByAddress(addr)
