@@ -380,6 +380,13 @@ func (this *Network) IsConnectionExists(addr string) bool {
 	return this.P2p.ConnectionStateExists(addr)
 }
 
+func (this *Network) IsProxyConnectionExists() (bool, error) {
+	if this.P2p == nil {
+		return false, nil
+	}
+	return this.P2p.ProxyConnectionStateExists()
+}
+
 // Send send msg to peer asynchronous
 // peer can be addr(string) or client(*network.peerClient)
 func (this *Network) Send(msg proto.Message, toAddr string) error {
@@ -431,7 +438,7 @@ func (this *Network) Request(msg proto.Message, peer string) (proto.Message, err
 }
 
 // RequestWithRetry. send msg to peer and wait for response synchronously
-func (this *Network) RequestWithRetry(msg proto.Message, peer string, retry int) (proto.Message, error) {
+func (this *Network) RequestWithRetry(msg proto.Message, peer string, retry, timeout int) (proto.Message, error) {
 	var err error
 	var res proto.Message
 	for i := 0; i < retry; i++ {
@@ -449,7 +456,7 @@ func (this *Network) RequestWithRetry(msg proto.Message, peer string, retry int)
 			log.Errorf("get peer client is nil %s", peer)
 			continue
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(common.REQUEST_MSG_TIMEOUT)*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout/retry)*time.Second)
 		defer cancel()
 		res, err = client.Request(ctx, msg)
 		if err == nil {
