@@ -442,22 +442,27 @@ func (this *Network) RequestWithRetry(msg proto.Message, peer string, retry, tim
 	var err error
 	var res proto.Message
 	for i := 0; i < retry; i++ {
+		// check proxy state
 		err = this.healthCheckPeer(this.proxyAddr)
 		if err != nil {
 			return nil, err
 		}
+		// check receiver state
 		err = this.healthCheckPeer(peer)
 		if err != nil {
 			return nil, err
 		}
 		log.Debugf("send request msg to %s with retry %d", peer, i)
+		// get peer client to send msg
 		client := this.P2p.GetPeerClient(peer)
 		if client == nil {
 			log.Errorf("get peer client is nil %s", peer)
 			continue
 		}
+		// init context for timeout handling
 		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout/retry)*time.Second)
 		defer cancel()
+		// send msg by request api and wait for the response
 		res, err = client.Request(ctx, msg)
 		if err == nil {
 			break

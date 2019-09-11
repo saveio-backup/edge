@@ -433,6 +433,9 @@ func (this *Endpoint) CancelUploadFile(taskIds []string) *FileTaskResp {
 	fileHashes := make([]string, 0, len(taskIds))
 	for _, id := range taskIds {
 		fileHash := this.Dsp.GetTaskFileHash(id)
+		if len(fileHash) == 0 {
+			continue
+		}
 		fileHashes = append(fileHashes, fileHash)
 	}
 	_, _, deleteTxErr := this.Dsp.DeleteUploadFilesFromChain(fileHashes)
@@ -836,7 +839,11 @@ func (this *Endpoint) RegisterProgressCh() {
 			}
 			// log.Debugf("progress store file %s, %v, ok %t", v.TaskId, v, ok)
 			for node, cnt := range v.Count {
-				log.Infof("progress type:%d file:%s, hash:%s, total:%d, peer:%s, uploaded:%d, progress:%f", v.Type, v.FileName, v.FileHash, v.Total, node, cnt, float64(cnt)/float64(v.Total))
+				if v.Type == task.TaskTypeUpload {
+					log.Infof("file:%s, hash:%s, total:%d, peer:%s, uploaded:%d, progress:%f", v.Type, v.FileName, v.FileHash, v.Total, node, cnt, float64(cnt)/float64(v.Total))
+				} else if v.Type == task.TaskTypeDownload {
+					log.Infof("file:%s, hash:%s, total:%d, peer:%s, downloaded:%d, progress:%f", v.Type, v.FileName, v.FileHash, v.Total, node, cnt, float64(cnt)/float64(v.Total))
+				}
 			}
 		case <-this.closeCh:
 			this.Dsp.CloseProgressChannel()
