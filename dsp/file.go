@@ -553,7 +553,24 @@ func (this *Endpoint) DeleteUploadFiles(fileHashs []string) ([]*DeleteFileResp, 
 	taskIds := make([]string, 0, len(fileHashs))
 	for _, fileHash := range fileHashs {
 		taskId := this.Dsp.GetUploadTaskId(fileHash)
+		if len(taskId) == 0 {
+			continue
+		}
 		taskIds = append(taskIds, taskId)
+	}
+	if len(taskIds) == 0 {
+		tx, _, serr := this.Dsp.DeleteUploadFilesFromChain(fileHashs)
+		if serr != nil {
+			return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: ErrMaps[DSP_DELETE_FILE_FAILED]}
+		}
+		resps := make([]*DeleteFileResp, 0, len(fileHashs))
+		for _, hash := range fileHashs {
+			resp := &DeleteFileResp{IsUploaded: true}
+			resp.Tx = tx
+			resp.FileHash = hash
+			resps = append(resps, resp)
+		}
+		return resps, nil
 	}
 	result, err := this.Dsp.DeleteUploadedFileByIds(taskIds)
 	if err != nil {
