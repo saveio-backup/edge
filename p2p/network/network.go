@@ -207,7 +207,6 @@ func (this *Network) Start(address string) error {
 
 	this.P2p.SetNetworkID(config.Parameters.BaseConfig.NetworkId)
 	go this.P2p.Listen()
-	// go this.PeerStateChange(this.syncPeerState)
 	this.P2p.BlockUntilListening()
 	err = this.StartProxy(builder)
 	if err != nil {

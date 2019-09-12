@@ -857,9 +857,9 @@ func (this *Endpoint) RegisterProgressCh() {
 			// log.Debugf("progress store file %s, %v, ok %t", v.TaskId, v, ok)
 			for node, cnt := range v.Count {
 				if v.Type == task.TaskTypeUpload {
-					log.Infof("file:%s, hash:%s, total:%d, peer:%s, uploaded:%d, progress:%f", v.Type, v.FileName, v.FileHash, v.Total, node, cnt, float64(cnt)/float64(v.Total))
+					log.Infof("file:%s, hash:%s, total:%d, peer:%s, uploaded:%d, progress:%f", v.FileName, v.FileHash, v.Total, node, cnt, float64(cnt)/float64(v.Total))
 				} else if v.Type == task.TaskTypeDownload {
-					log.Infof("file:%s, hash:%s, total:%d, peer:%s, downloaded:%d, progress:%f", v.Type, v.FileName, v.FileHash, v.Total, node, cnt, float64(cnt)/float64(v.Total))
+					log.Infof("file:%s, hash:%s, total:%d, peer:%s, downloaded:%d, progress:%f", v.FileName, v.FileHash, v.Total, node, cnt, float64(cnt)/float64(v.Total))
 				}
 			}
 		case <-this.closeCh:
@@ -1205,8 +1205,6 @@ func (this *Endpoint) RegisterShareNotificationCh() {
 }
 
 func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uint64) ([]*FileResp, *DspErr) {
-	// addr, _ := chainCom.AddressFromBase58("")
-	// fileList, err := this.Dsp.Chain.Native.Fs.GetFileList(addr)
 	fileList, err := this.Dsp.Chain.Native.Fs.GetFileList(this.Dsp.Account.Address)
 	if err != nil {
 		return nil, &DspErr{Code: FS_GET_FILE_LIST_FAILED, Error: err}
