@@ -77,9 +77,8 @@ type Network struct {
 	keepaliveTimeout      time.Duration
 	kill                  chan struct{}
 	addressForHealthCheck *sync.Map
+	addressForConnecting  *sync.Map
 	handler               func(*network.ComponentContext)
-	backOff               *backoff.Component
-	// keepalive             *keepalive.Component
 }
 
 func NewP2P() *Network {
@@ -87,6 +86,7 @@ func NewP2P() *Network {
 		P2p: new(network.Network),
 	}
 	n.addressForHealthCheck = new(sync.Map)
+	n.addressForConnecting = new(sync.Map)
 	n.kill = make(chan struct{})
 	return n
 
@@ -179,8 +179,7 @@ func (this *Network) Start(address string) error {
 		backoff.WithPriority(65535),
 		backoff.WithMaxInterval(time.Duration(300) * time.Second),
 	}
-	this.backOff = backoff.New(backoff_options...)
-	builder.AddComponent(this.backOff)
+	builder.AddComponent(backoff.New(backoff_options...))
 	this.AddProxyComponents(builder)
 
 	var err error
@@ -315,19 +314,23 @@ func (this *Network) Connect(tAddr string) error {
 }
 
 func (this *Network) ConnectAndWait(addr string) error {
-	if _, ok := this.addressForHealthCheck.Load(addr); ok {
+	if _, ok := this.addressForConnecting.Load(addr); ok {
 		// already try to connect, don't retry before we get a result
 		log.Info("already try to connect")
-		return this.WaitForConnected(addr, time.Duration(edgeCom.MAX_WAIT_FOR_CONNECTED_TIMEOUT)*time.Second)
+		err := this.WaitForConnected(addr, time.Duration(edgeCom.MAX_WAIT_FOR_CONNECTED_TIMEOUT)*time.Second)
+		return err
 	}
-	this.addressForHealthCheck.Store(addr, struct{}{})
+	this.addressForConnecting.Store(addr, struct{}{})
 	if this.IsConnectionExists(addr) {
 		log.Debugf("connection exist %s", addr)
+		this.addressForConnecting.Delete(addr)
 		return nil
 	}
 	log.Debugf("bootstrap to %v", addr)
 	this.P2p.Bootstrap(addr)
-	return this.WaitForConnected(addr, time.Duration(edgeCom.MAX_WAIT_FOR_CONNECTED_TIMEOUT)*time.Second)
+	err := this.WaitForConnected(addr, time.Duration(edgeCom.MAX_WAIT_FOR_CONNECTED_TIMEOUT)*time.Second)
+	this.addressForConnecting.Delete(addr)
+	return err
 }
 
 func (this *Network) GetPeerStateByAddress(addr string) (network.PeerState, error) {
@@ -572,11 +575,19 @@ func (this *Network) Broadcast(addrs []string, msg proto.Message, needReply bool
 }
 
 func (this *Network) ReconnectPeer(addr string) error {
-	state, err := this.P2p.GetRealConnState(addr)
+	if _, ok := this.addressForConnecting.Load(addr); ok {
+		err := this.WaitForConnected(addr, time.Duration(edgeCom.MAX_WAIT_FOR_CONNECTED_TIMEOUT)*time.Second)
+		return err
+	}
+	this.addressForConnecting.Store(addr, struct{}{})
+	state, err := this.GetPeerStateByAddress(addr)
 	if state == network.PEER_REACHABLE && err == nil {
+		this.addressForConnecting.Delete(addr)
 		return nil
 	}
-	return this.P2p.ReconnectPeer(addr)
+	err = this.P2p.ReconnectPeer(addr)
+	this.addressForConnecting.Delete(addr)
+	return err
 }
 
 //P2P network msg receive. transfer to actor_channel
@@ -663,30 +674,30 @@ func (this *Network) healthCheckPeer(addr string) error {
 	if len(addr) == 0 || len(this.proxyAddr) == 0 {
 		return nil
 	}
-	proxyState, err := this.GetPeerStateByAddress(addr)
-	if err == nil && proxyState == network.PEER_REACHABLE {
+	peerState, err := this.GetPeerStateByAddress(addr)
+	if err == nil && peerState == network.PEER_REACHABLE {
 		return nil
 	}
 	log.Debugf("health check peer: %s unreachable, err: %s ", addr, err)
 	if addr == this.proxyAddr {
-		log.Debugf("backoff proxy server ....")
+		log.Debugf("reconnect proxy server ....")
 		err = this.P2p.ReconnectProxyServer(this.proxyAddr)
 		if err != nil {
 			log.Errorf("proxy reconnect failed, err %s", err)
 			return err
 		}
-		log.Debugf("backoff proxyserver success")
 	} else {
-		err := this.P2p.ReconnectPeer(addr)
+		err := this.ReconnectPeer(addr)
 		if err != nil {
 			return err
 		}
-		log.Debugf("reconnect peer success: %s", addr)
 	}
-	proxyState, err = this.GetPeerStateByAddress(addr)
-	if err != nil || proxyState != network.PEER_REACHABLE {
-		return fmt.Errorf("back off proxy failed state: %d, err: %s", proxyState, err)
+	peerState, err = this.GetPeerStateByAddress(addr)
+	if err != nil || peerState != network.PEER_REACHABLE {
+		log.Errorf("reconnect peer failed state: %d, err: %s", peerState, err)
+		return fmt.Errorf("reconnect peer failed state: %d, err: %s", peerState, err)
 	}
+	log.Debugf("reconnect peer success: %s", addr)
 	return nil
 }
 
