@@ -199,6 +199,7 @@ func (this *Network) Start(address string) error {
 		opcode.RegisterMessageType(opcode.Opcode(common.MSG_OP_CODE), &pb.Message{})
 	})
 
+	this.P2p.SetCompressFileSize(edgeCom.COMPRESS_DATA_SIZE)
 	if len(config.Parameters.BaseConfig.NATProxyServerAddrs) > 0 {
 		this.P2p.EnableProxyMode(true)
 		this.P2p.SetProxyServer(config.Parameters.BaseConfig.NATProxyServerAddrs)
