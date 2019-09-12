@@ -141,7 +141,11 @@ func (this *Network) GetPID() *actor.PID {
 func (this *Network) Start(address string) error {
 	this.protocol = getProtocolFromAddr(address)
 	log.Debugf("Network protocol %s", this.protocol)
-	builder := network.NewBuilderWithOptions(network.WriteFlushLatency(1 * time.Millisecond))
+	builderOpt := []network.BuilderOption{
+		network.WriteFlushLatency(1 * time.Millisecond),
+		network.WriteTimeout(time.Duration(30) * time.Second),
+	}
+	builder := network.NewBuilderWithOptions(builderOpt...)
 
 	// set keys
 	if this.Keys != nil {
@@ -197,7 +201,6 @@ func (this *Network) Start(address string) error {
 		}
 		opcode.RegisterMessageType(opcode.Opcode(common.MSG_OP_CODE), &pb.Message{})
 	})
-
 	this.P2p.SetCompressFileSize(edgeCom.COMPRESS_DATA_SIZE)
 	if len(config.Parameters.BaseConfig.NATProxyServerAddrs) > 0 {
 		this.P2p.EnableProxyMode(true)
@@ -209,7 +212,7 @@ func (this *Network) Start(address string) error {
 	this.P2p.BlockUntilListening()
 	err = this.StartProxy(builder)
 	if err != nil {
-		return err
+		log.Errorf("start proxy failed, err: %s", err)
 	}
 	if len(this.P2p.ID.Address) == 6 {
 		return errors.New("invalid address")
@@ -280,7 +283,7 @@ func (this *Network) StartProxy(builder *network.Builder) error {
 			this.proxyAddr = proxyAddr
 			log.Debugf("start proxy finish, publicAddr: %s", this.P2p.ID.Address)
 			return nil
-		case <-time.After(time.Minute):
+		case <-time.After(time.Duration(edgeCom.START_PROXY_TIMEOUT) * time.Second):
 			err = fmt.Errorf("proxy: %s timeout", proxyAddr)
 			log.Debugf("start proxy err :%s", err)
 			break
@@ -460,6 +463,7 @@ func (this *Network) RequestWithRetry(msg proto.Message, peer string, retry, tim
 		client := this.P2p.GetPeerClient(peer)
 		if client == nil {
 			log.Errorf("get peer client is nil %s", peer)
+			this.WaitForConnected(peer, time.Duration(timeout/retry)*time.Second)
 			continue
 		}
 		// init context for timeout handling
@@ -687,15 +691,15 @@ func (this *Network) healthCheckPeer(addr string) error {
 			return err
 		}
 	} else {
-		err := this.ReconnectPeer(addr)
+		err = this.ReconnectPeer(addr)
 		if err != nil {
 			return err
 		}
 	}
-	peerState, err = this.GetPeerStateByAddress(addr)
-	if err != nil || peerState != network.PEER_REACHABLE {
-		log.Errorf("reconnect peer failed state: %d, err: %s", peerState, err)
-		return fmt.Errorf("reconnect peer failed state: %d, err: %s", peerState, err)
+	err = this.WaitForConnected(addr, time.Duration(edgeCom.MAX_WAIT_FOR_CONNECTED_TIMEOUT)*time.Second)
+	if err != nil {
+		log.Errorf("reconnect peer failed , err: %s", err)
+		return err
 	}
 	log.Debugf("reconnect peer success: %s", addr)
 	return nil
