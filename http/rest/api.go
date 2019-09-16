@@ -527,9 +527,9 @@ func PreExecSmartContract(cmd map[string]interface{}) map[string]interface{} {
 	if derr != nil {
 		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
 	}
-	// m := make(map[string]interface{}, 0)
-	// m["Data"] = ret
-	resp["Result"] = ret
+	m := make(map[string]interface{}, 0)
+	m["Data"] = ret
+	resp["Result"] = m
 	return resp
 }
 
