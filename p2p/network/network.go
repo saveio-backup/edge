@@ -177,13 +177,17 @@ func (this *Network) Start(address string) error {
 	builder.AddComponent(keepalive.New(options...))
 
 	// add backoff
-	backoff_options := []backoff.ComponentOption{
-		backoff.WithInitialDelay(1 * time.Second),
-		backoff.WithMaxAttempts(50),
-		backoff.WithPriority(65535),
-		backoff.WithMaxInterval(time.Duration(300) * time.Second),
+	if len(config.Parameters.BaseConfig.NATProxyServerAddrs) > 0 {
+		backoff_options := []backoff.ComponentOption{
+			backoff.WithInitialDelay(1 * time.Second),
+			backoff.WithMaxAttempts(50),
+			backoff.WithPriority(65535),
+			backoff.WithMaxInterval(time.Duration(300) * time.Second),
+		}
+		log.Debugf("backoff opt %v", backoff_options)
+		builder.AddComponent(backoff.New(backoff_options...))
 	}
-	builder.AddComponent(backoff.New(backoff_options...))
+
 	this.AddProxyComponents(builder)
 
 	var err error
