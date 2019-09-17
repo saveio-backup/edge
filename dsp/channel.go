@@ -312,7 +312,7 @@ func (this *Endpoint) MediaTransfer(paymentId int32, amount uint64, to string) *
 		log.Errorf("wait channel connected err %s %s", to, err)
 		return &DspErr{Code: DSP_CHANNEL_INTERNAL_ERROR, Error: err}
 	}
-	err = this.Dsp.Channel.MediaTransfer(paymentId, amount, to)
+	err = this.Dsp.Channel.MediaTransfer(paymentId, amount, this.Dsp.DNS.DNSNode.WalletAddr, to)
 	if err != nil {
 		return &DspErr{Code: DSP_CHANNEL_MEDIATRANSFER_FAILED, Error: err}
 	}
