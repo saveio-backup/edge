@@ -451,6 +451,11 @@ func (this *Network) Request(msg proto.Message, peer string) (proto.Message, err
 func (this *Network) RequestWithRetry(msg proto.Message, peer string, retry, timeout int) (proto.Message, error) {
 	var err error
 	var res proto.Message
+	client := this.P2p.GetPeerClient(peer)
+	if client != nil {
+		log.Debugf("disable backoff of peer %s", peer)
+		client.DisableBackoff()
+	}
 	for i := 0; i < retry; i++ {
 		// check proxy state
 		err = this.healthCheckPeer(this.proxyAddr)
@@ -478,6 +483,11 @@ func (this *Network) RequestWithRetry(msg proto.Message, peer string, retry, tim
 		if err == nil {
 			break
 		}
+	}
+	client = this.P2p.GetPeerClient(peer)
+	if client != nil {
+		log.Debugf("enable backoff of peer %s", peer)
+		client.EnableBackoff()
 	}
 	if err != nil {
 		return nil, err
