@@ -167,7 +167,7 @@ func (this *Network) Start(address string) error {
 		this.keepaliveInterval = keepalive.DefaultKeepaliveInterval
 	}
 	if this.keepaliveTimeout == 0 {
-		this.keepaliveTimeout = 10 * time.Second
+		this.keepaliveTimeout = edgeCom.KEEPALIVE_TIMEOUT * time.Second
 	}
 	options := []keepalive.ComponentOption{
 		keepalive.WithKeepaliveInterval(this.keepaliveInterval),
@@ -179,8 +179,8 @@ func (this *Network) Start(address string) error {
 	// add backoff
 	if len(config.Parameters.BaseConfig.NATProxyServerAddrs) > 0 {
 		backoff_options := []backoff.ComponentOption{
-			backoff.WithInitialDelay(1 * time.Second),
-			backoff.WithMaxAttempts(50),
+			backoff.WithInitialDelay(edgeCom.BACKOFF_INIT_DELAY * time.Second),
+			backoff.WithMaxAttempts(edgeCom.BACKOFF_MAX_ATTEMPTS),
 			backoff.WithPriority(65535),
 			backoff.WithMaxInterval(time.Duration(300) * time.Second),
 		}
@@ -455,12 +455,12 @@ func (this *Network) RequestWithRetry(msg proto.Message, peer string, retry, tim
 		// check proxy state
 		err = this.healthCheckPeer(this.proxyAddr)
 		if err != nil {
-			return nil, err
+			continue
 		}
 		// check receiver state
 		err = this.healthCheckPeer(peer)
 		if err != nil {
-			return nil, err
+			continue
 		}
 		log.Debugf("send request msg to %s with retry %d", peer, i)
 		// get peer client to send msg
@@ -687,6 +687,7 @@ func (this *Network) healthCheckPeer(addr string) error {
 		return nil
 	}
 	log.Debugf("health check peer: %s unreachable, err: %s ", addr, err)
+	time.Sleep(time.Duration(edgeCom.BACKOFF_INIT_DELAY) * time.Second)
 	if addr == this.proxyAddr {
 		log.Debugf("reconnect proxy server ....")
 		err = this.P2p.ReconnectProxyServer(this.proxyAddr)

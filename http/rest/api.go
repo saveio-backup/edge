@@ -492,8 +492,10 @@ func InvokeSmartContract(cmd map[string]interface{}) map[string]interface{} {
 	if derr != nil {
 		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
 	}
+	gasPrice, _ := cmd["GasPrice"].(float64)
+	gasLimit, _ := cmd["GasLimit"].(float64)
 
-	tx, derr := dsp.DspService.InvokeNativeContract(verBufs[0], contractAddr, method, params)
+	tx, derr := dsp.DspService.InvokeNativeContract(verBufs[0], contractAddr, method, params, uint64(gasPrice), uint64(gasLimit))
 	if derr != nil {
 		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
 	}

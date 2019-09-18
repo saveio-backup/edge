@@ -820,3 +820,19 @@ func GetUploadFileProveDetail(cmd map[string]interface{}) map[string]interface{}
 	resp["Result"] = ret
 	return resp
 }
+
+func GetPeerCountOfHash(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	hash, ok := cmd["FileHash"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	ret, err := dsp.DspService.GetPeerCountOfHash(hash)
+	if err != nil {
+		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
+	}
+	m := make(map[string]interface{})
+	m["Count"] = ret
+	resp["Result"] = m
+	return resp
+}

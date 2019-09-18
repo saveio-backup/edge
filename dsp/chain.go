@@ -757,7 +757,7 @@ func (this *Endpoint) GetChainIdList() ([]string, *DspErr) {
 	return ids, nil
 }
 
-func (this *Endpoint) InvokeNativeContract(version byte, contractAddr, method string, params []interface{}) (string, *DspErr) {
+func (this *Endpoint) InvokeNativeContract(version byte, contractAddr, method string, params []interface{}, gasPrice, gasLimit uint64) (string, *DspErr) {
 	acc, derr := this.GetAccount(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
 	if derr != nil {
 		return "", derr
@@ -770,7 +770,13 @@ func (this *Endpoint) InvokeNativeContract(version byte, contractAddr, method st
 	if err != nil {
 		return "", &DspErr{Code: INVALID_PARAMS, Error: err}
 	}
-	txHash, err := this.Dsp.Chain.InvokeNativeContract(chainCfg.DEFAULT_GAS_PRICE, chainCfg.DEFAULT_GAS_LIMIT, acc, version, contractAddress, method, []interface{}{buf})
+	if gasPrice == 0 {
+		gasPrice = chainCfg.DEFAULT_GAS_PRICE
+	}
+	if gasLimit == 0 {
+		gasLimit = chainCfg.DEFAULT_GAS_LIMIT
+	}
+	txHash, err := this.Dsp.Chain.InvokeNativeContract(gasPrice, gasLimit, acc, version, contractAddress, method, []interface{}{buf})
 	if err != nil {
 		return "", &DspErr{Code: CONTRACT_ERROR, Error: err}
 	}

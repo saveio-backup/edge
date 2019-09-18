@@ -19,6 +19,9 @@ const (
 	MAX_WAIT_FOR_CONNECTED_TIMEOUT = 10      // wait for connected timeout
 	COMPRESS_DATA_SIZE             = 1048576 // > 1MB data need to be compressed
 	START_PROXY_TIMEOUT            = 20      // timeout for start proxy
+	BACKOFF_INIT_DELAY             = 2       // backoff initial delay
+	BACKOFF_MAX_ATTEMPTS           = 50      // backoff max attempts
+	KEEPALIVE_TIMEOUT              = 10      // keepalive timeout
 )
 
 // asset

@@ -1664,6 +1664,10 @@ func (this *Endpoint) GetProveDetail(fileHashStr string) (interface{}, *DspErr) 
 	return details, nil
 }
 
+func (this *Endpoint) GetPeerCountOfHash(fileHashStr string) (interface{}, *DspErr) {
+	return len(this.Dsp.GetPeerFromTracker(fileHashStr, this.Dsp.DNS.TrackerUrls)), nil
+}
+
 func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressInfo) *Transfer {
 	if info.TaskState != task.TaskStateDone && info.TaskState != task.TaskStateFailed {
 		// update state by task cache
@@ -1711,7 +1715,7 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 		}
 		pInfo.UploadSize = sum * dspCom.CHUNK_SIZE / 1024
 		if len(pInfo.Nodes) > 0 && pInfo.FileSize > 0 {
-			pInfo.Progress = (float64(pInfo.UploadSize) / float64(pInfo.FileSize)) / float64(len(pInfo.Nodes))
+			pInfo.Progress = (float64(pInfo.UploadSize) / float64(pInfo.FileSize)) / float64(info.CopyNum)
 		}
 		if pInfo.Progress == 1 && info.Result != nil {
 			log.Warnf("info error msg of a success uploaded task %s", info.ErrorMsg)
