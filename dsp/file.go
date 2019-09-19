@@ -1715,7 +1715,7 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 		}
 		pInfo.UploadSize = sum * dspCom.CHUNK_SIZE / 1024
 		if len(pInfo.Nodes) > 0 && pInfo.FileSize > 0 {
-			pInfo.Progress = (float64(pInfo.UploadSize) / float64(pInfo.FileSize)) / float64(info.CopyNum)
+			pInfo.Progress = (float64(pInfo.UploadSize) / float64(pInfo.FileSize)) / float64(info.CopyNum+1)
 		}
 		if pInfo.Progress == 1 && info.Result != nil {
 			log.Warnf("info error msg of a success uploaded task %s", info.ErrorMsg)

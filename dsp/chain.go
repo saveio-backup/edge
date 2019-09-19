@@ -783,7 +783,7 @@ func (this *Endpoint) InvokeNativeContract(version byte, contractAddr, method st
 	return hex.EncodeToString(common.ToArrayReverse(txHash[:])), nil
 }
 
-func (this *Endpoint) PreInvokeNativeContract(version byte, contractAddr, method string, params []interface{}) (interface{}, *DspErr) {
+func (this *Endpoint) PreExecNativeContract(version byte, contractAddr, method string, params []interface{}) (interface{}, *DspErr) {
 	contractAddress, err := common.AddressFromBase58(contractAddr)
 	if err != nil {
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: err}

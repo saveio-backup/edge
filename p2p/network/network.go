@@ -143,7 +143,7 @@ func (this *Network) Start(address string) error {
 	log.Debugf("Network protocol %s", this.protocol)
 	builderOpt := []network.BuilderOption{
 		network.WriteFlushLatency(1 * time.Millisecond),
-		network.WriteTimeout(time.Duration(30) * time.Second),
+		network.WriteTimeout(edgeCom.NET_STREAM_WRITE_TIMEOUT),
 	}
 	builder := network.NewBuilderWithOptions(builderOpt...)
 

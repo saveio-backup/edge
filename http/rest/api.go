@@ -525,7 +525,7 @@ func PreExecSmartContract(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	params, _ := cmd["Params"].([]interface{})
-	ret, derr := dsp.DspService.PreInvokeNativeContract(verBufs[0], contractAddr, method, params)
+	ret, derr := dsp.DspService.PreExecNativeContract(verBufs[0], contractAddr, method, params)
 	if derr != nil {
 		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
 	}
