@@ -85,6 +85,8 @@ func (this *Endpoint) GetProgressByKey(key string) (*task.ProgressInfo, error) {
 }
 
 func (this *Endpoint) DeleteProgress(taskIds []string) error {
+	this.dbLock.Lock()
+	defer this.dbLock.Unlock()
 	allProgressId := make([]string, 0)
 	listKeys, err := this.db.Get([]byte(PROGRESS_LIST_LEY))
 	if err == nil || len(listKeys) > 0 {

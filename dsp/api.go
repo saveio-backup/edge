@@ -42,6 +42,7 @@ type Endpoint struct {
 	AccountLabel      string
 	progress          sync.Map
 	db                *store.LevelDBStore // TODO: remove this
+	dbLock            *sync.Mutex         // TODO: remove this with level db obj
 	sqliteDB          *storage.SQLiteStorage
 	closeCh           chan struct{}
 	p2pActor          *p2p_actor.P2PActor
@@ -121,6 +122,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		return err
 	}
 	endpoint.db = levelDb
+	endpoint.dbLock = new(sync.Mutex)
 	sqliteDB, err := storage.NewSQLiteStorage(config.ClientSqliteDBPath())
 	if err != nil {
 		log.Errorf("sqlite err %s", err)
