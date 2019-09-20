@@ -143,3 +143,17 @@ func Logout(cmd map[string]interface{}) map[string]interface{} {
 	}
 	return resp
 }
+
+// CheckPassword.
+func CheckPassword(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	password, ok := cmd["Password"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	err := dsp.DspService.CheckPassword(password)
+	if err != nil {
+		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
+	}
+	return resp
+}

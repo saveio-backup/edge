@@ -1,6 +1,7 @@
 package dsp
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
 	"io/ioutil"
 	"os"
@@ -281,5 +282,18 @@ func (this *Endpoint) Logout() *DspErr {
 		return &DspErr{Code: DSP_STOP_FAILED, Error: err}
 	}
 	DspService = &Endpoint{}
+	return nil
+}
+
+func (this *Endpoint) CheckPassword(pwd string) *DspErr {
+	pwdBuf := sha256.Sum256([]byte(this.Password))
+	pwdHash := hex.EncodeToString(pwdBuf[:])
+	log.Debugf("CheckPassword: %s, %s, %s", this.Password, pwd, pwdHash)
+	if len(pwdHash) != len(pwd) {
+		return &DspErr{Code: ACCOUNT_PASSWORD_WRONG, Error: ErrMaps[ACCOUNT_PASSWORD_WRONG]}
+	}
+	if pwdHash != pwd {
+		return &DspErr{Code: ACCOUNT_PASSWORD_WRONG, Error: ErrMaps[ACCOUNT_PASSWORD_WRONG]}
+	}
 	return nil
 }

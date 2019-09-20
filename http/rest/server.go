@@ -67,6 +67,7 @@ const (
 	IMPORT_ACCOUNT_WITH_WALLETFILE = "/api/v1/account/import/walletfile"
 	EXPORT_WALLETFILE              = "/api/v1/account/export/walletfile"
 	EXPORT_WIFPRIVATEKEY           = "/api/v1/account/export/privatekey/:password"
+	ACCOUNT_PASSWORD_CHECK         = "/api/v1/account/password/check"
 
 	ASSET_TRANSFER_DIRECT = "/api/v1/asset/transfer/direct"
 	INVOKE_SMARTCONTRACT  = "/api/v1/smartcontract/invoke"
@@ -281,6 +282,7 @@ func (this *restServer) registryMethod() {
 		LOGOUT_ACCOUNT:                 {name: "logout", handler: Logout},
 		IMPORT_ACCOUNT_WITH_PRIVATEKEY: {name: "importaccountwithprivatekey", handler: ImportWithPrivateKey},
 		IMPORT_ACCOUNT_WITH_WALLETFILE: {name: "importaccountwithwalletfile", handler: ImportWithWalletData},
+		ACCOUNT_PASSWORD_CHECK:         {name: "checkpassword", handler: CheckPassword},
 
 		DSP_NODE_REGISTER:              {name: "registernode", handler: RegisterNode},
 		DSP_NODE_UPDATE:                {name: "updatenode", handler: NodeUpdate},

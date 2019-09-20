@@ -676,8 +676,6 @@ func (this *Endpoint) DownloadFile(fileHash, url, link, password string, max uin
 			return &DspErr{Code: INTERNAL_ERROR, Error: fmt.Errorf("file hash not found for url %s", url)}
 		}
 		go func() {
-			hash := this.Dsp.GetFileHashFromUrl(url)
-			this.SetUrlForHash(hash, url)
 			err := this.Dsp.DownloadFileByUrl(url, dspCom.ASSET_USDT, true, password, false, setFileName, int(max))
 			if err != nil {
 				log.Errorf("Downloadfile from url failed %s", err)
@@ -845,16 +843,14 @@ func (this *Endpoint) RegisterProgressCh() {
 		select {
 		case v, ok := <-this.Dsp.ProgressChannel():
 			// TODO: replace with list
+			if !ok {
+				log.Warnf("progress channel is closed")
+				return
+			}
 			err := this.AddProgress(v)
 			if err != nil {
 				log.Errorf("add progress err %s", err)
 			}
-			infoRet, ok := v.Result.(*dspCom.UploadResult)
-			log.Debugf("inforet %v, ok %t", infoRet, ok)
-			if ok && infoRet != nil {
-				this.SetUrlForHash(v.FileHash, infoRet.Url)
-			}
-			// log.Debugf("progress store file %s, %v, ok %t", v.TaskId, v, ok)
 			for node, cnt := range v.Count {
 				if v.Type == task.TaskTypeUpload {
 					log.Infof("file:%s, hash:%s, total:%d, peer:%s, uploaded:%d, progress:%f", v.FileName, v.FileHash, v.Total, node, cnt, float64(cnt)/float64(v.Total))
@@ -1252,7 +1248,8 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uin
 		} else {
 			updatedAt -= (uint64(now) - fi.BlockHeight) * config.BlockTime()
 		}
-		url, _ := this.GetUrlFromHash(string(hash.Hash))
+		url := this.Dsp.GetUrlOfUploadedfile(string(hash.Hash))
+		// url, _ := this.GetUrlFromHash(string(hash.Hash))
 		downloadedCount, _ := this.sqliteDB.CountRecordByFileHash(string(hash.Hash))
 		profit, _ := this.sqliteDB.SumRecordsProfitByFileHash(string(hash.Hash))
 
@@ -1367,10 +1364,11 @@ func (this *Endpoint) GetDownloadFiles(fileType DspFileListType, offset, limit u
 			continue
 		}
 		file := info.FileHash
-		url, err := this.GetUrlFromHash(file)
-		if err != nil {
-			log.Errorf("get url from hash %s, err %s", file, err)
-		}
+		url := info.Url
+		// url, err := this.GetUrlFromHash(file)
+		// if err != nil {
+		// 	log.Errorf("get url from hash %s, err %s", file, err)
+		// }
 		// 0: all, 1. image, 2. document. 3. video, 4. music
 		fileNameFromPath := filepath.Base(info.FilePath)
 		if len(fileNameFromPath) == 0 {

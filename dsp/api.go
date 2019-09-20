@@ -39,6 +39,7 @@ var DspService *Endpoint
 type Endpoint struct {
 	Dsp               *dsp.Dsp
 	Account           *account.Account
+	Password          string
 	AccountLabel      string
 	progress          sync.Map
 	db                *store.LevelDBStore // TODO: remove this
@@ -79,6 +80,7 @@ func Init(walletDir, pwd string) (*Endpoint, error) {
 		return nil, err
 	}
 	this.AccountLabel = accData.Label
+	this.Password = pwd
 	config.SetCurrentUserWalletAddress(this.Account.Address.ToBase58())
 	log.Debug("Endpoint init success")
 	DspService = this
