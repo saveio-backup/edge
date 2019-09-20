@@ -3,6 +3,7 @@ package rest
 import (
 	"encoding/hex"
 	"strconv"
+	"strings"
 
 	"github.com/saveio/edge/dsp"
 	"github.com/saveio/themis/cmd/utils"
@@ -798,8 +799,13 @@ func GetTransferDetail(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, err.Error())
 	}
 	transferType := dsp.TransferType(transferTypeInt)
-
-	transfer, dspErr := dsp.DspService.GetTransferDetail(transferType, string(realId))
+	var transfer interface{}
+	var dspErr *dsp.DspErr
+	if strings.Contains(string(realId), "://") {
+		transfer, dspErr = dsp.DspService.GetTransferDetailByUrl(transferType, string(realId))
+	} else {
+		transfer, dspErr = dsp.DspService.GetTransferDetail(transferType, string(realId))
+	}
 	if dspErr != nil {
 		return ResponsePackWithErrMsg(dspErr.Code, dspErr.Error.Error())
 	}

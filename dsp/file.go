@@ -954,6 +954,15 @@ func (this *Endpoint) GetTransferDetail(pType TransferType, id string) (*Transfe
 	return pInfo, nil
 }
 
+// GetTransferList. get transfer progress list
+func (this *Endpoint) GetTransferDetailByUrl(pType TransferType, url string) (*Transfer, *DspErr) {
+	if len(url) == 0 {
+		return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
+	}
+	id := this.Dsp.GetDownloadTaskIdByUrl(url)
+	return this.GetTransferDetail(pType, id)
+}
+
 func (this *Endpoint) CalculateUploadFee(filePath string, durationVal, intervalVal, timesVal, copynumVal, whitelistVal, storeType interface{}) (*CalculateResp, *DspErr) {
 	currentAccount := this.Dsp.CurrentAccount()
 	fssetting, err := this.Dsp.Chain.Native.Fs.GetSetting()
