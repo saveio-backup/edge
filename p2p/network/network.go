@@ -52,7 +52,6 @@ var opCodes = map[opcode.Opcode]proto.Message{
 	OpCodeDelivered:                &messages.Delivered{},
 	OpCodeSecretRequest:            &messages.SecretRequest{},
 	OpCodeRevealSecret:             &messages.RevealSecret{},
-	OpCodeSecretMsg:                &messages.Secret{},
 	OpCodeDirectTransfer:           &messages.DirectTransfer{},
 	OpCodeLockedTransfer:           &messages.LockedTransfer{},
 	OpCodeRefundTransfer:           &messages.RefundTransfer{},
@@ -621,8 +620,6 @@ func (this *Network) Receive(ctx *network.ComponentContext, message proto.Messag
 	case *messages.SecretRequest:
 		act.OnBusinessMessage(message, from)
 	case *messages.RevealSecret:
-		act.OnBusinessMessage(message, from)
-	case *messages.Secret:
 		act.OnBusinessMessage(message, from)
 	case *messages.DirectTransfer:
 		act.OnBusinessMessage(message, from)
