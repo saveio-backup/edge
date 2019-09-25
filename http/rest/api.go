@@ -437,16 +437,20 @@ func AssetTransferDirect(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
+func GetConfig(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	newCfg := dsp.DspService.GetConfigs()
+	resp["Result"] = newCfg
+	return resp
+}
+
 func SetConfig(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
-	downloadPath, ok := cmd["DownloadPath"].(string)
-	if ok {
-		err := dsp.DspService.SetConfig("DownloadPath", downloadPath)
-		if err != nil {
-			return ResponsePackWithErrMsg(err.Code, err.Error.Error())
-		}
-		return resp
+	newCfg, err := dsp.DspService.SetConfigs(cmd)
+	if err != nil {
+		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
+	resp["Result"] = newCfg
 	return resp
 }
 

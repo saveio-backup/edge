@@ -73,6 +73,7 @@ const (
 	INVOKE_SMARTCONTRACT  = "/api/v1/smartcontract/invoke"
 	PREEXEC_SMARTCONTRACT = "/api/v1/smartcontract/preexec"
 
+	GET_CONFIG = "/api/v1/config"
 	SET_CONFIG = "/api/v1/config"
 
 	FS_CONTRACT_SETTING = "/api/v1/smartcontract/fs/setting"
@@ -270,6 +271,7 @@ func (this *restServer) registryMethod() {
 		DNS_QUERY_REG_INFO:   {name: "queryreginfo", handler: QueryRegInfo},
 		DNS_QUERY_HOST_INFO:  {name: "queryhostinfo", handler: QueryHostInfo},
 		NETWORK_STATE:        {name: "networkstate", handler: GetNetworkState},
+		GET_CONFIG:           {name: "getconfig", handler: GetConfig},
 	}
 	this.getMap = getMethodMap
 

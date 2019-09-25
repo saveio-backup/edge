@@ -271,5 +271,8 @@ func FsRepoRootPath() string {
 
 // FsFileRootPath. fs filestore root path
 func FsFileRootPath() string {
+	if filepath.IsAbs(Parameters.FsConfig.FsFileRoot) {
+		return Parameters.FsConfig.FsFileRoot
+	}
 	return filepath.Join(BaseDataDirPath(), Parameters.FsConfig.FsFileRoot, curUsrWalAddr)
 }
