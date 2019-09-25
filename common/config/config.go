@@ -249,24 +249,19 @@ func WalletDatFilePath() string {
 	return filepath.Join(Parameters.BaseConfig.BaseDir, Parameters.BaseConfig.WalletDir)
 }
 
-// ClientLevelDBPath. todo: replace level db with sqlite db
-func ClientLevelDBPath() string {
-	return filepath.Join(BaseDataDirPath(), Parameters.BaseConfig.DBPath, curUsrWalAddr, "client")
-}
-
 // ClientSqliteDBPath.
 func ClientSqliteDBPath() string {
-	return filepath.Join(BaseDataDirPath(), Parameters.BaseConfig.DBPath, curUsrWalAddr, "edge-sqlite.db")
+	return filepath.Join(BaseDataDirPath(), Parameters.BaseConfig.DBPath, curUsrWalAddr, common.EDGE_DB_NAME)
 }
 
 // DspDBPath. dsp database path
 func DspDBPath() string {
-	return filepath.Join(BaseDataDirPath(), Parameters.BaseConfig.DBPath, curUsrWalAddr, "dsp")
+	return filepath.Join(BaseDataDirPath(), Parameters.BaseConfig.DBPath, curUsrWalAddr, common.DSP_DB_NAME)
 }
 
 // ChannelDBPath. channel database path
 func ChannelDBPath() string {
-	return filepath.Join(BaseDataDirPath(), Parameters.BaseConfig.DBPath, curUsrWalAddr, "channel")
+	return filepath.Join(BaseDataDirPath(), Parameters.BaseConfig.DBPath, curUsrWalAddr, common.PYLONS_DB_NAME)
 }
 
 // FsRepoRootPath. fs repo root path

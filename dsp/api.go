@@ -19,7 +19,6 @@ import (
 	dspActorClient "github.com/saveio/dsp-go-sdk/actor/client"
 	dspCom "github.com/saveio/dsp-go-sdk/common"
 	dspCfg "github.com/saveio/dsp-go-sdk/config"
-	"github.com/saveio/dsp-go-sdk/store"
 	"github.com/saveio/edge/common"
 	"github.com/saveio/edge/common/config"
 	"github.com/saveio/edge/dsp/storage"
@@ -42,8 +41,6 @@ type Endpoint struct {
 	Password          string
 	AccountLabel      string
 	progress          sync.Map
-	db                *store.LevelDBStore // TODO: remove this
-	dbLock            *sync.Mutex         // TODO: remove this with level db obj
 	sqliteDB          *storage.SQLiteStorage
 	closeCh           chan struct{}
 	p2pActor          *p2p_actor.P2PActor
@@ -118,14 +115,11 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		DNSWalletAddrs:       config.Parameters.BaseConfig.DNSWalletAddrs,
 	}
 	log.Debugf("dspConfig.dbpath %v, repo: %s, channelDB: %s, wallet: %s, enable backup: %t", dspConfig.DBPath, dspConfig.FsRepoRoot, dspConfig.ChannelDBPath, config.WalletDatFilePath(), config.Parameters.FsConfig.EnableBackup)
-	levelDb, err := store.NewLevelDBStore(config.ClientLevelDBPath())
+	err := dspCom.CreateDirIfNeed(config.ClientSqliteDBPath())
 	if err != nil {
-		log.Errorf("NewLevelDBStore err %s, config.ClientLevelDBPath():%v", err, config.ClientLevelDBPath())
 		return err
 	}
-	endpoint.db = levelDb
-	endpoint.dbLock = new(sync.Mutex)
-	sqliteDB, err := storage.NewSQLiteStorage(config.ClientSqliteDBPath())
+	sqliteDB, err := storage.NewSQLiteStorage(config.ClientSqliteDBPath() + "/" + common.SQLITE_DB_NAME)
 	if err != nil {
 		log.Errorf("sqlite err %s", err)
 		return err
@@ -251,11 +245,7 @@ func (this *Endpoint) Stop() error {
 		}
 	}
 	close(this.closeCh)
-	err := this.db.Close()
-	if err != nil {
-		return err
-	}
-	err = this.sqliteDB.Close()
+	err := this.sqliteDB.Close()
 	if err != nil {
 		return err
 	}

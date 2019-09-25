@@ -30,3 +30,10 @@ const (
 const (
 	SAVE_ASSET = "save"
 )
+
+const (
+	EDGE_DB_NAME   = "client"
+	DSP_DB_NAME    = "dsp"
+	PYLONS_DB_NAME = "channel"
+	SQLITE_DB_NAME = "edge-sqlite.db"
+)

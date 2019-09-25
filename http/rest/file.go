@@ -237,7 +237,7 @@ func GetTransferList(cmd map[string]interface{}) map[string]interface{} {
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
-	list := dsp.DspService.GetTransferList(transferType, offset, limit)
+	list := dsp.DspService.GetTransferList(transferType, uint32(offset), uint32(limit))
 	resp["Result"] = list
 	return resp
 }

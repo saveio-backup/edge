@@ -13,6 +13,7 @@ import (
 
 	dspCom "github.com/saveio/dsp-go-sdk/common"
 	sdkErr "github.com/saveio/dsp-go-sdk/error"
+	"github.com/saveio/dsp-go-sdk/store"
 	"github.com/saveio/dsp-go-sdk/task"
 	dspUtils "github.com/saveio/dsp-go-sdk/utils"
 	"github.com/saveio/edge/common"
@@ -475,7 +476,7 @@ func (this *Endpoint) CancelUploadFile(taskIds []string) *FileTaskResp {
 		}
 		exist := this.Dsp.IsTaskExist(id)
 		if !exist {
-			err := this.DeleteProgress([]string{id})
+			err := this.Dsp.DeleteTaskIds([]string{id})
 			if err != nil {
 				taskResp.Code = DSP_CANCEL_TASK_FAILED
 				taskResp.Error = err.Error()
@@ -497,7 +498,7 @@ func (this *Endpoint) CancelUploadFile(taskIds []string) *FileTaskResp {
 			return
 		}
 		taskResp.Result = deleteResp
-		err = this.DeleteProgress([]string{id})
+		err = this.Dsp.DeleteTaskIds([]string{id})
 		if err != nil {
 			taskResp.Code = DSP_CANCEL_TASK_FAILED
 			taskResp.Error = err.Error()
@@ -808,7 +809,8 @@ func (this *Endpoint) CancelDownloadFile(taskIds []string) *FileTaskResp {
 		}
 		exist := this.Dsp.IsTaskExist(id)
 		if !exist {
-			err := this.DeleteProgress([]string{id})
+			err := this.Dsp.DeleteTaskIds([]string{id})
+
 			if err != nil {
 				taskResp.Code = DSP_CANCEL_TASK_FAILED
 				taskResp.Error = err.Error()
@@ -821,7 +823,7 @@ func (this *Endpoint) CancelDownloadFile(taskIds []string) *FileTaskResp {
 			taskResp.Code = DSP_CANCEL_TASK_FAILED
 			taskResp.Error = err.Error()
 		}
-		err = this.DeleteProgress([]string{id})
+		err = this.Dsp.DeleteTaskIds([]string{id})
 		if err != nil {
 			taskResp.Code = DSP_CANCEL_TASK_FAILED
 			taskResp.Error = err.Error()
@@ -847,10 +849,6 @@ func (this *Endpoint) RegisterProgressCh() {
 				log.Warnf("progress channel is closed")
 				return
 			}
-			err := this.AddProgress(v)
-			if err != nil {
-				log.Errorf("add progress err %s", err)
-			}
 			for node, cnt := range v.Count {
 				if v.Type == task.TaskTypeUpload {
 					log.Infof("file:%s, hash:%s, total:%d, peer:%s, uploaded:%d, progress:%f", v.FileName, v.FileHash, v.Total, node, cnt, float64(cnt)/float64(v.Total))
@@ -874,7 +872,7 @@ func (this *Endpoint) DeleteTransferRecord(taskIds []string) *FileTaskResp {
 			Id:    id,
 			State: int(task.TaskStateCancel),
 		}
-		err := this.DeleteProgress([]string{id})
+		err := this.Dsp.DeleteTaskIds([]string{id})
 		if err != nil {
 			taskResp.Code = DSP_CANCEL_TASK_FAILED
 			taskResp.Error = err.Error()
@@ -885,21 +883,27 @@ func (this *Endpoint) DeleteTransferRecord(taskIds []string) *FileTaskResp {
 }
 
 // GetTransferList. get transfer progress list
-func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint64) *TransferlistResp {
-	infos := make([]*Transfer, 0)
-	off := uint64(0)
+func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint32) *TransferlistResp {
 	resp := &TransferlistResp{
 		IsTransfering: false,
 		Transfers:     []*Transfer{},
 	}
-	allTasksKey, err := this.GetAllProgressKeys()
-	if err != nil {
-		return resp
+	allType := false
+	var infoType store.FileInfoType
+	switch pType {
+	case transferTypeUploading:
+		infoType = store.FileInfoTypeUpload
+	case transferTypeDownloading:
+		infoType = store.FileInfoTypeDownload
+	case transferTypeComplete:
+		allType = true
 	}
-	for idx, key := range allTasksKey {
-		info, err := this.GetProgressByKey(key)
-		if err != nil {
-			log.Warnf("get progress failed %d for %s info %v err %s", idx, key, info, err)
+	ids := this.Dsp.GetTaskIdList(offset, limit, infoType, allType, true)
+	infos := make([]*Transfer, 0, len(ids))
+	for idx, key := range ids {
+		info := this.Dsp.GetProgressInfo(key)
+		if info == nil {
+			log.Warnf("get progress failed %d for %s info %v", idx, key, info)
 			continue
 		}
 		if len(info.TaskId) == 0 {
@@ -918,16 +922,7 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint64) 
 		if !resp.IsTransfering {
 			resp.IsTransfering = (pType == transferTypeUploading || pType == transferTypeDownloading) && (pInfo.Status != task.TaskStateFailed && pInfo.Status != task.TaskStateDone)
 		}
-
-		if off < offset {
-			off++
-			continue
-		}
 		infos = append(infos, pInfo)
-		off++
-		if limit > 0 && uint64(len(infos)) >= limit {
-			break
-		}
 	}
 	resp.Transfers = infos
 	return resp
@@ -939,9 +934,9 @@ func (this *Endpoint) GetTransferDetail(pType TransferType, id string) (*Transfe
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
 	}
 	resp := &Transfer{}
-	info, err := this.GetProgress(this.Dsp.WalletAddress(), id)
-	if err != nil {
-		return nil, &DspErr{Code: INVALID_PARAMS, Error: err}
+	info := this.Dsp.GetProgressInfo(id)
+	if info == nil {
+		return nil, nil
 	}
 	pInfo := this.getTransferDetail(pType, info)
 	if pInfo == nil {
@@ -1064,7 +1059,7 @@ func (this *Endpoint) CalculateUploadFee(filePath string, durationVal, intervalV
 func (this *Endpoint) GetDownloadFileInfo(url string) (*DownloadFileInfo, *DspErr) {
 	info := &DownloadFileInfo{}
 	var fileLink string
-	if strings.HasPrefix(url, dspCom.FILE_URL_CUSTOM_HEADER) {
+	if strings.HasPrefix(url, dspCom.FILE_URL_CUSTOM_HEADER) || strings.HasPrefix(url, dspCom.FILE_URL_CUSTOM_HEADER_PROTOCOL) {
 		fileLink = this.Dsp.GetLinkFromUrl(url)
 	} else if strings.HasPrefix(url, dspCom.FILE_LINK_PREFIX) {
 		fileLink = url

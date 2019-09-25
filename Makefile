@@ -7,8 +7,9 @@ PYLONS_GITCOMMIT=$(shell cd .. && cd pylons && git log -1 --pretty=format:"%H")
 CARRIER_GITCOMMIT=$(shell cd .. && cd carrier && git log -1 --pretty=format:"%H")
 MAX_GITCOMMIT=$(shell cd .. && cd max && git log -1 --pretty=format:"%H")
 DSP_GITCOMMIT=$(shell cd .. && cd dsp-go-sdk && git log -1 --pretty=format:"%H")
+SCAN_GITCOMMIT=$(shell cd .. && cd scan && git log -1 --pretty=format:"%H")
 
-BUILD_EDGE_PAR =-x -v -ldflags "-s -w -X github.com/saveio/edge/dsp.Version=$(EDGE_GITCOMMIT) -X github.com/saveio/pylons.Version=${PYLONS_GITCOMMIT} -X github.com/saveio/carrier/network.Version=${CARRIER_GITCOMMIT} -X github.com/saveio/max/max.Version=${MAX_GITCOMMIT} -X github.com/saveio/dsp-go-sdk.Version=${DSP_GITCOMMIT}"
+BUILD_EDGE_PAR =-x -v -ldflags "-s -w -X github.com/saveio/edge/dsp.Version=$(EDGE_GITCOMMIT) -X github.com/saveio/pylons.Version=${PYLONS_GITCOMMIT} -X github.com/saveio/carrier/network.Version=${CARRIER_GITCOMMIT} -X github.com/saveio/max/max.Version=${MAX_GITCOMMIT} -X github.com/saveio/dsp-go-sdk.Version=${DSP_GITCOMMIT} -X github.com/saveio/scan/common/config.VERSION=$(SCAN_GITCOMMIT)"
 
 all: client
 
