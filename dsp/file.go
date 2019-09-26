@@ -48,6 +48,7 @@ const (
 	transferTypeComplete TransferType = iota
 	transferTypeUploading
 	transferTypeDownloading
+	transferTypeAll
 )
 
 type NodeProgress struct {
@@ -439,7 +440,10 @@ func (this *Endpoint) CancelUploadFile(taskIds []string) *FileTaskResp {
 		}
 		fileHashes = append(fileHashes, fileHash)
 	}
-	_, _, deleteTxErr := this.Dsp.DeleteUploadFilesFromChain(fileHashes)
+	var deleteTxErr *sdkErr.SDKError
+	if len(fileHashes) > 0 {
+		_, _, deleteTxErr = this.Dsp.DeleteUploadFilesFromChain(fileHashes)
+	}
 
 	args := make([][]interface{}, 0, len(taskIds))
 	for _, id := range taskIds {
@@ -936,7 +940,7 @@ func (this *Endpoint) GetTransferDetail(pType TransferType, id string) (*Transfe
 	resp := &Transfer{}
 	info := this.Dsp.GetProgressInfo(id)
 	if info == nil {
-		return nil, nil
+		return resp, nil
 	}
 	pInfo := this.getTransferDetail(pType, info)
 	if pInfo == nil {
@@ -951,6 +955,10 @@ func (this *Endpoint) GetTransferDetailByUrl(pType TransferType, url string) (*T
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
 	}
 	id := this.Dsp.GetDownloadTaskIdByUrl(url)
+	log.Debugf("GetTransferDetailByUrl url %s id = %s", url, id)
+	if len(id) == 0 {
+		return nil, nil
+	}
 	return this.GetTransferDetail(pType, id)
 }
 
@@ -1728,7 +1736,6 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 		if info.Total > 0 && sum >= info.Total {
 			return nil
 		}
-
 		pInfo.DownloadSize = sum * dspCom.CHUNK_SIZE / 1024
 		if pInfo.FileSize > 0 {
 			pInfo.Progress = float64(pInfo.DownloadSize) / float64(pInfo.FileSize)
@@ -1760,6 +1767,27 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 			if pInfo.DownloadSize == 0 {
 				return nil
 			}
+			if pInfo.Status != task.TaskStateDone && pInfo.FileSize > 0 && pInfo.DownloadSize == pInfo.FileSize {
+				pInfo.Status = task.TaskStateDone
+				log.Warnf("task:%s taskstate is %d, but it has done", info.TaskId, info.TaskState)
+			}
+			if pInfo.FileSize > 0 {
+				pInfo.Progress = float64(pInfo.DownloadSize) / float64(pInfo.FileSize)
+			}
+			pInfo.Encrypted = this.Dsp.IsFileEncrypted(pInfo.Path)
+		}
+	case transferTypeAll:
+		if info.Type == store.TaskTypeUpload {
+			pInfo.UploadSize = sum * dspCom.CHUNK_SIZE / 1024
+			if pInfo.Status != task.TaskStateDone && pInfo.FileSize > 0 && pInfo.UploadSize == pInfo.FileSize*uint64(len(pInfo.Nodes)) {
+				log.Warnf("task:%s taskstate is %d, status:%d, but it has done", info.TaskId, info.TaskState, pInfo.Status)
+				pInfo.Status = task.TaskStateDone
+			}
+			if len(pInfo.Nodes) > 0 && pInfo.FileSize > 0 {
+				pInfo.Progress = (float64(pInfo.UploadSize) / float64(pInfo.FileSize)) / float64(len(pInfo.Nodes))
+			}
+		} else if info.Type == store.TaskTypeDownload {
+			pInfo.DownloadSize = sum * dspCom.CHUNK_SIZE / 1024
 			if pInfo.Status != task.TaskStateDone && pInfo.FileSize > 0 && pInfo.DownloadSize == pInfo.FileSize {
 				pInfo.Status = task.TaskStateDone
 				log.Warnf("task:%s taskstate is %d, but it has done", info.TaskId, info.TaskState)
