@@ -850,9 +850,9 @@ func (this *Endpoint) RegisterProgressCh() {
 				return
 			}
 			for node, cnt := range v.Count {
-				if v.Type == task.TaskTypeUpload {
+				if v.Type == store.TaskTypeUpload {
 					log.Infof("file:%s, hash:%s, total:%d, peer:%s, uploaded:%d, progress:%f", v.FileName, v.FileHash, v.Total, node, cnt, float64(cnt)/float64(v.Total))
-				} else if v.Type == task.TaskTypeDownload {
+				} else if v.Type == store.TaskTypeDownload {
 					log.Infof("file:%s, hash:%s, total:%d, peer:%s, downloaded:%d, progress:%f", v.FileName, v.FileHash, v.Total, node, cnt, float64(cnt)/float64(v.Total))
 				}
 			}
@@ -889,12 +889,12 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint32) 
 		Transfers:     []*Transfer{},
 	}
 	allType := false
-	var infoType store.FileInfoType
+	var infoType store.TaskType
 	switch pType {
 	case transferTypeUploading:
-		infoType = store.FileInfoTypeUpload
+		infoType = store.TaskTypeUpload
 	case transferTypeDownloading:
-		infoType = store.FileInfoTypeDownload
+		infoType = store.TaskTypeDownload
 	case transferTypeComplete:
 		allType = true
 	}
@@ -909,10 +909,10 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint32) 
 		if len(info.TaskId) == 0 {
 			continue
 		}
-		if pType == transferTypeUploading && info.Type != task.TaskTypeUpload {
+		if pType == transferTypeUploading && info.Type != store.TaskTypeUpload {
 			continue
 		}
-		if pType == transferTypeDownloading && info.Type != task.TaskTypeDownload {
+		if pType == transferTypeDownloading && info.Type != store.TaskTypeDownload {
 			continue
 		}
 		pInfo := this.getTransferDetail(pType, info)
@@ -1685,9 +1685,9 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 		pros := &NodeProgress{
 			HostAddr: haddr,
 		}
-		if info.Type == task.TaskTypeUpload {
+		if info.Type == store.TaskTypeUpload {
 			pros.UploadSize = cnt * dspCom.CHUNK_SIZE / 1024
-		} else if info.Type == task.TaskTypeDownload {
+		} else if info.Type == store.TaskTypeDownload {
 			pros.DownloadSize = cnt * dspCom.CHUNK_SIZE / 1024
 		}
 		npros = append(npros, pros)
@@ -1707,7 +1707,7 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 		CreatedAt:    info.CreatedAt,
 		UpdatedAt:    info.UpdatedAt,
 	}
-	pInfo.IsUploadAction = (info.Type == task.TaskTypeUpload)
+	pInfo.IsUploadAction = (info.Type == store.TaskTypeUpload)
 	pInfo.Progress = 0
 	// log.Debugf("get transfer %s detail total %d sum %d ret %v err %s info.type %d", info.TaskKey, info.Total, sum, info.Result, info.ErrorMsg, info.Type)
 	switch pType {
@@ -1740,7 +1740,7 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 		if info.TaskState == task.TaskStateFailed {
 			return nil
 		}
-		if info.Type == task.TaskTypeUpload {
+		if info.Type == store.TaskTypeUpload {
 			if info.Result == nil {
 				return nil
 			}
@@ -1755,7 +1755,7 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 			if len(pInfo.Nodes) > 0 && pInfo.FileSize > 0 {
 				pInfo.Progress = (float64(pInfo.UploadSize) / float64(pInfo.FileSize)) / float64(len(pInfo.Nodes))
 			}
-		} else if info.Type == task.TaskTypeDownload {
+		} else if info.Type == store.TaskTypeDownload {
 			pInfo.DownloadSize = sum * dspCom.CHUNK_SIZE / 1024
 			if pInfo.DownloadSize == 0 {
 				return nil

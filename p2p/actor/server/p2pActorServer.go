@@ -155,6 +155,25 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 				msg.Response <- &dspact.P2pResp{Error: err}
 			}
 		}()
+	case *dspact.ConnectionExistReq:
+		go func() {
+			switch msg.NetType {
+			case dspact.P2pNetTypeDsp:
+				state, err := this.dspNet.GetPeerStateByAddress(msg.Address)
+				if state == p2pNet.PEER_REACHABLE && err == nil {
+					msg.Response <- &dspact.P2pBoolResp{Value: true, Error: nil}
+					return
+				}
+				msg.Response <- &dspact.P2pBoolResp{Value: false, Error: fmt.Errorf("get peer state failed, err %s", err)}
+			case dspact.P2pNetTypeChannel:
+				state, err := this.channelNet.GetPeerStateByAddress(msg.Address)
+				if state == p2pNet.PEER_REACHABLE && err == nil {
+					msg.Response <- &dspact.P2pBoolResp{Value: true, Error: nil}
+					return
+				}
+				msg.Response <- &dspact.P2pBoolResp{Value: false, Error: fmt.Errorf("get peer state failed, err %s", err)}
+			}
+		}()
 	default:
 		log.Error("[P2PActor] receive unknown message type!")
 	}
