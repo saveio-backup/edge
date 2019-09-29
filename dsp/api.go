@@ -196,9 +196,8 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		endpoint.channelNet = channelNetwork
 		log.Debugf("start channel at %s", endpoint.channelPublicAddr)
 		endpoint.updateStorageNodeHost()
+		endpoint.registerChannelEndpoint()
 		log.Debugf("update node finished")
-		go endpoint.registerChannelEndpoint()
-
 		// setup filter block range before start
 		endpoint.SetFilterBlockRange()
 		err = dspSrv.Start()
@@ -349,6 +348,7 @@ func (this *Endpoint) setupDNSNodeBackground() {
 				return
 			}
 		case <-this.closeCh:
+			ti.Stop()
 			return
 		}
 	}
@@ -373,6 +373,7 @@ func (this *Endpoint) stateChangeService() {
 				go this.registerChannelEndpoint()
 			}
 		case <-this.closeCh:
+			ti.Stop()
 			return
 		}
 	}

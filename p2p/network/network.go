@@ -407,17 +407,15 @@ func (this *Network) Request(msg proto.Message, peer string) (proto.Message, err
 	if client == nil {
 		return nil, fmt.Errorf("get peer client is nil %s", peer)
 	}
+	// init context for timeout handling
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(edgeCom.MAX_P2P_REQUEST_TIMEOUT)*time.Second)
+	defer cancel()
 	log.Debugf("send request msg to %s", peer)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(common.REQUEST_MSG_TIMEOUT)*time.Second)
-	defer func() {
-		log.Debugf("cancel send request msg to peer %s", peer)
-		cancel()
-	}()
-	return client.Request(ctx, msg)
+	return client.Request(ctx, msg, time.Duration(common.REQUEST_MSG_TIMEOUT)*time.Second)
 }
 
 // RequestWithRetry. send msg to peer and wait for response synchronously
-func (this *Network) RequestWithRetry(msg proto.Message, peer string, retry, timeout int) (proto.Message, error) {
+func (this *Network) RequestWithRetry(msg proto.Message, peer string, retry, replyTimeout int) (proto.Message, error) {
 	var err error
 	var res proto.Message
 	client := this.P2p.GetPeerClient(peer)
@@ -441,14 +439,14 @@ func (this *Network) RequestWithRetry(msg proto.Message, peer string, retry, tim
 		client := this.P2p.GetPeerClient(peer)
 		if client == nil {
 			log.Errorf("get peer client is nil %s", peer)
-			this.WaitForConnected(peer, time.Duration(timeout/retry)*time.Second)
+			this.WaitForConnected(peer, time.Duration(replyTimeout)*time.Second)
 			continue
 		}
 		// init context for timeout handling
-		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout/retry)*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(edgeCom.MAX_P2P_REQUEST_TIMEOUT)*time.Second)
 		defer cancel()
 		// send msg by request api and wait for the response
-		res, err = client.Request(ctx, msg)
+		res, err = client.Request(ctx, msg, time.Duration(replyTimeout)*time.Second)
 		if err == nil {
 			break
 		}
@@ -652,6 +650,7 @@ func (this *Network) healthCheckProxyService() {
 			this.healthCheckPeer(this.proxyAddr)
 		case <-this.kill:
 			log.Debugf("stop health check proxy service when receive kill")
+			ti.Stop()
 			return
 		}
 	}

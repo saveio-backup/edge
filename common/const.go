@@ -22,7 +22,8 @@ const (
 	BACKOFF_INIT_DELAY             = 2       // backoff initial delay
 	BACKOFF_MAX_ATTEMPTS           = 50      // backoff max attempts
 	KEEPALIVE_TIMEOUT              = 10      // keepalive timeout
-	NET_STREAM_WRITE_TIMEOUT       = 20      // net stream write timeout per block (128KB/10s)
+	NET_STREAM_WRITE_TIMEOUT       = 5       // net stream write timeout per block (128KB/5s)
+	MAX_P2P_REQUEST_TIMEOUT        = 120     // max p2p request (write+reply) timeout
 )
 
 // asset
