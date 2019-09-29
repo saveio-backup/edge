@@ -18,10 +18,11 @@ import (
 	"github.com/saveio/carrier/network/components/keepalive"
 	"github.com/saveio/carrier/network/components/proxy"
 	"github.com/saveio/carrier/types/opcode"
-	"github.com/saveio/dsp-go-sdk/network/common"
+	dspCom "github.com/saveio/dsp-go-sdk/common"
+	dspNetCom "github.com/saveio/dsp-go-sdk/network/common"
 	"github.com/saveio/dsp-go-sdk/network/message/pb"
-	dspmsg "github.com/saveio/dsp-go-sdk/network/message/pb"
-	edgeCom "github.com/saveio/edge/common"
+	dspMsg "github.com/saveio/dsp-go-sdk/network/message/pb"
+	"github.com/saveio/edge/common"
 	"github.com/saveio/edge/common/config"
 	"github.com/saveio/pylons/actor/msg_opcode"
 	act "github.com/saveio/pylons/actor/server"
@@ -112,7 +113,7 @@ func (this *Network) Start(address string) error {
 	log.Debugf("Network protocol %s", this.protocol)
 	builderOpt := []network.BuilderOption{
 		network.WriteFlushLatency(1 * time.Millisecond),
-		network.WriteTimeout(edgeCom.NET_STREAM_WRITE_TIMEOUT),
+		network.WriteTimeout(common.NET_STREAM_WRITE_TIMEOUT),
 	}
 	builder := network.NewBuilderWithOptions(builderOpt...)
 
@@ -136,7 +137,7 @@ func (this *Network) Start(address string) error {
 		this.keepaliveInterval = keepalive.DefaultKeepaliveInterval
 	}
 	if this.keepaliveTimeout == 0 {
-		this.keepaliveTimeout = edgeCom.KEEPALIVE_TIMEOUT * time.Second
+		this.keepaliveTimeout = common.KEEPALIVE_TIMEOUT * time.Second
 	}
 	options := []keepalive.ComponentOption{
 		keepalive.WithKeepaliveInterval(this.keepaliveInterval),
@@ -148,8 +149,8 @@ func (this *Network) Start(address string) error {
 	// add backoff
 	if len(config.Parameters.BaseConfig.NATProxyServerAddrs) > 0 {
 		backoff_options := []backoff.ComponentOption{
-			backoff.WithInitialDelay(edgeCom.BACKOFF_INIT_DELAY * time.Second),
-			backoff.WithMaxAttempts(edgeCom.BACKOFF_MAX_ATTEMPTS),
+			backoff.WithInitialDelay(common.BACKOFF_INIT_DELAY * time.Second),
+			backoff.WithMaxAttempts(common.BACKOFF_MAX_ATTEMPTS),
 			backoff.WithPriority(65535),
 			backoff.WithMaxInterval(time.Duration(300) * time.Second),
 		}
@@ -172,9 +173,9 @@ func (this *Network) Start(address string) error {
 				log.Errorf("register messages failed %v", k)
 			}
 		}
-		opcode.RegisterMessageType(opcode.Opcode(common.MSG_OP_CODE), &pb.Message{})
+		opcode.RegisterMessageType(opcode.Opcode(dspNetCom.MSG_OP_CODE), &pb.Message{})
 	})
-	this.P2p.SetCompressFileSize(edgeCom.COMPRESS_DATA_SIZE)
+	this.P2p.SetCompressFileSize(common.COMPRESS_DATA_SIZE)
 	if len(config.Parameters.BaseConfig.NATProxyServerAddrs) > 0 {
 		this.P2p.EnableProxyMode(true)
 		this.P2p.SetProxyServer(config.Parameters.BaseConfig.NATProxyServerAddrs)
@@ -256,7 +257,7 @@ func (this *Network) StartProxy(builder *network.Builder) error {
 			this.proxyAddr = proxyAddr
 			log.Debugf("start proxy finish, publicAddr: %s", this.P2p.ID.Address)
 			return nil
-		case <-time.After(time.Duration(edgeCom.START_PROXY_TIMEOUT) * time.Second):
+		case <-time.After(time.Duration(common.START_PROXY_TIMEOUT) * time.Second):
 			err = fmt.Errorf("proxy: %s timeout", proxyAddr)
 			log.Debugf("start proxy err :%s", err)
 			break
@@ -293,7 +294,7 @@ func (this *Network) ConnectAndWait(addr string) error {
 	if _, ok := this.addressForConnecting.Load(addr); ok {
 		// already try to connect, don't retry before we get a result
 		log.Info("already try to connect")
-		err := this.WaitForConnected(addr, time.Duration(edgeCom.MAX_WAIT_FOR_CONNECTED_TIMEOUT)*time.Second)
+		err := this.WaitForConnected(addr, time.Duration(common.MAX_WAIT_FOR_CONNECTED_TIMEOUT)*time.Second)
 		return err
 	}
 	this.addressForConnecting.Store(addr, struct{}{})
@@ -304,7 +305,7 @@ func (this *Network) ConnectAndWait(addr string) error {
 	}
 	log.Debugf("bootstrap to %v", addr)
 	this.P2p.Bootstrap(addr)
-	err := this.WaitForConnected(addr, time.Duration(edgeCom.MAX_WAIT_FOR_CONNECTED_TIMEOUT)*time.Second)
+	err := this.WaitForConnected(addr, time.Duration(common.MAX_WAIT_FOR_CONNECTED_TIMEOUT)*time.Second)
 	this.addressForConnecting.Delete(addr)
 	return err
 }
@@ -408,10 +409,10 @@ func (this *Network) Request(msg proto.Message, peer string) (proto.Message, err
 		return nil, fmt.Errorf("get peer client is nil %s", peer)
 	}
 	// init context for timeout handling
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(edgeCom.MAX_P2P_REQUEST_TIMEOUT)*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(dspCom.ACTOR_MAX_P2P_REQ_TIMEOUT)*time.Second)
 	defer cancel()
 	log.Debugf("send request msg to %s", peer)
-	return client.Request(ctx, msg, time.Duration(common.REQUEST_MSG_TIMEOUT)*time.Second)
+	return client.Request(ctx, msg, time.Duration(dspNetCom.REQUEST_MSG_TIMEOUT)*time.Second)
 }
 
 // RequestWithRetry. send msg to peer and wait for response synchronously
@@ -443,7 +444,7 @@ func (this *Network) RequestWithRetry(msg proto.Message, peer string, retry, rep
 			continue
 		}
 		// init context for timeout handling
-		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(edgeCom.MAX_P2P_REQUEST_TIMEOUT)*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(dspCom.ACTOR_MAX_P2P_REQ_TIMEOUT)*time.Second)
 		defer cancel()
 		// send msg by request api and wait for the response
 		res, err = client.Request(ctx, msg, time.Duration(replyTimeout)*time.Second)
@@ -470,8 +471,8 @@ func (this *Network) Broadcast(addrs []string, msg proto.Message, needReply bool
 	if err != nil {
 		return nil, err
 	}
-	maxRoutines := common.MAX_GOROUTINES_IN_LOOP
-	if len(addrs) <= common.MAX_GOROUTINES_IN_LOOP {
+	maxRoutines := dspNetCom.MAX_GOROUTINES_IN_LOOP
+	if len(addrs) <= dspNetCom.MAX_GOROUTINES_IN_LOOP {
 		maxRoutines = len(addrs)
 	}
 	type broadcastReq struct {
@@ -518,7 +519,7 @@ func (this *Network) Broadcast(addrs []string, msg proto.Message, needReply bool
 					}
 					continue
 				} else {
-					log.Debugf("receive reply msg from %s, msg:%s", req.addr, msg.String())
+					log.Debugf("receive reply msg from %s", req.addr)
 				}
 				if callback != nil {
 					finished := callback(res, req.addr)
@@ -561,7 +562,7 @@ func (this *Network) Broadcast(addrs []string, msg proto.Message, needReply bool
 
 func (this *Network) ReconnectPeer(addr string) error {
 	if _, ok := this.addressForConnecting.Load(addr); ok {
-		err := this.WaitForConnected(addr, time.Duration(edgeCom.MAX_WAIT_FOR_CONNECTED_TIMEOUT)*time.Second)
+		err := this.WaitForConnected(addr, time.Duration(common.MAX_WAIT_FOR_CONNECTED_TIMEOUT)*time.Second)
 		return err
 	}
 	this.addressForConnecting.Store(addr, struct{}{})
@@ -607,7 +608,7 @@ func (this *Network) Receive(ctx *network.ComponentContext, message proto.Messag
 		act.OnBusinessMessage(message, from)
 	case *messages.CooperativeSettle:
 		act.OnBusinessMessage(message, from)
-	case *dspmsg.Message:
+	case *dspMsg.Message:
 		if this.handler != nil {
 			this.handler(ctx)
 		}
@@ -634,7 +635,7 @@ func (this *Network) GetClientTime(addr string) (uint64, error) {
 }
 
 func (this *Network) healthCheckProxyService() {
-	ti := time.NewTicker(time.Duration(edgeCom.MAX_HEALTH_CHECK_INTERVAL) * time.Second)
+	ti := time.NewTicker(time.Duration(common.MAX_HEALTH_CHECK_INTERVAL) * time.Second)
 	startedAt := time.Now().Unix()
 	for {
 		select {
@@ -665,7 +666,7 @@ func (this *Network) healthCheckPeer(addr string) error {
 		return nil
 	}
 	log.Debugf("health check peer: %s unreachable, err: %s ", addr, err)
-	time.Sleep(time.Duration(edgeCom.BACKOFF_INIT_DELAY) * time.Second)
+	time.Sleep(time.Duration(common.BACKOFF_INIT_DELAY) * time.Second)
 	if addr == this.proxyAddr {
 		log.Debugf("reconnect proxy server ....")
 		err = this.P2p.ReconnectProxyServer(this.proxyAddr)
@@ -679,7 +680,7 @@ func (this *Network) healthCheckPeer(addr string) error {
 			return err
 		}
 	}
-	err = this.WaitForConnected(addr, time.Duration(edgeCom.MAX_WAIT_FOR_CONNECTED_TIMEOUT)*time.Second)
+	err = this.WaitForConnected(addr, time.Duration(common.MAX_WAIT_FOR_CONNECTED_TIMEOUT)*time.Second)
 	if err != nil {
 		log.Errorf("reconnect peer failed , err: %s", err)
 		return err

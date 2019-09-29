@@ -36,6 +36,7 @@ func initAPP() *cli.App {
 		cmd.DnsCommand,
 		cmd.ChannelCommand,
 		cmd.GovernanceCommand,
+		cmd.VersionCommand,
 	}
 	app.Flags = []cli.Flag{
 		flags.ProtocolListenPortOffsetFlag,
