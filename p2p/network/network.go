@@ -113,7 +113,7 @@ func (this *Network) Start(address string) error {
 	log.Debugf("Network protocol %s", this.protocol)
 	builderOpt := []network.BuilderOption{
 		network.WriteFlushLatency(1 * time.Millisecond),
-		network.WriteTimeout(common.NET_STREAM_WRITE_TIMEOUT),
+		network.WriteTimeout(dspCom.NETWORK_STREAM_WRITE_TIMEOUT),
 	}
 	builder := network.NewBuilderWithOptions(builderOpt...)
 
@@ -312,6 +312,19 @@ func (this *Network) ConnectAndWait(addr string) error {
 
 func (this *Network) GetPeerStateByAddress(addr string) (network.PeerState, error) {
 	return this.P2p.GetRealConnState(addr)
+}
+
+// IsConnectionReachable. check if peer state reachable
+func (this *Network) IsConnectionReachable(addr string) bool {
+	state, err := this.GetPeerStateByAddress(addr)
+	log.Debugf("get peer state by addr: %s %v %s", addr, state, err)
+	if err != nil {
+		return false
+	}
+	if state != network.PEER_REACHABLE {
+		return false
+	}
+	return true
 }
 
 func (this *Network) WaitForConnected(addr string, timeout time.Duration) error {

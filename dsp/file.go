@@ -526,6 +526,16 @@ func (this *Endpoint) DeleteUploadFile(fileHash string) (*DeleteFileResp, *DspEr
 	}
 	if fi != nil && err == nil && fi.FileOwner.ToBase58() == this.Dsp.WalletAddress() {
 		taskId := this.Dsp.GetUploadTaskId(fileHash)
+		if len(taskId) == 0 {
+			tx, _, deletErr := this.Dsp.DeleteUploadFilesFromChain([]string{fileHash})
+			if deletErr != nil {
+				return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: deletErr.Error}
+			}
+			resp := &DeleteFileResp{IsUploaded: true}
+			resp.Tx = tx
+			resp.FileHash = fileHash
+			return resp, nil
+		}
 		result, err := this.Dsp.DeleteUploadedFileByIds([]string{taskId})
 		if err != nil {
 			log.Errorf("[Endpoint DeleteUploadFile] delete upload file failed, err %s", err)

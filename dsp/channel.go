@@ -30,7 +30,9 @@ type ChannelInfo struct {
 	Participant1State int
 	ParticiPant2State int
 	IsDNS             bool
-	Connected         bool
+	IsOnline          bool
+	Selected          bool
+	CreatedAt         uint64
 }
 
 type ChannelInfosResp struct {
@@ -135,23 +137,24 @@ func (this *Endpoint) GetAllChannels() (interface{}, *DspErr) {
 			Participant1State: state1,
 			ParticiPant2State: state2,
 		}
-		// TODO: feature to be discussed
-		// address, err := chainCom.AddressFromBase58(ch.Address)
-		// if err != nil {
-		// 	resp.Channels = append(resp.Channels, newCh)
-		// 	log.Errorf("parse from base58 err %s", err)
-		// 	continue
-		// }
-		// info, err := this.Dsp.Chain.Native.Dns.GetDnsNodeByAddr(address)
-		// if err != nil || info == nil {
-		// 	resp.Channels = append(resp.Channels, newCh)
-		// 	log.Errorf("err %s, info is nil %v", err, info)
-		// 	continue
-		// }
-		// newCh.IsDNS = true
-		if this.Dsp.DNS.DNSNode != nil && newCh.Address == this.Dsp.DNS.DNSNode.WalletAddr {
-			newCh.Connected = true
+		infoFromDB, _ := this.Dsp.Channel.GetChannelInfoFromDB(ch.Address)
+		if infoFromDB != nil {
+			newCh.CreatedAt = infoFromDB.CreatedAt
+			newCh.IsDNS = infoFromDB.IsDNS
+		} else {
+			this.Dsp.Channel.AddChannelInfo(uint64(ch.ChannelId), ch.Address)
+			address, _ := chainCom.AddressFromBase58(ch.Address)
+			info, _ := this.Dsp.Chain.Native.Dns.GetDnsNodeByAddr(address)
+			if info != nil {
+				this.Dsp.Channel.SetChannelIsDNS(ch.Address, true)
+				newCh.IsDNS = true
+			}
+			newCh.CreatedAt = uint64(time.Now().Unix())
 		}
+		if this.Dsp.DNS.DNSNode != nil && newCh.Address == this.Dsp.DNS.DNSNode.WalletAddr {
+			newCh.Selected = true
+		}
+		newCh.IsOnline = this.channelNet.IsConnectionReachable(newCh.HostAddr)
 		resp.Channels = append(resp.Channels, newCh)
 	}
 	log.Debugf("GetAllChannels done: %v", resp)
@@ -196,7 +199,7 @@ func (this *Endpoint) CurrentPaymentChannel() (*ChannelInfo, *DspErr) {
 		resp.IsDNS = true
 		resp.Participant1State = state1
 		resp.ParticiPant2State = state2
-		resp.Connected = true
+		resp.Selected = true
 		return resp, nil
 	} else {
 		return nil, &DspErr{Code: DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST, Error: ErrMaps[DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST]}
@@ -254,14 +257,20 @@ func (this *Endpoint) OpenPaymentChannel(partnerAddr string, amount uint64) (cha
 	if err != nil {
 		return 0, &DspErr{Code: DSP_CHANNEL_OPEN_FAILED, Error: err}
 	}
-
+	var isDNS bool
 	url, ok := this.Dsp.DNS.OnlineDNS[partnerAddr]
 	if ok {
+		isDNS = true
 		this.Dsp.DNS.DNSNode = &dsp.DNSNodeInfo{
 			WalletAddr: partnerAddr,
 			HostAddr:   url,
 		}
+	} else {
+		partnerAddress, _ := chainCom.AddressFromBase58(partnerAddr)
+		info, _ := this.Dsp.Chain.Native.Dns.GetDnsNodeByAddr(partnerAddress)
+		isDNS = (info != nil)
 	}
+	this.Dsp.Channel.SetChannelIsDNS(partnerAddr, isDNS)
 	return id, nil
 }
 
