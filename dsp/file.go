@@ -902,7 +902,7 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint32) 
 		IsTransfering: false,
 		Transfers:     []*Transfer{},
 	}
-	allType := false
+	allType, reverse := false, false
 	var infoType store.TaskType
 	switch pType {
 	case transferTypeUploading:
@@ -911,8 +911,9 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint32) 
 		infoType = store.TaskTypeDownload
 	case transferTypeComplete:
 		allType = true
+		reverse = true
 	}
-	ids := this.Dsp.GetTaskIdList(offset, limit, infoType, allType, true)
+	ids := this.Dsp.GetTaskIdList(offset, limit, infoType, allType, reverse)
 	infos := make([]*Transfer, 0, len(ids))
 	for idx, key := range ids {
 		info := this.Dsp.GetProgressInfo(key)
@@ -1262,7 +1263,6 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uin
 			updatedAt -= (uint64(now) - fi.BlockHeight) * config.BlockTime()
 		}
 		url := this.Dsp.GetUrlOfUploadedfile(string(hash.Hash))
-		// url, _ := this.GetUrlFromHash(string(hash.Hash))
 		downloadedCount, _ := this.sqliteDB.CountRecordByFileHash(string(hash.Hash))
 		profit, _ := this.sqliteDB.SumRecordsProfitByFileHash(string(hash.Hash))
 
