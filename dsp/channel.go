@@ -6,7 +6,7 @@ import (
 	"time"
 
 	dsp "github.com/saveio/dsp-go-sdk"
-	"github.com/saveio/dsp-go-sdk/common"
+	dspCom "github.com/saveio/dsp-go-sdk/common"
 	chanCom "github.com/saveio/pylons/common"
 	pylons_transfer "github.com/saveio/pylons/transfer"
 	chainCom "github.com/saveio/themis/common"
@@ -139,7 +139,7 @@ func (this *Endpoint) GetAllChannels() (interface{}, *DspErr) {
 		}
 		infoFromDB, _ := this.Dsp.Channel.GetChannelInfoFromDB(ch.Address)
 		if infoFromDB != nil {
-			newCh.CreatedAt = infoFromDB.CreatedAt
+			newCh.CreatedAt = infoFromDB.CreatedAt / dspCom.MILLISECOND_PER_SECOND
 			newCh.IsDNS = infoFromDB.IsDNS
 		} else {
 			this.Dsp.Channel.AddChannelInfo(uint64(ch.ChannelId), ch.Address)
@@ -316,7 +316,7 @@ func (this *Endpoint) MediaTransfer(paymentId int32, amount uint64, to string) *
 	if syncing {
 		return &DspErr{Code: DSP_CHANNEL_SYNCING, Error: ErrMaps[DSP_CHANNEL_SYNCING]}
 	}
-	err := this.Dsp.Channel.WaitForConnected(to, time.Duration(common.WAIT_CHANNEL_CONNECT_TIMEOUT)*time.Second)
+	err := this.Dsp.Channel.WaitForConnected(to, time.Duration(dspCom.WAIT_CHANNEL_CONNECT_TIMEOUT)*time.Second)
 	if err != nil {
 		log.Errorf("wait channel connected err %s %s", to, err)
 		return &DspErr{Code: DSP_CHANNEL_INTERNAL_ERROR, Error: err}

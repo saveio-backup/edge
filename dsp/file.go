@@ -61,8 +61,9 @@ type Transfer struct {
 	Id             string
 	FileHash       string
 	FileName       string
+	Url            string
 	Type           TransferType
-	Status         task.TaskState
+	Status         store.TaskState
 	DetailStatus   task.TaskProgressState
 	CopyNum        uint64
 	Path           string
@@ -451,7 +452,7 @@ func (this *Endpoint) CancelUploadFile(taskIds []string) *FileTaskResp {
 	}
 	request := func(arg []interface{}, respCh chan *dspUtils.RequestResponse) {
 		taskResp := &FileTask{
-			State: int(task.TaskStateCancel),
+			State: int(store.TaskStateCancel),
 		}
 		if len(arg) != 1 {
 			taskResp.Code = DSP_CANCEL_TASK_FAILED
@@ -842,7 +843,7 @@ func (this *Endpoint) CancelDownloadFile(taskIds []string) *FileTaskResp {
 			taskResp.Code = DSP_CANCEL_TASK_FAILED
 			taskResp.Error = err.Error()
 		}
-		taskResp.State = int(task.TaskStateCancel)
+		taskResp.State = int(store.TaskStateCancel)
 		log.Debugf("cancel download file, id :%s, resp :%v", id, taskResp)
 		resp.Tasks = append(resp.Tasks, taskResp)
 	}
@@ -884,7 +885,7 @@ func (this *Endpoint) DeleteTransferRecord(taskIds []string) *FileTaskResp {
 	for _, id := range taskIds {
 		taskResp := &FileTask{
 			Id:    id,
-			State: int(task.TaskStateCancel),
+			State: int(store.TaskStateCancel),
 		}
 		err := this.Dsp.DeleteTaskIds([]string{id})
 		if err != nil {
@@ -935,7 +936,7 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint32) 
 			continue
 		}
 		if !resp.IsTransfering {
-			resp.IsTransfering = (pType == transferTypeUploading || pType == transferTypeDownloading) && (pInfo.Status != task.TaskStateFailed && pInfo.Status != task.TaskStateDone)
+			resp.IsTransfering = (pType == transferTypeUploading || pType == transferTypeDownloading) && (pInfo.Status != store.TaskStateFailed && pInfo.Status != store.TaskStateDone)
 		}
 		infos = append(infos, pInfo)
 	}
@@ -1420,7 +1421,7 @@ func (this *Endpoint) GetDownloadFiles(fileType DspFileListType, offset, limit u
 			Url:           url,
 			Size:          info.TotalBlockCount * dspCom.CHUNK_SIZE / 1024,
 			DownloadCount: downloadedCount,
-			DownloadAt:    info.CreatedAt,
+			DownloadAt:    info.CreatedAt / dspCom.MILLISECOND_PER_SECOND,
 			LastShareAt:   lastSharedAt,
 			Profit:        profit,
 			ProfitFormat:  utils.FormatUsdt(profit),
@@ -1689,7 +1690,7 @@ func (this *Endpoint) GetPeerCountOfHash(fileHashStr string) (interface{}, *DspE
 }
 
 func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressInfo) *Transfer {
-	if info.TaskState != task.TaskStateDone && info.TaskState != task.TaskStateFailed {
+	if info.TaskState != store.TaskStateDone && info.TaskState != store.TaskStateFailed {
 		// update state by task cache
 		state, err := this.Dsp.GetTaskState(info.TaskId)
 		if err == nil {
@@ -1715,6 +1716,7 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 		FileHash:     info.FileHash,
 		FileName:     info.FileName,
 		Path:         info.FilePath,
+		Url:          info.Url,
 		CopyNum:      info.CopyNum,
 		Type:         pType,
 		StoreType:    info.StoreType,
@@ -1754,7 +1756,7 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 		if sum < info.Total || info.Total == 0 {
 			return nil
 		}
-		if info.TaskState == task.TaskStateFailed {
+		if info.TaskState == store.TaskStateFailed {
 			return nil
 		}
 		if info.Type == store.TaskTypeUpload {
@@ -1765,9 +1767,9 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 			if pInfo.UploadSize == 0 {
 				return nil
 			}
-			if pInfo.Status != task.TaskStateDone && pInfo.FileSize > 0 && pInfo.UploadSize == pInfo.FileSize*uint64(len(pInfo.Nodes)) {
+			if pInfo.Status != store.TaskStateDone && pInfo.FileSize > 0 && pInfo.UploadSize == pInfo.FileSize*uint64(len(pInfo.Nodes)) {
 				log.Warnf("task:%s taskstate is %d, status:%d, but it has done", info.TaskId, info.TaskState, pInfo.Status)
-				pInfo.Status = task.TaskStateDone
+				pInfo.Status = store.TaskStateDone
 			}
 			if len(pInfo.Nodes) > 0 && pInfo.FileSize > 0 {
 				pInfo.Progress = (float64(pInfo.UploadSize) / float64(pInfo.FileSize)) / float64(len(pInfo.Nodes))
@@ -1777,8 +1779,8 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 			if pInfo.DownloadSize == 0 {
 				return nil
 			}
-			if pInfo.Status != task.TaskStateDone && pInfo.FileSize > 0 && pInfo.DownloadSize == pInfo.FileSize {
-				pInfo.Status = task.TaskStateDone
+			if pInfo.Status != store.TaskStateDone && pInfo.FileSize > 0 && pInfo.DownloadSize == pInfo.FileSize {
+				pInfo.Status = store.TaskStateDone
 				log.Warnf("task:%s taskstate is %d, but it has done", info.TaskId, info.TaskState)
 			}
 			if pInfo.FileSize > 0 {
@@ -1789,17 +1791,17 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 	case transferTypeAll:
 		if info.Type == store.TaskTypeUpload {
 			pInfo.UploadSize = sum * dspCom.CHUNK_SIZE / 1024
-			if pInfo.Status != task.TaskStateDone && pInfo.FileSize > 0 && pInfo.UploadSize == pInfo.FileSize*uint64(len(pInfo.Nodes)) {
+			if pInfo.Status != store.TaskStateDone && pInfo.FileSize > 0 && pInfo.UploadSize == pInfo.FileSize*uint64(len(pInfo.Nodes)) {
 				log.Warnf("task:%s taskstate is %d, status:%d, but it has done", info.TaskId, info.TaskState, pInfo.Status)
-				pInfo.Status = task.TaskStateDone
+				pInfo.Status = store.TaskStateDone
 			}
 			if len(pInfo.Nodes) > 0 && pInfo.FileSize > 0 {
 				pInfo.Progress = (float64(pInfo.UploadSize) / float64(pInfo.FileSize)) / float64(len(pInfo.Nodes))
 			}
 		} else if info.Type == store.TaskTypeDownload {
 			pInfo.DownloadSize = sum * dspCom.CHUNK_SIZE / 1024
-			if pInfo.Status != task.TaskStateDone && pInfo.FileSize > 0 && pInfo.DownloadSize == pInfo.FileSize {
-				pInfo.Status = task.TaskStateDone
+			if pInfo.Status != store.TaskStateDone && pInfo.FileSize > 0 && pInfo.DownloadSize == pInfo.FileSize {
+				pInfo.Status = store.TaskStateDone
 				log.Warnf("task:%s taskstate is %d, but it has done", info.TaskId, info.TaskState)
 			}
 			if pInfo.FileSize > 0 {
@@ -1808,7 +1810,7 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 			pInfo.Encrypted = this.Dsp.IsFileEncrypted(pInfo.Path)
 		}
 	}
-	if info.TaskState == task.TaskStateFailed {
+	if info.TaskState == store.TaskStateFailed {
 		pInfo.ErrMsg = info.ErrorMsg
 		pInfo.ErrorCode = info.ErrorCode
 	}
