@@ -2,8 +2,6 @@ package dsp
 
 import (
 	"time"
-
-	"github.com/saveio/themis/common/log"
 )
 
 type networkState int
@@ -52,7 +50,7 @@ func (this *Endpoint) GetNetworkState() (*NetworkStateResp, *DspErr) {
 		state.DNS.HostAddr = this.Dsp.DNS.DNSNode.HostAddr
 		updatedAt, _ := this.channelNet.GetClientTime(state.DNS.HostAddr)
 		state.DNS.UpdatedAt = updatedAt
-		if this.channelNet.IsConnectionExists(this.Dsp.DNS.DNSNode.HostAddr) {
+		if this.channelNet.IsStateReachable(this.Dsp.DNS.DNSNode.HostAddr) {
 			state.DNS.State = networkStateReachable
 		} else {
 			state.DNS.State = networkStateUnReachable
@@ -62,11 +60,7 @@ func (this *Endpoint) GetNetworkState() (*NetworkStateResp, *DspErr) {
 		state.DspProxy.HostAddr = this.dspNet.GetProxyServer()
 		updatedAt, _ := this.dspNet.GetClientTime(state.DspProxy.HostAddr)
 		state.DspProxy.UpdatedAt = updatedAt
-		connected, err := this.dspNet.IsProxyConnectionExists()
-		if err != nil {
-			log.Error("dsp proxy connection exist err %s", err)
-		}
-		if connected {
+		if this.dspNet.IsStateReachable(state.DspProxy.HostAddr) {
 			state.DspProxy.State = networkStateReachable
 		} else {
 			state.DspProxy.State = networkStateUnReachable
@@ -76,11 +70,7 @@ func (this *Endpoint) GetNetworkState() (*NetworkStateResp, *DspErr) {
 		state.ChannelProxy.HostAddr = this.channelNet.GetProxyServer()
 		updatedAt, _ := this.channelNet.GetClientTime(state.ChannelProxy.HostAddr)
 		state.ChannelProxy.UpdatedAt = updatedAt
-		connected, err := this.channelNet.IsProxyConnectionExists()
-		if err != nil {
-			log.Error("channel proxy connection exist err %s", err)
-		}
-		if connected {
+		if this.channelNet.IsStateReachable(state.ChannelProxy.HostAddr) {
 			state.ChannelProxy.State = networkStateReachable
 		} else {
 			state.ChannelProxy.State = networkStateUnReachable

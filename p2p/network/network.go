@@ -373,6 +373,18 @@ func (this *Network) IsConnectionExists(addr string) bool {
 	return this.P2p.ConnectionStateExists(addr)
 }
 
+// IsStateReachable. check if state is reachable
+func (this *Network) IsStateReachable(addr string) bool {
+	if this.P2p == nil {
+		return false
+	}
+	state, err := this.P2p.GetRealConnState(addr)
+	if state == network.PEER_REACHABLE && err == nil {
+		return true
+	}
+	return false
+}
+
 func (this *Network) IsProxyConnectionExists() (bool, error) {
 	if this.P2p == nil {
 		return false, nil
