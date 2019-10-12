@@ -615,7 +615,7 @@ func (this *Endpoint) GetFsConfig() (*FsContractSettingResp, *DspErr) {
 
 	return &FsContractSettingResp{
 		DefaultCopyNum:     set.DefaultCopyNum,
-		DefaultProvePeriod: set.DefaultProvePeriod,
+		DefaultProvePeriod: set.DefaultProvePeriod * config.BlockTime(),
 		MinProveInterval:   set.MinProveInterval,
 		MinVolume:          set.MinVolume,
 	}, nil

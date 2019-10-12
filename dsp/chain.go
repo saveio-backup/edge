@@ -676,6 +676,13 @@ func (this *Endpoint) AssetTransferDirect(to, asset, amountStr string) (string, 
 		if err != nil {
 			return "", &DspErr{Code: INVALID_PARAMS, Error: err}
 		}
+		balance, err := this.Dsp.Chain.Native.Usdt.BalanceOf(acc.Address)
+		if err != nil {
+			return "", &DspErr{Code: CHAIN_TRANSFER_ERROR, Error: err}
+		}
+		if balance < realAmount+chainCfg.DEFAULT_GAS_PRICE*chainCfg.DEFAULT_GAS_LIMIT {
+			return "", &DspErr{Code: INSUFFICIENT_BALANCE, Error: ErrMaps[INSUFFICIENT_BALANCE]}
+		}
 		txHash, err := this.Dsp.Chain.Native.Usdt.Transfer(chainCfg.DEFAULT_GAS_PRICE, chainCfg.DEFAULT_GAS_LIMIT, acc, toAddr, realAmount)
 		if err != nil {
 			return "", &DspErr{Code: CHAIN_TRANSFER_ERROR, Error: err}
