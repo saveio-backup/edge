@@ -674,7 +674,7 @@ func (this *Endpoint) AssetTransferDirect(to, asset, amountStr string) (string, 
 	if asset == "usdt" {
 		toAddr, err := common.AddressFromBase58(to)
 		if err != nil {
-			return "", &DspErr{Code: INVALID_PARAMS, Error: err}
+			return "", &DspErr{Code: INVALID_WALLET_ADDRESS, Error: err}
 		}
 		balance, err := this.Dsp.Chain.Native.Usdt.BalanceOf(acc.Address)
 		if err != nil {
