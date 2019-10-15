@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"runtime/debug"
+	"runtime/pprof"
 	"strconv"
 	"strings"
 	"sync"
@@ -148,6 +150,8 @@ const (
 
 	NETWORK_STATE           = "/api/v1/network/state"
 	RECONNECT_CHANNEL_PEERS = "/api/v1/network/channel/reconnect"
+
+	GOROUTINE_LIST = "/api/v1/goroutine"
 )
 
 //init restful server
@@ -272,6 +276,7 @@ func (this *restServer) registryMethod() {
 		DNS_QUERY_HOST_INFO:  {name: "queryhostinfo", handler: QueryHostInfo},
 		NETWORK_STATE:        {name: "networkstate", handler: GetNetworkState},
 		GET_CONFIG:           {name: "getconfig", handler: GetConfig},
+		GOROUTINE_LIST:       {name: "getgoroutine", handler: nil},
 	}
 	this.getMap = getMethodMap
 
@@ -578,6 +583,13 @@ func (this *restServer) initGetHandler() {
 			var req = make(map[string]interface{})
 			var resp map[string]interface{}
 
+			if r.URL.Path == GOROUTINE_LIST {
+				stack := debug.Stack()
+				w.Write(stack)
+				pprof.Lookup("goroutine").WriteTo(w, 2)
+				this.response(w, resp)
+				return
+			}
 			url := this.getPath(r.URL.Path)
 			if h, ok := this.getMap[url]; ok {
 				req = this.getParams(r, url, req)

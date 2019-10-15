@@ -27,7 +27,6 @@ import (
 	"github.com/saveio/pylons/actor/msg_opcode"
 	act "github.com/saveio/pylons/actor/server"
 	"github.com/saveio/pylons/network/transport/messages"
-
 	"github.com/saveio/themis/common/log"
 )
 

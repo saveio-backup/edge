@@ -36,3 +36,10 @@ const (
 	PYLONS_DB_NAME = "channel"
 	SQLITE_DB_NAME = "edge-sqlite.db"
 )
+
+// Chain ID
+const (
+	DEVNET_CHAIN_ID  = "0"
+	TESTNET_CHAIN_ID = "1"
+	MAINNET_CHAIN_ID = "2"
+)

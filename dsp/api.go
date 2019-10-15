@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"time"
 
@@ -361,6 +362,7 @@ func (this *Endpoint) stateChangeService() {
 		select {
 		case <-ti.C:
 			// check log file size
+			go this.checkGoRoutineNum()
 			go this.checkLogFileSize()
 			if this.dspPublicAddr != this.dspNet.PublicAddr() {
 				log.Debugf("dsp public address has change, old addr: %s, new addr:%s", this.dspPublicAddr, this.dspNet.PublicAddr())
@@ -377,6 +379,10 @@ func (this *Endpoint) stateChangeService() {
 			return
 		}
 	}
+}
+
+func (this *Endpoint) checkGoRoutineNum() {
+	log.Debugf("go routine num: %d", runtime.NumGoroutine())
 }
 
 func (this *Endpoint) checkLogFileSize() {

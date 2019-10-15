@@ -1325,7 +1325,7 @@ func (this *Endpoint) GetFileInfo(fileHashStr string) (*fileInfoResp, *DspErr) {
 	result := &fileInfoResp{
 		FileHash:      string(info.FileHash),
 		CopyNum:       info.CopyNum,
-		Interval:      info.ProveInterval,
+		Interval:      info.ProveInterval * config.BlockTime(),
 		ProveTimes:    info.ProveTimes,
 		ExpiredHeight: info.ExpiredHeight,
 		Privilege:     info.Privilege,
