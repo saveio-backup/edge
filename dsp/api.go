@@ -1,7 +1,6 @@
 package dsp
 
 import (
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"os"
@@ -13,8 +12,6 @@ import (
 	"github.com/saveio/max/max"
 	"github.com/saveio/pylons"
 
-	"github.com/saveio/carrier/crypto"
-	"github.com/saveio/carrier/crypto/ed25519"
 	carNet "github.com/saveio/carrier/network"
 	dsp "github.com/saveio/dsp-go-sdk"
 	dspActorClient "github.com/saveio/dsp-go-sdk/actor/client"
@@ -32,6 +29,13 @@ import (
 	chainCfg "github.com/saveio/themis/common/config"
 	"github.com/saveio/themis/common/log"
 	"github.com/saveio/themis/crypto/keypair"
+
+	"github.com/saveio/dsp-go-sdk/utils"
+	tkActClient "github.com/saveio/scan/p2p/actor/tracker/client"
+	tkActServer "github.com/saveio/scan/p2p/actor/tracker/server"
+	tk_net "github.com/saveio/scan/p2p/networks/tracker"
+	"github.com/saveio/scan/service/tk"
+	chainSdk "github.com/saveio/themis-go-sdk/utils"
 )
 
 var DspService *Endpoint
@@ -113,6 +117,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		SeedInterval:         config.Parameters.BaseConfig.SeedInterval,
 		DnsChannelDeposit:    config.Parameters.BaseConfig.DnsChannelDeposit,
 		Trackers:             config.Parameters.BaseConfig.Trackers,
+		TrackerProtocol:      config.Parameters.BaseConfig.TrackerProtocol,
 		DNSWalletAddrs:       config.Parameters.BaseConfig.DNSWalletAddrs,
 	}
 	log.Debugf("dspConfig.dbpath %v, repo: %s, channelDB: %s, wallet: %s, enable backup: %t", dspConfig.DBPath, dspConfig.FsRepoRoot, dspConfig.ChannelDBPath, config.WalletDatFilePath(), config.Parameters.FsConfig.EnableBackup)
@@ -146,55 +151,29 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 	endpoint.Dsp = dspSrv
 	version, _ := endpoint.GetNodeVersion()
 	if startListen {
-		// start dsp net
-		dspListenPort := int(config.Parameters.BaseConfig.PortBase + uint32(config.Parameters.BaseConfig.DspPortOffset))
-		if dspListenPort == 0 {
-			log.Fatal("Not configure HttpRestPort port ")
-			return nil
+		// start tracker net
+		tkListenPort := int(config.Parameters.BaseConfig.PortBase + uint32(config.Parameters.BaseConfig.TrackerPortOffset))
+		tkListenAddr := fmt.Sprintf("%s://%s:%d", config.Parameters.BaseConfig.TrackerProtocol, listenHost, tkListenPort)
+		log.Debugf("TrackerProtocol: %v, listenAddr: %s", config.Parameters, tkListenAddr)
+		err := endpoint.startTrackerP2P(tkListenAddr, endpoint.Account)
+		if err != nil {
+			return err
 		}
 
-		bPub := keypair.SerializePublicKey(endpoint.Account.PubKey())
-		dspPub, dspPrivate, err := ed25519.GenerateKey(&accountReader{
-			PublicKey: append(bPub, []byte("dsp")...),
-		})
-		networkKey := &crypto.KeyPair{
-			PublicKey:  dspPub,
-			PrivateKey: dspPrivate,
-		}
-		dspNetwork := network.NewP2P()
-		dspNetwork.SetNetworkKey(networkKey)
-		dspNetwork.SetHandler(dspSrv.Receive)
+		// start dsp net
+		dspListenPort := int(config.Parameters.BaseConfig.PortBase + uint32(config.Parameters.BaseConfig.DspPortOffset))
 		dspListenAddr := fmt.Sprintf("%s://%s:%d", config.Parameters.BaseConfig.DspProtocol, listenHost, dspListenPort)
-		err = dspNetwork.Start(dspListenAddr)
+		err = endpoint.startDspP2P(dspListenAddr, endpoint.Account)
 		if err != nil {
 			return err
 		}
-		p2pActor.SetDspNetwork(dspNetwork)
-		endpoint.dspNet = dspNetwork
-		endpoint.dspPublicAddr = dspNetwork.PublicAddr()
 		log.Debugf("start dsp at %s", endpoint.dspPublicAddr)
 		// start channel net
-		channelNetwork := network.NewP2P()
-		channelPubKey, channelPrivateKey, err := ed25519.GenerateKey(&accountReader{
-			PublicKey: append(bPub, []byte("channel")...),
-		})
-		if err != nil {
-			return err
-		}
-		channelNetwork.Keys = &crypto.KeyPair{
-			PublicKey:  channelPubKey,
-			PrivateKey: channelPrivateKey,
-		}
-		log.Debugf("dsp pubKey:%s, channel pubKey: %s", hex.EncodeToString(networkKey.PublicKey), hex.EncodeToString(channelNetwork.Keys.PublicKey))
-		req.SetChannelPid(dspSrv.Channel.GetChannelPid())
 		listenAddr := fmt.Sprintf("%s://%s", config.Parameters.BaseConfig.ChannelProtocol, dspConfig.ChannelListenAddr)
-		err = channelNetwork.Start(listenAddr)
+		err = endpoint.startChannelP2P(listenAddr, endpoint.Account)
 		if err != nil {
 			return err
 		}
-		p2pActor.SetChannelNetwork(channelNetwork)
-		endpoint.channelPublicAddr = channelNetwork.PublicAddr()
-		endpoint.channelNet = channelNetwork
 		log.Debugf("start channel at %s", endpoint.channelPublicAddr)
 		endpoint.updateStorageNodeHost()
 		endpoint.registerChannelEndpoint()
@@ -253,6 +232,63 @@ func (this *Endpoint) Stop() error {
 	return this.Dsp.Stop()
 }
 
+func (this *Endpoint) startDspP2P(dspListenAddr string, acc *account.Account) error {
+	bPub := keypair.SerializePublicKey(acc.PubKey())
+	networkKey := utils.NewNetworkEd25519KeyPair(bPub, []byte("dsp"))
+	dspNetwork := network.NewP2P()
+	dspNetwork.SetNetworkKey(networkKey)
+	dspNetwork.SetHandler(this.Dsp.Receive)
+	err := dspNetwork.Start(dspListenAddr)
+	if err != nil {
+		return err
+	}
+	this.p2pActor.SetDspNetwork(dspNetwork)
+	this.dspNet = dspNetwork
+	this.dspPublicAddr = dspNetwork.PublicAddr()
+	return nil
+}
+
+func (this *Endpoint) startChannelP2P(channelListenAddr string, acc *account.Account) error {
+	channelNetwork := network.NewP2P()
+	bPub := keypair.SerializePublicKey(acc.PubKey())
+	channelNetwork.Keys = utils.NewNetworkEd25519KeyPair(bPub, []byte("channel"))
+	req.SetChannelPid(this.Dsp.Channel.GetChannelPid())
+	err := channelNetwork.Start(channelListenAddr)
+	if err != nil {
+		return err
+	}
+	this.p2pActor.SetChannelNetwork(channelNetwork)
+	this.channelPublicAddr = channelNetwork.PublicAddr()
+	this.channelNet = channelNetwork
+	return nil
+}
+
+func (this *Endpoint) startTrackerP2P(tkListenAddr string, acc *account.Account) error {
+	tkSrc := tk.NewTrackerService(nil, acc.PublicKey, func(raw []byte) ([]byte, error) {
+		return chainSdk.Sign(acc, raw)
+	})
+	tkActServer, err := tkActServer.NewTrackerActor(tkSrc)
+	if err != nil {
+		return err
+	}
+	dPub := keypair.SerializePublicKey(acc.PubKey())
+	tkNetworkKey := utils.NewNetworkEd25519KeyPair(dPub, []byte("tk"))
+	tkNet := tk_net.NewP2P()
+	tkNet.SetNetworkKey(tkNetworkKey)
+	tkNet.SetPID(tkActServer.GetLocalPID())
+	log.Debugf("goto start tk network %s", tkListenAddr)
+	tk_net.TkP2p = tkNet
+	tkActServer.SetNetwork(tkNet)
+	err = tkNet.Start(tkListenAddr, config.Parameters.BaseConfig.NetworkId)
+	if err != nil {
+		return err
+	}
+	log.Debugf("tk network started, public ip %s", tkNet.PublicAddr())
+	tkActClient.SetTrackerServerPid(tkActServer.GetLocalPID())
+	this.p2pActor.SetTrackerNet(tkActServer)
+	return nil
+}
+
 func (this *Endpoint) registerChannelEndpoint() error {
 	walletAddr := this.Dsp.Account.Address
 	publicAddr := this.channelNet.PublicAddr()
@@ -266,8 +302,6 @@ func (this *Endpoint) registerChannelEndpoint() error {
 		time.Sleep(time.Duration(common.MAX_REG_CHANNEL_BACKOFF) * time.Second)
 	}
 	log.Errorf("register channel endpoint timeout")
-	// testGetIp, err := dspSrv.GetExternalIP(dspSrv.CurrentAccount().Address.ToBase58())
-	// log.Debugf("test get ip %s err %s", testGetIp, err)
 	return fmt.Errorf("register channel endpoint timeout")
 }
 

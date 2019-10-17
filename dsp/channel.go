@@ -111,7 +111,7 @@ func (this *Endpoint) GetAllChannels() (interface{}, *DspErr) {
 	resp.BalanceFormat = chResp.BalanceFormat
 	resp.Channels = make([]*ChannelInfo, 0)
 	if len(chResp.Channels) == 0 {
-		log.Errorf("all channel is nil")
+		log.Debugf("all channel is nil")
 	}
 	for _, ch := range chResp.Channels {
 		hostAddr, _ := this.Dsp.GetExternalIP(ch.Address)
@@ -452,8 +452,8 @@ func (this *Endpoint) QueryChannel(partnerAddrStr string) map[int]interface{} {
 	return channels
 }
 
-func (this *Endpoint) QueryChannelByID(idstr, partnerAddr string) (interface{}, *DspErr) {
-	id, err := strconv.ParseInt(idstr, 10, 32)
+func (this *Endpoint) QueryChannelByID(idStr, partnerAddr string) (interface{}, *DspErr) {
+	id, err := strconv.ParseInt(idStr, 10, 32)
 	if err != nil {
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: err}
 	}

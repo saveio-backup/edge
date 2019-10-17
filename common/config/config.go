@@ -59,6 +59,7 @@ type BaseConfig struct {
 	DspPortOffset       int    `json:"DspPortOffset"`
 
 	AutoSetupDNSEnable bool     `json:"AutoSetupDNSEnable"`
+	TrackerProtocol    string   `json:"TrackerProtocol"`
 	TrackerPortOffset  int      `json:"TrackerPortOffset"`
 	DnsNodeMaxNum      int      `json:"DnsNodeMaxNum"`
 	SeedInterval       int      `json:"SeedInterval"`
