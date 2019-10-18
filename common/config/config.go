@@ -49,8 +49,6 @@ type BaseConfig struct {
 	BlockDelay           string `json:"BlockDelay"`
 
 	DBPath         string   `json:"DBPath"`
-	PpListenAddr   string   `json:"PpListenAddr"`
-	PpBootstrap    []string `json:"PpBootstrap"`
 	ChainRestAddrs []string `json:"ChainRestAddrs"`
 	ChainRpcAddrs  []string `json:"ChainRpcAddrs"`
 
@@ -59,13 +57,15 @@ type BaseConfig struct {
 	DspPortOffset       int    `json:"DspPortOffset"`
 
 	AutoSetupDNSEnable bool     `json:"AutoSetupDNSEnable"`
-	TrackerProtocol    string   `json:"TrackerProtocol"`
-	TrackerPortOffset  int      `json:"TrackerPortOffset"`
 	DnsNodeMaxNum      int      `json:"DnsNodeMaxNum"`
-	SeedInterval       int      `json:"SeedInterval"`
 	DnsChannelDeposit  uint64   `json:"DnsChannelDeposit"`
-	Trackers           []string `json:"Trackers"`
 	DNSWalletAddrs     []string `json:"DNSWalletAddrs"`
+
+	TrackerNetworkId  uint32   `json:"TrackerNetworkId"`
+	TrackerProtocol   string   `json:"TrackerProtocol"`
+	TrackerPortOffset int      `json:"TrackerPortOffset"`
+	SeedInterval      int      `json:"SeedInterval"`
+	Trackers          []string `json:"Trackers"`
 
 	WalletPwd string `json:"WalletPwd"`
 	WalletDir string `json:"WalletDir"`
@@ -110,28 +110,42 @@ func TestConfig() *DspConfig {
 		BaseConfig: BaseConfig{
 			BaseDir:              ".",
 			LogPath:              "./Log",
+			ChainId:              "0",
+			BlockTime:            5,
+			NetworkId:            1567481543,
+			PublicIP:             "",
 			PortBase:             10000,
-			LogLevel:             0,
-			LocalRpcPortOffset:   205,
+			LogLevel:             1,
+			LocalRpcPortOffset:   338,
 			EnableLocalRpc:       false,
-			JsonRpcPortOffset:    204,
+			JsonRpcPortOffset:    336,
 			EnableJsonRpc:        true,
-			HttpRestPortOffset:   203,
+			HttpRestPortOffset:   335,
+			HttpCertPath:         "",
+			HttpKeyPath:          "",
 			RestEnable:           true,
-			ChannelPortOffset:    202,
-			ChannelProtocol:      "udp",
+			BlockConfirm:         0,
+			ChannelPortOffset:    3005,
+			ChannelProtocol:      "tcp",
 			ChannelClientType:    "rpc",
-			ChannelRevealTimeout: "250",
+			ChannelRevealTimeout: "20",
+			ChannelSettleTimeout: "50",
+			BlockDelay:           "5",
 			DBPath:               "./DB",
 			ChainRestAddrs:       []string{"http://127.0.0.1:20334"},
 			ChainRpcAddrs:        []string{"http://127.0.0.1:20336"},
-			NATProxyServerAddrs:  "udp://40.73.100.114:6008",
-			DspProtocol:          "udp",
-			DspPortOffset:        201,
-			AutoSetupDNSEnable:   true,
+			NATProxyServerAddrs:  "tcp://127.0.0.1:6007",
+			DspProtocol:          "tcp",
+			DspPortOffset:        4024,
+			AutoSetupDNSEnable:   false,
 			DnsNodeMaxNum:        100,
-			SeedInterval:         3600,
 			DnsChannelDeposit:    1000000000,
+			DNSWalletAddrs:       nil,
+			TrackerNetworkId:     1567481543,
+			TrackerProtocol:      "tcp",
+			TrackerPortOffset:    337,
+			SeedInterval:         3600,
+			Trackers:             nil,
 			WalletPwd:            "pwd",
 			WalletDir:            "./wallet.dat",
 		},
@@ -185,6 +199,23 @@ func Init(ctx *cli.Context) {
 		return
 	}
 	common.GetJsonObjectFromFile(configDir, Parameters)
+	SetDefaultFieldForConfig(Parameters)
+}
+
+// SetDefaultFieldForConfig. set up default value for some field if missing
+func SetDefaultFieldForConfig(cfg *DspConfig) {
+	if cfg == nil {
+		return
+	}
+	if len(cfg.BaseConfig.TrackerProtocol) == 0 {
+		cfg.BaseConfig.TrackerProtocol = "tcp"
+	}
+	if cfg.BaseConfig.TrackerNetworkId == 0 {
+		cfg.BaseConfig.TrackerNetworkId = cfg.BaseConfig.NetworkId
+	}
+	if cfg.BaseConfig.TrackerPortOffset == 0 {
+		cfg.BaseConfig.TrackerPortOffset = 337
+	}
 }
 
 func GetConfigFromFile(cfgFileName string) *DspConfig {

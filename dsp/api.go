@@ -279,7 +279,7 @@ func (this *Endpoint) startTrackerP2P(tkListenAddr string, acc *account.Account)
 	log.Debugf("goto start tk network %s", tkListenAddr)
 	tk_net.TkP2p = tkNet
 	tkActServer.SetNetwork(tkNet)
-	err = tkNet.Start(tkListenAddr, config.Parameters.BaseConfig.NetworkId)
+	err = tkNet.Start(tkListenAddr, config.Parameters.BaseConfig.TrackerNetworkId)
 	if err != nil {
 		return err
 	}

@@ -66,6 +66,7 @@ func (this *P2PActor) Stop() error {
 	this.localPID.Stop()
 	this.dspNet.Stop()
 	this.channelNet.Stop()
+	this.tkActSvr.Stop()
 	return nil
 }
 
