@@ -276,6 +276,7 @@ func (this *Endpoint) startTrackerP2P(tkListenAddr string, acc *account.Account)
 	tkNet := tk_net.NewP2P()
 	tkNet.SetNetworkKey(tkNetworkKey)
 	tkNet.SetPID(tkActServer.GetLocalPID())
+	tkNet.SetProxyServer(config.Parameters.BaseConfig.NATProxyServerAddrs)
 	log.Debugf("goto start tk network %s", tkListenAddr)
 	tk_net.TkP2p = tkNet
 	tkActServer.SetNetwork(tkNet)
