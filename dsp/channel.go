@@ -253,6 +253,15 @@ func (this *Endpoint) OpenPaymentChannel(partnerAddr string, amount uint64) (cha
 	if !channelExist {
 		return 0, &DspErr{Code: DSP_CHANNEL_EXIST, Error: ErrMaps[DSP_CHANNEL_EXIST]}
 	}
+	if amount > 0 {
+		balance, err := this.Dsp.Chain.Native.Usdt.BalanceOf(this.Account.Address)
+		if err != nil {
+			return 0, &DspErr{Code: INTERNAL_ERROR, Error: err}
+		}
+		if amount >= balance {
+			return 0, &DspErr{Code: INSUFFICIENT_BALANCE, Error: ErrMaps[INSUFFICIENT_BALANCE]}
+		}
+	}
 	id, err := this.Dsp.Channel.OpenChannel(partnerAddr, amount)
 	if err != nil {
 		return 0, &DspErr{Code: DSP_CHANNEL_OPEN_FAILED, Error: err}
