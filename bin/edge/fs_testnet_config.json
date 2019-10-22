@@ -2,10 +2,10 @@
   "Base": {
     "BaseDir": ".",
     "LogPath": "./Log/",
-    "NetworkId": 0,
+    "NetworkId": 1567651915,
     "ChainId": "0",
     "BlockTime": 5,
-    "PublicIP": "",
+    "PublicIP": "127.116.237.14",
     "PortBase": 10000,
     "LogLevel": 1,
     "LocalRpcPortOffset": 138,
@@ -17,7 +17,7 @@
     "HttpKeyPath": "",
     "RestEnable": true,
     "ChannelProtocol": "tcp",
-    "ChannelPortOffset": 3002,
+    "ChannelPortOffset": 302,
     "ChannelClientType": "rpc",
     "ChannelRevealTimeout": "20",
     "ChannelSettleTimeout": "50",
@@ -26,22 +26,27 @@
     "PpListenAddr": "",
     "PpBootstrap": null,
     "ChainRestAddrs": [
-      "http://139.219.136.38:20334"
+      "http://52.163.217.230:10334",
+      "http://52.163.217.230:20334",
+      "http://139.219.141.206:20334"
     ],
     "ChainRpcAddrs": [
-      "http://139.219.136.38:20336"
+      "http://52.163.217.230:10336",
+      "http://52.163.217.230:20336",
+      "http://139.219.141.206:20336"
     ],
-    "NATProxyServerAddrs": "tcp://40.73.100.114:6007",
+    "NATProxyServerAddrs": "",
     "DspProtocol": "tcp",
-    "DspPortOffset": 3001,
+    "DspPortOffset": 301,
     "AutoSetupDNSEnable": false,
-    "TrackerPortOffset": 0,
+    "TrackerPortOffset": 137,
+    "TrackerProtocol": "tcp",
     "DnsNodeMaxNum": 100,
     "SeedInterval": 600,
     "DnsChannelDeposit": 1000000000,
     "Trackers": [],
     "DNSWalletAddrs": [
-      "AUtcTFw1mMB1R2Lvf28pEmm9xemUDtBHun"
+      "AcJdio7iRMzPxCWgBjSLSqKZcXMjNRtLpd"
     ],
     "WalletPwd": "pwd",
     "WalletDir": "./wallet.dat"

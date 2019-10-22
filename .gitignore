@@ -2,6 +2,8 @@ vendor/
 Log/
 .idea/
 test/
-edge
 DB/
 FS/
+edge
+!bin/edge
+
