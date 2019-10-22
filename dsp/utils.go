@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"os"
 	"strconv"
 	"strings"
 
@@ -114,6 +115,11 @@ func ParseContractError(err error) *DspErr {
 		}
 	}
 	return &DspErr{Code: CONTRACT_ERROR, Error: err}
+}
+
+func ExitWithLog(msg string) {
+	log.Debug(msg)
+	os.Exit(0)
 }
 
 type accountReader struct {

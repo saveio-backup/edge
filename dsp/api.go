@@ -131,7 +131,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		return err
 	}
 	endpoint.sqliteDB = sqliteDB
-	endpoint.closeCh = make(chan struct{}, 1)
+
 	//Skip init fs if Dsp doesn't start listen
 	if !startListen {
 		dspConfig.FsRepoRoot = ""
@@ -200,6 +200,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		}
 	}
 
+	endpoint.closeCh = make(chan struct{}, 1)
 	if startListen {
 		go endpoint.setupDNSNodeBackground()
 		go endpoint.RegisterProgressCh()
@@ -223,7 +224,9 @@ func (this *Endpoint) Stop() error {
 			return err
 		}
 	}
-	close(this.closeCh)
+	if this.closeCh != nil {
+		close(this.closeCh)
+	}
 	err := this.sqliteDB.Close()
 	if err != nil {
 		return err
@@ -280,14 +283,26 @@ func (this *Endpoint) startTrackerP2P(tkListenAddr string, acc *account.Account)
 	log.Debugf("goto start tk network %s", tkListenAddr)
 	tk_net.TkP2p = tkNet
 	tkActServer.SetNetwork(tkNet)
-	err = tkNet.Start(tkListenAddr, config.Parameters.BaseConfig.TrackerNetworkId)
-	if err != nil {
-		return err
-	}
-	log.Debugf("tk network started, public ip %s", tkNet.PublicAddr())
 	tkActClient.SetTrackerServerPid(tkActServer.GetLocalPID())
 	this.p2pActor.SetTrackerNet(tkActServer)
-	return nil
+	timeout := time.NewTimer(time.Duration(common.START_PROXY_TIMEOUT) * time.Second)
+	defer timeout.Stop()
+	startP2pDone := make(chan error)
+	go func() {
+		err = tkNet.Start(tkListenAddr, config.Parameters.BaseConfig.TrackerNetworkId)
+		if err != nil {
+			startP2pDone <- err
+			return
+		}
+		log.Debugf("tk network started, public ip %s", tkNet.PublicAddr())
+		startP2pDone <- nil
+	}()
+	select {
+	case err := <-startP2pDone:
+		return err
+	case <-timeout.C:
+		return errors.New("start tracker p2p timeout")
+	}
 }
 
 func (this *Endpoint) registerChannelEndpoint() error {

@@ -12,16 +12,16 @@ import (
 
 	edgeCom "github.com/saveio/edge/common"
 	"github.com/saveio/edge/common/config"
-	hcomm "github.com/saveio/edge/http/common"
+	hComm "github.com/saveio/edge/http/common"
 	"github.com/saveio/themis-go-sdk/usdt"
 	"github.com/saveio/themis/cmd/utils"
 	"github.com/saveio/themis/common"
 	chainCfg "github.com/saveio/themis/common/config"
 	"github.com/saveio/themis/common/log"
 	"github.com/saveio/themis/core/payload"
-	bcomn "github.com/saveio/themis/http/base/common"
-	cusdt "github.com/saveio/themis/smartcontract/service/native/usdt"
-	sutils "github.com/saveio/themis/smartcontract/service/native/utils"
+	bCom "github.com/saveio/themis/http/base/common"
+	cUsdt "github.com/saveio/themis/smartcontract/service/native/usdt"
+	sUtils "github.com/saveio/themis/smartcontract/service/native/utils"
 )
 
 const (
@@ -51,7 +51,7 @@ func (this *Endpoint) GetChainId() string {
 	return config.Parameters.BaseConfig.ChainId
 }
 
-// get networkid
+// get networkId
 func (this *Endpoint) GetNetworkId() string {
 	return fmt.Sprintf("%d", config.Parameters.BaseConfig.NetworkId)
 }
@@ -102,7 +102,7 @@ func (this *Endpoint) GetBlockByHash(hash, raw string) (interface{}, *DspErr) {
 		block.Serialize(w)
 		return common.ToHexString(w.Bytes()), nil
 	}
-	return bcomn.GetBlockInfo(block), nil
+	return bCom.GetBlockInfo(block), nil
 }
 
 //get block height by transaction hash
@@ -123,7 +123,7 @@ func (this *Endpoint) GetBlockTxsByHeight(height uint32) (interface{}, *DspErr) 
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
-	res := hcomm.GetBlockTransactions(data)
+	res := hComm.GetBlockTransactions(data)
 	return res, nil
 }
 
@@ -142,7 +142,7 @@ func (this *Endpoint) GetBlockByHeight(height uint32, raw string) (interface{}, 
 		block.Serialize(w)
 		return common.ToHexString(w.Bytes()), nil
 	} else {
-		return bcomn.GetBlockInfo(block), nil
+		return bCom.GetBlockInfo(block), nil
 	}
 }
 
@@ -160,7 +160,7 @@ func (this *Endpoint) GetTransactionByHash(hash, raw string) (interface{}, *DspE
 		tx.Serialize(w)
 		return common.ToHexString(w.Bytes()), nil
 	}
-	tran := bcomn.TransArryByteToHexString(tx)
+	tran := bCom.TransArryByteToHexString(tx)
 	//[TODO] need support height later ？
 	var height uint32
 	tran.Height = height
@@ -208,7 +208,7 @@ func (this *Endpoint) GetContractState(hash, raw string) (interface{}, *DspErr) 
 		contract.Serialize(w)
 		return common.ToHexString(w.Bytes()), nil
 	}
-	return bcomn.TransPayloadToHex(contract), nil
+	return bCom.TransPayloadToHex(contract), nil
 }
 
 //get storage from contract
@@ -246,8 +246,8 @@ func (this *Endpoint) GetBalance(address string) ([]*BalanceResp, *DspErr) {
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
-	bals := make([]*BalanceResp, 0)
-	bals = append(bals, &BalanceResp{
+	balances := make([]*BalanceResp, 0)
+	balances = append(balances, &BalanceResp{
 		Address:       address,
 		Name:          "Save Power",
 		Symbol:        "SAVE",
@@ -269,7 +269,7 @@ func (this *Endpoint) GetBalance(address string) ([]*BalanceResp, *DspErr) {
 		Balance:       0,
 		BalanceFormat: "0",
 	})
-	return bals, nil
+	return balances, nil
 }
 
 type BalanceHistoryResp struct {
@@ -462,15 +462,15 @@ func (this *Endpoint) GetGasPrice() (uint64, *DspErr) {
 
 //get allowance
 func (this *Endpoint) GetAllowance(asset, from, to string) (string, *DspErr) {
-	fromAddr, err := bcomn.GetAddress(from)
+	fromAddr, err := bCom.GetAddress(from)
 	if err != nil {
 		return "", &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
-	toAddr, err := bcomn.GetAddress(to)
+	toAddr, err := bCom.GetAddress(to)
 	if err != nil {
 		return "", &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
-	tx, err := bcomn.GetAllowance(asset, fromAddr, toAddr)
+	tx, err := bCom.GetAllowance(asset, fromAddr, toAddr)
 	if err != nil {
 		return "", &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
@@ -563,8 +563,8 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 	}
 
 	txs := make([]*TxResp, 0)
-	events, err := this.Dsp.Chain.GetSmartContractEventByEventId(usdt.USDT_CONTRACT_ADDRESS.ToBase58(), addr, cusdt.EVENT_USDT_STATE_CHANGE)
-	log.Debugf("events-len %d, addr %s-%s-%d skipTxCnt %d", len(events), usdt.USDT_CONTRACT_ADDRESS.ToBase58(), addr, cusdt.EVENT_USDT_STATE_CHANGE, skipTxCnt)
+	events, err := this.Dsp.Chain.GetSmartContractEventByEventId(usdt.USDT_CONTRACT_ADDRESS.ToBase58(), addr, cUsdt.EVENT_USDT_STATE_CHANGE)
+	log.Debugf("events-len %d, addr %s-%s-%d skipTxCnt %d", len(events), usdt.USDT_CONTRACT_ADDRESS.ToBase58(), addr, cUsdt.EVENT_USDT_STATE_CHANGE, skipTxCnt)
 	if err != nil {
 		return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
 	}
@@ -596,7 +596,7 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 			contractBase58Addr := addrFromHex.ToBase58()
 			from := states[1].(string)
 			to := states[2].(string)
-			if asset == edgeCom.SAVE_ASSET && to != sutils.GovernanceContractAddress.ToBase58() {
+			if asset == edgeCom.SAVE_ASSET && to != sUtils.GovernanceContractAddress.ToBase58() {
 				if txType == TxTypeAll && (from != addr && to != addr) {
 					continue
 				}
@@ -629,7 +629,7 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 					ContractType: TxInvokeUsdtContract,
 				}
 
-				if contractBase58Addr != sutils.UsdtContractAddress.ToBase58() {
+				if contractBase58Addr != sUtils.UsdtContractAddress.ToBase58() {
 					// invoke contract tx
 					tx.To = contractBase58Addr
 					tx.ContractType = TxInvokeOtherContract
@@ -728,6 +728,7 @@ func (this *Endpoint) SwitchChain(chainId, configFileName string) *DspErr {
 		return &DspErr{Code: INTERNAL_ERROR, Error: err}
 	}
 	go func() {
+		log.Debugf("restart dsp")
 		err = StartDspNode(this, true, true, true)
 		if err != nil {
 			log.Errorf("Start dsp node err : %s", err)

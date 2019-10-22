@@ -14,7 +14,6 @@ const (
 )
 
 // network common
-
 const (
 	MAX_WAIT_FOR_CONNECTED_TIMEOUT = 10      // wait for connected timeout
 	COMPRESS_DATA_SIZE             = 1048576 // > 1MB data need to be compressed

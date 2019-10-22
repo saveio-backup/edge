@@ -100,8 +100,7 @@ func DefaultConfig() *DspConfig {
 	if !existed {
 		return TestConfig()
 	}
-	cfg := &DspConfig{}
-	common.GetJsonObjectFromFile(configDir, cfg)
+	cfg := ParseConfigFromFile(configDir)
 	return cfg
 }
 
@@ -198,8 +197,15 @@ func Init(ctx *cli.Context) {
 		log.Infof("config file is not exist: %s, use default config", configDir)
 		return
 	}
-	common.GetJsonObjectFromFile(configDir, Parameters)
-	SetDefaultFieldForConfig(Parameters)
+	Parameters = ParseConfigFromFile(configDir)
+}
+
+// ParseConfigFromFile. parse config from json file
+func ParseConfigFromFile(file string) *DspConfig {
+	cfg := &DspConfig{}
+	common.GetJsonObjectFromFile(file, cfg)
+	SetDefaultFieldForConfig(cfg)
+	return cfg
 }
 
 // SetDefaultFieldForConfig. set up default value for some field if missing
@@ -225,11 +231,7 @@ func GetConfigFromFile(cfgFileName string) *DspConfig {
 	if !exist {
 		return nil
 	}
-	newCfg := &DspConfig{}
-	err := common.GetJsonObjectFromFile(path, newCfg)
-	if err != nil {
-		return nil
-	}
+	newCfg := ParseConfigFromFile(path)
 	return newCfg
 }
 

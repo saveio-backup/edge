@@ -63,10 +63,19 @@ func (this *P2PActor) Start() (*actor.PID, error) {
 }
 
 func (this *P2PActor) Stop() error {
-	this.localPID.Stop()
-	this.dspNet.Stop()
-	this.channelNet.Stop()
-	this.tkActSvr.Stop()
+	if this.localPID != nil {
+		this.localPID.Stop()
+	}
+	if this.dspNet != nil {
+		this.dspNet.Stop()
+	}
+	if this.channelNet != nil {
+		this.channelNet.Stop()
+	}
+	if this.tkActSvr != nil {
+		this.tkActSvr.Stop()
+		log.Debugf("")
+	}
 	return nil
 }
 

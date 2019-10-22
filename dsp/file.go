@@ -625,6 +625,9 @@ func (this *Endpoint) IsChannelProcessBlocks() (bool, *DspErr) {
 	if this.Dsp == nil || this.Dsp.Channel == nil {
 		return false, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
+	if !this.Dsp.Channel.Running() {
+		return false, nil
+	}
 	filterBlockHeight := this.Dsp.Channel.GetCurrentFilterBlockHeight()
 	now, getHeightErr := this.Dsp.Chain.GetCurrentBlockHeight()
 	log.Debugf("IsChannelProcessBlocks filterBlockHeight: %d, now :%d", filterBlockHeight, now)
