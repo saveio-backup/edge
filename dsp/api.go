@@ -424,6 +424,7 @@ func (this *Endpoint) stateChangeService() {
 				this.channelPublicAddr = this.channelNet.PublicAddr()
 				go this.registerChannelEndpoint()
 			}
+			go this.checkOnlineDNS()
 		case <-this.closeCh:
 			ti.Stop()
 			return
@@ -445,4 +446,10 @@ func (this *Endpoint) checkLogFileSize() {
 	baseDir := config.Parameters.BaseConfig.BaseDir
 	logFullPath := filepath.Join(baseDir, logPath) + "/"
 	log.InitLog(int(config.Parameters.BaseConfig.LogLevel), logFullPath, log.Stdout)
+}
+
+func (this *Endpoint) checkOnlineDNS() {
+	if this.Dsp.DNS == nil || this.Dsp.DNS.DNSNode == nil {
+		this.Dsp.BootstrapDNS()
+	}
 }

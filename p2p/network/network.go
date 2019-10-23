@@ -271,6 +271,7 @@ func (this *Network) Stop() {
 }
 
 func (this *Network) Connect(tAddr string) error {
+	log.Debugf("Connect %s", tAddr)
 	if this == nil {
 		return fmt.Errorf("[Connect] this is nil")
 	}
@@ -280,7 +281,7 @@ func (this *Network) Connect(tAddr string) error {
 	}
 	if _, ok := this.addressForHealthCheck.Load(tAddr); ok {
 		// already try to connect, don't retry before we get a result
-		log.Info("already try to connect")
+		log.Info("already try to connect %s", tAddr)
 		return nil
 	}
 
