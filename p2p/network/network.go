@@ -659,6 +659,14 @@ func (this *Network) GetClientTime(addr string) (uint64, error) {
 	return uint64(client.Time.Unix()), nil
 }
 
+func (this *Network) GetPeerReqNonce(addr string) uint64 {
+	client := this.P2p.GetPeerClient(addr)
+	if client == nil {
+		return 0
+	}
+	return client.RequestNonce
+}
+
 func (this *Network) healthCheckProxyService() {
 	ti := time.NewTicker(time.Duration(common.MAX_HEALTH_CHECK_INTERVAL) * time.Second)
 	startedAt := time.Now().Unix()

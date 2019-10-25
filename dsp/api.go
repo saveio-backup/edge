@@ -241,10 +241,14 @@ func (this *Endpoint) startDspP2P(dspListenAddr string, acc *account.Account) er
 	dspNetwork := network.NewP2P()
 	dspNetwork.SetNetworkKey(networkKey)
 	dspNetwork.SetHandler(this.Dsp.Receive)
-	err := dspNetwork.Start(dspListenAddr)
+	f := utils.TimeoutFunc(func() error {
+		return dspNetwork.Start(dspListenAddr)
+	})
+	err := utils.DoWithTimeout(f, time.Duration(common.START_P2P_TIMEOUT)*time.Second)
 	if err != nil {
 		return err
 	}
+
 	this.p2pActor.SetDspNetwork(dspNetwork)
 	this.dspNet = dspNetwork
 	this.dspPublicAddr = dspNetwork.PublicAddr()
@@ -256,7 +260,10 @@ func (this *Endpoint) startChannelP2P(channelListenAddr string, acc *account.Acc
 	bPub := keypair.SerializePublicKey(acc.PubKey())
 	channelNetwork.Keys = utils.NewNetworkEd25519KeyPair(bPub, []byte("channel"))
 	req.SetChannelPid(this.Dsp.Channel.GetChannelPid())
-	err := channelNetwork.Start(channelListenAddr)
+	f := utils.TimeoutFunc(func() error {
+		return channelNetwork.Start(channelListenAddr)
+	})
+	err := utils.DoWithTimeout(f, time.Duration(common.START_P2P_TIMEOUT)*time.Second)
 	if err != nil {
 		return err
 	}
@@ -285,24 +292,16 @@ func (this *Endpoint) startTrackerP2P(tkListenAddr string, acc *account.Account)
 	tkActServer.SetNetwork(tkNet)
 	tkActClient.SetTrackerServerPid(tkActServer.GetLocalPID())
 	this.p2pActor.SetTrackerNet(tkActServer)
-	timeout := time.NewTimer(time.Duration(common.START_PROXY_TIMEOUT) * time.Second)
-	defer timeout.Stop()
-	startP2pDone := make(chan error)
-	go func() {
-		err = tkNet.Start(tkListenAddr, config.Parameters.BaseConfig.TrackerNetworkId)
+
+	f := utils.TimeoutFunc(func() error {
+		err := tkNet.Start(tkListenAddr, config.Parameters.BaseConfig.TrackerNetworkId)
 		if err != nil {
-			startP2pDone <- err
-			return
+			return err
 		}
 		log.Debugf("tk network started, public ip %s", tkNet.PublicAddr())
-		startP2pDone <- nil
-	}()
-	select {
-	case err := <-startP2pDone:
-		return err
-	case <-timeout.C:
-		return errors.New("start tracker p2p timeout")
-	}
+		return nil
+	})
+	return utils.DoWithTimeout(f, time.Duration(common.START_P2P_TIMEOUT)*time.Second)
 }
 
 func (this *Endpoint) registerChannelEndpoint() error {

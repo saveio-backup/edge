@@ -191,18 +191,18 @@ func (this *Endpoint) CurrentPaymentChannel() (*ChannelInfo, *DspErr) {
 	if chInfo != nil && chInfo.Participant2.IsCloser {
 		state2 = 0
 	}
-
+	hostAddr, _ := this.Dsp.GetExternalIP(curChannel.Address)
 	resp.Address = curChannel.Address
 	resp.Balance = curChannel.Balance
 	resp.BalanceFormat = curChannel.BalanceFormat
 	resp.ChannelId = curChannel.ChannelId
-	resp.HostAddr = curChannel.HostAddr
+	resp.HostAddr = hostAddr
 	resp.TokenAddr = curChannel.TokenAddr
 	resp.IsDNS = true
 	resp.Participant1State = state1
 	resp.ParticiPant2State = state2
 	resp.Selected = true
-	resp.IsOnline = this.channelNet.IsConnectionReachable(curChannel.HostAddr)
+	resp.IsOnline = this.channelNet.IsConnectionReachable(hostAddr)
 	return resp, nil
 }
 
