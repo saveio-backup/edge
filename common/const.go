@@ -20,7 +20,7 @@ const (
 	START_PROXY_TIMEOUT            = 20      // timeout for start proxy
 	BACKOFF_INIT_DELAY             = 2       // backoff initial delay
 	BACKOFF_MAX_ATTEMPTS           = 50      // backoff max attempts
-	KEEPALIVE_TIMEOUT              = 60      // keepalive timeout
+	KEEPALIVE_TIMEOUT              = 15      // keepalive timeout
 )
 
 // asset

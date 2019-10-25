@@ -136,7 +136,7 @@ func (this *Network) Start(address string) error {
 		this.keepaliveInterval = keepalive.DefaultKeepaliveInterval
 	}
 	if this.keepaliveTimeout == 0 {
-		this.keepaliveTimeout = common.KEEPALIVE_TIMEOUT * time.Second
+		this.keepaliveTimeout = keepalive.DefaultKeepaliveTimeout
 	}
 	options := []keepalive.ComponentOption{
 		keepalive.WithKeepaliveInterval(this.keepaliveInterval),
