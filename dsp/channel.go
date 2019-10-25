@@ -170,40 +170,40 @@ func (this *Endpoint) CurrentPaymentChannel() (*ChannelInfo, *DspErr) {
 		return nil, &DspErr{Code: DSP_CHANNEL_SYNCING, Error: ErrMaps[DSP_CHANNEL_SYNCING]}
 	}
 	log.Debugf("CurrentPaymentChannel")
-	resp := &ChannelInfo{}
-	if this.Dsp.DNS.DNSNode != nil {
-		curChannel, err := this.Dsp.Channel.GetChannelInfo(this.Dsp.DNS.DNSNode.WalletAddr)
-		if err != nil {
-			return nil, &DspErr{Code: DSP_CHANNEL_GET_ALL_FAILED, Error: ErrMaps[DSP_CHANNEL_GET_ALL_FAILED]}
-		}
-
-		chInfo, err := this.Dsp.Chain.Native.Channel.GetChannelInfo(uint64(curChannel.ChannelId), chainCom.ADDRESS_EMPTY, chainCom.ADDRESS_EMPTY)
-		if err != nil {
-			log.Errorf("get channel info err %s", err)
-		}
-		state1 := 1
-		if chInfo != nil && chInfo.Participant1.IsCloser {
-			state1 = 0
-		}
-		state2 := 1
-		if chInfo != nil && chInfo.Participant2.IsCloser {
-			state2 = 0
-		}
-
-		resp.Address = curChannel.Address
-		resp.Balance = curChannel.Balance
-		resp.BalanceFormat = curChannel.BalanceFormat
-		resp.ChannelId = curChannel.ChannelId
-		resp.HostAddr = curChannel.HostAddr
-		resp.TokenAddr = curChannel.TokenAddr
-		resp.IsDNS = true
-		resp.Participant1State = state1
-		resp.ParticiPant2State = state2
-		resp.Selected = true
-		return resp, nil
-	} else {
+	if this.Dsp.DNS == nil || this.Dsp.DNS.DNSNode == nil {
 		return nil, &DspErr{Code: DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST, Error: ErrMaps[DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST]}
 	}
+	resp := &ChannelInfo{}
+	curChannel, err := this.Dsp.Channel.GetChannelInfo(this.Dsp.DNS.DNSNode.WalletAddr)
+	if err != nil {
+		return nil, &DspErr{Code: DSP_CHANNEL_GET_ALL_FAILED, Error: ErrMaps[DSP_CHANNEL_GET_ALL_FAILED]}
+	}
+
+	chInfo, err := this.Dsp.Chain.Native.Channel.GetChannelInfo(uint64(curChannel.ChannelId), chainCom.ADDRESS_EMPTY, chainCom.ADDRESS_EMPTY)
+	if err != nil {
+		log.Errorf("get channel info err %s", err)
+	}
+	state1 := 1
+	if chInfo != nil && chInfo.Participant1.IsCloser {
+		state1 = 0
+	}
+	state2 := 1
+	if chInfo != nil && chInfo.Participant2.IsCloser {
+		state2 = 0
+	}
+
+	resp.Address = curChannel.Address
+	resp.Balance = curChannel.Balance
+	resp.BalanceFormat = curChannel.BalanceFormat
+	resp.ChannelId = curChannel.ChannelId
+	resp.HostAddr = curChannel.HostAddr
+	resp.TokenAddr = curChannel.TokenAddr
+	resp.IsDNS = true
+	resp.Participant1State = state1
+	resp.ParticiPant2State = state2
+	resp.Selected = true
+	resp.IsOnline = this.channelNet.IsConnectionReachable(curChannel.HostAddr)
+	return resp, nil
 }
 
 func (this *Endpoint) SwitchPaymentChannel(partnerAddr string) *DspErr {

@@ -207,7 +207,6 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 				Port:     msg.Port,
 			}, msg.Address)
 			log.Debugf("CompleteTorrentReq announce response: %v, err %v\n", annResp, err)
-			tkActClient.P2pClose(msg.Address)
 			msg.Response <- &dspAct.P2pResp{Error: err}
 		}()
 	case *dspAct.TorrentPeersReq:
@@ -222,7 +221,6 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 				NumWant:  100,
 			}, msg.Address)
 			log.Debugf("TorrentPeersReq announce response: %v, err %v\n", annResp, err)
-			tkActClient.P2pClose(msg.Address)
 			if err != nil {
 				msg.Response <- &dspAct.P2pStringSliceResp{Value: nil, Error: err}
 			} else {
@@ -232,17 +230,18 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 	case *dspAct.EndpointRegistryReq:
 		go func() {
 			err := tkActClient.P2pConnect(msg.Address)
+			log.Debugf("connect result %v", err)
 			if err != nil {
 				msg.Response <- &dspAct.P2pResp{Error: err}
 				return
 			}
+			log.Debugf("AnnounceRequestEndpointRegistry")
 			annResp, err := this.tkActSvr.AnnounceRequestEndpointRegistry(&pm.EndpointRegistryReq{
 				Wallet: msg.WalletAddr[:],
 				Ip:     net.ParseIP(msg.IP),
 				Port:   msg.Port,
 			}, msg.Address)
 			log.Debugf("EndpointRegistryReq announce response: %v, err %v\n", annResp, err)
-			tkActClient.P2pClose(msg.Address)
 			msg.Response <- &dspAct.P2pResp{Error: err}
 		}()
 	case *dspAct.GetEndpointReq:
@@ -256,7 +255,6 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 				Wallet: msg.WalletAddr[:],
 			}, msg.Address)
 			log.Debugf("GetEndpointReq announce response: %v, err %v\n", annResp, err)
-			tkActClient.P2pClose(msg.Address)
 			if err != nil {
 				msg.Response <- &dspAct.P2pStringResp{Value: "", Error: err}
 			} else {
