@@ -569,7 +569,8 @@ func (this *Endpoint) DeleteUploadFiles(fileHashs []string) ([]*DeleteFileResp, 
 	taskIds := make([]string, 0, len(fileHashs))
 	for _, fileHash := range fileHashs {
 		taskId := this.Dsp.GetUploadTaskId(fileHash)
-		if len(taskId) == 0 {
+		taskHash := this.Dsp.GetTaskFileHash(taskId)
+		if len(taskId) == 0 || fileHash != taskHash {
 			continue
 		}
 		taskIds = append(taskIds, taskId)

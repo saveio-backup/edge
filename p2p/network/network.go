@@ -311,7 +311,15 @@ func (this *Network) ConnectAndWait(addr string) error {
 }
 
 func (this *Network) GetPeerStateByAddress(addr string) (network.PeerState, error) {
-	return this.P2p.GetRealConnState(addr)
+	s, err := this.P2p.GetRealConnState(addr)
+	if err != nil {
+		return s, err
+	}
+	client := this.P2p.GetPeerClient(addr)
+	if client == nil {
+		return s, fmt.Errorf("get peer client failed %s", addr)
+	}
+	return s, err
 }
 
 // IsConnectionReachable. check if peer state reachable
