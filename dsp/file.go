@@ -17,8 +17,8 @@ import (
 	"github.com/saveio/dsp-go-sdk/task"
 	dspUtils "github.com/saveio/dsp-go-sdk/utils"
 	"github.com/saveio/edge/common"
-	clicom "github.com/saveio/edge/common"
 	"github.com/saveio/edge/common/config"
+	"github.com/saveio/edge/dsp/actor/client"
 	"github.com/saveio/edge/dsp/storage"
 	chainSdkFs "github.com/saveio/themis-go-sdk/fs"
 	"github.com/saveio/themis/cmd/utils"
@@ -214,7 +214,7 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, pr
 		return nil, &DspErr{Code: FS_UPLOAD_FILEPATH_ERROR, Error: fmt.Errorf("uploadFile error: %s is a directory", path)}
 	}
 	currentAccount := this.Dsp.CurrentAccount()
-	fssetting, err := this.Dsp.Chain.Native.Fs.GetSetting()
+	fsSetting, err := this.Dsp.Chain.Native.Fs.GetSetting()
 	if err != nil {
 		return nil, &DspErr{Code: FS_GET_SETTING_FAILED, Error: err}
 	}
@@ -225,9 +225,9 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, pr
 	interval, ok := intervalVal.(float64)
 	interval = interval / float64(config.BlockTime())
 	if !ok || interval == 0 {
-		interval = float64(fssetting.DefaultProvePeriod)
+		interval = float64(fsSetting.DefaultProvePeriod)
 	}
-	if uint64(interval) < fssetting.MinProveInterval {
+	if uint64(interval) < fsSetting.MinProveInterval {
 		return nil, &DspErr{Code: FS_UPLOAD_INTERVAL_TOO_SMALL, Error: ErrMaps[FS_UPLOAD_INTERVAL_TOO_SMALL]}
 	}
 	storageType, _ := storageTypeVal.(float64)
@@ -255,8 +255,8 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, pr
 		duration, _ := durationVal.(float64)
 		opt.ExpiredHeight = uint64(currentHeight) + uint64(duration/float64(config.BlockTime()))
 	}
-	log.Debugf("opt.ExpiredHeight :%d, minInterval :%d, current: %d", opt.ExpiredHeight, fssetting.MinProveInterval, currentHeight)
-	if opt.ExpiredHeight < fssetting.MinProveInterval+uint64(currentHeight) {
+	log.Debugf("opt.ExpiredHeight :%d, minInterval :%d, current: %d", opt.ExpiredHeight, fsSetting.MinProveInterval, currentHeight)
+	if opt.ExpiredHeight < fsSetting.MinProveInterval+uint64(currentHeight) {
 		return nil, &DspErr{Code: DSP_CUSTOM_EXPIRED_NOT_ENOUGH, Error: ErrMaps[DSP_CUSTOM_EXPIRED_NOT_ENOUGH]}
 	}
 	privilege, ok := privilegeVal.(float64)
@@ -266,12 +266,12 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, pr
 	opt.Privilege = uint64(privilege)
 	copyNum, ok := copyNumVal.(float64)
 	if !ok {
-		copyNum = float64(fssetting.DefaultCopyNum)
+		copyNum = float64(fsSetting.DefaultCopyNum)
 	}
 	opt.CopyNum = uint64(copyNum)
 	if len(url) == 0 {
 		// random
-		b := make([]byte, clicom.DSP_URL_RAMDOM_NAME_LEN/2)
+		b := make([]byte, common.DSP_URL_RAMDOM_NAME_LEN/2)
 		_, err := rand.Read(b)
 		if err != nil {
 			return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
@@ -565,9 +565,9 @@ func (this *Endpoint) DeleteDownloadFile(fileHash string) (*DeleteFileResp, *Dsp
 	return &DeleteFileResp{IsUploaded: false}, nil
 }
 
-func (this *Endpoint) DeleteUploadFiles(fileHashs []string) ([]*DeleteFileResp, *DspErr) {
-	taskIds := make([]string, 0, len(fileHashs))
-	for _, fileHash := range fileHashs {
+func (this *Endpoint) DeleteUploadFiles(fileHashes []string) ([]*DeleteFileResp, *DspErr) {
+	taskIds := make([]string, 0, len(fileHashes))
+	for _, fileHash := range fileHashes {
 		taskId := this.Dsp.GetUploadTaskId(fileHash)
 		taskHash := this.Dsp.GetTaskFileHash(taskId)
 		if len(taskId) == 0 || fileHash != taskHash {
@@ -576,12 +576,12 @@ func (this *Endpoint) DeleteUploadFiles(fileHashs []string) ([]*DeleteFileResp, 
 		taskIds = append(taskIds, taskId)
 	}
 	if len(taskIds) == 0 {
-		tx, _, serr := this.Dsp.DeleteUploadFilesFromChain(fileHashs)
+		tx, _, serr := this.Dsp.DeleteUploadFilesFromChain(fileHashes)
 		if serr != nil {
 			return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: ErrMaps[DSP_DELETE_FILE_FAILED]}
 		}
-		resps := make([]*DeleteFileResp, 0, len(fileHashs))
-		for _, hash := range fileHashs {
+		resps := make([]*DeleteFileResp, 0, len(fileHashes))
+		for _, hash := range fileHashes {
 			resp := &DeleteFileResp{IsUploaded: true}
 			resp.Tx = tx
 			resp.FileHash = hash
@@ -643,7 +643,7 @@ func (this *Endpoint) IsChannelProcessBlocks() (bool, *DspErr) {
 }
 
 func (this *Endpoint) DownloadFile(fileHash, url, link, password string, max uint64, setFileName bool) *DspErr {
-	// if balance of current channel is not enouth, reject
+	// if balance of current channel is not enough, reject
 	if this.Dsp.DNS == nil || this.Dsp.DNS.DNSNode == nil || this.Dsp.DNS.DNSNode.WalletAddr == "" {
 		return &DspErr{Code: DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST, Error: ErrMaps[DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST]}
 	}
@@ -869,10 +869,14 @@ func (this *Endpoint) RegisterProgressCh() {
 				return
 			}
 			for node, cnt := range v.Count {
-				if v.Type == store.TaskTypeUpload {
+				switch v.Type {
+				case store.TaskTypeUpload:
 					log.Infof("file:%s, hash:%s, total:%d, peer:%s, uploaded:%d, progress:%f", v.FileName, v.FileHash, v.Total, node, cnt, float64(cnt)/float64(v.Total))
-				} else if v.Type == store.TaskTypeDownload {
+					go this.notifyUploadingTransferList()
+				case store.TaskTypeDownload:
 					log.Infof("file:%s, hash:%s, total:%d, peer:%s, downloaded:%d, progress:%f", v.FileName, v.FileHash, v.Total, node, cnt, float64(cnt)/float64(v.Total))
+					go this.notifyDownloadingTransferList()
+				default:
 				}
 			}
 		case <-this.closeCh:
@@ -980,11 +984,11 @@ func (this *Endpoint) GetTransferDetailByUrl(pType TransferType, url string) (*T
 
 func (this *Endpoint) CalculateUploadFee(filePath string, durationVal, intervalVal, timesVal, copynumVal, whitelistVal, storeType interface{}) (*CalculateResp, *DspErr) {
 	currentAccount := this.Dsp.CurrentAccount()
-	fssetting, err := this.Dsp.Chain.Native.Fs.GetSetting()
+	fsSetting, err := this.Dsp.Chain.Native.Fs.GetSetting()
 	if err != nil {
 		return nil, &DspErr{Code: FS_GET_SETTING_FAILED, Error: err}
 	}
-	interval, err := OptionStrToFloat64(intervalVal, float64(fssetting.DefaultProvePeriod))
+	interval, err := OptionStrToFloat64(intervalVal, float64(fsSetting.DefaultProvePeriod))
 	interval = interval / float64(config.BlockTime())
 	if err != nil || interval == 0 {
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: err}
@@ -999,7 +1003,7 @@ func (this *Endpoint) CalculateUploadFee(filePath string, durationVal, intervalV
 	if err != nil {
 		return nil, &DspErr{Code: FS_UPLOAD_GET_FILESIZE_FAILED, Error: err}
 	}
-	copyNum, err := OptionStrToFloat64(copynumVal, float64(fssetting.DefaultCopyNum))
+	copyNum, err := OptionStrToFloat64(copynumVal, float64(fsSetting.DefaultCopyNum))
 	if err != nil {
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: err}
 	}
@@ -1220,6 +1224,7 @@ func (this *Endpoint) RegisterShareNotificationCh() {
 			default:
 				log.Warn("unknown state type")
 			}
+			client.EventNotifyRevenue()
 
 		case <-this.closeCh:
 			this.Dsp.CloseShareNotificationChannel()
@@ -1702,18 +1707,18 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 		}
 	}
 	sum := uint64(0)
-	npros := make([]*NodeProgress, 0)
-	for haddr, cnt := range info.Count {
+	nPros := make([]*NodeProgress, 0)
+	for hAddr, cnt := range info.Count {
 		sum += cnt
 		pros := &NodeProgress{
-			HostAddr: haddr,
+			HostAddr: hAddr,
 		}
 		if info.Type == store.TaskTypeUpload {
 			pros.UploadSize = cnt * dspCom.CHUNK_SIZE / 1024
 		} else if info.Type == store.TaskTypeDownload {
 			pros.DownloadSize = cnt * dspCom.CHUNK_SIZE / 1024
 		}
-		npros = append(npros, pros)
+		nPros = append(nPros, pros)
 	}
 	pInfo := &Transfer{
 		Id:           info.TaskId,
@@ -1727,7 +1732,7 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 		Status:       info.TaskState,
 		DetailStatus: info.ProgressState,
 		FileSize:     info.Total * dspCom.CHUNK_SIZE / 1024,
-		Nodes:        npros,
+		Nodes:        nPros,
 		CreatedAt:    info.CreatedAt,
 		UpdatedAt:    info.UpdatedAt,
 	}

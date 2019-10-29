@@ -202,7 +202,7 @@ func (this *restServer) Start() error {
 	return nil
 }
 
-//resigtry handler method
+// register handler method
 func (this *restServer) registryMethod() {
 	getMethodMap := map[string]Action{
 		GET_BLK_TXS_BY_HEIGHT: {name: "getblocktxsbyheight", handler: GetBlockTxsByHeight},
@@ -294,7 +294,7 @@ func (this *restServer) registryMethod() {
 		DSP_NODE_REGISTER:              {name: "registernode", handler: RegisterNode},
 		DSP_NODE_UPDATE:                {name: "updatenode", handler: NodeUpdate},
 		DSP_SET_USER_SPACE:             {name: "setuserspace", handler: SetUserSpace},
-		DSP_GET_UPDATE_USER_SPACE_COST: {name: "setuserspace", handler: GetUserSpaceCost},
+		DSP_GET_UPDATE_USER_SPACE_COST: {name: "getuserspace", handler: GetUserSpaceCost},
 		DSP_FILE_UPLOAD:                {name: "uploadfile", handler: UploadFile},
 		DSP_FILE_UPLOAD_RESUME:         {name: "resumeuploadfile", handler: ResumeUploadFile},
 		DSP_FILE_UPLOAD_PAUSE:          {name: "pauseuploadfile", handler: PauseUploadFile},

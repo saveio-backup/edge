@@ -39,6 +39,9 @@ type BaseConfig struct {
 	HttpCertPath       string `json:"HttpCertPath"`
 	HttpKeyPath        string `json:"HttpKeyPath"`
 	RestEnable         bool   `json:"RestEnable"`
+	WsPortOffset       int    `json:"WsPortOffset"`
+	WsCertPath         string `json:"WsCertPath"`
+	WsKeyPath          string `json:"WsKeyPath"`
 	BlockConfirm       uint32 `json:"BlockConfirm"`
 
 	ChannelPortOffset    int    `json:"ChannelPortOffset"`
@@ -309,4 +312,11 @@ func FsFileRootPath() string {
 		return Parameters.FsConfig.FsFileRoot
 	}
 	return filepath.Join(BaseDataDirPath(), Parameters.FsConfig.FsFileRoot, curUsrWalAddr)
+}
+
+func WsEnabled() bool {
+	if Parameters.BaseConfig.WsPortOffset == 0 {
+		return false
+	}
+	return true
 }

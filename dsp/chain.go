@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	sdkCom "github.com/saveio/themis-go-sdk/common"
+
 	edgeCom "github.com/saveio/edge/common"
 	"github.com/saveio/edge/common/config"
 	hComm "github.com/saveio/edge/http/common"
@@ -450,7 +452,7 @@ func (this *Endpoint) GetMerkleProof(hash string) (interface{}, *DspErr) {
 }
 
 //get avg gas price in block
-//[TODO] need change themis hcom.GetGasPrice return gasprice and height as string
+//[TODO] need change themis hCom.GetGasPrice return gasprice and height as string
 //[TODO] or just return gasprice
 func (this *Endpoint) GetGasPrice() (uint64, *DspErr) {
 	price, err := this.Dsp.Chain.GetGasPrice()
@@ -652,6 +654,37 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 		}
 	}
 	return txs, nil
+}
+
+// GetAccountSmartContractEventByBlock. get smartcontract event for current account by block height
+func (this *Endpoint) GetAccountSmartContractEventByBlock(height uint32) (*sdkCom.SmartContactEvent, error) {
+	event, err := this.Dsp.Chain.GetSmartContractEventByBlock(height)
+	if err != nil {
+		return nil, err
+	}
+	log.Debugf("Events :%v, err %s", event, err)
+	if event == nil {
+		return nil, nil
+	}
+	for _, n := range event.Notify {
+		contractAddr, err := common.AddressFromHexString(n.ContractAddress)
+		if err != nil {
+			continue
+		}
+		switch contractAddr.ToBase58() {
+		case usdt.USDT_CONTRACT_ADDRESS.ToBase58():
+			states, ok := n.States.([]interface{})
+			if !ok || states[0].(string) != "transfer" || len(states) != 4 {
+				continue
+			}
+			curWalletAddr := this.Dsp.Account.Address.ToBase58()
+			if states[1] != curWalletAddr && states[2] != curWalletAddr {
+				continue
+			}
+			return event, nil
+		}
+	}
+	return nil, nil
 }
 
 //asset transfer direct

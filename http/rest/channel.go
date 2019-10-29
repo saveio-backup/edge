@@ -232,7 +232,7 @@ func QueryChannel(cmd map[string]interface{}) map[string]interface{} {
 
 func QueryChannelByID(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
-	idstr, ok := cmd["Id"].(string)
+	idStr, ok := cmd["Id"].(string)
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
@@ -240,7 +240,7 @@ func QueryChannelByID(cmd map[string]interface{}) map[string]interface{} {
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
-	res, err := dsp.DspService.QueryChannelByID(idstr, partnerAddrStr)
+	res, err := dsp.DspService.QueryChannelByID(idStr, partnerAddrStr)
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
@@ -264,11 +264,11 @@ func TransferByChannel(cmd map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
-	idstr, ok := cmd["PaymentId"].(string)
+	idStr, ok := cmd["PaymentId"].(string)
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
-	paymentId, err := strconv.ParseInt(idstr, 10, 32)
+	paymentId, err := strconv.ParseInt(idStr, 10, 32)
 	if err != nil {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}

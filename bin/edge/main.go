@@ -13,9 +13,12 @@ import (
 	"github.com/saveio/edge/cmd/flags"
 	"github.com/saveio/edge/common/config"
 	"github.com/saveio/edge/dsp"
+	"github.com/saveio/edge/dsp/actor/client"
+	"github.com/saveio/edge/event/actor/server"
 	"github.com/saveio/edge/http"
 	"github.com/saveio/edge/http/jsonrpc"
 	"github.com/saveio/edge/http/localrpc"
+	"github.com/saveio/edge/http/websocket"
 	"github.com/saveio/themis/common/log"
 	"github.com/urfave/cli"
 )
@@ -63,7 +66,11 @@ func dspInit(ctx *cli.Context) {
 	config.SetDspConfig(ctx)
 	initLog(ctx)
 	log.Debugf("set dsp config, config %v", config.Parameters)
+	eventActorServer, _ := server.NewEventActorServer()
+	client.SetEventPid(eventActorServer.GetLocalPID())
+
 	initRest()
+	initWebsocket()
 	initJsonRpc()
 
 	endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
@@ -105,6 +112,13 @@ func initRest() {
 	go http.StartRestServer()
 
 	log.Info("Restful init success")
+}
+
+func initWebsocket() {
+	if !config.WsEnabled() {
+		return
+	}
+	go websocket.StartServer()
 }
 
 func initJsonRpc() {

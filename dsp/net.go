@@ -1,6 +1,7 @@
 package dsp
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -22,6 +23,26 @@ type NetworkStateResp struct {
 	DNS          *PeerState
 	DspProxy     *PeerState
 	ChannelProxy *PeerState
+}
+
+func (state *NetworkStateResp) String() string {
+	str := ""
+	if state == nil {
+		return str
+	}
+	if state.Chain != nil {
+		str += fmt.Sprintf("Host: %s, State: %d, UpdatedAt: %d\n", state.Chain.HostAddr, state.Chain.State, state.Chain.UpdatedAt)
+	}
+	if state.DNS != nil {
+		str += fmt.Sprintf("Host: %s, State: %d, UpdatedAt: %d\n", state.DNS.HostAddr, state.DNS.State, state.DNS.UpdatedAt)
+	}
+	if state.DspProxy != nil {
+		str += fmt.Sprintf("Host: %s, State: %d, UpdatedAt: %d\n", state.DspProxy.HostAddr, state.DspProxy.State, state.DspProxy.UpdatedAt)
+	}
+	if state.ChannelProxy != nil {
+		str += fmt.Sprintf("Host: %s, State: %d, UpdatedAt: %d\n", state.ChannelProxy.HostAddr, state.ChannelProxy.State, state.ChannelProxy.UpdatedAt)
+	}
+	return str
 }
 
 type ReconnectResp struct {

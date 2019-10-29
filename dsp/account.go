@@ -78,12 +78,12 @@ func (this *Endpoint) GetCurrentAccount() (*AccountResp, *DspErr) {
 	}, nil
 }
 
-func (this *Endpoint) NewAccount(label string, typeCode keypair.KeyType, curveCode byte, sigScheme s.SignatureScheme, passwd []byte, createOnly bool) (*AccountResp, *DspErr) {
+func (this *Endpoint) NewAccount(label string, typeCode keypair.KeyType, curveCode byte, sigScheme s.SignatureScheme, pwd []byte, createOnly bool) (*AccountResp, *DspErr) {
 	wallet, err := account.Open(config.WalletDatFilePath())
 	if err != nil {
 		return nil, &DspErr{Code: WALLET_FILE_NOT_EXIST, Error: err}
 	}
-	acc, err := wallet.NewAccount(label, typeCode, curveCode, sigScheme, []byte(passwd))
+	acc, err := wallet.NewAccount(label, typeCode, curveCode, sigScheme, []byte(pwd))
 	if err != nil {
 		return nil, &DspErr{Code: CREATE_ACCOUNT_FAILED, Error: err}
 	}
@@ -96,7 +96,7 @@ func (this *Endpoint) NewAccount(label string, typeCode keypair.KeyType, curveCo
 		Label:      label,
 	}
 	if createOnly {
-		config.Parameters.BaseConfig.WalletPwd = string(passwd)
+		config.Parameters.BaseConfig.WalletPwd = string(pwd)
 		config.Save()
 		data, err := ioutil.ReadFile(config.WalletDatFilePath())
 		if err != nil {
@@ -112,7 +112,7 @@ func (this *Endpoint) NewAccount(label string, typeCode keypair.KeyType, curveCo
 		SigScheme: acc.SigScheme,
 		Label:     label,
 	}
-	service, err := Init(config.WalletDatFilePath(), string(passwd))
+	service, err := Init(config.WalletDatFilePath(), string(pwd))
 	log.Debugf("ini DspService at new account:%v\n", service)
 	if err != nil {
 		log.Errorf("dsp init err %s", err)
@@ -125,7 +125,7 @@ func (this *Endpoint) NewAccount(label string, typeCode keypair.KeyType, curveCo
 			panic(err)
 		}
 	}()
-	config.Parameters.BaseConfig.WalletPwd = string(passwd)
+	config.Parameters.BaseConfig.WalletPwd = string(pwd)
 	config.Save()
 	return acc2, nil
 }

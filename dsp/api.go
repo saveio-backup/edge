@@ -53,11 +53,13 @@ type Endpoint struct {
 	dspPublicAddr     string
 	channelNet        *network.Network
 	channelPublicAddr string
+	eventHub          *EventHub
 }
 
 func Init(walletDir, pwd string) (*Endpoint, error) {
 	this := &Endpoint{
-		closeCh: make(chan struct{}, 1),
+		closeCh:  make(chan struct{}, 1),
+		eventHub: NewEventHub(),
 	}
 	log.Debugf("walletDir: %s, %d", walletDir, len(walletDir))
 	if len(walletDir) == 0 {
@@ -213,6 +215,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 	log.Infof("pylons version: %s", pylons.Version)
 	log.Infof("max version: %s", max.Version)
 	log.Infof("carrier version: %s", carNet.Version)
+	go endpoint.notifyWhenStartup()
 	return nil
 }
 
@@ -232,7 +235,12 @@ func (this *Endpoint) Stop() error {
 		return err
 	}
 	this.ResetChannelProgress()
-	return this.Dsp.Stop()
+	err = this.Dsp.Stop()
+	if err != nil {
+		return err
+	}
+	this.notifyAccountLogout()
+	return nil
 }
 
 func (this *Endpoint) startDspP2P(dspListenAddr string, acc *account.Account) error {
@@ -424,6 +432,9 @@ func (this *Endpoint) stateChangeService() {
 				go this.registerChannelEndpoint()
 			}
 			go this.checkOnlineDNS()
+			go this.notifyChannelProgress()
+			go this.notifyNewSmartContractEvent()
+			go this.notifyNewNetworkState()
 		case <-this.closeCh:
 			ti.Stop()
 			return

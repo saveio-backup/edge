@@ -236,6 +236,7 @@ func (this *Endpoint) SwitchPaymentChannel(partnerAddr string) *DspErr {
 		WalletAddr: partnerAddr,
 		HostAddr:   url,
 	}
+	this.notifyIfSwitchChannel()
 	return nil
 }
 
