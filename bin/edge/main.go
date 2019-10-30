@@ -49,6 +49,7 @@ func initAPP() *cli.App {
 		flags.ProtocolFsFileRootFlag,
 		flags.ConfigFlag,
 		flags.LaunchManualFlag,
+		flags.WalletPasswordFlag,
 	}
 	app.Before = func(context *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())
@@ -70,12 +71,16 @@ func dspInit(ctx *cli.Context) {
 
 	var walletPwd string
 	if !launchManual && common.FileExisted(config.WalletDatFilePath()) {
-		pwd, err := password.GetPassword()
-		if err != nil {
-			log.Errorf("require password: %s", err.Error())
-			os.Exit(1)
+		if ctx.IsSet(flags.GetFlagName(flags.WalletPasswordFlag)) {
+			walletPwd = ctx.String(flags.GetFlagName(flags.WalletPasswordFlag))
+		} else {
+			pwd, err := password.GetPassword()
+			if err != nil {
+				log.Errorf("require password: %s", err.Error())
+				os.Exit(1)
+			}
+			walletPwd = string(pwd)
 		}
-		walletPwd = string(pwd)
 	}
 	config.SetDspConfig(ctx)
 	initLog(ctx)

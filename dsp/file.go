@@ -84,6 +84,7 @@ type Transfer struct {
 
 type TransferlistResp struct {
 	IsTransfering bool
+	Type          TransferType
 	Transfers     []*Transfer
 }
 
@@ -868,14 +869,19 @@ func (this *Endpoint) RegisterProgressCh() {
 				log.Warnf("progress channel is closed")
 				return
 			}
+			switch v.Type {
+			case store.TaskTypeUpload:
+				go this.notifyUploadingTransferList()
+			case store.TaskTypeDownload:
+				go this.notifyDownloadingTransferList()
+			default:
+			}
 			for node, cnt := range v.Count {
 				switch v.Type {
 				case store.TaskTypeUpload:
 					log.Infof("file:%s, hash:%s, total:%d, peer:%s, uploaded:%d, progress:%f", v.FileName, v.FileHash, v.Total, node, cnt, float64(cnt)/float64(v.Total))
-					go this.notifyUploadingTransferList()
 				case store.TaskTypeDownload:
 					log.Infof("file:%s, hash:%s, total:%d, peer:%s, downloaded:%d, progress:%f", v.FileName, v.FileHash, v.Total, node, cnt, float64(cnt)/float64(v.Total))
-					go this.notifyDownloadingTransferList()
 				default:
 				}
 			}
@@ -909,6 +915,7 @@ func (this *Endpoint) DeleteTransferRecord(taskIds []string) *FileTaskResp {
 func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint32) *TransferlistResp {
 	resp := &TransferlistResp{
 		IsTransfering: false,
+		Type:          pType,
 		Transfers:     []*Transfer{},
 	}
 	allType, reverse := false, false

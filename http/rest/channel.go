@@ -59,9 +59,8 @@ func OpenChannel(cmd map[string]interface{}) map[string]interface{} {
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
-	_, derr := dsp.DspService.GetAccount(dsp.DspService.GetWalletFilePath(), password)
-	if derr != nil {
-		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
+	if checkErr := dsp.DspService.CheckPassword(password); checkErr != nil {
+		return ResponsePackWithErrMsg(checkErr.Code, checkErr.Error.Error())
 	}
 	id, err := dsp.DspService.OpenPaymentChannel(partnerAddrstr, realAmount)
 	if err != nil {
@@ -85,9 +84,8 @@ func CloseChannel(cmd map[string]interface{}) map[string]interface{} {
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
-	_, derr := dsp.DspService.GetAccount(dsp.DspService.GetWalletFilePath(), password)
-	if derr != nil {
-		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
+	if checkErr := dsp.DspService.CheckPassword(password); checkErr != nil {
+		return ResponsePackWithErrMsg(checkErr.Code, checkErr.Error.Error())
 	}
 	err := dsp.DspService.ClosePaymentChannel(partnerAddrstr)
 	log.Debugf("close channel %s %s", partnerAddrstr, err)
@@ -125,9 +123,8 @@ func SwitchChannel(cmd map[string]interface{}) map[string]interface{} {
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
-	_, derr := dsp.DspService.GetAccount(dsp.DspService.GetWalletFilePath(), password)
-	if derr != nil {
-		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
+	if checkErr := dsp.DspService.CheckPassword(password); checkErr != nil {
+		return ResponsePackWithErrMsg(checkErr.Code, checkErr.Error.Error())
 	}
 	err := dsp.DspService.SwitchPaymentChannel(partnerAddrstr)
 	log.Debugf("switch channel %s %s", partnerAddrstr, err)
@@ -159,11 +156,10 @@ func DepositChannel(cmd map[string]interface{}) map[string]interface{} {
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
-	_, derr := dsp.DspService.GetAccount(dsp.DspService.GetWalletFilePath(), password)
-	if derr != nil {
-		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
+	if checkErr := dsp.DspService.CheckPassword(password); checkErr != nil {
+		return ResponsePackWithErrMsg(checkErr.Code, checkErr.Error.Error())
 	}
-	derr = dsp.DspService.DepositToChannel(partnerAddrstr, realAmount)
+	derr := dsp.DspService.DepositToChannel(partnerAddrstr, realAmount)
 	if derr != nil {
 		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
 	}
@@ -192,11 +188,10 @@ func WithdrawChannel(cmd map[string]interface{}) map[string]interface{} {
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
-	_, derr := dsp.DspService.GetAccount(dsp.DspService.GetWalletFilePath(), password)
-	if derr != nil {
-		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
+	if checkErr := dsp.DspService.CheckPassword(password); checkErr != nil {
+		return ResponsePackWithErrMsg(checkErr.Code, checkErr.Error.Error())
 	}
-	derr = dsp.DspService.ChannelWithdraw(partnerAddrstr, realAmount)
+	derr := dsp.DspService.ChannelWithdraw(partnerAddrstr, realAmount)
 	if derr != nil {
 		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
 	}

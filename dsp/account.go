@@ -59,7 +59,16 @@ func (this *Endpoint) GetCurrentAccount() (*AccountResp, *DspErr) {
 		}, nil
 	}
 	if common.FileExisted(config.WalletDatFilePath()) {
-		return nil, &DspErr{Code: ACCOUNT_NOT_LOGIN, Error: ErrMaps[ACCOUNT_NOT_LOGIN]}
+		wallet, err := account.Open(config.WalletDatFilePath())
+		if err != nil {
+			return nil, &DspErr{Code: WALLET_FILE_NOT_EXIST, Error: err}
+		}
+		data := wallet.GetDefaultAccountMetadata()
+		return &AccountResp{
+			PublicKey: data.PubKey,
+			Address:   data.Address,
+			Label:     data.Label,
+		}, &DspErr{Code: ACCOUNT_NOT_LOGIN, Error: ErrMaps[ACCOUNT_NOT_LOGIN]}
 	}
 	return nil, &DspErr{Code: WALLET_FILE_NOT_EXIST, Error: ErrMaps[WALLET_FILE_NOT_EXIST]}
 }
@@ -234,8 +243,8 @@ type WIFKeyResp struct {
 	PrivateKey string
 }
 
-func (this *Endpoint) ExportWIFPrivateKey(password string) (*WIFKeyResp, *DspErr) {
-	acc, derr := this.GetAccount(config.WalletDatFilePath(), password)
+func (this *Endpoint) ExportWIFPrivateKey() (*WIFKeyResp, *DspErr) {
+	acc, derr := this.GetAccount(config.WalletDatFilePath(), this.Password)
 	if derr != nil {
 		return nil, derr
 	}
@@ -279,6 +288,8 @@ func (this *Endpoint) Logout() *DspErr {
 	if err != nil {
 		return &DspErr{Code: DSP_STOP_FAILED, Error: err}
 	}
+	this.notifyAccountLogout()
+	log.Debugf("notify user logout")
 	DspService = &Endpoint{}
 	return nil
 }

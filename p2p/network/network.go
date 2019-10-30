@@ -174,6 +174,7 @@ func (this *Network) Start(address string) error {
 		}
 		opcode.RegisterMessageType(opcode.Opcode(dspNetCom.MSG_OP_CODE), &pb.Message{})
 	})
+	this.P2p.SetDialTimeout(time.Duration(common.NETWORK_DIAL_TIMEOUT) * time.Second)
 	this.P2p.SetCompressFileSize(common.COMPRESS_DATA_SIZE)
 	if len(config.Parameters.BaseConfig.NATProxyServerAddrs) > 0 {
 		this.P2p.EnableProxyMode(true)

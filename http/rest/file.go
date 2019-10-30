@@ -20,6 +20,13 @@ func UploadFile(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
+	password, ok := cmd["Password"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	if checkErr := dsp.DspService.CheckPassword(password); checkErr != nil {
+		return ResponsePackWithErrMsg(checkErr.Code, checkErr.Error.Error())
+	}
 
 	whitelist := make([]string, 0)
 	wh, _ := cmd["WhiteList"].([]interface{})
@@ -63,8 +70,15 @@ func DeleteUploadFile(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
+	password, ok := cmd["Password"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
+	}
+	if checkErr := dsp.DspService.CheckPassword(password); checkErr != nil {
+		return ResponsePackWithErrMsg(checkErr.Code, checkErr.Error.Error())
 	}
 	ret, err := dsp.DspService.DeleteUploadFile(fileHash)
 	if err != nil {
@@ -80,6 +94,10 @@ func DeleteUploadFiles(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
+	password, ok := cmd["Password"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
@@ -90,6 +108,9 @@ func DeleteUploadFiles(cmd map[string]interface{}) map[string]interface{} {
 			continue
 		}
 		fileHashes = append(fileHashes, fileHash)
+	}
+	if checkErr := dsp.DspService.CheckPassword(password); checkErr != nil {
+		return ResponsePackWithErrMsg(checkErr.Code, checkErr.Error.Error())
 	}
 	ret, err := dsp.DspService.DeleteUploadFiles(fileHashes)
 	if err != nil {
@@ -104,7 +125,7 @@ func DownloadFile(cmd map[string]interface{}) map[string]interface{} {
 	fileHash, _ := cmd["Hash"].(string)
 	url, _ := cmd["Url"].(string)
 	link, _ := cmd["Link"].(string)
-	password, _ := cmd["Password"].(string)
+	decryptedPassword, _ := cmd["DecryptPassword"].(string)
 	max, ok := cmd["MaxPeerNum"].(float64)
 	if !ok {
 		max = 1
@@ -113,7 +134,14 @@ func DownloadFile(cmd map[string]interface{}) map[string]interface{} {
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
-	err := dsp.DspService.DownloadFile(fileHash, url, link, password, uint64(max), setFileName)
+	// password, ok := cmd["Password"].(string)
+	// if !ok {
+	// 	return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	// }
+	// if checkErr := dsp.DspService.CheckPassword(password); checkErr != nil {
+	// 	return ResponsePackWithErrMsg(checkErr.Code, checkErr.Error.Error())
+	// }
+	err := dsp.DspService.DownloadFile(fileHash, url, link, decryptedPassword, uint64(max), setFileName)
 	if err != nil {
 		log.Errorf("download file failed, err %v", err)
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
@@ -511,9 +539,8 @@ func SetUserSpace(cmd map[string]interface{}) map[string]interface{} {
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
-	_, derr := dsp.DspService.GetAccount(dsp.DspService.GetWalletFilePath(), password)
-	if derr != nil {
-		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
+	if checkErr := dsp.DspService.CheckPassword(password); checkErr != nil {
+		return ResponsePackWithErrMsg(checkErr.Code, checkErr.Error.Error())
 	}
 	tx, err := dsp.DspService.SetUserSpace(addr, uint64(size), uint64(sizeOp), uint64(second), uint64(secondOp))
 	if err != nil {
@@ -668,13 +695,12 @@ func CancelUploadFile(cmd map[string]interface{}) map[string]interface{} {
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
-	_, derr := dsp.DspService.GetAccount(dsp.DspService.GetWalletFilePath(), password)
-	if derr != nil {
-		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
-	}
 	v, ok := cmd["Ids"].([]interface{})
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	if checkErr := dsp.DspService.CheckPassword(password); checkErr != nil {
+		return ResponsePackWithErrMsg(checkErr.Code, checkErr.Error.Error())
 	}
 	ids := make([]string, 0, len(v))
 	for _, str := range v {
@@ -684,6 +710,7 @@ func CancelUploadFile(cmd map[string]interface{}) map[string]interface{} {
 		}
 		ids = append(ids, id)
 	}
+
 	ret := dsp.DspService.CancelUploadFile(ids)
 	resp["Result"] = ret
 	return resp

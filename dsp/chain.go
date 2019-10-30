@@ -688,11 +688,7 @@ func (this *Endpoint) GetAccountSmartContractEventByBlock(height uint32) (*sdkCo
 }
 
 //asset transfer direct
-func (this *Endpoint) AssetTransferDirect(to, asset, amountStr, passwordHash string) (string, *DspErr) {
-	derr := this.CheckPassword(passwordHash)
-	if derr != nil {
-		return "", derr
-	}
+func (this *Endpoint) AssetTransferDirect(to, asset, amountStr string) (string, *DspErr) {
 	acc, derr := this.GetAccount(config.WalletDatFilePath(), this.Password)
 	if derr != nil {
 		return "", derr
@@ -800,11 +796,7 @@ func (this *Endpoint) GetChainIdList() ([]string, *DspErr) {
 	return ids, nil
 }
 
-func (this *Endpoint) InvokeNativeContract(version byte, contractAddr, method string, params []interface{}, gasPrice, gasLimit uint64, passwordHash string) (string, *DspErr) {
-	derr := this.CheckPassword(passwordHash)
-	if derr != nil {
-		return "", derr
-	}
+func (this *Endpoint) InvokeNativeContract(version byte, contractAddr, method string, params []interface{}, gasPrice, gasLimit uint64) (string, *DspErr) {
 	acc, derr := this.GetAccount(config.WalletDatFilePath(), this.Password)
 	if derr != nil {
 		return "", derr

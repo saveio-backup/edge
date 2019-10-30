@@ -14,7 +14,10 @@ func GetCurrentAccount(cmd map[string]interface{}) map[string]interface{} {
 	}
 	acc, err := service.GetCurrentAccount()
 	if err != nil {
-		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
+		if acc == nil {
+			return ResponsePackWithErrMsg(err.Code, err.Error.Error())
+		}
+		resp = ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
 	resp["Result"] = acc
 	return resp
@@ -126,7 +129,10 @@ func ExportWIFPrivateKey(cmd map[string]interface{}) map[string]interface{} {
 	if endpoint == nil {
 		endpoint = &dsp.Endpoint{}
 	}
-	ret, err := endpoint.ExportWIFPrivateKey(password)
+	if checkErr := dsp.DspService.CheckPassword(password); checkErr != nil {
+		return ResponsePackWithErrMsg(checkErr.Code, checkErr.Error.Error())
+	}
+	ret, err := endpoint.ExportWIFPrivateKey()
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}

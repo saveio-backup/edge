@@ -15,6 +15,9 @@ func (self *WsServer) PushToNewSubscriber() {
 	self.PushChannelInitProgress()
 	self.PushCurrentChannel()
 	self.PushCurrentUserSpace()
+	self.PushUploadingTransferList()
+	self.PushDownloadingTransferList()
+	self.PushCompleteTransferList()
 }
 
 // PushInvolvedSmartContractEvent. push events which involved in smart contract
@@ -91,10 +94,12 @@ func (self *WsServer) PushCurrentUserSpace() {
 
 // PushUploadingTransferList. push uploading transfer list if there are uploading files
 func (self *WsServer) PushUploadingTransferList() {
-	cmd := make(map[string]interface{}, 0)
-	cmd["Type"] = 1
-	cmd["Offset"] = 0
-	cmd["Limit"] = 0
+	cmd := map[string]interface{}{
+		"Type":   "1",
+		"Offset": "0",
+		"Limit":  "0",
+	}
+
 	resp := rest.GetTransferList(cmd)
 	resp["Action"] = "gettransferlist"
 	self.Broadcast(WS_TOPIC_EVENT, resp)
@@ -102,10 +107,11 @@ func (self *WsServer) PushUploadingTransferList() {
 
 // PushDownloadingTransferList. push downloading transfer list if there are downloading files
 func (self *WsServer) PushDownloadingTransferList() {
-	cmd := make(map[string]interface{}, 0)
-	cmd["Type"] = 2
-	cmd["Offset"] = 0
-	cmd["Limit"] = 0
+	cmd := map[string]interface{}{
+		"Type":   "2",
+		"Offset": "0",
+		"Limit":  "0",
+	}
 	resp := rest.GetTransferList(cmd)
 	resp["Action"] = "gettransferlist"
 	self.Broadcast(WS_TOPIC_EVENT, resp)
@@ -113,10 +119,11 @@ func (self *WsServer) PushDownloadingTransferList() {
 
 // PushCompleteTransferList. push complete transfer list
 func (self *WsServer) PushCompleteTransferList() {
-	cmd := make(map[string]interface{}, 0)
-	cmd["Type"] = 0
-	cmd["Offset"] = 0
-	cmd["Limit"] = 0
+	cmd := map[string]interface{}{
+		"Type":   "0",
+		"Offset": "0",
+		"Limit":  "0",
+	}
 	resp := rest.GetTransferList(cmd)
 	resp["Action"] = "gettransferlist"
 	self.Broadcast(WS_TOPIC_EVENT, resp)

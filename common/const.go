@@ -24,6 +24,7 @@ const (
 	BACKOFF_MAX_ATTEMPTS           = 50      // backoff max attempts
 	KEEPALIVE_TIMEOUT              = 15      // keepalive timeout
 	EVENT_ACTOR_TIMEOUT            = 15      // event actor timeout
+	NETWORK_DIAL_TIMEOUT           = 5       // network dial timeout
 )
 
 // asset

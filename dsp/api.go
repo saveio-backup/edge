@@ -235,12 +235,7 @@ func (this *Endpoint) Stop() error {
 		return err
 	}
 	this.ResetChannelProgress()
-	err = this.Dsp.Stop()
-	if err != nil {
-		return err
-	}
-	this.notifyAccountLogout()
-	return nil
+	return this.Dsp.Stop()
 }
 
 func (this *Endpoint) startDspP2P(dspListenAddr string, acc *account.Account) error {

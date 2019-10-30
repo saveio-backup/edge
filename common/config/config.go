@@ -223,6 +223,10 @@ func SetDefaultFieldForConfig(cfg *DspConfig) {
 	if cfg.BaseConfig.TrackerPortOffset == 0 {
 		cfg.BaseConfig.TrackerPortOffset = 337
 	}
+
+	if cfg.BaseConfig.WsPortOffset == 0 {
+		cfg.BaseConfig.WsPortOffset = 339
+	}
 }
 
 func GetConfigFromFile(cfgFileName string) *DspConfig {

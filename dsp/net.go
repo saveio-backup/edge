@@ -31,16 +31,16 @@ func (state *NetworkStateResp) String() string {
 		return str
 	}
 	if state.Chain != nil {
-		str += fmt.Sprintf("Host: %s, State: %d, UpdatedAt: %d\n", state.Chain.HostAddr, state.Chain.State, state.Chain.UpdatedAt)
+		str += fmt.Sprintf("Host: %s, State: %d\n", state.Chain.HostAddr, state.Chain.State)
 	}
 	if state.DNS != nil {
-		str += fmt.Sprintf("Host: %s, State: %d, UpdatedAt: %d\n", state.DNS.HostAddr, state.DNS.State, state.DNS.UpdatedAt)
+		str += fmt.Sprintf("Host: %s, State: %d\n", state.DNS.HostAddr, state.DNS.State)
 	}
 	if state.DspProxy != nil {
-		str += fmt.Sprintf("Host: %s, State: %d, UpdatedAt: %d\n", state.DspProxy.HostAddr, state.DspProxy.State, state.DspProxy.UpdatedAt)
+		str += fmt.Sprintf("Host: %s, State: %d\n", state.DspProxy.HostAddr, state.DspProxy.State)
 	}
 	if state.ChannelProxy != nil {
-		str += fmt.Sprintf("Host: %s, State: %d, UpdatedAt: %d\n", state.ChannelProxy.HostAddr, state.ChannelProxy.State, state.ChannelProxy.UpdatedAt)
+		str += fmt.Sprintf("Host: %s, State: %d\n", state.ChannelProxy.HostAddr, state.ChannelProxy.State)
 	}
 	return str
 }
