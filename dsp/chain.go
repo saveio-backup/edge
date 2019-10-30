@@ -688,8 +688,12 @@ func (this *Endpoint) GetAccountSmartContractEventByBlock(height uint32) (*sdkCo
 }
 
 //asset transfer direct
-func (this *Endpoint) AssetTransferDirect(to, asset, amountStr string) (string, *DspErr) {
-	acc, derr := this.GetAccount(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
+func (this *Endpoint) AssetTransferDirect(to, asset, amountStr, passwordHash string) (string, *DspErr) {
+	derr := this.CheckPassword(passwordHash)
+	if derr != nil {
+		return "", derr
+	}
+	acc, derr := this.GetAccount(config.WalletDatFilePath(), this.Password)
 	if derr != nil {
 		return "", derr
 	}
@@ -739,7 +743,6 @@ func (this *Endpoint) SwitchChain(chainId, configFileName string) *DspErr {
 	if len(cfgName) == 0 {
 		cfgName = fmt.Sprintf("config-%s.json", chainId)
 	}
-	pwd := config.Parameters.BaseConfig.WalletPwd
 	newCfg := config.GetConfigFromFile(cfgName)
 	if newCfg == nil {
 		return &DspErr{Code: INTERNAL_ERROR, Error: fmt.Errorf("config file not found: %s", cfgName)}
@@ -755,7 +758,6 @@ func (this *Endpoint) SwitchChain(chainId, configFileName string) *DspErr {
 	if err != nil {
 		return &DspErr{Code: INTERNAL_ERROR, Error: err}
 	}
-	config.Parameters.BaseConfig.WalletPwd = pwd
 	err = config.Save()
 	if err != nil {
 		return &DspErr{Code: INTERNAL_ERROR, Error: err}
@@ -798,8 +800,12 @@ func (this *Endpoint) GetChainIdList() ([]string, *DspErr) {
 	return ids, nil
 }
 
-func (this *Endpoint) InvokeNativeContract(version byte, contractAddr, method string, params []interface{}, gasPrice, gasLimit uint64) (string, *DspErr) {
-	acc, derr := this.GetAccount(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
+func (this *Endpoint) InvokeNativeContract(version byte, contractAddr, method string, params []interface{}, gasPrice, gasLimit uint64, passwordHash string) (string, *DspErr) {
+	derr := this.CheckPassword(passwordHash)
+	if derr != nil {
+		return "", derr
+	}
+	acc, derr := this.GetAccount(config.WalletDatFilePath(), this.Password)
 	if derr != nil {
 		return "", derr
 	}

@@ -10,6 +10,7 @@ import (
 	"github.com/saveio/edge/common/config"
 	"github.com/saveio/edge/dsp"
 	"github.com/saveio/themis/common"
+	"github.com/saveio/themis/common/password"
 
 	"github.com/urfave/cli"
 )
@@ -96,8 +97,13 @@ func registerCandidate(ctx *cli.Context) error {
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
+	pwd, err := password.GetPassword()
+	if err != nil {
+		return err
+	}
+	password := string(pwd)
 
-	endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
+	endpoint, err := dsp.Init(config.WalletDatFilePath(), password)
 	if err != nil {
 		PrintErrorMsg("init dsp err:%s\n", err)
 		return err
@@ -123,7 +129,12 @@ func unregisterCandidate(ctx *cli.Context) error {
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
-	endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
+	pwd, err := password.GetPassword()
+	if err != nil {
+		return err
+	}
+	password := string(pwd)
+	endpoint, err := dsp.Init(config.WalletDatFilePath(), password)
 	if err != nil {
 		PrintErrorMsg("init dsp err:%s\n", err)
 		return err
@@ -148,8 +159,12 @@ func withdraw(ctx *cli.Context) error {
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
-
-	endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
+	pwd, err := password.GetPassword()
+	if err != nil {
+		return err
+	}
+	password := string(pwd)
+	endpoint, err := dsp.Init(config.WalletDatFilePath(), password)
 	if err != nil {
 		PrintErrorMsg("init dsp err:%s\n", err)
 		return err
@@ -198,8 +213,12 @@ func quitNode(ctx *cli.Context) error {
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
-
-	endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
+	pwd, err := password.GetPassword()
+	if err != nil {
+		return err
+	}
+	password := string(pwd)
+	endpoint, err := dsp.Init(config.WalletDatFilePath(), password)
 	if err != nil {
 		PrintErrorMsg("init dsp err:%s\n", err)
 		return err
@@ -225,7 +244,12 @@ func addInitPos(ctx *cli.Context) error {
 		return nil
 	}
 
-	endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
+	pwd, err := password.GetPassword()
+	if err != nil {
+		return err
+	}
+	password := string(pwd)
+	endpoint, err := dsp.Init(config.WalletDatFilePath(), password)
 	if err != nil {
 		PrintErrorMsg("init dsp err:%s\n", err)
 		return err
@@ -252,7 +276,12 @@ func reduceInitPos(ctx *cli.Context) error {
 		return nil
 	}
 
-	endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
+	pwd, err := password.GetPassword()
+	if err != nil {
+		return err
+	}
+	password := string(pwd)
+	endpoint, err := dsp.Init(config.WalletDatFilePath(), password)
 	if err != nil {
 		PrintErrorMsg("init dsp err:%s\n", err)
 		return err

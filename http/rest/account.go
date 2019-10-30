@@ -136,11 +136,28 @@ func ExportWIFPrivateKey(cmd map[string]interface{}) map[string]interface{} {
 
 // Logout. logout current account
 func Logout(cmd map[string]interface{}) map[string]interface{} {
+	log.Debugf("Logout")
 	resp := ResponsePack(dsp.SUCCESS)
 	err := dsp.DspService.Logout()
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
+	return resp
+}
+
+// Login. login current account
+func Login(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	password, ok := cmd["Password"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	log.Debugf("login account with %s", password)
+	ret, derr := dsp.DspService.Login(password)
+	if derr != nil {
+		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
+	}
+	resp["Result"] = ret
 	return resp
 }
 

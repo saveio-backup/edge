@@ -31,6 +31,7 @@ const (
 	CHAIN_UNKNOWN_ASSET               = 50008
 	CHAIN_TRANSFER_ERROR              = 50009
 
+	ACCOUNT_NOT_LOGIN      = 50012
 	WALLET_FILE_NOT_EXIST  = 50013
 	ACCOUNTDATA_NOT_EXIST  = 50014
 	ACCOUNT_PASSWORD_WRONG = 50015
@@ -150,6 +151,7 @@ var ErrMaps = map[int64]error{
 	CHAIN_UNKNOWN_ASSET:               errors.New("chain unknown asset"),
 	CHAIN_TRANSFER_ERROR:              errors.New("chain transfer error"),
 
+	ACCOUNT_NOT_LOGIN:      errors.New("account not login"),
 	WALLET_FILE_NOT_EXIST:  errors.New("wallet file not exist"),
 	ACCOUNTDATA_NOT_EXIST:  errors.New("accountdata not exist"),
 	ACCOUNT_PASSWORD_WRONG: errors.New("account password wrong"),

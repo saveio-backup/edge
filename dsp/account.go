@@ -58,23 +58,28 @@ func (this *Endpoint) GetCurrentAccount() (*AccountResp, *DspErr) {
 			Label:     this.AccountLabel,
 		}, nil
 	}
-	wal, err := wallet.OpenWallet(config.WalletDatFilePath())
-	if err != nil {
-		return nil, &DspErr{Code: WALLET_FILE_NOT_EXIST, Error: err}
+	if common.FileExisted(config.WalletDatFilePath()) {
+		return nil, &DspErr{Code: ACCOUNT_NOT_LOGIN, Error: ErrMaps[ACCOUNT_NOT_LOGIN]}
 	}
-	accData, err := wal.GetDefaultAccountData()
+	return nil, &DspErr{Code: WALLET_FILE_NOT_EXIST, Error: ErrMaps[WALLET_FILE_NOT_EXIST]}
+}
+
+func (this *Endpoint) Login(password string) (*AccountResp, *DspErr) {
+	service, err := Init(config.WalletDatFilePath(), password)
 	if err != nil {
-		return nil, &DspErr{Code: ACCOUNTDATA_NOT_EXIST, Error: err}
+		return nil, &DspErr{Code: DSP_INIT_FAILED, Error: err}
 	}
-	acc, err := wal.GetDefaultAccount([]byte(config.Parameters.BaseConfig.WalletPwd))
-	if err != nil {
-		return nil, &DspErr{Code: ACCOUNT_PASSWORD_WRONG, Error: err}
-	}
+	go func() {
+		err = StartDspNode(service, true, true, true)
+		if err != nil {
+			log.Errorf("dsp start err %s", err)
+		}
+	}()
 	return &AccountResp{
-		PublicKey: hex.EncodeToString(keypair.SerializePublicKey(acc.PublicKey)),
-		Address:   acc.Address.ToBase58(),
-		SigScheme: acc.SigScheme,
-		Label:     accData.Label,
+		PublicKey: hex.EncodeToString(keypair.SerializePublicKey(service.Account.PublicKey)),
+		Address:   service.Account.Address.ToBase58(),
+		SigScheme: service.Account.SigScheme,
+		Label:     service.AccountLabel,
 	}, nil
 }
 
@@ -96,7 +101,6 @@ func (this *Endpoint) NewAccount(label string, typeCode keypair.KeyType, curveCo
 		Label:      label,
 	}
 	if createOnly {
-		config.Parameters.BaseConfig.WalletPwd = string(pwd)
 		config.Save()
 		data, err := ioutil.ReadFile(config.WalletDatFilePath())
 		if err != nil {
@@ -122,10 +126,8 @@ func (this *Endpoint) NewAccount(label string, typeCode keypair.KeyType, curveCo
 		err = StartDspNode(service, true, true, true)
 		if err != nil {
 			log.Errorf("dsp start err %s", err)
-			panic(err)
 		}
 	}()
-	config.Parameters.BaseConfig.WalletPwd = string(pwd)
 	config.Save()
 	return acc2, nil
 }
@@ -172,7 +174,6 @@ func (this *Endpoint) ImportWithPrivateKey(wif, label, password string) (*Accoun
 		SigScheme:  signature.SHA256withECDSA,
 		Label:      label,
 	}
-	config.Parameters.BaseConfig.WalletPwd = password
 	config.Save()
 	if err != nil {
 		return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
@@ -185,7 +186,6 @@ func (this *Endpoint) ImportWithPrivateKey(wif, label, password string) (*Accoun
 		err = StartDspNode(service, true, true, true)
 		if err != nil {
 			log.Errorf("dsp start err %s", err)
-			panic(err)
 		}
 	}()
 	return acc2, nil
@@ -209,7 +209,6 @@ func (this *Endpoint) ImportWithWalletData(walletStr, password string) (*Account
 		SigScheme: acc.SigScheme,
 		Label:     accData.Label,
 	}
-	config.Parameters.BaseConfig.WalletPwd = password
 	config.Save()
 	err = ioutil.WriteFile(config.WalletDatFilePath(), []byte(walletStr), 0666)
 	if err != nil {
@@ -223,7 +222,6 @@ func (this *Endpoint) ImportWithWalletData(walletStr, password string) (*Account
 		err = StartDspNode(service, true, true, true)
 		if err != nil {
 			log.Errorf("dsp start err %s", err)
-			panic(err)
 		}
 	}()
 	return acc2, nil

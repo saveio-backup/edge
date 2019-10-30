@@ -11,6 +11,10 @@ var (
 		Name:  "config",
 		Usage: "Use `<filename>` to specifies the config file to connect to cunstomize network.",
 	}
+	LaunchManualFlag = cli.BoolFlag{
+		Name:  "launchManual",
+		Usage: "launch dsp manually",
+	}
 	//commmon
 	LogStderrFlag = cli.BoolFlag{
 		Name:  "logstderr",

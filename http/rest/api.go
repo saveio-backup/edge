@@ -428,11 +428,7 @@ func AssetTransferDirect(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
-	_, derr := dsp.DspService.GetAccount(dsp.DspService.GetWalletFilePath(), password)
-	if derr != nil {
-		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
-	}
-	txHash, err := dsp.DspService.AssetTransferDirect(to, asset, amountStr)
+	txHash, err := dsp.DspService.AssetTransferDirect(to, asset, amountStr, password)
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
@@ -502,7 +498,7 @@ func InvokeSmartContract(cmd map[string]interface{}) map[string]interface{} {
 	gasPrice, _ := cmd["GasPrice"].(float64)
 	gasLimit, _ := cmd["GasLimit"].(float64)
 
-	tx, derr := dsp.DspService.InvokeNativeContract(verBufs[0], contractAddr, method, params, uint64(gasPrice), uint64(gasLimit))
+	tx, derr := dsp.DspService.InvokeNativeContract(verBufs[0], contractAddr, method, params, uint64(gasPrice), uint64(gasLimit), password)
 	if derr != nil {
 		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
 	}

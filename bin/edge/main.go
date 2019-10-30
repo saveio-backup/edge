@@ -11,6 +11,7 @@ import (
 
 	"github.com/saveio/edge/cmd"
 	"github.com/saveio/edge/cmd/flags"
+	"github.com/saveio/edge/common"
 	"github.com/saveio/edge/common/config"
 	"github.com/saveio/edge/dsp"
 	"github.com/saveio/edge/dsp/actor/client"
@@ -20,6 +21,7 @@ import (
 	"github.com/saveio/edge/http/localrpc"
 	"github.com/saveio/edge/http/websocket"
 	"github.com/saveio/themis/common/log"
+	"github.com/saveio/themis/common/password"
 	"github.com/urfave/cli"
 )
 
@@ -46,6 +48,7 @@ func initAPP() *cli.App {
 		flags.ProtocolFsRepoRootFlag,
 		flags.ProtocolFsFileRootFlag,
 		flags.ConfigFlag,
+		flags.LaunchManualFlag,
 	}
 	app.Before = func(context *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())
@@ -63,9 +66,21 @@ func main() {
 }
 
 func dspInit(ctx *cli.Context) {
+	launchManual := ctx.Bool(flags.GetFlagName(flags.LaunchManualFlag))
+
+	var walletPwd string
+	if !launchManual && common.FileExisted(config.WalletDatFilePath()) {
+		pwd, err := password.GetPassword()
+		if err != nil {
+			log.Errorf("require password: %s", err.Error())
+			os.Exit(1)
+		}
+		walletPwd = string(pwd)
+	}
 	config.SetDspConfig(ctx)
 	initLog(ctx)
 	log.Debugf("set dsp config, config %v", config.Parameters)
+
 	eventActorServer, _ := server.NewEventActorServer()
 	client.SetEventPid(eventActorServer.GetLocalPID())
 
@@ -73,21 +88,21 @@ func dspInit(ctx *cli.Context) {
 	initWebsocket()
 	initJsonRpc()
 
-	endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
+	if launchManual {
+		waitToExit()
+		return
+	}
+	endpoint, err := dsp.Init(config.WalletDatFilePath(), walletPwd)
 	if endpoint == nil {
 		log.Error("dsp init failed: %s", err.Error())
 		os.Exit(1)
 	}
 	if endpoint.Account != nil {
-		// for test
-		// if err := dsp.StartDspNode(endpoint, false, false, false); err != nil {
 		if err := dsp.StartDspNode(endpoint, true, true, true); err != nil {
 			log.Errorf("start dsp node err %s", err.Error())
-			// os.Exit(1)
 		}
 		if err := initLocalRpc(); err != nil {
 			log.Errorf("init local rpc err %s", err.Error())
-			// os.Exit(1)
 		}
 	} else {
 		log.Infof("current wallet is empty, please create one")

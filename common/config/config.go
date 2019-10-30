@@ -70,7 +70,6 @@ type BaseConfig struct {
 	SeedInterval      int      `json:"SeedInterval"`
 	Trackers          []string `json:"Trackers"`
 
-	WalletPwd string `json:"WalletPwd"`
 	WalletDir string `json:"WalletDir"`
 }
 
@@ -148,7 +147,6 @@ func TestConfig() *DspConfig {
 			TrackerPortOffset:    337,
 			SeedInterval:         3600,
 			Trackers:             nil,
-			WalletPwd:            "pwd",
 			WalletDir:            "./wallet.dat",
 		},
 		FsConfig: FsConfig{

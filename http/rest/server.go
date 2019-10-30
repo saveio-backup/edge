@@ -64,6 +64,7 @@ const (
 
 	GET_CURRENT_ACCOUNT            = "/api/v1/account"
 	NEW_ACCOUNT                    = "/api/v1/account"
+	LOGIN_ACCOUNT                  = "/api/v1/account/login"
 	LOGOUT_ACCOUNT                 = "/api/v1/account/logout"
 	IMPORT_ACCOUNT_WITH_PRIVATEKEY = "/api/v1/account/import/privatekey"
 	IMPORT_ACCOUNT_WITH_WALLETFILE = "/api/v1/account/import/walletfile"
@@ -286,6 +287,7 @@ func (this *restServer) registryMethod() {
 		PREEXEC_SMARTCONTRACT: {name: "preexecsmartcontract", handler: PreExecSmartContract},
 
 		NEW_ACCOUNT:                    {name: "newaccount", handler: NewAccount},
+		LOGIN_ACCOUNT:                  {name: "login", handler: Login},
 		LOGOUT_ACCOUNT:                 {name: "logout", handler: Logout},
 		IMPORT_ACCOUNT_WITH_PRIVATEKEY: {name: "importaccountwithprivatekey", handler: ImportWithPrivateKey},
 		IMPORT_ACCOUNT_WITH_WALLETFILE: {name: "importaccountwithwalletfile", handler: ImportWithWalletData},
@@ -674,7 +676,7 @@ func (this *restServer) checkDspService(url, method string) (int64, string) {
 		}
 		return dsp.SUCCESS, ""
 	} else {
-		skipCheck := []string{NEW_ACCOUNT, IMPORT_ACCOUNT_WITH_PRIVATEKEY, IMPORT_ACCOUNT_WITH_WALLETFILE}
+		skipCheck := []string{NEW_ACCOUNT, IMPORT_ACCOUNT_WITH_PRIVATEKEY, IMPORT_ACCOUNT_WITH_WALLETFILE, LOGIN_ACCOUNT}
 		for _, skip := range skipCheck {
 			if url == skip {
 				return dsp.SUCCESS, ""

@@ -48,7 +48,6 @@
     "DNSWalletAddrs": [
       "AcJdio7iRMzPxCWgBjSLSqKZcXMjNRtLpd"
     ],
-    "WalletPwd": "pwd",
     "WalletDir": "./wallet.dat"
   },
   "Fs": {
