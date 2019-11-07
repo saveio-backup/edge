@@ -494,6 +494,7 @@ func GetFileWhiteList(cmd map[string]interface{}) map[string]interface{} {
 }
 
 func GetUserSpace(cmd map[string]interface{}) map[string]interface{} {
+	log.Debugf("GETUSERSPACE")
 	resp := ResponsePack(dsp.SUCCESS)
 	addr, ok := cmd["Addr"].(string)
 	if !ok {
@@ -535,7 +536,6 @@ func SetUserSpace(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
-	log.Debugf("size %v %v %v %v", uint64(size), uint64(sizeOp), uint64(second), uint64(secondOp))
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
@@ -571,7 +571,6 @@ func GetUserSpaceCost(cmd map[string]interface{}) map[string]interface{} {
 		second, _ = secondMap["Value"].(float64)
 		secondOp, _ = secondMap["Type"].(float64)
 	}
-	log.Debugf("size %v %v %v %v", uint64(size), uint64(sizeOp), uint64(second), uint64(secondOp))
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}

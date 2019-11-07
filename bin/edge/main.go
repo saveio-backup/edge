@@ -6,9 +6,11 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"syscall"
 	"time"
 
+	"github.com/saveio/dsp-go-sdk/utils"
 	"github.com/saveio/edge/cmd"
 	"github.com/saveio/edge/cmd/flags"
 	"github.com/saveio/edge/common"
@@ -120,9 +122,16 @@ func initLog(ctx *cli.Context) {
 	logLevel := config.Parameters.BaseConfig.LogLevel
 	logPath := config.Parameters.BaseConfig.LogPath
 	baseDir := config.Parameters.BaseConfig.BaseDir
-	logFullPath := filepath.Join(baseDir, logPath) + "/"
+
+	extra := ""
+	logFullPath := filepath.Join(baseDir, logPath) + extra + "/"
+	_, err := log.FileOpen(logFullPath)
+	if err != nil {
+		extra = strconv.FormatUint(utils.GetMilliSecTimestamp(), 10)
+	}
+	logFullPath = filepath.Join(baseDir, logPath) + extra + "/"
 	log.InitLog(logLevel, logFullPath, log.Stdout)
-	log.Info("start logging...")
+	log.Infof("start logging at %s", logFullPath)
 }
 
 func initRest() {

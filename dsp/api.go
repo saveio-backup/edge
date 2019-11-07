@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"sync"
 	"time"
 
@@ -74,7 +75,7 @@ func Init(walletDir, pwd string) (*Endpoint, error) {
 		log.Error("Client open wallet Error, msg:", err)
 		return nil, err
 	}
-	this.Account, err = wallet.GetDefaultAccount([]byte(pwd))
+	acc, err := wallet.GetDefaultAccount([]byte(pwd))
 	if err != nil {
 		log.Error("Client get default account Error, msg:", err)
 		return nil, err
@@ -83,6 +84,7 @@ func Init(walletDir, pwd string) (*Endpoint, error) {
 	if err != nil {
 		return nil, err
 	}
+	this.Account = acc
 	this.AccountLabel = accData.Label
 	this.Password = pwd
 	config.SetCurrentUserWalletAddress(this.Account.Address.ToBase58())
@@ -113,6 +115,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		ChannelDBPath:        config.ChannelDBPath(),
 		ChannelRevealTimeout: config.Parameters.BaseConfig.ChannelRevealTimeout,
 		ChannelSettleTimeout: config.Parameters.BaseConfig.ChannelSettleTimeout,
+		MaxUnpaidPayment:     config.Parameters.BaseConfig.MaxUnpaidPayment,
 		BlockDelay:           config.Parameters.BaseConfig.BlockDelay,
 		AutoSetupDNSEnable:   config.Parameters.BaseConfig.AutoSetupDNSEnable,
 		DnsNodeMaxNum:        config.Parameters.BaseConfig.DnsNodeMaxNum,
@@ -449,7 +452,13 @@ func (this *Endpoint) checkLogFileSize() {
 	log.ClosePrintLog()
 	logPath := config.Parameters.BaseConfig.LogPath
 	baseDir := config.Parameters.BaseConfig.BaseDir
-	logFullPath := filepath.Join(baseDir, logPath) + "/"
+	extra := ""
+	logFullPath := filepath.Join(baseDir, logPath) + extra + "/"
+	_, err := log.FileOpen(logFullPath)
+	if err != nil {
+		extra = strconv.FormatUint(utils.GetMilliSecTimestamp(), 10)
+	}
+	logFullPath = filepath.Join(baseDir, logPath) + extra + "/"
 	log.InitLog(int(config.Parameters.BaseConfig.LogLevel), logFullPath, log.Stdout)
 }
 

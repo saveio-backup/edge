@@ -50,6 +50,7 @@ type BaseConfig struct {
 	ChannelRevealTimeout string `json:"ChannelRevealTimeout"`
 	ChannelSettleTimeout string `json:"ChannelSettleTimeout"`
 	BlockDelay           string `json:"BlockDelay"`
+	MaxUnpaidPayment     int32  `json:"MaxUnpaidPayment"`
 
 	DBPath         string   `json:"DBPath"`
 	ChainRestAddrs []string `json:"ChainRestAddrs"`
@@ -226,6 +227,10 @@ func SetDefaultFieldForConfig(cfg *DspConfig) {
 
 	if cfg.BaseConfig.WsPortOffset == 0 {
 		cfg.BaseConfig.WsPortOffset = 339
+	}
+
+	if cfg.BaseConfig.MaxUnpaidPayment == 0 {
+		cfg.BaseConfig.MaxUnpaidPayment = common.MAX_UNPAID_PAYMENT
 	}
 }
 

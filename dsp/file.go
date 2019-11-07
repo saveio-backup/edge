@@ -918,7 +918,7 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint32) 
 		Type:          pType,
 		Transfers:     []*Transfer{},
 	}
-	allType, reverse := false, false
+	allType, reverse, includeFailed := false, false, true
 	var infoType store.TaskType
 	switch pType {
 	case transferTypeUploading:
@@ -928,8 +928,9 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint32) 
 	case transferTypeComplete:
 		allType = true
 		reverse = true
+		includeFailed = false
 	}
-	ids := this.Dsp.GetTaskIdList(offset, limit, infoType, allType, reverse)
+	ids := this.Dsp.GetTaskIdList(offset, limit, infoType, allType, reverse, includeFailed)
 	infos := make([]*Transfer, 0, len(ids))
 	for idx, key := range ids {
 		info := this.Dsp.GetProgressInfo(key)
@@ -1583,6 +1584,7 @@ func (this *Endpoint) GetUserSpaceCost(walletAddr string, size, sizeOpType, bloc
 	}
 	blockCount = blockCount / config.BlockTime()
 	cost, err := this.Dsp.GetUpdateUserSpaceCost(walletAddr, size, sizeOpType, blockCount, countOpType)
+	log.Debugf("cost %d %v %v %v %v %v, err %s", cost, walletAddr, size, sizeOpType, blockCount, countOpType, err)
 	if err != nil {
 		return nil, ParseContractError(err)
 	}

@@ -14,6 +14,11 @@ const (
 	BLOCK_TIME                      = 1   // block time
 )
 
+// default config
+const (
+	MAX_UNPAID_PAYMENT = 5 // max unpaid payment
+)
+
 // network common
 const (
 	MAX_WAIT_FOR_CONNECTED_TIMEOUT = 10      // wait for connected timeout
@@ -28,7 +33,6 @@ const (
 )
 
 // asset
-
 const (
 	SAVE_ASSET = "save"
 )
