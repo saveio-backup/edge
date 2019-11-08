@@ -280,14 +280,14 @@ func (this *Endpoint) Logout() *DspErr {
 	}
 	// TODO: justify whether account exists
 	err := this.Stop()
+	if err != nil {
+		return &DspErr{Code: DSP_STOP_FAILED, Error: err}
+	}
 	this.Account = nil
 	this.Dsp.Account = nil
 	this.AccountLabel = ""
 	this.Dsp.Chain.Native.SetDefaultAccount(nil)
 	this.Dsp.Chain.Native.SetDefaultAccount(nil)
-	if err != nil {
-		return &DspErr{Code: DSP_STOP_FAILED, Error: err}
-	}
 	this.notifyAccountLogout()
 	log.Debugf("notify user logout")
 	DspService = &Endpoint{}
