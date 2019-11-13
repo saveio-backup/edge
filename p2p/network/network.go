@@ -451,50 +451,77 @@ func (this *Network) Request(msg proto.Message, peer string) (proto.Message, err
 
 // RequestWithRetry. send msg to peer and wait for response synchronously
 func (this *Network) RequestWithRetry(msg proto.Message, peer string, retry, replyTimeout int) (proto.Message, error) {
-	var err error
-	var res proto.Message
+	result := make(chan proto.Message, 1)
+	done := false
+	requestLock := &sync.Mutex{}
 	client := this.P2p.GetPeerClient(peer)
 	if client != nil {
 		log.Debugf("disable backoff of peer %s", peer)
 		client.DisableBackoff()
 	}
-	for i := 0; i < retry; i++ {
-		// check proxy state
-		err = this.healthCheckPeer(this.proxyAddr)
-		if err != nil {
-			continue
+	var response proto.Message
+	var err error
+	go func() {
+		for i := 0; i < retry; i++ {
+			// check proxy state
+			err = this.healthCheckPeer(this.proxyAddr)
+			if err != nil {
+				continue
+			}
+			// check receiver state
+			err = this.healthCheckPeer(peer)
+			if err != nil {
+				continue
+			}
+			log.Debugf("send request msg to %s with retry %d", peer, i)
+			defer log.Debugf("send request msg to %s with retry %d done", peer, i)
+			// get peer client to send msg
+			client := this.P2p.GetPeerClient(peer)
+			if client == nil {
+				log.Errorf("get peer client is nil %s", peer)
+				this.WaitForConnected(peer, time.Duration(replyTimeout)*time.Second)
+				continue
+			}
+			go func(msg proto.Message) {
+				// init context for timeout handling
+				ctx, cancel := context.WithTimeout(context.Background(), time.Duration(dspCom.ACTOR_MAX_P2P_REQ_TIMEOUT)*time.Second)
+				defer cancel()
+				// send msg by request api and wait for the response
+				res, reqErr := client.Request(ctx, msg, time.Duration(dspCom.ACTOR_MAX_P2P_REQ_TIMEOUT)*time.Second)
+				if reqErr != nil {
+					return
+				}
+				requestLock.Lock()
+				defer requestLock.Unlock()
+				if done {
+					return
+				}
+				done = true
+				result <- res
+			}(msg)
+			<-time.After(time.Duration(dspNetCom.REQUEST_MSG_TIMEOUT) * time.Second)
+			requestLock.Lock()
+			if done {
+				requestLock.Unlock()
+				break
+			}
+			requestLock.Unlock()
 		}
-		// check receiver state
-		err = this.healthCheckPeer(peer)
-		if err != nil {
-			continue
-		}
-		log.Debugf("send request msg to %s with retry %d", peer, i)
-		// get peer client to send msg
-		client := this.P2p.GetPeerClient(peer)
-		if client == nil {
-			log.Errorf("get peer client is nil %s", peer)
-			this.WaitForConnected(peer, time.Duration(replyTimeout)*time.Second)
-			continue
-		}
-		// init context for timeout handling
-		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(dspCom.ACTOR_MAX_P2P_REQ_TIMEOUT)*time.Second)
-		defer cancel()
-		// send msg by request api and wait for the response
-		res, err = client.Request(ctx, msg, time.Duration(replyTimeout)*time.Second)
-		if err == nil {
-			break
-		}
+	}()
+	select {
+	case res := <-result:
+		response = res
+		err = nil
+	case <-time.After(time.Duration(dspCom.ACTOR_MAX_P2P_REQ_TIMEOUT) * time.Second):
+		response = nil
+		err = errors.New("retry all request and failed")
 	}
 	client = this.P2p.GetPeerClient(peer)
 	if client != nil {
 		log.Debugf("enable backoff of peer %s", peer)
 		client.EnableBackoff()
 	}
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
+	return response, err
 }
 
 // Broadcast. broadcast same msg to peers. Handle action if send msg success.
