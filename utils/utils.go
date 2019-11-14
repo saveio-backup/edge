@@ -6,6 +6,8 @@
 package utils
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"reflect"
 	"strings"
@@ -44,4 +46,10 @@ func ConvertStructToMap(e reflect.Value) map[string]interface{} {
 		}
 	}
 	return m
+}
+
+func Sha256HexStr(str string) string {
+	pwdBuf := sha256.Sum256([]byte(str))
+	pwdHash := hex.EncodeToString(pwdBuf[:])
+	return pwdHash
 }

@@ -54,7 +54,7 @@ func (this *Endpoint) notifyNewSmartContractEvent() {
 		return
 	}
 
-	currentHeight, _ := this.Dsp.Chain.GetCurrentBlockHeight()
+	currentHeight, _ := this.Dsp.GetCurrentBlockHeight()
 	if this.eventHub.lastNotifyHeight >= currentHeight {
 		return
 	}
@@ -74,17 +74,17 @@ func (this *Endpoint) notifyIfSwitchChannel() {
 	if !config.WsEnabled() {
 		return
 	}
-	if this.Dsp.DNS == nil || this.Dsp.DNS.DNSNode == nil {
+	if !this.Dsp.HasDNS() {
 		if len(this.eventHub.lastDNSChannel) == 0 {
 			return
 		}
 		client.EventNotifySwitchChannel()
 		return
 	}
-	if this.eventHub.lastDNSChannel == this.Dsp.DNS.DNSNode.WalletAddr {
+	if this.eventHub.lastDNSChannel == this.Dsp.CurrentDNSWallet() {
 		return
 	}
-	this.eventHub.lastDNSChannel = this.Dsp.DNS.DNSNode.WalletAddr
+	this.eventHub.lastDNSChannel = this.Dsp.CurrentDNSWallet()
 	client.EventNotifySwitchChannel()
 }
 

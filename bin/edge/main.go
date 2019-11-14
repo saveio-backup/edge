@@ -42,7 +42,6 @@ func initAPP() *cli.App {
 		cmd.NodeCommand,
 		cmd.DnsCommand,
 		cmd.ChannelCommand,
-		cmd.GovernanceCommand,
 		cmd.VersionCommand,
 	}
 	app.Flags = []cli.Flag{

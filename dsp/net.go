@@ -61,17 +61,17 @@ func (this *Endpoint) GetNetworkState() (*NetworkStateResp, *DspErr) {
 	if this == nil || this.Dsp == nil {
 		return state, nil
 	}
-	_, err := this.Dsp.Chain.GetCurrentBlockHeight()
+	_, err := this.Dsp.GetCurrentBlockHeight()
 	if err == nil {
 		now := uint64(time.Now().Unix())
 		state.Chain.State = networkStateReachable
 		state.Chain.UpdatedAt = now
 	}
-	if this.Dsp.DNS != nil && this.Dsp.DNS.DNSNode != nil {
-		state.DNS.HostAddr = this.Dsp.DNS.DNSNode.HostAddr
+	if this.Dsp.HasDNS() {
+		state.DNS.HostAddr = this.Dsp.CurrentDNSHostAddr()
 		updatedAt, _ := this.channelNet.GetClientTime(state.DNS.HostAddr)
 		state.DNS.UpdatedAt = updatedAt
-		if this.channelNet.IsStateReachable(this.Dsp.DNS.DNSNode.HostAddr) {
+		if this.channelNet.IsStateReachable(this.Dsp.CurrentDNSHostAddr()) {
 			state.DNS.State = networkStateReachable
 		} else {
 			state.DNS.State = networkStateUnReachable

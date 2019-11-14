@@ -1,8 +1,6 @@
 package dsp
 
 import (
-	"encoding/hex"
-
 	"github.com/saveio/themis/common"
 	"github.com/saveio/themis/common/log"
 	"github.com/saveio/themis/smartcontract/service/native/dns"
@@ -90,49 +88,49 @@ func (this *Endpoint) QueryLink(url string) (string, *DspErr) {
 }
 
 func (this *Endpoint) RegisterDns(ip, port string, amount uint64) (string, *DspErr) {
-	tx, err := this.Dsp.Chain.Native.Dns.DNSNodeReg([]byte(ip), []byte(port), amount)
+	tx, err := this.Dsp.DNSNodeReg([]byte(ip), []byte(port), amount)
 	if err != nil {
 		return "", &DspErr{Code: DSP_DNS_REGISTER_FAILED, Error: err}
 	}
-	return hex.EncodeToString(common.ToArrayReverse(tx[:])), nil
+	return tx, nil
 }
 
 func (this *Endpoint) UnRegisterDns() (string, *DspErr) {
-	tx, err := this.Dsp.Chain.Native.Dns.UnregisterDNSNode()
+	tx, err := this.Dsp.UnregisterDNSNode()
 	if err != nil {
 		return "", &DspErr{Code: DSP_DNS_UNREGISTER_FAILED, Error: err}
 	}
-	return hex.EncodeToString(common.ToArrayReverse(tx[:])), nil
+	return tx, nil
 }
 
 func (this *Endpoint) QuitDns() (string, *DspErr) {
-	tx, err := this.Dsp.Chain.Native.Dns.QuitNode()
+	tx, err := this.Dsp.QuitNode()
 	if err != nil {
 		return "", &DspErr{Code: DSP_DNS_QUIT_FAILED, Error: err}
 	}
-	return hex.EncodeToString(common.ToArrayReverse(tx[:])), nil
+	return tx, nil
 }
 
 func (this *Endpoint) AddPos(amount uint64) (string, *DspErr) {
-	tx, err := this.Dsp.Chain.Native.Dns.AddInitPos(amount)
+	tx, err := this.Dsp.AddInitPos(amount)
 	if err != nil {
 		return "", &DspErr{Code: DSP_DNS_ADDPOS_FAILED, Error: err}
 	}
 
-	return hex.EncodeToString(common.ToArrayReverse(tx[:])), nil
+	return tx, nil
 }
 
 func (this *Endpoint) ReducePos(amount uint64) (string, *DspErr) {
-	tx, err := this.Dsp.Chain.Native.Dns.ReduceInitPos(amount)
+	tx, err := this.Dsp.ReduceInitPos(amount)
 	if err != nil {
 		return "", &DspErr{Code: DSP_DNS_REDUCEPOS_FAILED, Error: err}
 	}
 
-	return hex.EncodeToString(common.ToArrayReverse(tx[:])), nil
+	return tx, nil
 }
 
 func (this *Endpoint) QueryRegInfos() (*dns.PeerPoolMap, *DspErr) {
-	ma, err := this.Dsp.Chain.Native.Dns.GetPeerPoolMap()
+	ma, err := this.Dsp.GetPeerPoolMap()
 	if err != nil {
 		return nil, &DspErr{Code: DSP_DNS_QUERY_INFOS_FAILED, Error: err}
 	}
@@ -143,7 +141,7 @@ func (this *Endpoint) QueryRegInfo(pubkey string) (interface{}, *DspErr) {
 	if pubkey == "self" {
 		pubkey = ""
 	}
-	item, err := this.Dsp.Chain.Native.Dns.GetPeerPoolItem(pubkey)
+	item, err := this.Dsp.GetPeerPoolItem(pubkey)
 	if err != nil {
 		return nil, &DspErr{Code: DSP_DNS_QUERY_INFO_FAILED, Error: err}
 	}
@@ -151,7 +149,7 @@ func (this *Endpoint) QueryRegInfo(pubkey string) (interface{}, *DspErr) {
 }
 
 func (this *Endpoint) QueryHostInfos() (interface{}, *DspErr) {
-	all, err := this.Dsp.Chain.Native.Dns.GetAllDnsNodes()
+	all, err := this.Dsp.GetAllDnsNodes()
 	if err != nil {
 		return nil, &DspErr{Code: DSP_DNS_QUERY_ALLINFOS_FAILED, Error: err}
 	}
@@ -167,7 +165,7 @@ func (this *Endpoint) QueryHostInfo(addr string) (interface{}, *DspErr) {
 		}
 		address = tmpaddr
 	}
-	info, err := this.Dsp.Chain.Native.Dns.GetDnsNodeByAddr(address)
+	info, err := this.Dsp.GetDnsNodeByAddr(address)
 	if err != nil {
 		return nil, &DspErr{Code: DSP_DNS_GET_NODE_BY_ADDR, Error: err}
 	}

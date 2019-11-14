@@ -1,13 +1,13 @@
 package dsp
 
 import (
-	"crypto/sha256"
 	"encoding/hex"
 	"io/ioutil"
 	"os"
 
 	"github.com/saveio/edge/common"
 	"github.com/saveio/edge/common/config"
+	"github.com/saveio/edge/utils"
 	"github.com/saveio/themis-go-sdk/wallet"
 	"github.com/saveio/themis/account"
 	"github.com/saveio/themis/common/log"
@@ -27,7 +27,7 @@ type AccountResp struct {
 }
 
 func (this *Endpoint) AccountExists() bool {
-	if this != nil && this.Dsp != nil && this.Dsp.Account != nil {
+	if this != nil && this.Dsp != nil && this.Dsp.CurrentAccount() != nil {
 		return true
 	}
 	return false
@@ -265,8 +265,8 @@ func (this *Endpoint) ExportWalletFile() (*WalletfileResp, *DspErr) {
 
 func (this *Endpoint) Logout() *DspErr {
 	isExists := common.FileExisted(config.WalletDatFilePath())
-	if !isExists || this.Dsp == nil || this.Dsp.Account == nil {
-		return &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	if !isExists || this.Dsp == nil || this.Dsp.CurrentAccount() == nil {
+		return nil
 	}
 	syncing, _ := this.IsChannelProcessBlocks()
 	if syncing {
@@ -284,10 +284,8 @@ func (this *Endpoint) Logout() *DspErr {
 		return &DspErr{Code: DSP_STOP_FAILED, Error: err}
 	}
 	this.Account = nil
-	this.Dsp.Account = nil
+	this.Dsp.SetAccount(nil)
 	this.AccountLabel = ""
-	this.Dsp.Chain.Native.SetDefaultAccount(nil)
-	this.Dsp.Chain.Native.SetDefaultAccount(nil)
 	this.notifyAccountLogout()
 	log.Debugf("notify user logout")
 	DspService = &Endpoint{}
@@ -295,8 +293,7 @@ func (this *Endpoint) Logout() *DspErr {
 }
 
 func (this *Endpoint) CheckPassword(pwd string) *DspErr {
-	pwdBuf := sha256.Sum256([]byte(this.Password))
-	pwdHash := hex.EncodeToString(pwdBuf[:])
+	pwdHash := utils.Sha256HexStr(this.Password)
 	log.Debugf("CheckPassword: %s, %s, %s", this.Password, pwd, pwdHash)
 	if len(pwdHash) != len(pwd) {
 		return &DspErr{Code: ACCOUNT_PASSWORD_WRONG, Error: ErrMaps[ACCOUNT_PASSWORD_WRONG]}

@@ -90,7 +90,7 @@ func NodeUpdate(cmd map[string]interface{}) map[string]interface{} {
 	}
 
 	volumeStr, ok := cmd["Volume"].(string)
-	if ok {
+	if ok && len(volumeStr) > 0 {
 		temp, err := strconv.ParseUint(volumeStr, 10, 64)
 		if err != nil {
 			return ResponsePackWithErrMsg(dsp.INTERNAL_ERROR, err.Error())
@@ -99,7 +99,7 @@ func NodeUpdate(cmd map[string]interface{}) map[string]interface{} {
 	}
 
 	serviceTimeStr, ok := cmd["ServiceTime"].(string)
-	if ok {
+	if ok && len(serviceTimeStr) > 0 {
 		temp, err := strconv.ParseUint(serviceTimeStr, 10, 64)
 		if err != nil {
 			return ResponsePackWithErrMsg(dsp.INTERNAL_ERROR, err.Error())

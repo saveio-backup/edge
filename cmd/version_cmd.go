@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/saveio/carrier/network"
-	dspsdk "github.com/saveio/dsp-go-sdk"
+	dspSdk "github.com/saveio/dsp-go-sdk/dsp"
 	"github.com/saveio/edge/dsp"
 	"github.com/saveio/max/max"
 	"github.com/saveio/pylons"
@@ -21,7 +21,7 @@ var VersionCommand = cli.Command{
 func showVersion(ctx *cli.Context) error {
 	versionM := make(map[string]string)
 	versionM["Edge"] = dsp.Version
-	versionM["Dsp-go-sdk"] = dspsdk.Version
+	versionM["Dsp-go-sdk"] = dspSdk.Version
 	versionM["Pylons"] = pylons.Version
 	versionM["Max"] = max.Version
 	versionM["Carrier"] = network.Version

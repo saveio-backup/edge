@@ -38,7 +38,7 @@ func (this *Endpoint) GetNodeVersion() (string, *DspErr) {
 	if this == nil || this.Dsp == nil {
 		return "", nil
 	}
-	version, err := this.Dsp.Chain.GetVersion()
+	version, err := this.Dsp.GetChainVersion()
 	if err != nil {
 		return "", &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
@@ -60,7 +60,7 @@ func (this *Endpoint) GetNetworkId() string {
 
 //get block height
 func (this *Endpoint) GetBlockHeight() (uint32, *DspErr) {
-	height, err := this.Dsp.Chain.GetCurrentBlockHeight()
+	height, err := this.Dsp.GetCurrentBlockHeight()
 	if err != nil {
 		return 0, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
@@ -69,14 +69,11 @@ func (this *Endpoint) GetBlockHeight() (uint32, *DspErr) {
 
 //get block hash by height
 func (this *Endpoint) GetBlockHash(height uint32) (string, *DspErr) {
-	hash, err := this.Dsp.Chain.GetBlockHash(uint32(height))
+	hash, err := this.Dsp.GetBlockHash(uint32(height))
 	if err != nil {
 		return "", &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
-	if hash == common.UINT256_EMPTY {
-		return "", &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: ErrMaps[CHAIN_INTERNAL_ERROR]}
-	}
-	return hash.ToHexString(), nil
+	return hash, nil
 }
 
 //get block by hash
@@ -89,7 +86,7 @@ func (this *Endpoint) GetBlockByHash(hash, raw string) (interface{}, *DspErr) {
 		getTxBytes = true
 	}
 
-	block, err := this.Dsp.Chain.GetBlockByHash(hash)
+	block, err := this.Dsp.GetBlockByHash(hash)
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
@@ -112,7 +109,7 @@ func (this *Endpoint) GetBlockHeightByTxHash(str string) (uint32, *DspErr) {
 	if len(str) == 0 {
 		return 0, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
 	}
-	height, err := this.Dsp.Chain.GetBlockHeightByTxHash(str)
+	height, err := this.Dsp.GetBlockHeightByTxHash(str)
 	if err != nil {
 		return height, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
@@ -121,7 +118,7 @@ func (this *Endpoint) GetBlockHeightByTxHash(str string) (uint32, *DspErr) {
 
 //get block transaction hashes by height
 func (this *Endpoint) GetBlockTxsByHeight(height uint32) (interface{}, *DspErr) {
-	data, err := this.Dsp.Chain.GetBlockTxHashesByHeight(uint32(height))
+	data, err := this.Dsp.GetBlockTxHashesByHeight(uint32(height))
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
@@ -135,7 +132,7 @@ func (this *Endpoint) GetBlockByHeight(height uint32, raw string) (interface{}, 
 	if raw == "1" {
 		getTxBytes = true
 	}
-	block, err := this.Dsp.Chain.GetBlockByHeight(height)
+	block, err := this.Dsp.GetBlockByHeight(height)
 	if err != nil || block == nil {
 		return nil, &DspErr{Code: CHAIN_UNKNOWN_BLOCK, Error: ErrMaps[CHAIN_UNKNOWN_BLOCK]}
 	}
@@ -150,7 +147,7 @@ func (this *Endpoint) GetBlockByHeight(height uint32, raw string) (interface{}, 
 
 //get transaction by hash
 func (this *Endpoint) GetTransactionByHash(hash, raw string) (interface{}, *DspErr) {
-	tx, err := this.Dsp.Chain.GetTransaction(hash)
+	tx, err := this.Dsp.GetTransaction(hash)
 	if tx == nil {
 		return nil, &DspErr{Code: CHAIN_UNKNOWN_TX, Error: ErrMaps[CHAIN_UNKNOWN_TX]}
 	}
@@ -171,7 +168,7 @@ func (this *Endpoint) GetTransactionByHash(hash, raw string) (interface{}, *DspE
 
 //get smartcontract event by height
 func (this *Endpoint) GetSmartCodeEventTxsByHeight(height uint32) (interface{}, *DspErr) {
-	eInfos, err := this.Dsp.Chain.GetSmartContractEventByBlock(uint32(height))
+	eInfos, err := this.Dsp.GetSmartContractEventByBlock(uint32(height))
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
@@ -183,7 +180,7 @@ func (this *Endpoint) GetSmartCodeEventTxsByHeight(height uint32) (interface{}, 
 
 //get smartcontract event by transaction hash
 func (this *Endpoint) GetSmartCodeEventByTxHash(hash string) (interface{}, *DspErr) {
-	notify, err := this.Dsp.Chain.GetSmartContractEvent(hash)
+	notify, err := this.Dsp.GetSmartContractEvent(hash)
 	if err != nil {
 		return "", &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
@@ -195,7 +192,7 @@ func (this *Endpoint) GetSmartCodeEventByTxHash(hash string) (interface{}, *DspE
 
 //get contract state
 func (this *Endpoint) GetContractState(hash, raw string) (interface{}, *DspErr) {
-	smartContract, err := this.Dsp.Chain.GetSmartContract(hash)
+	smartContract, err := this.Dsp.GetSmartContract(hash)
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
@@ -219,7 +216,7 @@ func (this *Endpoint) GetStorage(hash, key string) (string, *DspErr) {
 	if err != nil {
 		return "", &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
-	value, err := this.Dsp.Chain.GetStorage(hash, item)
+	value, err := this.Dsp.GetStorage(hash, item)
 	if err != nil {
 		return "", &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
@@ -244,7 +241,7 @@ func (this *Endpoint) GetBalance(address string) ([]*BalanceResp, *DspErr) {
 	if this.Dsp == nil {
 		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
-	usdt, err := this.Dsp.Chain.Native.Usdt.BalanceOf(addr)
+	usdt, err := this.Dsp.BalanceOf(addr)
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
@@ -295,7 +292,7 @@ func (this *Endpoint) GetBalanceHistory(address, limitStr string) ([]*BalanceHis
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
 	}
 
-	bal, err := this.Dsp.Chain.Native.Usdt.BalanceOf(addr)
+	bal, err := this.Dsp.BalanceOf(addr)
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
@@ -444,7 +441,7 @@ func (this *Endpoint) GetBalanceHistory(address, limitStr string) ([]*BalanceHis
 
 //get merkle proof by transaction hash
 func (this *Endpoint) GetMerkleProof(hash string) (interface{}, *DspErr) {
-	proof, err := this.Dsp.Chain.GetMerkleProof(hash)
+	proof, err := this.Dsp.GetMerkleProof(hash)
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
@@ -455,7 +452,7 @@ func (this *Endpoint) GetMerkleProof(hash string) (interface{}, *DspErr) {
 //[TODO] need change themis hCom.GetGasPrice return gasprice and height as string
 //[TODO] or just return gasprice
 func (this *Endpoint) GetGasPrice() (uint64, *DspErr) {
-	price, err := this.Dsp.Chain.GetGasPrice()
+	price, err := this.Dsp.GetGasPrice()
 	if err != nil {
 		return 0, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
@@ -481,7 +478,7 @@ func (this *Endpoint) GetAllowance(asset, from, to string) (string, *DspErr) {
 
 //get memory pool transaction count
 func (this *Endpoint) GetMemPoolTxCount() (interface{}, *DspErr) {
-	cnt, err := this.Dsp.Chain.GetMemPoolTxCount()
+	cnt, err := this.Dsp.GetMemPoolTxCount()
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
@@ -490,7 +487,7 @@ func (this *Endpoint) GetMemPoolTxCount() (interface{}, *DspErr) {
 
 //get memory poll transaction state
 func (this *Endpoint) GetMemPoolTxState(hash string) (interface{}, *DspErr) {
-	state, err := this.Dsp.Chain.GetMemPoolTxState(hash)
+	state, err := this.Dsp.GetMemPoolTxState(hash)
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
@@ -545,7 +542,7 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 		limit = uint32(limit64)
 	}
 
-	currentHeight, err := this.Dsp.Chain.GetCurrentBlockHeight()
+	currentHeight, err := this.Dsp.GetCurrentBlockHeight()
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
 	}
@@ -565,7 +562,7 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 	}
 
 	txs := make([]*TxResp, 0)
-	events, err := this.Dsp.Chain.GetSmartContractEventByEventId(usdt.USDT_CONTRACT_ADDRESS.ToBase58(), addr, cUsdt.EVENT_USDT_STATE_CHANGE)
+	events, err := this.Dsp.GetSmartContractEventByEventId(usdt.USDT_CONTRACT_ADDRESS.ToBase58(), addr, cUsdt.EVENT_USDT_STATE_CHANGE)
 	log.Debugf("events-len %d, addr %s-%s-%d skipTxCnt %d", len(events), usdt.USDT_CONTRACT_ADDRESS.ToBase58(), addr, cUsdt.EVENT_USDT_STATE_CHANGE, skipTxCnt)
 	if err != nil {
 		return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
@@ -575,14 +572,14 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 	hasSkip := uint64(0)
 	for i := len(events) - 1; i >= 0; i-- {
 		event := events[i]
-		blockHeight, err := this.Dsp.Chain.GetBlockHeightByTxHash(event.TxHash)
+		blockHeight, err := this.Dsp.GetBlockHeightByTxHash(event.TxHash)
 		if err != nil {
 			continue
 		}
 		if blockHeight > height {
 			continue
 		}
-		blk, err := this.Dsp.Chain.GetBlockByHeight(blockHeight)
+		blk, err := this.Dsp.GetBlockByHeight(blockHeight)
 		if err != nil {
 			continue
 		}
@@ -658,7 +655,7 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 
 // GetAccountSmartContractEventByBlock. get smartcontract event for current account by block height
 func (this *Endpoint) GetAccountSmartContractEventByBlock(height uint32) (*sdkCom.SmartContactEvent, error) {
-	event, err := this.Dsp.Chain.GetSmartContractEventByBlock(height)
+	event, err := this.Dsp.GetSmartContractEventByBlock(height)
 	if err != nil {
 		return nil, err
 	}
@@ -677,7 +674,7 @@ func (this *Endpoint) GetAccountSmartContractEventByBlock(height uint32) (*sdkCo
 			if !ok || states[0].(string) != "transfer" || len(states) != 4 {
 				continue
 			}
-			curWalletAddr := this.Dsp.Account.Address.ToBase58()
+			curWalletAddr := this.Dsp.WalletAddress()
 			if states[1] != curWalletAddr && states[2] != curWalletAddr {
 				continue
 			}
@@ -709,18 +706,17 @@ func (this *Endpoint) AssetTransferDirect(to, asset, amountStr string) (string, 
 		if err != nil {
 			return "", &DspErr{Code: INVALID_WALLET_ADDRESS, Error: err}
 		}
-		balance, err := this.Dsp.Chain.Native.Usdt.BalanceOf(acc.Address)
+		balance, err := this.Dsp.BalanceOf(acc.Address)
 		if err != nil {
 			return "", &DspErr{Code: CHAIN_TRANSFER_ERROR, Error: err}
 		}
 		if balance < realAmount+chainCfg.DEFAULT_GAS_PRICE*chainCfg.DEFAULT_GAS_LIMIT {
 			return "", &DspErr{Code: INSUFFICIENT_BALANCE, Error: ErrMaps[INSUFFICIENT_BALANCE]}
 		}
-		txHash, err := this.Dsp.Chain.Native.Usdt.Transfer(chainCfg.DEFAULT_GAS_PRICE, chainCfg.DEFAULT_GAS_LIMIT, acc, toAddr, realAmount)
+		tx, err := this.Dsp.Transfer(chainCfg.DEFAULT_GAS_PRICE, chainCfg.DEFAULT_GAS_LIMIT, acc, toAddr, realAmount)
 		if err != nil {
 			return "", &DspErr{Code: CHAIN_TRANSFER_ERROR, Error: err}
 		}
-		tx := hex.EncodeToString(common.ToArrayReverse(txHash[:]))
 		return tx, nil
 	}
 	return "", &DspErr{Code: CHAIN_UNKNOWN_ASSET, Error: ErrMaps[CHAIN_UNKNOWN_ASSET]}
@@ -758,6 +754,7 @@ func (this *Endpoint) SwitchChain(chainId, configFileName string) *DspErr {
 	if err != nil {
 		return &DspErr{Code: INTERNAL_ERROR, Error: err}
 	}
+	this.initLog()
 	go func() {
 		log.Debugf("restart dsp")
 		err = StartDspNode(this, true, true, true)
@@ -815,11 +812,8 @@ func (this *Endpoint) InvokeNativeContract(version byte, contractAddr, method st
 	if gasLimit == 0 {
 		gasLimit = chainCfg.DEFAULT_GAS_LIMIT
 	}
-	txHash, err := this.Dsp.Chain.InvokeNativeContract(gasPrice, gasLimit, acc, version, contractAddress, method, []interface{}{buf})
-	if err != nil {
-		return "", &DspErr{Code: CONTRACT_ERROR, Error: err}
-	}
-	return hex.EncodeToString(common.ToArrayReverse(txHash[:])), nil
+	tx, err := this.Dsp.InvokeNativeContract(gasPrice, gasLimit, acc, version, contractAddress, method, []interface{}{buf})
+	return tx, nil
 }
 
 func (this *Endpoint) PreExecNativeContract(version byte, contractAddr, method string, params []interface{}) (interface{}, *DspErr) {
@@ -831,7 +825,7 @@ func (this *Endpoint) PreExecNativeContract(version byte, contractAddr, method s
 	if err != nil {
 		return "", &DspErr{Code: INVALID_PARAMS, Error: err}
 	}
-	ret, err := this.Dsp.Chain.PreExecInvokeNativeContract(contractAddress, version, method, []interface{}{buf})
+	ret, err := this.Dsp.PreExecInvokeNativeContract(contractAddress, version, method, []interface{}{buf})
 	if err != nil {
 		return nil, &DspErr{Code: CONTRACT_ERROR, Error: err}
 	}

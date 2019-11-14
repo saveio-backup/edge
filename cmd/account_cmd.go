@@ -9,6 +9,7 @@ import (
 
 	"github.com/saveio/edge/cmd/flags"
 	cmdutil "github.com/saveio/edge/cmd/utils"
+	eUtils "github.com/saveio/edge/utils"
 	"github.com/saveio/themis/account"
 	"github.com/saveio/themis/cmd/common"
 	"github.com/saveio/themis/cmd/utils"
@@ -459,8 +460,8 @@ func accountExport(ctx *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		password := string(pwd)
-		ret, err := cmdutil.ExportPrivateKey(password)
+		pwdHash := eUtils.Sha256HexStr(string(pwd))
+		ret, err := cmdutil.ExportPrivateKey(pwdHash)
 		if err != nil {
 			return err
 		}

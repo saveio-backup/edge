@@ -7,6 +7,7 @@ import (
 
 	"github.com/saveio/edge/cmd/flags"
 	"github.com/saveio/edge/cmd/utils"
+	eUtils "github.com/saveio/edge/utils"
 	"github.com/saveio/themis/common/password"
 
 	"github.com/urfave/cli"
@@ -134,7 +135,8 @@ func openChannel(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	ret, err := utils.OpenPaymentChannel(partnerAddr, string(pwd))
+	pwdHash := eUtils.Sha256HexStr(string(pwd))
+	ret, err := utils.OpenPaymentChannel(partnerAddr, pwdHash)
 	if err != nil {
 		return err
 	}
@@ -153,8 +155,8 @@ func closeChannel(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-
-	err = utils.ClosePaymentChannel(partnerAddr, string(pwd))
+	pwdHash := eUtils.Sha256HexStr(string(pwd))
+	err = utils.ClosePaymentChannel(partnerAddr, pwdHash)
 	if err != nil {
 		return err
 	}
@@ -174,7 +176,8 @@ func depositToChannel(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	_, err = utils.DepositToChannel(partnerAddr, totalDeposit, string(pwd))
+	pwdHash := eUtils.Sha256HexStr(string(pwd))
+	_, err = utils.DepositToChannel(partnerAddr, totalDeposit, pwdHash)
 	if err != nil {
 		PrintErrorMsg("%s", err)
 		return err
@@ -233,7 +236,8 @@ func withdrawChannel(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	_, err = utils.WithdrawChannel(partnerAddr, totalDeposit, string(pwd))
+	pwdHash := eUtils.Sha256HexStr(string(pwd))
+	_, err = utils.WithdrawChannel(partnerAddr, totalDeposit, pwdHash)
 	if err != nil {
 		PrintErrorMsg("%s", err)
 		return err

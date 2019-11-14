@@ -46,16 +46,16 @@
     "TrackerNetworkId": 1567481543,
     "TrackerProtocol": "tcp",
     "TrackerPortOffset": 337,
-    "SeedInterval": 3600,
+    "SeedInterval": 600,
     "Trackers": [],
     "WalletDir": "./wallet.dat"
   },
   "Fs": {
     "FsRepoRoot": "./FS",
     "FsFileRoot": "./Downloads",
-    "FsType": 0,
+    "FsType": 1,
     "FsGCPeriod": "1h",
-    "EnableBackup": false
+    "EnableBackup": true
   },
   "Bootstraps": []
 }

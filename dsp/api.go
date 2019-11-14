@@ -14,10 +14,10 @@ import (
 	"github.com/saveio/pylons"
 
 	carNet "github.com/saveio/carrier/network"
-	dsp "github.com/saveio/dsp-go-sdk"
 	dspActorClient "github.com/saveio/dsp-go-sdk/actor/client"
 	dspCom "github.com/saveio/dsp-go-sdk/common"
 	dspCfg "github.com/saveio/dsp-go-sdk/config"
+	"github.com/saveio/dsp-go-sdk/dsp"
 	"github.com/saveio/edge/common"
 	"github.com/saveio/edge/common/config"
 	"github.com/saveio/edge/dsp/storage"
@@ -135,8 +135,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		return err
 	}
 	endpoint.sqliteDB = sqliteDB
-
-	//Skip init fs if Dsp doesn't start listen
+	// Skip init fs if Dsp doesn't start listen
 	if !startListen {
 		dspConfig.FsRepoRoot = ""
 	}
@@ -178,7 +177,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		log.Debugf("start channel at %s", endpoint.channelPublicAddr)
 		endpoint.updateStorageNodeHost()
 		if err := endpoint.registerChannelEndpoint(); err != nil {
-			return err
+			log.Warnf("register endpoint failed err %s", err)
 		}
 		log.Debugf("update node finished")
 		if endpoint.Account == nil {
@@ -190,12 +189,8 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 			return err
 		}
 		if startShare {
-			// TODO: price needed to be discuss
-			dspSrv.SetUnitPriceForAllFile(dspCom.ASSET_USDT, common.DSP_DOWNLOAD_UNIT_PRICE)
-			endpoint.Dsp.PushLocalFilesToTrackers()
-			go dspSrv.StartShareServices()
+			go endpoint.startShareService()
 		}
-
 	}
 	// start channel only
 	if !startListen && startChannel {
@@ -222,30 +217,30 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 }
 
 // Stop. stop endpoint instance
-func (e *Endpoint) Stop() error {
-	if e.p2pActor != nil {
-		err := e.p2pActor.Stop()
+func (this *Endpoint) Stop() error {
+	if this.p2pActor != nil {
+		err := this.p2pActor.Stop()
 		if err != nil {
 			return err
 		}
 	}
-	if e.closeCh != nil {
-		close(e.closeCh)
+	if this.closeCh != nil {
+		close(this.closeCh)
 	}
-	err := e.sqliteDB.Close()
+	err := this.sqliteDB.Close()
 	if err != nil {
 		return err
 	}
-	e.ResetChannelProgress()
-	return e.Dsp.Stop()
+	this.ResetChannelProgress()
+	return this.Dsp.Stop()
 }
 
-func (e *Endpoint) startDspP2P(dspListenAddr string, acc *account.Account) error {
+func (this *Endpoint) startDspP2P(dspListenAddr string, acc *account.Account) error {
 	bPub := keypair.SerializePublicKey(acc.PubKey())
 	networkKey := utils.NewNetworkEd25519KeyPair(bPub, []byte("dsp"))
 	dspNetwork := network.NewP2P()
 	dspNetwork.SetNetworkKey(networkKey)
-	dspNetwork.SetHandler(e.Dsp.Receive)
+	dspNetwork.SetHandler(this.Dsp.Receive)
 	f := utils.TimeoutFunc(func() error {
 		return dspNetwork.Start(dspListenAddr)
 	})
@@ -253,18 +248,17 @@ func (e *Endpoint) startDspP2P(dspListenAddr string, acc *account.Account) error
 	if err != nil {
 		return err
 	}
-
-	e.p2pActor.SetDspNetwork(dspNetwork)
-	e.dspNet = dspNetwork
-	e.dspPublicAddr = dspNetwork.PublicAddr()
+	this.p2pActor.SetDspNetwork(dspNetwork)
+	this.dspNet = dspNetwork
+	this.dspPublicAddr = dspNetwork.PublicAddr()
 	return nil
 }
 
-func (e *Endpoint) startChannelP2P(channelListenAddr string, acc *account.Account) error {
+func (this *Endpoint) startChannelP2P(channelListenAddr string, acc *account.Account) error {
 	channelNetwork := network.NewP2P()
 	bPub := keypair.SerializePublicKey(acc.PubKey())
 	channelNetwork.Keys = utils.NewNetworkEd25519KeyPair(bPub, []byte("channel"))
-	req.SetChannelPid(e.Dsp.Channel.GetChannelPid())
+	req.SetChannelPid(this.Dsp.GetChannelPid())
 	f := utils.TimeoutFunc(func() error {
 		return channelNetwork.Start(channelListenAddr)
 	})
@@ -272,13 +266,13 @@ func (e *Endpoint) startChannelP2P(channelListenAddr string, acc *account.Accoun
 	if err != nil {
 		return err
 	}
-	e.p2pActor.SetChannelNetwork(channelNetwork)
-	e.channelPublicAddr = channelNetwork.PublicAddr()
-	e.channelNet = channelNetwork
+	this.p2pActor.SetChannelNetwork(channelNetwork)
+	this.channelPublicAddr = channelNetwork.PublicAddr()
+	this.channelNet = channelNetwork
 	return nil
 }
 
-func (e *Endpoint) startTrackerP2P(tkListenAddr string, acc *account.Account) error {
+func (this *Endpoint) startTrackerP2P(tkListenAddr string, acc *account.Account) error {
 	tkSrc := tk.NewTrackerService(nil, acc.PublicKey, func(raw []byte) ([]byte, error) {
 		return chainSdk.Sign(acc, raw)
 	})
@@ -296,7 +290,7 @@ func (e *Endpoint) startTrackerP2P(tkListenAddr string, acc *account.Account) er
 	tk_net.TkP2p = tkNet
 	tkActServer.SetNetwork(tkNet)
 	tkActClient.SetTrackerServerPid(tkActServer.GetLocalPID())
-	e.p2pActor.SetTrackerNet(tkActServer)
+	this.p2pActor.SetTrackerNet(tkActServer)
 
 	f := utils.TimeoutFunc(func() error {
 		err := tkNet.Start(tkListenAddr, config.Parameters.BaseConfig.TrackerNetworkId)
@@ -309,11 +303,11 @@ func (e *Endpoint) startTrackerP2P(tkListenAddr string, acc *account.Account) er
 	return utils.DoWithTimeout(f, time.Duration(common.START_P2P_TIMEOUT)*time.Second)
 }
 
-func (e *Endpoint) registerChannelEndpoint() error {
-	walletAddr := e.Dsp.Account.Address
-	publicAddr := e.channelNet.PublicAddr()
+func (this *Endpoint) registerChannelEndpoint() error {
+	walletAddr := this.Dsp.Address()
+	publicAddr := this.channelNet.PublicAddr()
 	for i := 0; i < common.MAX_REG_CHANNEL_TIMES; i++ {
-		err := e.Dsp.RegNodeEndpoint(walletAddr, publicAddr)
+		err := this.Dsp.RegNodeEndpoint(walletAddr, publicAddr)
 		log.Debugf("register endpoint for channel %s, err %s", publicAddr, err)
 		if err == nil {
 			return nil
@@ -322,7 +316,7 @@ func (e *Endpoint) registerChannelEndpoint() error {
 		select {
 		case <-time.After(time.Duration(common.MAX_REG_CHANNEL_BACKOFF) * time.Second):
 			continue
-		case <-e.closeCh:
+		case <-this.closeCh:
 			return errors.New("stop register endpoint because edge is closed")
 		}
 	}
@@ -330,8 +324,8 @@ func (e *Endpoint) registerChannelEndpoint() error {
 	return fmt.Errorf("register channel endpoint timeout")
 }
 
-func (e *Endpoint) updateStorageNodeHost() {
-	nodeInfo, err := e.NodeQuery(e.Account.Address.ToBase58())
+func (this *Endpoint) updateStorageNodeHost() {
+	nodeInfo, err := this.NodeQuery(this.Account.Address.ToBase58())
 	if err != nil || nodeInfo == nil {
 		return
 	}
@@ -342,23 +336,33 @@ func (e *Endpoint) updateStorageNodeHost() {
 		return
 	}
 	log.Debugf("update it %v %v %v", publicAddr, nodeInfo.Volume, nodeInfo.ServiceTime)
-	_, err = e.NodeUpdate(publicAddr, nodeInfo.Volume, nodeInfo.ServiceTime)
+	_, err = this.NodeUpdate(publicAddr, nodeInfo.Volume, nodeInfo.ServiceTime)
 	log.Debugf("update node result")
 	if err != nil {
 		log.Errorf("update node addr failed, err %s", err)
 	}
 }
 
+func (this *Endpoint) startShareService() {
+	// TODO: price needed to be discuss
+	this.Dsp.SetUnitPriceForAllFile(dspCom.ASSET_USDT, common.DSP_DOWNLOAD_UNIT_PRICE)
+	_, files, err := this.Dsp.AllDownloadFiles()
+	if err == nil {
+		this.Dsp.PushFilesToTrackers(files)
+	}
+	this.Dsp.StartShareServices()
+}
+
 // SetupDNSNodeBackground. setup a dns node background when received first payments.
-func (e *Endpoint) setupDNSNodeBackground() {
+func (this *Endpoint) setupDNSNodeBackground() {
 	if !config.Parameters.BaseConfig.AutoSetupDNSEnable {
 		return
 	}
-	allChannels := e.Dsp.Channel.GetAllPartners()
+	allChannels := this.Dsp.GetAllPartners()
 	log.Debugf("setup dns node len %v", len(allChannels))
 	setup := func() bool {
-		syncing, derr := e.IsChannelProcessBlocks()
-		// progress, derr := e.GetFilterBlockProgress()
+		syncing, derr := this.IsChannelProcessBlocks()
+		// progress, derr := this.GetFilterBlockProgress()
 		if derr != nil {
 			log.Errorf("setup dns channel syncing block err %s", derr)
 			return false
@@ -369,19 +373,19 @@ func (e *Endpoint) setupDNSNodeBackground() {
 		}
 
 		if len(allChannels) > 0 {
-			err := e.Dsp.SetupDNSChannels()
+			err := this.Dsp.SetupDNSChannels()
 			if err != nil {
 				log.Errorf("SetupDNSChannels err %s", err)
 				return false
 			}
 			return true
 		}
-		address, err := chainCom.AddressFromBase58(e.Dsp.WalletAddress())
+		address, err := chainCom.AddressFromBase58(this.Dsp.WalletAddress())
 		if err != nil {
 			log.Errorf("setup dns failed address decoded failed")
 			return false
 		}
-		bal, err := e.Dsp.Chain.Native.Usdt.BalanceOf(address)
+		bal, err := this.Dsp.BalanceOf(address)
 		if bal == 0 || err != nil {
 			log.Errorf("setup dns failed balance is 0")
 			return false
@@ -390,7 +394,7 @@ func (e *Endpoint) setupDNSNodeBackground() {
 			log.Errorf("setup dns failed balance not enough %d", bal)
 			return false
 		}
-		err = e.Dsp.SetupDNSChannels()
+		err = this.Dsp.SetupDNSChannels()
 		if err != nil {
 			log.Errorf("setup dns channel err %s", err)
 			return false
@@ -407,52 +411,56 @@ func (e *Endpoint) setupDNSNodeBackground() {
 			if setup() {
 				return
 			}
-		case <-e.closeCh:
+		case <-this.closeCh:
 			ti.Stop()
 			return
 		}
 	}
 }
 
-func (e *Endpoint) stateChangeService() {
+func (this *Endpoint) stateChangeService() {
 	log.Debugf("start stateChangeService")
 	ti := time.NewTicker(time.Duration(common.MAX_STATE_CHANGE_CHECK_INTERVAL) * time.Second)
 	for {
 		select {
 		case <-ti.C:
 			// check log file size
-			go e.checkGoRoutineNum()
-			go e.checkLogFileSize()
-			if e.dspPublicAddr != e.dspNet.PublicAddr() {
-				log.Debugf("dsp public address has change, old addr: %s, new addr:%s", e.dspPublicAddr, e.dspNet.PublicAddr())
-				e.dspPublicAddr = e.dspNet.PublicAddr()
-				go e.updateStorageNodeHost()
+			go this.checkGoRoutineNum()
+			go this.checkLogFileSize()
+			if this.dspPublicAddr != this.dspNet.PublicAddr() {
+				log.Debugf("dsp public address has change, old addr: %s, new addr:%s", this.dspPublicAddr, this.dspNet.PublicAddr())
+				this.dspPublicAddr = this.dspNet.PublicAddr()
+				go this.updateStorageNodeHost()
 			}
-			if e.channelPublicAddr != e.channelNet.PublicAddr() {
-				log.Debugf("channel public address has change, old addr: %s, new addr:%s", e.channelPublicAddr, e.channelNet.PublicAddr())
-				e.channelPublicAddr = e.channelNet.PublicAddr()
-				go e.registerChannelEndpoint()
+			if this.channelPublicAddr != this.channelNet.PublicAddr() {
+				log.Debugf("channel public address has change, old addr: %s, new addr:%s", this.channelPublicAddr, this.channelNet.PublicAddr())
+				this.channelPublicAddr = this.channelNet.PublicAddr()
+				go this.registerChannelEndpoint()
 			}
-			go e.checkOnlineDNS()
-			go e.notifyChannelProgress()
-			go e.notifyNewSmartContractEvent()
-			go e.notifyNewNetworkState()
-		case <-e.closeCh:
+			go this.checkOnlineDNS()
+			go this.notifyChannelProgress()
+			go this.notifyNewSmartContractEvent()
+			go this.notifyNewNetworkState()
+		case <-this.closeCh:
 			ti.Stop()
 			return
 		}
 	}
 }
 
-func (e *Endpoint) checkGoRoutineNum() {
+func (this *Endpoint) checkGoRoutineNum() {
 	log.Debugf("go routine num: %d", runtime.NumGoroutine())
 }
 
-func (e *Endpoint) checkLogFileSize() {
+func (this *Endpoint) checkLogFileSize() {
 	isNeedNewFile := log.CheckIfNeedNewFile()
 	if !isNeedNewFile {
 		return
 	}
+	this.initLog()
+}
+
+func (this *Endpoint) initLog() {
 	log.ClosePrintLog()
 	logPath := config.Parameters.BaseConfig.LogPath
 	baseDir := config.Parameters.BaseConfig.BaseDir
@@ -466,8 +474,9 @@ func (e *Endpoint) checkLogFileSize() {
 	log.InitLog(int(config.Parameters.BaseConfig.LogLevel), logFullPath, log.Stdout)
 }
 
-func (e *Endpoint) checkOnlineDNS() {
-	if e.Dsp.DNS == nil || e.Dsp.DNS.DNSNode == nil {
-		e.Dsp.BootstrapDNS()
+func (this *Endpoint) checkOnlineDNS() {
+	if this.Dsp.HasDNS() {
+		return
 	}
+	this.Dsp.BootstrapDNS()
 }
