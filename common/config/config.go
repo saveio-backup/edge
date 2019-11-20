@@ -253,6 +253,7 @@ func SwitchConfig(cfgFileName string) error {
 	}
 	dir, _ := filepath.Split(configDir)
 	configDir = filepath.Join(dir, cfgFileName)
+	newCfg.BaseConfig.BaseDir = Parameters.BaseConfig.BaseDir
 	Parameters = newCfg
 	return nil
 }
