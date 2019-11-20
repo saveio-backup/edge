@@ -1296,6 +1296,10 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uin
 		}
 
 		nodesDetail := make([]NodeProveDetail, 0, proveDetail.ProveDetailNum)
+		primaryNodeM := make(map[chainCom.Address]struct{}, 0)
+		for _, primN := range fi.PrimaryNodes.AddrList {
+			primaryNodeM[primN] = struct{}{}
+		}
 		for _, detail := range proveDetail.ProveDetails {
 			nodeState := 2
 			if detail.ProveTimes > 0 {
@@ -1306,6 +1310,12 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uin
 				WalletAddr:  detail.WalletAddr.ToBase58(),
 				PdpProveNum: detail.ProveTimes,
 				State:       nodeState,
+			})
+			delete(primaryNodeM, detail.WalletAddr)
+		}
+		for addr, _ := range primaryNodeM {
+			nodesDetail = append(nodesDetail, NodeProveDetail{
+				WalletAddr: addr.ToBase58(),
 			})
 		}
 

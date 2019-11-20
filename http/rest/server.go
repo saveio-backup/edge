@@ -665,7 +665,7 @@ func (this *restServer) write(w http.ResponseWriter, data []byte) {
 
 func (this *restServer) checkDspService(url, method string) (int64, string) {
 	if method == "GET" {
-		skipCheck := []string{EXPORT_WALLETFILE, EXPORT_WIFPRIVATEKEY, GET_CURRENT_ACCOUNT}
+		skipCheck := []string{EXPORT_WALLETFILE, EXPORT_WIFPRIVATEKEY, GET_CURRENT_ACCOUNT, GET_CHAINID_LIST}
 		for _, skip := range skipCheck {
 			if url == skip {
 				return dsp.SUCCESS, ""
