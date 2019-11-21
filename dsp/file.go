@@ -135,6 +135,7 @@ type NodeProveDetail struct {
 	WalletAddr  string
 	PdpProveNum uint64
 	State       int
+	Index       int
 }
 
 type DownloadFilesInfo struct {
@@ -212,6 +213,14 @@ type FileTaskResp struct {
 	Tasks []*FileTask
 }
 
+type UploadFileFliterType int
+
+const (
+	UploadFileFliterTypeAll UploadFileFliterType = iota
+	UploadFileFliterTypeDoing
+	UploadFileFliterTypeDone
+)
+
 func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, privilegeVal, copyNumVal, storageTypeVal interface{},
 	encryptPwd, url string, whitelist []string, share bool) (*fs.UploadOption, *DspErr) {
 	f, err := os.Stat(path)
@@ -230,6 +239,13 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, pr
 	currentHeight, err := this.Dsp.GetCurrentBlockHeight()
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
+	}
+	bal, err := this.Dsp.BalanceOf(this.Dsp.Address())
+	if err != nil {
+		return nil, &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
+	}
+	if bal == 0 {
+		return nil, &DspErr{Code: INSUFFICIENT_BALANCE, Error: err}
 	}
 	interval, ok := intervalVal.(float64)
 	interval = interval / float64(config.BlockTime())
@@ -372,6 +388,18 @@ func (this *Endpoint) PauseUploadFile(taskIds []string) *FileTaskResp {
 }
 
 func (this *Endpoint) ResumeUploadFile(taskIds []string) *FileTaskResp {
+	bal, err := this.Dsp.BalanceOf(this.Dsp.Address())
+	if err != nil || bal == 0 {
+		resp := &FileTaskResp{
+			Tasks: make([]*FileTask, 0, len(taskIds)),
+		}
+		for i, id := range taskIds {
+			resp.Tasks[i].Id = id
+			resp.Tasks[i].Code = INSUFFICIENT_BALANCE
+			resp.Tasks[i].Error = ErrMaps[INSUFFICIENT_BALANCE].Error()
+		}
+		return resp
+	}
 	resp := &FileTaskResp{
 		Tasks: make([]*FileTask, 0, len(taskIds)),
 	}
@@ -405,6 +433,18 @@ func (this *Endpoint) ResumeUploadFile(taskIds []string) *FileTaskResp {
 }
 
 func (this *Endpoint) RetryUploadFile(taskIds []string) *FileTaskResp {
+	bal, err := this.Dsp.BalanceOf(this.Dsp.Address())
+	if err != nil || bal == 0 {
+		resp := &FileTaskResp{
+			Tasks: make([]*FileTask, 0, len(taskIds)),
+		}
+		for i, id := range taskIds {
+			resp.Tasks[i].Id = id
+			resp.Tasks[i].Code = INSUFFICIENT_BALANCE
+			resp.Tasks[i].Error = ErrMaps[INSUFFICIENT_BALANCE].Error()
+		}
+		return resp
+	}
 	resp := &FileTaskResp{
 		Tasks: make([]*FileTask, 0, len(taskIds)),
 	}
@@ -437,6 +477,18 @@ func (this *Endpoint) RetryUploadFile(taskIds []string) *FileTaskResp {
 }
 
 func (this *Endpoint) CancelUploadFile(taskIds []string) *FileTaskResp {
+	bal, err := this.Dsp.BalanceOf(this.Dsp.Address())
+	if err != nil || bal == 0 {
+		resp := &FileTaskResp{
+			Tasks: make([]*FileTask, 0, len(taskIds)),
+		}
+		for i, id := range taskIds {
+			resp.Tasks[i].Id = id
+			resp.Tasks[i].Code = INSUFFICIENT_BALANCE
+			resp.Tasks[i].Error = ErrMaps[INSUFFICIENT_BALANCE].Error()
+		}
+		return resp
+	}
 	resp := &FileTaskResp{
 		Tasks: make([]*FileTask, 0, len(taskIds)),
 	}
@@ -1246,99 +1298,112 @@ func (this *Endpoint) RegisterShareNotificationCh() {
 	}
 }
 
-func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uint64) ([]*FileResp, *DspErr) {
+func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uint64, fliterType UploadFileFliterType) ([]*FileResp, *DspErr) {
 	fileList, err := this.Dsp.GetFileList(this.Dsp.Address())
 	if err != nil {
 		return nil, &DspErr{Code: FS_GET_FILE_LIST_FAILED, Error: err}
 	}
-
 	now, err := this.Dsp.GetCurrentBlockHeight()
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
 	}
-
 	files := make([]*FileResp, 0)
 	offsetCnt := uint64(0)
-	for _, hash := range fileList.List {
-		fileHashStr := string(hash.Hash)
-		fi, err := this.Dsp.GetFileInfo(fileHashStr)
-		if err != nil || fi == nil {
-			log.Errorf("get file info err %s", err)
+	requestFileHashes := make([]string, 0)
+	for listIndex, hash := range fileList.List {
+		requestFileHashes = append(requestFileHashes, string(hash.Hash))
+		if len(requestFileHashes) < 20 && uint64(listIndex) != fileList.FileNum-1 {
 			continue
 		}
-		// 0: all, 1. image, 2. document. 3. video, 4. music
-		fileName := strings.ToLower(string(fi.FileDesc))
-		if !FileNameMatchType(fileType, fileName) {
-			continue
-		}
-		if offsetCnt < offset {
-			offsetCnt++
-			continue
-		}
-		offsetCnt++
-
-		expired := fi.ExpiredHeight
-		nowUnix := uint64(time.Now().Unix())
-		expiredAt := blockHeightToTimestamp(uint64(now), expired, nowUnix)
-		updatedAt := uint64(time.Now().Unix())
-		if fi.BlockHeight > uint64(now) {
-			updatedAt -= (fi.BlockHeight - uint64(now)) * config.BlockTime()
-		} else {
-			updatedAt -= (uint64(now) - fi.BlockHeight) * config.BlockTime()
-		}
-		url := this.Dsp.GetUrlOfUploadedfile(fileHashStr)
-		downloadedCount, _ := this.sqliteDB.CountRecordByFileHash(fileHashStr)
-		profit, _ := this.sqliteDB.SumRecordsProfitByFileHash(fileHashStr)
-		proveDetail, err := this.Dsp.GetFileProveDetails(fileHashStr)
+		fileInfoList, err := this.Dsp.GetFileInfos(requestFileHashes)
 		if err != nil {
-			log.Errorf("get prove detail failed")
 			continue
 		}
-
-		nodesDetail := make([]NodeProveDetail, 0, proveDetail.ProveDetailNum)
-		primaryNodeM := make(map[chainCom.Address]struct{}, 0)
-		for _, primN := range fi.PrimaryNodes.AddrList {
-			primaryNodeM[primN] = struct{}{}
-		}
-		for _, detail := range proveDetail.ProveDetails {
-			nodeState := 2
-			if detail.ProveTimes > 0 {
-				nodeState = 3
+		requestFileHashes = requestFileHashes[:0]
+		for _, fi := range fileInfoList.List {
+			fileHashStr := string(fi.FileHash)
+			// 0: all, 1. image, 2. document. 3. video, 4. music
+			fileName := strings.ToLower(string(fi.FileDesc))
+			if !FileNameMatchType(fileType, fileName) {
+				continue
 			}
-			nodesDetail = append(nodesDetail, NodeProveDetail{
-				HostAddr:    string(detail.NodeAddr),
-				WalletAddr:  detail.WalletAddr.ToBase58(),
-				PdpProveNum: detail.ProveTimes,
-				State:       nodeState,
-			})
-			delete(primaryNodeM, detail.WalletAddr)
-		}
-		for addr, _ := range primaryNodeM {
-			nodesDetail = append(nodesDetail, NodeProveDetail{
-				WalletAddr: addr.ToBase58(),
-			})
-		}
+			if offsetCnt < offset {
+				offsetCnt++
+				continue
+			}
+			offsetCnt++
 
-		fr := &FileResp{
-			Hash:          string(hash.Hash),
-			Name:          string(fi.FileDesc),
-			Url:           url,
-			Size:          fi.FileBlockNum * fi.FileBlockSize,
-			DownloadCount: downloadedCount,
-			ExpiredAt:     expiredAt,
-			// TODO fix by db
-			UpdatedAt:     updatedAt,
-			Profit:        profit,
-			Privilege:     fi.Privilege,
-			CurrentHeight: uint64(now),
-			ExpiredHeight: expired,
-			StoreType:     fs.FileStoreType(fi.StorageType),
-			RealFileSize:  fi.RealFileSize,
-			Nodes:         nodesDetail,
-		}
-		files = append(files, fr)
-		if limit > 0 && uint64(len(files)) >= limit {
-			break
+			expired := fi.ExpiredHeight
+			nowUnix := uint64(time.Now().Unix())
+			expiredAt := blockHeightToTimestamp(uint64(now), expired, nowUnix)
+			updatedAt := uint64(time.Now().Unix())
+			if fi.BlockHeight > uint64(now) {
+				updatedAt -= (fi.BlockHeight - uint64(now)) * config.BlockTime()
+			} else {
+				updatedAt -= (uint64(now) - fi.BlockHeight) * config.BlockTime()
+			}
+			url := this.Dsp.GetUrlOfUploadedfile(fileHashStr)
+			downloadedCount, _ := this.sqliteDB.CountRecordByFileHash(fileHashStr)
+			profit, _ := this.sqliteDB.SumRecordsProfitByFileHash(fileHashStr)
+			proveDetail, err := this.Dsp.GetFileProveDetails(fileHashStr)
+			if err != nil {
+				log.Errorf("get prove detail failed")
+				continue
+			}
+
+			nodesDetail := make([]NodeProveDetail, 0, proveDetail.ProveDetailNum)
+			primaryNodeM := make(map[chainCom.Address]int, 0)
+			for index, primN := range fi.PrimaryNodes.AddrList {
+				primaryNodeM[primN] = index
+			}
+			for _, detail := range proveDetail.ProveDetails {
+				nodeState := 2
+				if detail.ProveTimes > 0 {
+					nodeState = 3
+				}
+				nodesDetail = append(nodesDetail, NodeProveDetail{
+					HostAddr:    string(detail.NodeAddr),
+					WalletAddr:  detail.WalletAddr.ToBase58(),
+					PdpProveNum: detail.ProveTimes,
+					State:       nodeState,
+					Index:       primaryNodeM[detail.WalletAddr],
+				})
+				delete(primaryNodeM, detail.WalletAddr)
+			}
+			if fliterType == UploadFileFliterTypeDoing && len(primaryNodeM) == 0 {
+				continue
+			}
+			if fliterType == UploadFileFliterTypeDone && len(primaryNodeM) > 0 {
+				continue
+			}
+			for addr, index := range primaryNodeM {
+				nodesDetail = append(nodesDetail, NodeProveDetail{
+					WalletAddr: addr.ToBase58(),
+					Index:      index,
+				})
+			}
+
+			fr := &FileResp{
+				Hash:          fileHashStr,
+				Name:          string(fi.FileDesc),
+				Url:           url,
+				Size:          fi.FileBlockNum * fi.FileBlockSize,
+				DownloadCount: downloadedCount,
+				ExpiredAt:     expiredAt,
+				// TODO fix by db
+				UpdatedAt:     updatedAt,
+				Profit:        profit,
+				Privilege:     fi.Privilege,
+				CurrentHeight: uint64(now),
+				ExpiredHeight: expired,
+				StoreType:     fs.FileStoreType(fi.StorageType),
+				RealFileSize:  fi.RealFileSize,
+				Nodes:         nodesDetail,
+			}
+			files = append(files, fr)
+			if limit > 0 && uint64(len(files)) >= limit {
+				return files, nil
+			}
 		}
 	}
 	return files, nil

@@ -239,7 +239,7 @@ func (self *WsServer) webSocketHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		e, ok := err.(net.Error)
 		if !ok || !e.Timeout() {
-			log.Infof("websocket conn:", err)
+			log.Infof("websocket conn: %s", err)
 			return
 		}
 	}

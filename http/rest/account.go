@@ -97,7 +97,8 @@ func ImportWithWalletData(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
-	acc, err := dsp.DspService.ImportWithWalletData(walletStr, password)
+	walletPath, _ := cmd["WalletPath"].(string)
+	acc, err := dsp.DspService.ImportWithWalletData(walletStr, password, walletPath)
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}

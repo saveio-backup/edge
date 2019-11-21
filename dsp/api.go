@@ -142,6 +142,8 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 	if !startChannel {
 		dspConfig.ChannelListenAddr = ""
 	}
+
+	// init DSP
 	p2pActor, err := p2p_actor.NewP2PActor()
 	if err != nil {
 		return err
@@ -153,52 +155,25 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 	}
 	endpoint.Dsp = dspSrv
 	version, _ := endpoint.GetNodeVersion()
-	if startListen {
-		// start tracker net
-		tkListenPort := int(config.Parameters.BaseConfig.PortBase + uint32(config.Parameters.BaseConfig.TrackerPortOffset))
-		tkListenAddr := fmt.Sprintf("%s://%s:%d", config.Parameters.BaseConfig.TrackerProtocol, listenHost, tkListenPort)
-		log.Debugf("TrackerProtocol: %v, listenAddr: %s", config.Parameters, tkListenAddr)
-		if err := endpoint.startTrackerP2P(tkListenAddr, endpoint.Account); err != nil {
-			return err
-		}
 
-		// start dsp net
-		dspListenPort := int(config.Parameters.BaseConfig.PortBase + uint32(config.Parameters.BaseConfig.DspPortOffset))
-		dspListenAddr := fmt.Sprintf("%s://%s:%d", config.Parameters.BaseConfig.DspProtocol, listenHost, dspListenPort)
-		if err := endpoint.startDspP2P(dspListenAddr, endpoint.Account); err != nil {
+	// start dsp service
+	if startListen {
+		if err = endpoint.startDspService(listenHost); err != nil {
 			return err
-		}
-		log.Debugf("start dsp at %s", endpoint.dspPublicAddr)
-		// start channel net
-		listenAddr := fmt.Sprintf("%s://%s", config.Parameters.BaseConfig.ChannelProtocol, dspConfig.ChannelListenAddr)
-		if err := endpoint.startChannelP2P(listenAddr, endpoint.Account); err != nil {
-			return err
-		}
-		log.Debugf("start channel at %s", endpoint.channelPublicAddr)
-		endpoint.updateStorageNodeHost()
-		if err := endpoint.registerChannelEndpoint(); err != nil {
-			log.Warnf("register endpoint failed err %s", err)
-		}
-		log.Debugf("update node finished")
-		if endpoint.Account == nil {
-			return errors.New("account is nil")
-		}
-		// setup filter block range before start
-		endpoint.SetFilterBlockRange()
-		if err := dspSrv.Start(); err != nil {
-			return err
-		}
-		if startShare {
-			go endpoint.startShareService()
 		}
 	}
+
+	// start share service
+	if startListen && startShare {
+		go endpoint.startShareService()
+	}
+
 	// start channel only
 	if !startListen && startChannel {
 		if err := dspSrv.StartChannelService(); err != nil {
 			return err
 		}
 	}
-
 	endpoint.closeCh = make(chan struct{}, 1)
 	if startListen {
 		go endpoint.setupDNSNodeBackground()
@@ -233,6 +208,53 @@ func (this *Endpoint) Stop() error {
 	}
 	this.ResetChannelProgress()
 	return this.Dsp.Stop()
+}
+
+func (this *Endpoint) startDspService(listenHost string) error {
+	// start tracker net
+	tkListenPort := int(config.Parameters.BaseConfig.PortBase + uint32(config.Parameters.BaseConfig.TrackerPortOffset))
+	tkListenAddr := fmt.Sprintf("%s://%s:%d", config.Parameters.BaseConfig.TrackerProtocol, listenHost, tkListenPort)
+	log.Debugf("TrackerProtocol: %v, listenAddr: %s", config.Parameters, tkListenAddr)
+	if err := this.startTrackerP2P(tkListenAddr, this.Account); err != nil {
+		return err
+	}
+	// start dsp net
+	dspListenPort := int(config.Parameters.BaseConfig.PortBase + uint32(config.Parameters.BaseConfig.DspPortOffset))
+	dspListenAddr := fmt.Sprintf("%s://%s:%d", config.Parameters.BaseConfig.DspProtocol, listenHost, dspListenPort)
+	if err := this.startDspP2P(dspListenAddr, this.Account); err != nil {
+		return err
+	}
+	log.Debugf("start dsp at %s", this.dspPublicAddr)
+	// start channel net
+	channelListenAddr := fmt.Sprintf("%s://%s:%d", config.Parameters.BaseConfig.ChannelProtocol, listenHost, int(config.Parameters.BaseConfig.PortBase+uint32(config.Parameters.BaseConfig.ChannelPortOffset)))
+	if err := this.startChannelP2P(channelListenAddr, this.Account); err != nil {
+		return err
+	}
+	log.Debugf("start channel at %s", this.channelPublicAddr)
+	this.updateStorageNodeHost()
+	if err := this.registerChannelEndpoint(); err != nil {
+		log.Warnf("register endpoint failed err %s", err)
+	}
+	log.Debugf("update node finished")
+	if this.Account == nil {
+		return errors.New("account is nil")
+	}
+	// setup filter block range before start
+	this.SetFilterBlockRange()
+	go func() {
+		for {
+			this.notifyChannelProgress()
+			if this.Dsp.Running() {
+				log.Debugf("return channel progress after runing")
+				return
+			}
+			<-time.After(time.Duration(2) * time.Second)
+		}
+	}()
+	if err := this.Dsp.Start(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (this *Endpoint) startDspP2P(dspListenAddr string, acc *account.Account) error {
@@ -424,6 +446,7 @@ func (this *Endpoint) stateChangeService() {
 	for {
 		select {
 		case <-ti.C:
+			log.Debugf("channel service....")
 			// check log file size
 			go this.checkGoRoutineNum()
 			go this.checkLogFileSize()
@@ -442,6 +465,7 @@ func (this *Endpoint) stateChangeService() {
 			go this.notifyNewSmartContractEvent()
 			go this.notifyNewNetworkState()
 		case <-this.closeCh:
+			log.Debugf("stop channel service")
 			ti.Stop()
 			return
 		}

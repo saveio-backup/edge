@@ -92,7 +92,7 @@ const (
 	DSP_CLIENT_GET_USER_SPACE      = "/api/v1/dsp/client/userspace/:addr"
 	DSP_USERSPACE_RECORDS          = "/api/v1/dsp/client/userspacerecords/:addr/:offset/:limit"
 
-	DSP_GET_UPLOAD_FILELIST      = "/api/v1/dsp/file/uploadlist/:type/:offset/:limit"
+	DSP_GET_UPLOAD_FILELIST      = "/api/v1/dsp/file/uploadlist/:type/:offset/:limit/:fliter"
 	DSP_GET_DOWNLOAD_FILELIST    = "/api/v1/dsp/file/downloadlist/:type/:offset/:limit"
 	DSP_GET_FILE_TRANSFERLIST    = "/api/v1/dsp/file/transferlist/:type/:offset/:limit"
 	DSP_DELETE_TRANSFER_RECORD   = "/api/v1/dsp/file/transferlist/delete"
@@ -383,7 +383,7 @@ func (this *restServer) getPath(url string) string {
 		return DSP_NODE_QUERY
 	} else if strings.Contains(url, strings.TrimSuffix(DSP_CLIENT_GET_USER_SPACE, ":addr")) {
 		return DSP_CLIENT_GET_USER_SPACE
-	} else if strings.Contains(url, strings.TrimSuffix(DSP_GET_UPLOAD_FILELIST, ":type/:offset/:limit")) {
+	} else if strings.Contains(url, strings.TrimSuffix(DSP_GET_UPLOAD_FILELIST, ":type/:offset/:limit/:fliter")) {
 		return DSP_GET_UPLOAD_FILELIST
 	} else if strings.Contains(url, strings.TrimSuffix(DSP_GET_DOWNLOAD_FILELIST, ":type/:offset/:limit")) {
 		return DSP_GET_DOWNLOAD_FILELIST
@@ -512,7 +512,7 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 	case DSP_CLIENT_GET_USER_SPACE:
 		req["Addr"] = getParam(r, "addr")
 	case DSP_GET_UPLOAD_FILELIST:
-		req["Type"], req["Offset"], req["Limit"] = getParam(r, "type"), getParam(r, "offset"), getParam(r, "limit")
+		req["Type"], req["Offset"], req["Limit"], req["Fliter"] = getParam(r, "type"), getParam(r, "offset"), getParam(r, "limit"), getParam(r, "fliter")
 	case DSP_GET_DOWNLOAD_FILELIST:
 		req["Type"], req["Offset"], req["Limit"] = getParam(r, "type"), getParam(r, "offset"), getParam(r, "limit")
 	case DSP_GET_FILE_TRANSFERLIST:
@@ -665,14 +665,14 @@ func (this *restServer) write(w http.ResponseWriter, data []byte) {
 
 func (this *restServer) checkDspService(url, method string) (int64, string) {
 	if method == "GET" {
-		skipCheck := []string{EXPORT_WALLETFILE, EXPORT_WIFPRIVATEKEY, GET_CURRENT_ACCOUNT, GET_CHAINID_LIST}
+		skipCheck := []string{EXPORT_WALLETFILE, EXPORT_WIFPRIVATEKEY, GET_CURRENT_ACCOUNT, GET_CHAINID_LIST, GET_VERSION}
 		for _, skip := range skipCheck {
 			if url == skip {
 				return dsp.SUCCESS, ""
 			}
 		}
 		if dsp.DspService == nil || dsp.DspService.Dsp == nil {
-			return dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error()
+			return dsp.NO_DSP, dsp.ErrMaps[dsp.NO_DSP].Error()
 		}
 		return dsp.SUCCESS, ""
 	} else {
@@ -683,7 +683,7 @@ func (this *restServer) checkDspService(url, method string) (int64, string) {
 			}
 		}
 		if dsp.DspService == nil || dsp.DspService.Dsp == nil {
-			return dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error()
+			return dsp.NO_DSP, dsp.ErrMaps[dsp.NO_DSP].Error()
 		}
 		return dsp.SUCCESS, ""
 	}

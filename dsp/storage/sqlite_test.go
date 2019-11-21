@@ -12,7 +12,7 @@ func TestInsertShareRecord(t *testing.T) {
 		t.Fatal(err)
 	}
 	id := fmt.Sprintf("hash-%d", time.Now().Unix())
-	ret, err := s.InsertShareRecord(id, "2", "3", 5)
+	ret, err := s.InsertShareRecord(id, "2", "3", "3", "3", 5)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,7 +37,7 @@ func TestIncreaseShareRecordProfit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ret, err := s.IncreaseShareRecordProfit("2", "2", 3)
+	ret, err := s.IncreaseShareRecordProfit("2", 3)
 	if err != nil {
 		t.Fatal(err)
 	}

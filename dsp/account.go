@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/saveio/edge/common"
 	"github.com/saveio/edge/common/config"
@@ -199,7 +200,7 @@ func (this *Endpoint) ImportWithPrivateKey(wif, label, password string) (*Accoun
 	}()
 	return acc2, nil
 }
-func (this *Endpoint) ImportWithWalletData(walletStr, password string) (*AccountResp, *DspErr) {
+func (this *Endpoint) ImportWithWalletData(walletStr, password, walletPath string) (*AccountResp, *DspErr) {
 	wal, err := wallet.OpenWithWalletData([]byte(walletStr))
 	if err != nil || wal == nil {
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: err}
@@ -218,10 +219,19 @@ func (this *Endpoint) ImportWithWalletData(walletStr, password string) (*Account
 		SigScheme: acc.SigScheme,
 		Label:     accData.Label,
 	}
+	if len(walletPath) > 0 {
+		relPath, err := filepath.Rel(config.Parameters.BaseConfig.BaseDir, walletPath)
+		if err != nil {
+			return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
+		}
+		config.Parameters.BaseConfig.WalletDir = relPath
+	}
 	config.Save()
-	err = ioutil.WriteFile(config.WalletDatFilePath(), []byte(walletStr), 0666)
-	if err != nil {
-		return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
+	if len(walletPath) == 0 {
+		err = ioutil.WriteFile(config.WalletDatFilePath(), []byte(walletStr), 0666)
+		if err != nil {
+			return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
+		}
 	}
 	service, err := Init(config.WalletDatFilePath(), password)
 	if err != nil {
@@ -266,6 +276,15 @@ func (this *Endpoint) ExportWalletFile() (*WalletfileResp, *DspErr) {
 func (this *Endpoint) Logout() *DspErr {
 	isExists := common.FileExisted(config.WalletDatFilePath())
 	if !isExists || this.Dsp == nil || this.Dsp.CurrentAccount() == nil {
+		log.Debugf("logout of no wallet dat files")
+		this.Account = nil
+		if this.Dsp != nil {
+			this.Dsp.SetAccount(nil)
+		}
+		this.AccountLabel = ""
+		this.notifyAccountLogout()
+		log.Debugf("notify user logout")
+		DspService = &Endpoint{}
 		return nil
 	}
 	syncing, _ := this.IsChannelProcessBlocks()

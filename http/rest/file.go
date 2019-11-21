@@ -179,11 +179,20 @@ func GetUploadFiles(cmd map[string]interface{}) map[string]interface{} {
 			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, err.Error())
 		}
 	}
+	fl, _ := cmd["Fliter"].(string)
+	fliter := uint64(0)
+	if len(fl) > 0 {
+		var err error
+		fliter, err = strconv.ParseUint(fl, 10, 64)
+		if err != nil {
+			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, err.Error())
+		}
+	}
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
 	log.Debugf("cmd :%v, type %d, offset %d limit %d", cmd, fileType, offset, limit)
-	files, err := dsp.DspService.GetUploadFiles(fileType, offset, limit)
+	files, err := dsp.DspService.GetUploadFiles(fileType, offset, limit, dsp.UploadFileFliterType(fliter))
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
@@ -494,7 +503,6 @@ func GetFileWhiteList(cmd map[string]interface{}) map[string]interface{} {
 }
 
 func GetUserSpace(cmd map[string]interface{}) map[string]interface{} {
-	log.Debugf("GETUSERSPACE")
 	resp := ResponsePack(dsp.SUCCESS)
 	addr, ok := cmd["Addr"].(string)
 	if !ok {

@@ -54,31 +54,69 @@ func (this *EventActorServer) Receive(ctx actor.Context) {
 	case *actor.Restart:
 		log.Warn("[P2PActor] actor restart")
 	case *edgeCli.NotifyAll:
-		websocket.Server().PushToNewSubscriber()
+		go func() {
+			websocket.Server().PushToNewSubscriber()
+			msg.Response <- &edgeCli.NotifyResp{}
+		}()
 	case *edgeCli.NotifyChannels:
-		websocket.Server().PushAllChannels()
+		go func() {
+			websocket.Server().PushAllChannels()
+			msg.Response <- &edgeCli.NotifyResp{}
+		}()
 	case *edgeCli.NotifyInvolvedSmartContract:
-		websocket.Server().PushInvolvedSmartContractEvent()
+		go func() {
+			websocket.Server().PushInvolvedSmartContractEvent()
+			msg.Response <- &edgeCli.NotifyResp{}
+		}()
 	case *edgeCli.NotifyRevenue:
-		websocket.Server().PushRevenue()
+		go func() {
+			websocket.Server().PushRevenue()
+			msg.Response <- &edgeCli.NotifyResp{}
+		}()
 	case *edgeCli.NotifyAccount:
-		websocket.Server().PushCurrentAccount()
+		go func() {
+			websocket.Server().PushCurrentAccount()
+			msg.Response <- &edgeCli.NotifyResp{}
+		}()
 	case *edgeCli.NotifySwitchChannel:
-		websocket.Server().PushCurrentChannel()
-		websocket.Server().PushNetworkState()
-		websocket.Server().PushAllChannels()
+		go func() {
+			websocket.Server().PushCurrentChannel()
+			websocket.Server().PushNetworkState()
+			websocket.Server().PushAllChannels()
+			msg.Response <- &edgeCli.NotifyResp{}
+		}()
 	case *edgeCli.NotifyChannelSyncing:
-		websocket.Server().PushChannelSyncing()
+		go func() {
+			websocket.Server().PushChannelSyncing()
+			msg.Response <- &edgeCli.NotifyResp{}
+		}()
 	case *edgeCli.NotifyChannelProgress:
-		websocket.Server().PushChannelInitProgress()
+		go func() {
+			log.Debugf("push msg...")
+			websocket.Server().PushChannelInitProgress()
+			msg.Response <- &edgeCli.NotifyResp{}
+			log.Debugf("push msg...done")
+		}()
 	case *edgeCli.NotifyUploadTransferList:
-		websocket.Server().PushUploadingTransferList()
+		go func() {
+			websocket.Server().PushUploadingTransferList()
+			msg.Response <- &edgeCli.NotifyResp{}
+		}()
 	case *edgeCli.NotifyDownloadTransferList:
-		websocket.Server().PushDownloadingTransferList()
+		go func() {
+			websocket.Server().PushDownloadingTransferList()
+			msg.Response <- &edgeCli.NotifyResp{}
+		}()
 	case *edgeCli.NotifyCompleteTransferList:
-		websocket.Server().PushCompleteTransferList()
+		go func() {
+			websocket.Server().PushCompleteTransferList()
+			msg.Response <- &edgeCli.NotifyResp{}
+		}()
 	case *edgeCli.NotifyNetworkState:
-		websocket.Server().PushNetworkState()
+		go func() {
+			websocket.Server().PushNetworkState()
+			msg.Response <- &edgeCli.NotifyResp{}
+		}()
 	default:
 		log.Errorf("[P2PActor] receive unknown message type! %v", msg)
 	}
