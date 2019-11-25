@@ -684,29 +684,6 @@ func (this *Endpoint) GetFsConfig() (*FsContractSettingResp, *DspErr) {
 	}, nil
 }
 
-func (this *Endpoint) IsChannelProcessBlocks() (bool, *DspErr) {
-	if this.Dsp == nil || !this.Dsp.HasChannelInstance() {
-		return false, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
-	}
-	if this.Dsp.ChannelFirstSyncing() {
-		return true, nil
-	}
-	if !this.Dsp.Running() {
-		return false, nil
-	}
-	filterBlockHeight := this.Dsp.GetCurrentFilterBlockHeight()
-	now, getHeightErr := this.Dsp.GetCurrentBlockHeight()
-	log.Debugf("IsChannelProcessBlocks filterBlockHeight: %d, now :%d", filterBlockHeight, now)
-	if getHeightErr != nil {
-		return false, &DspErr{Code: INTERNAL_ERROR, Error: ErrMaps[INTERNAL_ERROR]}
-	}
-	if filterBlockHeight+common.MAX_SYNC_HEIGHT_OFFSET <= now {
-		this.SetFilterBlockRange()
-		return true, nil
-	}
-	return false, nil
-}
-
 func (this *Endpoint) DownloadFile(fileHash, url, link, password string, max uint64, setFileName bool) *DspErr {
 	// if balance of current channel is not enough, reject
 	if !this.Dsp.HasDNS() {
