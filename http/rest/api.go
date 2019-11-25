@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/saveio/edge/dsp"
+	"github.com/saveio/themis/common/log"
 )
 
 const TLS_PORT int = 443
@@ -397,7 +398,10 @@ func GetTxByHeightAndLimit(cmd map[string]interface{}) map[string]interface{} {
 	h, _ := cmd["Height"].(string)
 	l, _ := cmd["Limit"].(string)
 	skip, _ := cmd["SkipTxcountFromBlock"].(string)
-	txs, derr := dsp.DspService.GetTxByHeightAndLimit(addr, asset, txType, h, l, skip)
+	ignoreStr, _ := cmd["IgnoreOtherContract"].(string)
+	ignoreOtherCont := len(ignoreStr) > 0 && strings.ToLower(ignoreStr) == "true"
+	log.Debugf("CMD %v", ignoreOtherCont)
+	txs, derr := dsp.DspService.GetTxByHeightAndLimit(addr, asset, txType, h, l, skip, ignoreOtherCont)
 	if derr != nil {
 		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
 	}

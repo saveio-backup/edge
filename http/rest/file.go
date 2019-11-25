@@ -179,11 +179,11 @@ func GetUploadFiles(cmd map[string]interface{}) map[string]interface{} {
 			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, err.Error())
 		}
 	}
-	fl, _ := cmd["Fliter"].(string)
-	fliter := uint64(0)
+	fl, _ := cmd["Filter"].(string)
+	filter := uint64(0)
 	if len(fl) > 0 {
 		var err error
-		fliter, err = strconv.ParseUint(fl, 10, 64)
+		filter, err = strconv.ParseUint(fl, 10, 64)
 		if err != nil {
 			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, err.Error())
 		}
@@ -192,7 +192,7 @@ func GetUploadFiles(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
 	log.Debugf("cmd :%v, type %d, offset %d limit %d", cmd, fileType, offset, limit)
-	files, err := dsp.DspService.GetUploadFiles(fileType, offset, limit, dsp.UploadFileFliterType(fliter))
+	files, err := dsp.DspService.GetUploadFiles(fileType, offset, limit, dsp.UploadFileFilterType(filter))
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}

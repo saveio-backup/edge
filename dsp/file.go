@@ -213,12 +213,12 @@ type FileTaskResp struct {
 	Tasks []*FileTask
 }
 
-type UploadFileFliterType int
+type UploadFileFilterType int
 
 const (
-	UploadFileFliterTypeAll UploadFileFliterType = iota
-	UploadFileFliterTypeDoing
-	UploadFileFliterTypeDone
+	UploadFileFilterTypeAll UploadFileFilterType = iota
+	UploadFileFilterTypeDoing
+	UploadFileFilterTypeDone
 )
 
 func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, privilegeVal, copyNumVal, storageTypeVal interface{},
@@ -687,6 +687,9 @@ func (this *Endpoint) GetFsConfig() (*FsContractSettingResp, *DspErr) {
 func (this *Endpoint) IsChannelProcessBlocks() (bool, *DspErr) {
 	if this.Dsp == nil || !this.Dsp.HasChannelInstance() {
 		return false, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+	if this.Dsp.ChannelFirstSyncing() {
+		return true, nil
 	}
 	if !this.Dsp.Running() {
 		return false, nil
@@ -1298,7 +1301,7 @@ func (this *Endpoint) RegisterShareNotificationCh() {
 	}
 }
 
-func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uint64, fliterType UploadFileFliterType) ([]*FileResp, *DspErr) {
+func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uint64, filterType UploadFileFilterType) ([]*FileResp, *DspErr) {
 	fileList, err := this.Dsp.GetFileList(this.Dsp.Address())
 	if err != nil {
 		return nil, &DspErr{Code: FS_GET_FILE_LIST_FAILED, Error: err}
@@ -1370,10 +1373,10 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uin
 				})
 				delete(primaryNodeM, detail.WalletAddr)
 			}
-			if fliterType == UploadFileFliterTypeDoing && len(primaryNodeM) == 0 {
+			if filterType == UploadFileFilterTypeDoing && len(primaryNodeM) == 0 {
 				continue
 			}
-			if fliterType == UploadFileFliterTypeDone && len(primaryNodeM) > 0 {
+			if filterType == UploadFileFilterTypeDone && len(primaryNodeM) > 0 {
 				continue
 			}
 			for addr, index := range primaryNodeM {

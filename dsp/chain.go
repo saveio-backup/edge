@@ -327,7 +327,7 @@ func (this *Endpoint) GetBalanceHistory(address, limitStr string) ([]*BalanceHis
 	flagForRequest := true
 	filterFeeWithSameTxId := ""
 	for flagForRequest {
-		txs, derr := this.GetTxByHeightAndLimit(address, "save", TxTypeAll, string(heightForRequest), limitForRequest, string(skipForRequest))
+		txs, derr := this.GetTxByHeightAndLimit(address, "save", TxTypeAll, string(heightForRequest), limitForRequest, string(skipForRequest), false)
 		// fmt.Printf("txs: %+v\n", txs)
 		if derr != nil {
 			return nil, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
@@ -516,7 +516,7 @@ type TxResp struct {
 	ContractType TxInvokeType
 }
 
-func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, heightStr, limitStr, skipTxCntStr string) ([]*TxResp, *DspErr) {
+func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, heightStr, limitStr, skipTxCntStr string, ignoreOtherCont bool) ([]*TxResp, *DspErr) {
 	log.Debugf("GetTxByHeightAndLimit %v %v %v %v %v %v", addr, asset, txType, heightStr, limitStr, skipTxCntStr)
 	if len(asset) == 0 {
 		asset = "save"
@@ -563,7 +563,7 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 
 	txs := make([]*TxResp, 0)
 	events, err := this.Dsp.GetSmartContractEventByEventId(usdt.USDT_CONTRACT_ADDRESS.ToBase58(), addr, cUsdt.EVENT_USDT_STATE_CHANGE)
-	log.Debugf("events-len %d, addr %s-%s-%d skipTxCnt %d", len(events), usdt.USDT_CONTRACT_ADDRESS.ToBase58(), addr, cUsdt.EVENT_USDT_STATE_CHANGE, skipTxCnt)
+	log.Debugf("events-len %d, addr %s-%s-%d skipTxCnt %d %t", len(events), usdt.USDT_CONTRACT_ADDRESS.ToBase58(), addr, cUsdt.EVENT_USDT_STATE_CHANGE, skipTxCnt, ignoreOtherCont)
 	if err != nil {
 		return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
 	}
@@ -603,6 +603,9 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 					continue
 				}
 				if txType == TxTypeReceive && to != addr {
+					continue
+				}
+				if ignoreOtherCont && contractBase58Addr != sUtils.UsdtContractAddress.ToBase58() {
 					continue
 				}
 				tempKey := fmt.Sprintf("%s-%v-%v", event.TxHash, states[1], states[2])
@@ -727,9 +730,12 @@ func (this *Endpoint) SwitchChain(chainId, configFileName string) *DspErr {
 	if config.Parameters.BaseConfig.ChainId == chainId {
 		return nil
 	}
-	syncing, _ := this.IsChannelProcessBlocks()
-	if syncing {
-		return &DspErr{Code: DSP_CHANNEL_SYNCING, Error: ErrMaps[DSP_CHANNEL_SYNCING]}
+	if this != nil && this.Dsp != nil {
+		syncing, _ := this.IsChannelProcessBlocks()
+		log.Debugf("SwitchChain syncing: %t", syncing)
+		if syncing {
+			return &DspErr{Code: DSP_CHANNEL_SYNCING, Error: ErrMaps[DSP_CHANNEL_SYNCING]}
+		}
 	}
 	cfgName := configFileName
 	if len(cfgName) == 0 {
@@ -742,23 +748,24 @@ func (this *Endpoint) SwitchChain(chainId, configFileName string) *DspErr {
 	if newCfg.BaseConfig.ChainId != chainId {
 		return &DspErr{Code: INTERNAL_ERROR, Error: fmt.Errorf("chainId: %s not match id: %s from config file", chainId, newCfg.BaseConfig.ChainId)}
 	}
-	err := this.Stop()
-	if err != nil {
+	if this != nil {
+		if err := this.Stop(); err != nil {
+			return &DspErr{Code: INTERNAL_ERROR, Error: err}
+		}
+	}
+	if err := config.SwitchConfig(cfgName); err != nil {
 		return &DspErr{Code: INTERNAL_ERROR, Error: err}
 	}
-	err = config.SwitchConfig(cfgName)
-	if err != nil {
+	if err := config.Save(); err != nil {
 		return &DspErr{Code: INTERNAL_ERROR, Error: err}
 	}
-	err = config.Save()
-	if err != nil {
-		return &DspErr{Code: INTERNAL_ERROR, Error: err}
+	if this == nil {
+		return nil
 	}
 	this.initLog()
 	go func() {
 		log.Debugf("restart dsp")
-		err = StartDspNode(this, true, true, true)
-		if err != nil {
+		if err := StartDspNode(this, true, true, true); err != nil {
 			log.Errorf("Start dsp node err : %s", err)
 		}
 	}()

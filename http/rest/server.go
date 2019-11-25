@@ -92,34 +92,35 @@ const (
 	DSP_CLIENT_GET_USER_SPACE      = "/api/v1/dsp/client/userspace/:addr"
 	DSP_USERSPACE_RECORDS          = "/api/v1/dsp/client/userspacerecords/:addr/:offset/:limit"
 
-	DSP_GET_UPLOAD_FILELIST      = "/api/v1/dsp/file/uploadlist/:type/:offset/:limit/:fliter"
-	DSP_GET_DOWNLOAD_FILELIST    = "/api/v1/dsp/file/downloadlist/:type/:offset/:limit"
-	DSP_GET_FILE_TRANSFERLIST    = "/api/v1/dsp/file/transferlist/:type/:offset/:limit"
-	DSP_DELETE_TRANSFER_RECORD   = "/api/v1/dsp/file/transferlist/delete"
-	DSP_GET_FILE_TRANSFER_DETAIL = "/api/v1/dsp/file/transfer/detail/:type/:id"
-	DSP_FILE_UPLOAD              = "/api/v1/dsp/file/upload"
-	DSP_FILE_UPLOAD_PAUSE        = "/api/v1/dsp/file/upload/pause"
-	DSP_FILE_UPLOAD_RESUME       = "/api/v1/dsp/file/upload/resume"
-	DSP_FILE_UPLOAD_RETRY        = "/api/v1/dsp/file/upload/retry"
-	DSP_FILE_UPLOAD_CANCEL       = "/api/v1/dsp/file/upload/cancel"
-	DSP_FILE_UPLOAD_FEE          = "/api/v1/dsp/file/uploadfee/:file"
-	DSP_FILE_DELETE              = "/api/v1/dsp/file/delete"
-	DSP_FILES_DELETE             = "/api/v1/dsp/files/delete"
-	DSP_FILE_DOWNLOAD            = "/api/v1/dsp/file/download"
-	DSP_FILE_DOWNLOAD_PAUSE      = "/api/v1/dsp/file/download/pause"
-	DSP_FILE_DOWNLOAD_RESUME     = "/api/v1/dsp/file/download/resume"
-	DSP_FILE_DOWNLOAD_RETRY      = "/api/v1/dsp/file/download/retry"
-	DSP_FILE_DOWNLOAD_CANCEL     = "/api/v1/dsp/file/download/cancel"
-	DSP_FILE_DOWNLOAD_INFO       = "/api/v1/dsp/file/downloadinfo/:url"
-	DSP_FILE_ENCRYPT             = "/api/v1/dsp/file/encrypt"
-	DSP_FILE_DECRYPT             = "/api/v1/dsp/file/decrypt"
-	DSP_FILE_SHARE_INCOME        = "/api/v1/dsp/file/share/income/:begin/:end/:offset/:limit"
-	DSP_FILE_SHARE_REVENUE       = "/api/v1/dsp/file/share/revenue"
-	DSP_GET_FILE_WHITELIST       = "/api/v1/dsp/file/whitelist/:hash"
-	DSP_UPDATE_FILE_WHITELIST    = "/api/v1/dsp/file/updatewhitelist"
-	DSP_FILE_UPLOAD_INFO         = "/api/v1/dsp/file/upload/info/:hash"
-	DSP_FILE_PROVE_DETAIL        = "/api/v1/dsp/file/prove/detail/:hash"
-	DSP_FILE_PEER_COUNT          = "/api/v1/dsp/file/peers/count/:hash"
+	DSP_GET_UPLOAD_FILELIST               = "/api/v1/dsp/file/uploadlist/:type/:offset/:limit/:filter"
+	DSP_GET_UPLOAD_FILELIST_WITHOUTFILTER = "/api/v1/dsp/file/uploadlist/:type/:offset/:limit"
+	DSP_GET_DOWNLOAD_FILELIST             = "/api/v1/dsp/file/downloadlist/:type/:offset/:limit"
+	DSP_GET_FILE_TRANSFERLIST             = "/api/v1/dsp/file/transferlist/:type/:offset/:limit"
+	DSP_DELETE_TRANSFER_RECORD            = "/api/v1/dsp/file/transferlist/delete"
+	DSP_GET_FILE_TRANSFER_DETAIL          = "/api/v1/dsp/file/transfer/detail/:type/:id"
+	DSP_FILE_UPLOAD                       = "/api/v1/dsp/file/upload"
+	DSP_FILE_UPLOAD_PAUSE                 = "/api/v1/dsp/file/upload/pause"
+	DSP_FILE_UPLOAD_RESUME                = "/api/v1/dsp/file/upload/resume"
+	DSP_FILE_UPLOAD_RETRY                 = "/api/v1/dsp/file/upload/retry"
+	DSP_FILE_UPLOAD_CANCEL                = "/api/v1/dsp/file/upload/cancel"
+	DSP_FILE_UPLOAD_FEE                   = "/api/v1/dsp/file/uploadfee/:file"
+	DSP_FILE_DELETE                       = "/api/v1/dsp/file/delete"
+	DSP_FILES_DELETE                      = "/api/v1/dsp/files/delete"
+	DSP_FILE_DOWNLOAD                     = "/api/v1/dsp/file/download"
+	DSP_FILE_DOWNLOAD_PAUSE               = "/api/v1/dsp/file/download/pause"
+	DSP_FILE_DOWNLOAD_RESUME              = "/api/v1/dsp/file/download/resume"
+	DSP_FILE_DOWNLOAD_RETRY               = "/api/v1/dsp/file/download/retry"
+	DSP_FILE_DOWNLOAD_CANCEL              = "/api/v1/dsp/file/download/cancel"
+	DSP_FILE_DOWNLOAD_INFO                = "/api/v1/dsp/file/downloadinfo/:url"
+	DSP_FILE_ENCRYPT                      = "/api/v1/dsp/file/encrypt"
+	DSP_FILE_DECRYPT                      = "/api/v1/dsp/file/decrypt"
+	DSP_FILE_SHARE_INCOME                 = "/api/v1/dsp/file/share/income/:begin/:end/:offset/:limit"
+	DSP_FILE_SHARE_REVENUE                = "/api/v1/dsp/file/share/revenue"
+	DSP_GET_FILE_WHITELIST                = "/api/v1/dsp/file/whitelist/:hash"
+	DSP_UPDATE_FILE_WHITELIST             = "/api/v1/dsp/file/updatewhitelist"
+	DSP_FILE_UPLOAD_INFO                  = "/api/v1/dsp/file/upload/info/:hash"
+	DSP_FILE_PROVE_DETAIL                 = "/api/v1/dsp/file/prove/detail/:hash"
+	DSP_FILE_PEER_COUNT                   = "/api/v1/dsp/file/peers/count/:hash"
 
 	GET_CHANNEL_INIT_PROGRESS = "/api/v1/channel/init/progress"
 	GET_ALL_CHANNEL           = "/api/v1/channel"
@@ -236,24 +237,25 @@ func (this *restServer) registryMethod() {
 
 		FS_CONTRACT_SETTING: {name: "getfscontractsetting", handler: GetFsContractSetting},
 
-		DSP_NODE_UNREGISTER:          {name: "unregisternode", handler: UnregisterNode},
-		DSP_NODE_QUERY:               {name: "querynode", handler: NodeQuery},
-		DSP_NODE_WITHDRAW:            {name: "withdrawnode", handler: NodeWithdrawProfit},
-		DSP_NODES_INFO:               {name: "getnodesinfo", handler: GetStorageNodesInfo},
-		DSP_CLIENT_GET_USER_SPACE:    {name: "getuserspacesss", handler: GetUserSpace},
-		DSP_USERSPACE_RECORDS:        {name: "getuserspacerecords", handler: GetUserSpaceRecords},
-		DSP_GET_UPLOAD_FILELIST:      {name: "getuploadfilelist", handler: GetUploadFiles},
-		DSP_GET_DOWNLOAD_FILELIST:    {name: "getdownloadfilelist", handler: GetDownloadFiles},
-		DSP_GET_FILE_TRANSFERLIST:    {name: "gettransferlist", handler: GetTransferList},
-		DSP_GET_FILE_TRANSFER_DETAIL: {name: "gettransferdetail", handler: GetTransferDetail},
-		DSP_FILE_UPLOAD_FEE:          {name: "uploadfilefee", handler: CalculateUploadFee},
-		DSP_FILE_DOWNLOAD_INFO:       {name: "getdownloadinfo", handler: GetDownloadFileInfo},
-		DSP_FILE_SHARE_INCOME:        {name: "getfileshareincome", handler: GetFileShareIncome},
-		DSP_FILE_SHARE_REVENUE:       {name: "getfilesharerevenue", handler: GetFileShareRevenue},
-		DSP_GET_FILE_WHITELIST:       {name: "getwhitelist", handler: GetFileWhiteList},
-		DSP_FILE_UPLOAD_INFO:         {name: "getuploadfileinfo", handler: GetUploadFileInfo},
-		DSP_FILE_PROVE_DETAIL:        {name: "getuploadfileprovedetail", handler: GetUploadFileProveDetail},
-		DSP_FILE_PEER_COUNT:          {name: "getfilepeercount", handler: GetPeerCountOfHash},
+		DSP_NODE_UNREGISTER:                   {name: "unregisternode", handler: UnregisterNode},
+		DSP_NODE_QUERY:                        {name: "querynode", handler: NodeQuery},
+		DSP_NODE_WITHDRAW:                     {name: "withdrawnode", handler: NodeWithdrawProfit},
+		DSP_NODES_INFO:                        {name: "getnodesinfo", handler: GetStorageNodesInfo},
+		DSP_CLIENT_GET_USER_SPACE:             {name: "getuserspacesss", handler: GetUserSpace},
+		DSP_USERSPACE_RECORDS:                 {name: "getuserspacerecords", handler: GetUserSpaceRecords},
+		DSP_GET_UPLOAD_FILELIST:               {name: "getuploadfilelist", handler: GetUploadFiles},
+		DSP_GET_UPLOAD_FILELIST_WITHOUTFILTER: {name: "getuploadfilelist", handler: GetUploadFiles},
+		DSP_GET_DOWNLOAD_FILELIST:             {name: "getdownloadfilelist", handler: GetDownloadFiles},
+		DSP_GET_FILE_TRANSFERLIST:             {name: "gettransferlist", handler: GetTransferList},
+		DSP_GET_FILE_TRANSFER_DETAIL:          {name: "gettransferdetail", handler: GetTransferDetail},
+		DSP_FILE_UPLOAD_FEE:                   {name: "uploadfilefee", handler: CalculateUploadFee},
+		DSP_FILE_DOWNLOAD_INFO:                {name: "getdownloadinfo", handler: GetDownloadFileInfo},
+		DSP_FILE_SHARE_INCOME:                 {name: "getfileshareincome", handler: GetFileShareIncome},
+		DSP_FILE_SHARE_REVENUE:                {name: "getfilesharerevenue", handler: GetFileShareRevenue},
+		DSP_GET_FILE_WHITELIST:                {name: "getwhitelist", handler: GetFileWhiteList},
+		DSP_FILE_UPLOAD_INFO:                  {name: "getuploadfileinfo", handler: GetUploadFileInfo},
+		DSP_FILE_PROVE_DETAIL:                 {name: "getuploadfileprovedetail", handler: GetUploadFileProveDetail},
+		DSP_FILE_PEER_COUNT:                   {name: "getfilepeercount", handler: GetPeerCountOfHash},
 
 		GET_CHANNEL_INIT_PROGRESS: {name: "channelinitprogress", handler: GetChannelInitProgress},
 		GET_ALL_CHANNEL:           {name: "getallchannels", handler: GetAllChannels},
@@ -379,11 +381,14 @@ func (this *restServer) getPath(url string) string {
 	// }
 
 	//path for Dsp
+	if strings.Contains(url, "upload") {
+		log.Debug("url %s", url)
+	}
 	if strings.Contains(url, strings.TrimSuffix(DSP_NODE_QUERY, ":addr")) {
 		return DSP_NODE_QUERY
 	} else if strings.Contains(url, strings.TrimSuffix(DSP_CLIENT_GET_USER_SPACE, ":addr")) {
 		return DSP_CLIENT_GET_USER_SPACE
-	} else if strings.Contains(url, strings.TrimSuffix(DSP_GET_UPLOAD_FILELIST, ":type/:offset/:limit/:fliter")) {
+	} else if strings.Contains(url, strings.TrimSuffix(DSP_GET_UPLOAD_FILELIST, ":type/:offset/:limit/:filter")) {
 		return DSP_GET_UPLOAD_FILELIST
 	} else if strings.Contains(url, strings.TrimSuffix(DSP_GET_DOWNLOAD_FILELIST, ":type/:offset/:limit")) {
 		return DSP_GET_DOWNLOAD_FILELIST
@@ -468,6 +473,7 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 	case GET_TXS_HEIGHT_LIMIT:
 		req["Addr"], req["Type"], req["Asset"], req["Height"], req["Limit"] = getParam(r, "addr"), getParam(r, "type"), r.FormValue("asset"), r.FormValue("height"), r.FormValue("limit")
 		req["SkipTxcountFromBlock"] = r.FormValue("skipTxCountFromBlock")
+		req["IgnoreOtherContract"] = r.FormValue("IgnoreOtherContract")
 	case GET_STORAGE:
 		req["Hash"], req["Key"] = getParam(r, "hash"), getParam(r, "key")
 	case GET_BALANCE:
@@ -512,7 +518,7 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 	case DSP_CLIENT_GET_USER_SPACE:
 		req["Addr"] = getParam(r, "addr")
 	case DSP_GET_UPLOAD_FILELIST:
-		req["Type"], req["Offset"], req["Limit"], req["Fliter"] = getParam(r, "type"), getParam(r, "offset"), getParam(r, "limit"), getParam(r, "fliter")
+		req["Type"], req["Offset"], req["Limit"], req["Filter"] = getParam(r, "type"), getParam(r, "offset"), getParam(r, "limit"), getParam(r, "filter")
 	case DSP_GET_DOWNLOAD_FILELIST:
 		req["Type"], req["Offset"], req["Limit"] = getParam(r, "type"), getParam(r, "offset"), getParam(r, "limit")
 	case DSP_GET_FILE_TRANSFERLIST:
@@ -665,7 +671,7 @@ func (this *restServer) write(w http.ResponseWriter, data []byte) {
 
 func (this *restServer) checkDspService(url, method string) (int64, string) {
 	if method == "GET" {
-		skipCheck := []string{EXPORT_WALLETFILE, EXPORT_WIFPRIVATEKEY, GET_CURRENT_ACCOUNT, GET_CHAINID_LIST, GET_VERSION}
+		skipCheck := []string{EXPORT_WALLETFILE, EXPORT_WIFPRIVATEKEY, GET_CURRENT_ACCOUNT, GET_CHAINID, GET_CHAINID_LIST, GET_VERSION, GET_CONFIG}
 		for _, skip := range skipCheck {
 			if url == skip {
 				return dsp.SUCCESS, ""
@@ -676,7 +682,7 @@ func (this *restServer) checkDspService(url, method string) (int64, string) {
 		}
 		return dsp.SUCCESS, ""
 	} else {
-		skipCheck := []string{NEW_ACCOUNT, IMPORT_ACCOUNT_WITH_PRIVATEKEY, IMPORT_ACCOUNT_WITH_WALLETFILE, LOGIN_ACCOUNT}
+		skipCheck := []string{NEW_ACCOUNT, IMPORT_ACCOUNT_WITH_PRIVATEKEY, IMPORT_ACCOUNT_WITH_WALLETFILE, LOGIN_ACCOUNT, SWITCH_CHAINID}
 		for _, skip := range skipCheck {
 			if url == skip {
 				return dsp.SUCCESS, ""

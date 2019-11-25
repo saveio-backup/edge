@@ -193,6 +193,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 
 // Stop. stop endpoint instance
 func (this *Endpoint) Stop() error {
+	log.Debugf("stop endpoint...")
 	if this.p2pActor != nil {
 		err := this.p2pActor.Stop()
 		if err != nil {
