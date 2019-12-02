@@ -690,7 +690,7 @@ func (this *restServer) checkDspService(url, method string) (int64, string) {
 		}
 		return dsp.SUCCESS, ""
 	} else {
-		skipCheck := []string{NEW_ACCOUNT, IMPORT_ACCOUNT_WITH_PRIVATEKEY, IMPORT_ACCOUNT_WITH_WALLETFILE, LOGIN_ACCOUNT, SWITCH_CHAINID}
+		skipCheck := []string{NEW_ACCOUNT, IMPORT_ACCOUNT_WITH_PRIVATEKEY, IMPORT_ACCOUNT_WITH_WALLETFILE, LOGIN_ACCOUNT, SWITCH_CHAINID, LOGOUT_ACCOUNT}
 		for _, skip := range skipCheck {
 			if url == skip {
 				return dsp.SUCCESS, ""
