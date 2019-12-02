@@ -614,9 +614,10 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 				}
 				tempMap[tempKey] = struct{}{}
 				txType := TxTypeSend
-				if to == addr {
+				if from != addr && to == addr {
 					txType = TxTypeReceive
 				}
+				sendToSelf := (from == addr && to == addr)
 				tx := &TxResp{
 					Txid:         event.TxHash,
 					BlockHeight:  uint32(blockHeight),
@@ -640,13 +641,39 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 					amountFormat := utils.FormatUsdt(states[3].(uint64))
 					tx.Amount = states[3].(uint64)
 					tx.AmountFormat = amountFormat
+					if IsNativeContractAddr(to) || IsNativeContractAddr(from) {
+						tx.ContractType = TxInvokeOtherContract
+					}
 				}
-				if skipTxCnt > 0 && skipTxCnt > hasSkip {
+				toAppend := make([]*TxResp, 0)
+				if !sendToSelf {
+					toAppend = append(toAppend, tx)
+				} else {
+					toAppend = append(toAppend, tx)
+					tx2 := *tx
+					tx2.Type = TxTypeReceive
+					toAppend = append(toAppend, &tx2)
+				}
+
+				if skipTxCnt > 0 && !sendToSelf && skipTxCnt > hasSkip {
 					hasSkip++
 					continue
 				}
-				txs = append(txs, tx)
+				if skipTxCnt > 0 && sendToSelf {
+					if skipTxCnt >= hasSkip+2 {
+						hasSkip += 2
+						continue
+					}
+					if skipTxCnt == hasSkip+1 {
+						hasSkip++
+						toAppend = toAppend[1:]
+					}
+				}
+				txs = append(txs, toAppend...)
 				if limit > 0 && uint32(len(txs)) >= limit {
+					if uint32(len(txs)) > limit {
+						return txs[:limit], nil
+					}
 					return txs, nil
 				}
 				continue

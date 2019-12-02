@@ -478,7 +478,7 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 		req["Hash"], req["Raw"] = getParam(r, "hash"), r.FormValue("raw")
 	case GET_TXS_HEIGHT_LIMIT:
 		req["Addr"], req["Type"], req["Asset"], req["Height"], req["Limit"] = getParam(r, "addr"), getParam(r, "type"), r.FormValue("asset"), r.FormValue("height"), r.FormValue("limit")
-		req["SkipTxcountFromBlock"] = r.FormValue("skipTxCountFromBlock")
+		req["SkipTxCountFromBlock"] = r.FormValue("skipTxCountFromBlock")
 		req["IgnoreOtherContract"] = r.FormValue("IgnoreOtherContract")
 	case GET_STORAGE:
 		req["Hash"], req["Key"] = getParam(r, "hash"), getParam(r, "key")

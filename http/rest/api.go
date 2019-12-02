@@ -423,10 +423,10 @@ func GetTxByHeightAndLimit(cmd map[string]interface{}) map[string]interface{} {
 	asset, _ := cmd["Asset"].(string)
 	h, _ := cmd["Height"].(string)
 	l, _ := cmd["Limit"].(string)
-	skip, _ := cmd["SkipTxcountFromBlock"].(string)
+	skip, _ := cmd["SkipTxCountFromBlock"].(string)
 	ignoreStr, _ := cmd["IgnoreOtherContract"].(string)
 	ignoreOtherCont := len(ignoreStr) > 0 && strings.ToLower(ignoreStr) == "true"
-	log.Debugf("CMD %v", ignoreOtherCont)
+	log.Debugf("GetTxByHeightAndLimit CMD %v", cmd)
 	txs, derr := dsp.DspService.GetTxByHeightAndLimit(addr, asset, txType, h, l, skip, ignoreOtherCont)
 	if derr != nil {
 		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())

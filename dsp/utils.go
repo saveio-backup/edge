@@ -1,14 +1,13 @@
 package dsp
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"os"
 	"strconv"
 	"strings"
 
 	"github.com/saveio/themis/common/log"
+	sUtils "github.com/saveio/themis/smartcontract/service/native/utils"
 )
 
 func FileNameMatchType(fileType DspFileListType, fileName string) bool {
@@ -122,21 +121,18 @@ func ExitWithLog(msg string) {
 	os.Exit(0)
 }
 
-type accountReader struct {
-	PublicKey []byte
+func WrongWalletPasswordError(err error) bool {
+	return strings.Contains(strings.ToLower(err.Error()), "decrypt private key error")
 }
 
-func (this accountReader) Read(buf []byte) (int, error) {
-	bufs := make([]byte, 0)
-	hash := sha256.Sum256(this.PublicKey)
-	bufs = append(bufs, hash[:]...)
-	log.Debugf("bufs :%s", hex.EncodeToString(bufs))
-	for i, _ := range buf {
-		if i < len(bufs) {
-			buf[i] = bufs[i]
-			continue
-		}
-		buf[i] = 0
-	}
-	return len(buf), nil
+func IsNativeContractAddr(addr string) bool {
+	return addr == sUtils.UsdtContractAddress.ToBase58() ||
+		addr == sUtils.GovernanceContractAddress.ToBase58() ||
+		addr == sUtils.OntFSContractAddress.ToBase58() ||
+		addr == sUtils.OntIDContractAddress.ToBase58() ||
+		addr == sUtils.ParamContractAddress.ToBase58() ||
+		addr == sUtils.MicroPayContractAddress.ToBase58() ||
+		addr == sUtils.OntDNSAddress.ToBase58() ||
+		addr == sUtils.AuthContractAddress.ToBase58() ||
+		addr == sUtils.FilmContractAddress.ToBase58()
 }

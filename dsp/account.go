@@ -77,6 +77,9 @@ func (this *Endpoint) GetCurrentAccount() (*AccountResp, *DspErr) {
 func (this *Endpoint) Login(password string) (*AccountResp, *DspErr) {
 	service, err := Init(config.WalletDatFilePath(), password)
 	if err != nil {
+		if WrongWalletPasswordError(err) {
+			return nil, &DspErr{Code: ACCOUNT_PASSWORD_WRONG, Error: err}
+		}
 		return nil, &DspErr{Code: DSP_INIT_FAILED, Error: err}
 	}
 	go func() {
@@ -235,6 +238,9 @@ func (this *Endpoint) ImportWithWalletData(walletStr, password, walletPath strin
 	}
 	service, err := Init(config.WalletDatFilePath(), password)
 	if err != nil {
+		if WrongWalletPasswordError(err) {
+			return nil, &DspErr{Code: ACCOUNT_PASSWORD_WRONG, Error: err}
+		}
 		return nil, &DspErr{Code: DSP_INIT_FAILED, Error: err}
 	}
 	go func() {
