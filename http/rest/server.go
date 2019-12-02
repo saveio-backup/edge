@@ -35,32 +35,33 @@ type restServer struct {
 }
 
 const (
-	GET_BLK_TXS_BY_HEIGHT = "/api/v1/block/transactions/height/:height"
-	GET_BLK_BY_HEIGHT     = "/api/v1/block/details/height/:height"
-	GET_BLK_BY_HASH       = "/api/v1/block/details/hash/:hash"
-	GET_BLK_HEIGHT        = "/api/v1/block/height"
-	GET_BLK_HASH          = "/api/v1/block/hash/:height"
-	GET_TX                = "/api/v1/transaction/:hash"
-	GET_TXS_HEIGHT_LIMIT  = "/api/v1/transactions/:addr/:type"
-	GET_STORAGE           = "/api/v1/storage/:hash/:key"
-	GET_BALANCE           = "/api/v1/balance/:addr"
-	GET_BALANCE_HISTORY   = "/api/v1/balancehistory/:addr/:limit"
-	GET_CONTRACT_STATE    = "/api/v1/contract/:hash"
-	GET_SMTCOCE_EVT_TXS   = "/api/v1/smartcode/event/transactions/:height"
-	GET_SMTCOCE_EVTS      = "/api/v1/smartcode/event/txhash/:hash"
-	GET_BLK_HGT_BY_TXHASH = "/api/v1/block/height/txhash/:hash"
-	GET_MERKLE_PROOF      = "/api/v1/merkleproof/:hash"
-	GET_GAS_PRICE         = "/api/v1/gasprice"
-	GET_ALLOWANCE         = "/api/v1/allowance/:asset/:from/:to"
-	GET_UNBOUNDONG        = "/api/v1/unboundong/:addr"
-	GET_GRANTONG          = "/api/v1/grantong/:addr"
-	GET_MEMPOOL_TXCOUNT   = "/api/v1/mempool/txcount"
-	GET_MEMPOOL_TXSTATE   = "/api/v1/mempool/txstate/:hash"
-	GET_VERSION           = "/api/v1/version"
-	GET_NETWORKID         = "/api/v1/networkid"
-	GET_CHAINID           = "/api/v1/chainid"
-	GET_CHAINID_LIST      = "/api/v1/chainid/list"
-	SWITCH_CHAINID        = "/api/v1/chainid/switch"
+	GET_BLK_TXS_BY_HEIGHT      = "/api/v1/block/transactions/height/:height"
+	GET_BLK_BY_HEIGHT          = "/api/v1/block/details/height/:height"
+	GET_BLK_BY_HASH            = "/api/v1/block/details/hash/:hash"
+	GET_BLK_HEIGHT             = "/api/v1/block/height"
+	GET_BLK_HASH               = "/api/v1/block/hash/:height"
+	GET_TX                     = "/api/v1/transaction/:hash"
+	GET_TXS_HEIGHT_LIMIT       = "/api/v1/transactions/:addr/:type"
+	GET_STORAGE                = "/api/v1/storage/:hash/:key"
+	GET_BALANCE                = "/api/v1/balance/:addr"
+	GET_BALANCE_HISTORY        = "/api/v1/balancehistory/:addr/:limit"
+	GET_CONTRACT_STATE         = "/api/v1/contract/:hash"
+	GET_SMTCOCE_EVT_TXS        = "/api/v1/smartcode/event/transactions/:height"
+	GET_SMTCOCE_EVTS           = "/api/v1/smartcode/event/txhash/:hash"
+	GET_SMTCOCE_EVTS_BYEVENTID = "/api/v1/smartcode/event/contract/:contract/:eventid/:addr"
+	GET_BLK_HGT_BY_TXHASH      = "/api/v1/block/height/txhash/:hash"
+	GET_MERKLE_PROOF           = "/api/v1/merkleproof/:hash"
+	GET_GAS_PRICE              = "/api/v1/gasprice"
+	GET_ALLOWANCE              = "/api/v1/allowance/:asset/:from/:to"
+	GET_UNBOUNDONG             = "/api/v1/unboundong/:addr"
+	GET_GRANTONG               = "/api/v1/grantong/:addr"
+	GET_MEMPOOL_TXCOUNT        = "/api/v1/mempool/txcount"
+	GET_MEMPOOL_TXSTATE        = "/api/v1/mempool/txstate/:hash"
+	GET_VERSION                = "/api/v1/version"
+	GET_NETWORKID              = "/api/v1/networkid"
+	GET_CHAINID                = "/api/v1/chainid"
+	GET_CHAINID_LIST           = "/api/v1/chainid/list"
+	SWITCH_CHAINID             = "/api/v1/chainid/switch"
 
 	GET_CURRENT_ACCOUNT            = "/api/v1/account"
 	NEW_ACCOUNT                    = "/api/v1/account"
@@ -207,19 +208,22 @@ func (this *restServer) Start() error {
 // register handler method
 func (this *restServer) registryMethod() {
 	getMethodMap := map[string]Action{
-		GET_BLK_TXS_BY_HEIGHT: {name: "getblocktxsbyheight", handler: GetBlockTxsByHeight},
-		GET_BLK_BY_HEIGHT:     {name: "getblockbyheight", handler: GetBlockByHeight},
-		GET_BLK_BY_HASH:       {name: "getblockbyhash", handler: GetBlockByHash},
-		GET_BLK_HEIGHT:        {name: "getblockheight", handler: GetBlockHeight},
-		GET_BLK_HASH:          {name: "getblockhash", handler: GetBlockHash},
-		GET_TX:                {name: "gettransaction", handler: GetTransactionByHash},
-		GET_TXS_HEIGHT_LIMIT:  {name: "gettxsbyheightlimit", handler: GetTxByHeightAndLimit},
-		GET_STORAGE:           {name: "getstorage", handler: GetStorage},
-		GET_BALANCE:           {name: "getbalance", handler: GetBalance},
-		GET_BALANCE_HISTORY:   {name: "getbalancehistory", handler: GetBalanceHistory},
-		GET_CONTRACT_STATE:    {name: "getcontract", handler: GetContractState},
-		GET_SMTCOCE_EVT_TXS:   {name: "getsmartcodeeventbyheight", handler: GetSmartCodeEventTxsByHeight},
-		GET_SMTCOCE_EVTS:      {name: "getsmartcodeeventbyhash", handler: GetSmartCodeEventByTxHash},
+		GET_BLK_TXS_BY_HEIGHT:      {name: "getblocktxsbyheight", handler: GetBlockTxsByHeight},
+		GET_BLK_BY_HEIGHT:          {name: "getblockbyheight", handler: GetBlockByHeight},
+		GET_BLK_BY_HASH:            {name: "getblockbyhash", handler: GetBlockByHash},
+		GET_BLK_HEIGHT:             {name: "getblockheight", handler: GetBlockHeight},
+		GET_BLK_HASH:               {name: "getblockhash", handler: GetBlockHash},
+		GET_TX:                     {name: "gettransaction", handler: GetTransactionByHash},
+		GET_TXS_HEIGHT_LIMIT:       {name: "gettxsbyheightlimit", handler: GetTxByHeightAndLimit},
+		GET_STORAGE:                {name: "getstorage", handler: GetStorage},
+		GET_BALANCE:                {name: "getbalance", handler: GetBalance},
+		GET_BALANCE_HISTORY:        {name: "getbalancehistory", handler: GetBalanceHistory},
+		GET_CONTRACT_STATE:         {name: "getcontract", handler: GetContractState},
+		GET_SMTCOCE_EVT_TXS:        {name: "getsmartcodeeventbyheight", handler: GetSmartCodeEventTxsByHeight},
+		GET_SMTCOCE_EVTS:           {name: "getsmartcodeeventbyhash", handler: GetSmartCodeEventByTxHash},
+		GET_SMTCOCE_EVTS_BYEVENTID: {name: "getsmartcodeeventbyeventid", handler: GetSmartCodeEventByEventId},
+		strings.TrimSuffix(GET_SMTCOCE_EVTS_BYEVENTID, "/:addr"):          {name: "getsmartcodeeventbyeventid", handler: GetSmartCodeEventByEventId},
+		strings.TrimSuffix(GET_SMTCOCE_EVTS_BYEVENTID, "/:eventid/:addr"): {name: "getsmartcodeeventbyeventid", handler: GetSmartCodeEventByEventId},
 		GET_BLK_HGT_BY_TXHASH: {name: "getblockheightbytxhash", handler: GetBlockHeightByTxHash},
 		GET_MERKLE_PROOF:      {name: "getmerkleproof", handler: GetMerkleProof},
 		GET_GAS_PRICE:         {name: "getgasprice", handler: GetGasPrice},
@@ -359,6 +363,8 @@ func (this *restServer) getPath(url string) string {
 		return GET_SMTCOCE_EVT_TXS
 	} else if strings.Contains(url, strings.TrimRight(GET_SMTCOCE_EVTS, ":hash")) {
 		return GET_SMTCOCE_EVTS
+	} else if strings.Contains(url, strings.TrimSuffix(GET_SMTCOCE_EVTS_BYEVENTID, ":contract/:eventid/:addr")) {
+		return GET_SMTCOCE_EVTS_BYEVENTID
 	} else if strings.Contains(url, strings.TrimRight(GET_BLK_HGT_BY_TXHASH, ":hash")) {
 		return GET_BLK_HGT_BY_TXHASH
 	} else if strings.Contains(url, strings.TrimRight(GET_MERKLE_PROOF, ":hash")) {
@@ -486,6 +492,8 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 		req["Height"] = getParam(r, "height")
 	case GET_SMTCOCE_EVTS:
 		req["Hash"] = getParam(r, "hash")
+	case GET_SMTCOCE_EVTS_BYEVENTID:
+		req["Contract"], req["EventId"], req["Addr"] = getParam(r, "contract"), getParam(r, "eventid"), getParam(r, "addr")
 	case GET_BLK_HGT_BY_TXHASH:
 		req["Hash"] = getParam(r, "hash")
 	case GET_MERKLE_PROOF:

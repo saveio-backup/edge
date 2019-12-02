@@ -232,6 +232,32 @@ func GetSmartCodeEventByTxHash(cmd map[string]interface{}) map[string]interface{
 	return resp
 }
 
+//get smartcontract event by transaction hash
+func GetSmartCodeEventByEventId(cmd map[string]interface{}) map[string]interface{} {
+	log.Debugf("cmdcmd %v", cmd)
+	resp := ResponsePack(dsp.SUCCESS)
+	contract, ok := cmd["Contract"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	addr, _ := cmd["Addr"].(string)
+	eventIdStr, _ := cmd["EventId"].(string)
+	eventId := uint32(0)
+	if len(eventIdStr) > 0 {
+		eId, err := strconv.ParseUint(eventIdStr, 10, 64)
+		if err != nil {
+			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+		}
+		eventId = uint32(eId)
+	}
+	events, err := dsp.DspService.GetSmartContractEventByEventId(contract, addr, eventId)
+	if err != nil {
+		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
+	}
+	resp["Result"] = events
+	return resp
+}
+
 //get contract state
 func GetContractState(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)

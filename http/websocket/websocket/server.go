@@ -207,7 +207,6 @@ func (self *WsServer) checkSessionsTimeout(done chan bool) {
 
 func (self *WsServer) webSocketHandler(w http.ResponseWriter, r *http.Request) {
 	wsConn, err := self.Upgrader.Upgrade(w, r, nil)
-
 	if err != nil {
 		log.Error("websocket Upgrader: ", err)
 		return
@@ -218,7 +217,6 @@ func (self *WsServer) webSocketHandler(w http.ResponseWriter, r *http.Request) {
 		log.Error("websocket NewSession:", err)
 		return
 	}
-
 	defer func() {
 		self.deleteSubscribe(nsSession.GetSessionId())
 		self.SessionList.CloseSession(nsSession)
@@ -238,7 +236,11 @@ func (self *WsServer) webSocketHandler(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		e, ok := err.(net.Error)
-		if !ok || !e.Timeout() {
+		if !ok {
+			log.Infof("websocket unknown err: %s", err)
+			return
+		}
+		if !e.Timeout() {
 			log.Infof("websocket conn: %s", err)
 			return
 		}

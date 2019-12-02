@@ -50,18 +50,21 @@ type Endpoint struct {
 	sqliteDB          *storage.SQLiteStorage
 	closeCh           chan struct{}
 	p2pActor          *p2p_actor.P2PActor
-	dspNet            *network.Network ``
+	dspNet            *network.Network
 	dspPublicAddr     string
 	channelNet        *network.Network
 	channelPublicAddr string
 	eventHub          *EventHub
+	state             *LifeCycle
 }
 
 func Init(walletDir, pwd string) (*Endpoint, error) {
 	e := &Endpoint{
 		closeCh:  make(chan struct{}, 1),
 		eventHub: NewEventHub(),
+		state:    NewLifeCycle(),
 	}
+	DspService = e
 	log.Debugf("walletDir: %s, %d", walletDir, len(walletDir))
 	if len(walletDir) == 0 {
 		return e, nil
@@ -89,11 +92,15 @@ func Init(walletDir, pwd string) (*Endpoint, error) {
 	e.Password = pwd
 	config.SetCurrentUserWalletAddress(e.Account.Address.ToBase58())
 	log.Debug("Endpoint init success")
-	DspService = e
 	return e, nil
 }
 
 func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool) error {
+	if err := endpoint.state.Start(); err != nil {
+		return err
+	}
+	defer endpoint.state.Run()
+
 	listenHost := "127.0.0.1"
 	if len(config.Parameters.BaseConfig.PublicIP) > 0 {
 		listenHost = config.Parameters.BaseConfig.PublicIP
@@ -194,6 +201,10 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 // Stop. stop endpoint instance
 func (this *Endpoint) Stop() error {
 	log.Debugf("stop endpoint...")
+	if err := this.state.Stop(); err != nil {
+		return err
+	}
+	defer this.state.Terminate()
 	if this.p2pActor != nil {
 		err := this.p2pActor.Stop()
 		if err != nil {

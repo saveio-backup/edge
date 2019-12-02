@@ -272,16 +272,14 @@ func (this *Endpoint) OpenPaymentChannel(partnerAddr string, amount uint64) (cha
 	if !channelExist {
 		return 0, &DspErr{Code: DSP_CHANNEL_EXIST, Error: ErrMaps[DSP_CHANNEL_EXIST]}
 	}
-	if amount > 0 {
-		balance, err := this.Dsp.BalanceOf(this.Account.Address)
-		if err != nil {
-			return 0, &DspErr{Code: INTERNAL_ERROR, Error: err}
-		}
-		if amount >= balance {
-			return 0, &DspErr{Code: INSUFFICIENT_BALANCE, Error: ErrMaps[INSUFFICIENT_BALANCE]}
-		}
+	balance, err := this.Dsp.BalanceOf(this.Account.Address)
+	if err != nil {
+		return 0, &DspErr{Code: INTERNAL_ERROR, Error: err}
 	}
-	_, err := chainCom.AddressFromBase58(partnerAddr)
+	if balance == 0 || amount > balance {
+		return 0, &DspErr{Code: INSUFFICIENT_BALANCE, Error: ErrMaps[INSUFFICIENT_BALANCE]}
+	}
+	_, err = chainCom.AddressFromBase58(partnerAddr)
 	if err != nil {
 		return 0, &DspErr{Code: INVALID_WALLET_ADDRESS, Error: err}
 	}

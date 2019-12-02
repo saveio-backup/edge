@@ -656,6 +656,14 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 	return txs, nil
 }
 
+func (this *Endpoint) GetSmartContractEventByEventId(contractAddr, addr string, eventId uint32) ([]*sdkCom.SmartContactEvent, *DspErr) {
+	events, err := this.Dsp.GetSmartContractEventByEventId(contractAddr, addr, eventId)
+	if err != nil {
+		return nil, &DspErr{CHAIN_INTERNAL_ERROR, err}
+	}
+	return events, nil
+}
+
 // GetAccountSmartContractEventByBlock. get smartcontract event for current account by block height
 func (this *Endpoint) GetAccountSmartContractEventByBlock(height uint32) (*sdkCom.SmartContactEvent, error) {
 	event, err := this.Dsp.GetSmartContractEventByBlock(height)
@@ -748,7 +756,7 @@ func (this *Endpoint) SwitchChain(chainId, configFileName string) *DspErr {
 	if newCfg.BaseConfig.ChainId != chainId {
 		return &DspErr{Code: INTERNAL_ERROR, Error: fmt.Errorf("chainId: %s not match id: %s from config file", chainId, newCfg.BaseConfig.ChainId)}
 	}
-	if this != nil {
+	if this != nil && this.Dsp != nil {
 		if err := this.Stop(); err != nil {
 			return &DspErr{Code: INTERNAL_ERROR, Error: err}
 		}
@@ -763,6 +771,9 @@ func (this *Endpoint) SwitchChain(chainId, configFileName string) *DspErr {
 		return nil
 	}
 	this.initLog()
+	if this.Account == nil {
+		return nil
+	}
 	go func() {
 		log.Debugf("restart dsp")
 		if err := StartDspNode(this, true, true, true); err != nil {
