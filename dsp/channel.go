@@ -82,7 +82,7 @@ func (this *Endpoint) IsChannelProcessBlocks() (bool, *DspErr) {
 func (this *Endpoint) GetFilterBlockProgress() (*FilterBlockProgress, *DspErr) {
 	progress := &FilterBlockProgress{}
 	if this.Dsp == nil {
-		return progress, nil
+		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
 	endChannelHeight, err := this.Dsp.GetCurrentBlockHeight()
 	if err != nil {

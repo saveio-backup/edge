@@ -215,6 +215,15 @@ func SetDefaultFieldForConfig(cfg *DspConfig) {
 	if cfg == nil {
 		return
 	}
+
+	if len(cfg.BaseConfig.BlockDelay) == 0 {
+		cfg.BaseConfig.BlockDelay = fmt.Sprintf("%d", common.BLOCK_CONFIRM)
+	}
+
+	if cfg.BaseConfig.BlockConfirm == 0 {
+		cfg.BaseConfig.BlockConfirm = common.BLOCK_CONFIRM
+	}
+
 	if len(cfg.BaseConfig.TrackerProtocol) == 0 {
 		cfg.BaseConfig.TrackerProtocol = "tcp"
 	}
