@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 
@@ -145,6 +146,10 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 		}()
 	case *dspAct.PublicAddrReq:
 		go func() {
+			if this.dspNet == nil {
+				msg.Response <- &dspAct.PublicAddrResp{Addr: "", Error: errors.New("dsp network is nil")}
+				return
+			}
 			addr := this.dspNet.PublicAddr()
 			msg.Response <- &dspAct.PublicAddrResp{Addr: addr}
 		}()
