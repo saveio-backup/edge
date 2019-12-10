@@ -12,7 +12,8 @@ const (
 	MAX_STATE_CHANGE_CHECK_INTERVAL = 5   // state change  check interval
 	EVENT_CHANGE_CHECK_INTERVAL     = 3   // event change check interval
 	BLOCK_TIME                      = 1   // block time
-	BLOCK_CONFIRM                   = 3   // block confirm
+	BLOCK_CONFIRM                   = 1   // block confirm
+	BLOCK_DELAY                     = 3   // block delay
 )
 
 // default config

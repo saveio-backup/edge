@@ -366,7 +366,7 @@ func DecryptFile(cmd map[string]interface{}) map[string]interface{} {
 }
 
 func GetFileShareIncome(cmd map[string]interface{}) map[string]interface{} {
-	log.Debugf("GetDownloadFileInfo cmd:%v", cmd)
+	log.Debugf("GetFileShareIncome cmd:%v", cmd)
 	resp := ResponsePack(dsp.SUCCESS)
 	begStr, ok := cmd["Begin"].(string)
 	if !ok || len(begStr) == 0 {

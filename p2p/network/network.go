@@ -298,7 +298,7 @@ func (this *Network) ConnectAndWait(addr string) error {
 		// already try to connect, don't retry before we get a result
 		log.Info("already try to connect")
 		err := this.WaitForConnected(addr, time.Duration(common.MAX_WAIT_FOR_CONNECTED_TIMEOUT)*time.Second)
-		// this.peerFailedCount[addr]
+		this.AddDialFailedCnt(addr)
 		return err
 	}
 	this.addressForConnecting.Store(addr, struct{}{})
@@ -310,6 +310,9 @@ func (this *Network) ConnectAndWait(addr string) error {
 	log.Debugf("bootstrap to %v", addr)
 	this.P2p.Bootstrap(addr)
 	err := this.WaitForConnected(addr, time.Duration(common.MAX_WAIT_FOR_CONNECTED_TIMEOUT)*time.Second)
+	if err != nil {
+		this.AddDialFailedCnt(addr)
+	}
 	this.addressForConnecting.Delete(addr)
 	return err
 }
@@ -426,6 +429,7 @@ func (this *Network) Send(msg proto.Message, toAddr string) error {
 	err = this.P2p.Write(toAddr, signed)
 	log.Debugf("write msg done sender:%s, to %s, nonce: %d", signed.GetSender().Address, toAddr, signed.GetMessageNonce())
 	if err != nil {
+		this.AddSendFailedCnt(toAddr)
 		return fmt.Errorf("failed to send message to %s", toAddr)
 	}
 	return nil
@@ -449,7 +453,12 @@ func (this *Network) Request(msg proto.Message, peer string) (proto.Message, err
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(dspCom.ACTOR_MAX_P2P_REQ_TIMEOUT)*time.Second)
 	defer cancel()
 	log.Debugf("send request msg to %s", peer)
-	return client.Request(ctx, msg, time.Duration(dspNetCom.REQUEST_MSG_TIMEOUT)*time.Second)
+	resp, err := client.Request(ctx, msg, time.Duration(dspNetCom.REQUEST_MSG_TIMEOUT)*time.Second)
+	if err != nil {
+		this.AddSendFailedCnt(peer)
+		return nil, err
+	}
+	return resp, nil
 }
 
 // RequestWithRetry. send msg to peer and wait for response synchronously
@@ -523,6 +532,9 @@ func (this *Network) RequestWithRetry(msg proto.Message, peer string, retry, rep
 	if client != nil {
 		log.Debugf("enable backoff of peer %s", peer)
 		client.EnableBackoff()
+	}
+	if err != nil {
+		this.AddSendFailedCnt(peer)
 	}
 	return response, err
 }
@@ -738,6 +750,7 @@ func (this *Network) healthCheckPeer(addr string) error {
 		return nil
 	}
 	log.Debugf("health check peer: %s unreachable, err: %s ", addr, err)
+	this.AddDisconnectCnt(addr)
 	time.Sleep(time.Duration(common.BACKOFF_INIT_DELAY) * time.Second)
 	if addr == this.proxyAddr {
 		log.Debugf("reconnect proxy server ....")

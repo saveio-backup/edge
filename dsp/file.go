@@ -1786,6 +1786,15 @@ func (this *Endpoint) GetFileHashFromUrl(url string) string {
 }
 
 func (this *Endpoint) UpdateFileUrlLink(url, hash, fileName string, fileSize, totalCount uint64) (string, *DspErr) {
+	if fileSize == 0 || totalCount == 0 {
+		info, _ := this.Dsp.GetFileInfo(hash)
+		if info != nil {
+			fileSize = info.RealFileSize
+			totalCount = info.FileBlockNum
+		} else {
+			totalCount = fileSize * 1024 / dspCom.CHUNK_SIZE
+		}
+	}
 	link := this.Dsp.GenLink(hash, fileName, uint64(fileSize), totalCount)
 	tx, err := this.Dsp.BindFileUrl(url, link)
 	if err != nil {

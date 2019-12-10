@@ -217,7 +217,7 @@ func SetDefaultFieldForConfig(cfg *DspConfig) {
 	}
 
 	if len(cfg.BaseConfig.BlockDelay) == 0 {
-		cfg.BaseConfig.BlockDelay = fmt.Sprintf("%d", common.BLOCK_CONFIRM)
+		cfg.BaseConfig.BlockDelay = fmt.Sprintf("%d", common.BLOCK_DELAY)
 	}
 
 	if cfg.BaseConfig.BlockConfirm == 0 {

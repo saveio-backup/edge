@@ -266,6 +266,17 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 				msg.Response <- &dspAct.P2pStringResp{Value: annResp.Peer, Error: nil}
 			}
 		}()
+	case *dspAct.IsPeerNetQualityBadReq:
+		go func() {
+			switch msg.NetType {
+			case dspAct.P2pNetTypeDsp:
+				bad := this.dspNet.IsPeerNetQualityBad(msg.Address)
+				msg.Response <- &dspAct.P2pBoolResp{Value: bad}
+			case dspAct.P2pNetTypeChannel:
+				bad := this.channelNet.IsPeerNetQualityBad(msg.Address)
+				msg.Response <- &dspAct.P2pBoolResp{Value: bad}
+			}
+		}()
 	default:
 		log.Error("[P2PActor] receive unknown message type!")
 	}
