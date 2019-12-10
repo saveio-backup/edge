@@ -1781,6 +1781,19 @@ func (this *Endpoint) GetPeerCountOfHash(fileHashStr string) (interface{}, *DspE
 	return len(this.Dsp.GetPeerFromTracker(fileHashStr, this.Dsp.GetTrackerList())), nil
 }
 
+func (this *Endpoint) GetFileHashFromUrl(url string) string {
+	return this.Dsp.GetFileHashFromUrl(url)
+}
+
+func (this *Endpoint) UpdateFileUrlLink(url, hash, fileName string, fileSize, totalCount uint64) (string, *DspErr) {
+	link := this.Dsp.GenLink(hash, fileName, uint64(fileSize), totalCount)
+	tx, err := this.Dsp.BindFileUrl(url, link)
+	if err != nil {
+		return "", &DspErr{Code: CONTRACT_ERROR, Error: err}
+	}
+	return tx, nil
+}
+
 func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressInfo) *Transfer {
 	if info.TaskState != store.TaskStateDone && info.TaskState != store.TaskStateFailed {
 		// update state by task cache

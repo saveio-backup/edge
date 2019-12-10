@@ -48,6 +48,7 @@ type Network struct {
 	addressForHealthCheck *sync.Map
 	addressForConnecting  *sync.Map
 	handler               func(*network.ComponentContext)
+	peerFailedCount       *sync.Map
 }
 
 func NewP2P() *Network {
@@ -57,6 +58,7 @@ func NewP2P() *Network {
 	n.addressForHealthCheck = new(sync.Map)
 	n.addressForConnecting = new(sync.Map)
 	n.kill = make(chan struct{})
+	n.peerFailedCount = new(sync.Map)
 	return n
 
 }
@@ -296,6 +298,7 @@ func (this *Network) ConnectAndWait(addr string) error {
 		// already try to connect, don't retry before we get a result
 		log.Info("already try to connect")
 		err := this.WaitForConnected(addr, time.Duration(common.MAX_WAIT_FOR_CONNECTED_TIMEOUT)*time.Second)
+		// this.peerFailedCount[addr]
 		return err
 	}
 	this.addressForConnecting.Store(addr, struct{}{})

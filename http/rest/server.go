@@ -150,6 +150,8 @@ const (
 	DNS_QUERY_HOST_INFOS = "/api/v1/dns/hostinfos"
 	DNS_QUERY_REG_INFO   = "/api/v1/dns/reginfo/:pubkey"
 	DNS_QUERY_HOST_INFO  = "/api/v1/dns/hostinfo/:addr"
+	DNS_QUERY_HASH       = "/api/v1/dns/hash/:url"
+	DNS_UPDATE_URL       = "/api/v1/dns/url/link"
 
 	NETWORK_STATE           = "/api/v1/network/state"
 	RECONNECT_CHANNEL_PEERS = "/api/v1/network/channel/reconnect"
@@ -284,6 +286,8 @@ func (this *restServer) registryMethod() {
 		NETWORK_STATE:        {name: "networkstate", handler: GetNetworkState},
 		GET_CONFIG:           {name: "getconfig", handler: GetConfig},
 		GOROUTINE_LIST:       {name: "getgoroutine", handler: nil},
+
+		DNS_QUERY_HASH: {name: "getfilehashbyurl", handler: GetHashFromUrl},
 	}
 	this.getMap = getMethodMap
 
@@ -334,6 +338,8 @@ func (this *restServer) registryMethod() {
 
 		SWITCH_CHAINID:          {name: "switchchainid", handler: SwitchChain},
 		RECONNECT_CHANNEL_PEERS: {name: "channelreconnectpeers", handler: ReconnectChannelPeers},
+
+		DNS_UPDATE_URL: {name: "updatefileurllink", handler: UpdateFileUrlLink},
 	}
 	this.postMap = postMethodMap
 }
@@ -454,10 +460,11 @@ func (this *restServer) getPath(url string) string {
 		return DNS_QUERY_REG_INFO
 	} else if strings.Contains(url, strings.TrimRight(DNS_QUERY_HOST_INFO, ":addr")) {
 		return DNS_QUERY_HOST_INFO
+	} else if strings.Contains(url, strings.TrimSuffix(DNS_QUERY_HASH, ":url")) {
+		return DNS_QUERY_HASH
 	} else if strings.Contains(url, ALL_DNS) {
 		return ALL_DNS
 	}
-
 	return url
 }
 
@@ -509,6 +516,8 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 		req["Hash"] = getParam(r, "hash")
 	case EXPORT_WIFPRIVATEKEY:
 		req["Password"] = getParam(r, "password")
+	case DNS_QUERY_HASH:
+		req["Url"] = getParam(r, "url")
 	default:
 	}
 
