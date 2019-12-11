@@ -136,6 +136,7 @@ type NodeProveDetail struct {
 	PdpProveNum uint64
 	State       int
 	Index       int
+	UploadSize  uint64
 }
 
 type DownloadFilesInfo struct {
@@ -910,6 +911,10 @@ func (this *Endpoint) RegisterProgressCh() {
 				log.Warnf("progress channel is closed")
 				return
 			}
+			if v == nil {
+				log.Warnf("progress channel receive nil info")
+				continue
+			}
 			switch v.Type {
 			case store.TaskTypeUpload:
 				go this.notifyUploadingTransferList()
@@ -1332,21 +1337,31 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uin
 			}
 
 			nodesDetail := make([]NodeProveDetail, 0, proveDetail.ProveDetailNum)
-			primaryNodeM := make(map[chainCom.Address]int, 0)
+			primaryNodeM := make(map[chainCom.Address]NodeProveDetail, 0)
 			for index, primN := range fi.PrimaryNodes.AddrList {
-				primaryNodeM[primN] = index
+				primaryNodeM[primN] = NodeProveDetail{
+					Index: index,
+				}
 			}
 			for _, detail := range proveDetail.ProveDetails {
 				nodeState := 2
 				if detail.ProveTimes > 0 {
 					nodeState = 3
 				}
+				uploadSize, _ := this.Dsp.GetFileUploadSize(fileHashStr, string(detail.NodeAddr))
+				if uploadSize > 0 {
+					uploadSize /= 1024 // convert to KB
+				}
+				if detail.ProveTimes > 0 {
+					uploadSize = fi.FileBlockNum * fi.FileBlockSize
+				}
 				nodesDetail = append(nodesDetail, NodeProveDetail{
 					HostAddr:    string(detail.NodeAddr),
 					WalletAddr:  detail.WalletAddr.ToBase58(),
 					PdpProveNum: detail.ProveTimes,
 					State:       nodeState,
-					Index:       primaryNodeM[detail.WalletAddr],
+					Index:       primaryNodeM[detail.WalletAddr].Index,
+					UploadSize:  uploadSize,
 				})
 				delete(primaryNodeM, detail.WalletAddr)
 			}
@@ -1356,11 +1371,31 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uin
 			if filterType == UploadFileFilterTypeDone && len(primaryNodeM) > 0 {
 				continue
 			}
-			for addr, index := range primaryNodeM {
-				nodesDetail = append(nodesDetail, NodeProveDetail{
-					WalletAddr: addr.ToBase58(),
-					Index:      index,
-				})
+
+			if len(primaryNodeM) > 0 {
+				unprovedNodeWallets := make([]chainCom.Address, 0)
+				for addr, _ := range primaryNodeM {
+					unprovedNodeWallets = append(unprovedNodeWallets, addr)
+				}
+				hostAddrs, err := this.Dsp.GetNodeHostAddrListByWallets(unprovedNodeWallets)
+				if err != nil {
+					continue
+				}
+				for i, wallet := range unprovedNodeWallets {
+					nodeDetail := primaryNodeM[wallet]
+					nodeDetail.HostAddr = hostAddrs[i]
+					nodeDetail.WalletAddr = wallet.ToBase58()
+					uploadSize, _ := this.Dsp.GetFileUploadSize(fileHashStr, string(nodeDetail.HostAddr))
+					log.Debugf("file: %s, wallet %v, uploadsize %d", fileHashStr, wallet, uploadSize)
+					if uploadSize > 0 {
+						uploadSize /= 1024 // convert to KB
+					}
+					nodeDetail.UploadSize = uploadSize
+					primaryNodeM[wallet] = nodeDetail
+				}
+				for _, nodeDetail := range primaryNodeM {
+					nodesDetail = append(nodesDetail, nodeDetail)
+				}
 			}
 
 			fr := &FileResp{
@@ -1798,7 +1833,10 @@ func (this *Endpoint) UpdateFileUrlLink(url, hash, fileName string, fileSize, to
 	link := this.Dsp.GenLink(hash, fileName, uint64(fileSize), totalCount)
 	tx, err := this.Dsp.BindFileUrl(url, link)
 	if err != nil {
-		return "", &DspErr{Code: CONTRACT_ERROR, Error: err}
+		tx, err = this.Dsp.RegisterFileUrl(url, link)
+		if err != nil {
+			return "", &DspErr{Code: CONTRACT_ERROR, Error: err}
+		}
 	}
 	return tx, nil
 }
