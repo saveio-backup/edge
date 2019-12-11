@@ -85,9 +85,10 @@ func (this *Endpoint) SetConfigs(fields map[string]interface{}) (*ConfigResponse
 				continue
 			}
 			config.Parameters.FsConfig.FsFileRoot = newPath
-			err := this.Dsp.UpdateConfig("FsFileRoot", config.FsFileRootPath())
-			if err != nil {
-				log.Errorf("update config err %s", err)
+			if this != nil && this.Dsp != nil {
+				if err := this.Dsp.UpdateConfig("FsFileRoot", config.FsFileRootPath()); err != nil {
+					log.Errorf("update config err %s", err)
+				}
 			}
 			newResp.DownloadPath = newPath
 		}
