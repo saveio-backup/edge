@@ -104,7 +104,7 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 		}()
 	case *chAct.SendReq:
 		go func() {
-			msg.Ret.Err = this.channelNet.Send(msg.Data, msg.Address)
+			msg.Ret.Err = this.channelNet.Send(msg.Data, "", msg.Address)
 			msg.Ret.Done <- true
 		}()
 	case *dspAct.ConnectReq:
@@ -136,12 +136,12 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 		}()
 	case *dspAct.SendReq:
 		go func() {
-			err := this.dspNet.Send(msg.Data, msg.Address)
+			err := this.dspNet.Send(msg.Data, msg.MsgId, msg.Address)
 			msg.Response <- &dspAct.P2pResp{Error: err}
 		}()
 	case *dspAct.BroadcastReq:
 		go func() {
-			m, err := this.dspNet.Broadcast(msg.Addresses, msg.Data, msg.NeedReply, msg.Action)
+			m, err := this.dspNet.Broadcast(msg.Addresses, msg.Data, msg.MsgId, msg.NeedReply, msg.Action)
 			msg.Response <- &dspAct.BroadcastResp{Result: m, Error: err}
 		}()
 	case *dspAct.PublicAddrReq:

@@ -14,6 +14,7 @@ import (
 	"github.com/saveio/carrier/crypto"
 	"github.com/saveio/carrier/crypto/ed25519"
 	"github.com/saveio/carrier/network"
+	"github.com/saveio/carrier/network/components/ackreply"
 	"github.com/saveio/carrier/network/components/backoff"
 	"github.com/saveio/carrier/network/components/keepalive"
 	"github.com/saveio/carrier/network/components/proxy"
@@ -22,6 +23,7 @@ import (
 	dspNetCom "github.com/saveio/dsp-go-sdk/network/common"
 	"github.com/saveio/dsp-go-sdk/network/message/pb"
 	dspMsg "github.com/saveio/dsp-go-sdk/network/message/pb"
+	"github.com/saveio/dsp-go-sdk/utils"
 	"github.com/saveio/edge/common"
 	"github.com/saveio/edge/common/config"
 	"github.com/saveio/pylons/actor/msg_opcode"
@@ -158,6 +160,13 @@ func (this *Network) Start(address string) error {
 		log.Debugf("backoff opt %v", backoff_options)
 		builder.AddComponent(backoff.New(backoff_options...))
 	}
+
+	// add ack reply
+	ackOption := []ackreply.ComponentOption{
+		ackreply.WithAckCheckedInterval(time.Second * 3),
+		ackreply.WithAckMessageTimeout(time.Second * 10),
+	}
+	builder.AddComponent(ackreply.New(ackOption...))
 
 	this.AddProxyComponents(builder)
 
@@ -409,28 +418,34 @@ func (this *Network) IsProxyConnectionExists() (bool, error) {
 
 // Send send msg to peer asynchronous
 // peer can be addr(string) or client(*network.peerClient)
-func (this *Network) Send(msg proto.Message, toAddr string) error {
-	err := this.healthCheckPeer(this.proxyAddr)
-	if err != nil {
+func (this *Network) Send(msg proto.Message, msgId, toAddr string) error {
+	if err := this.healthCheckPeer(this.proxyAddr); err != nil {
 		return err
 	}
-	err = this.healthCheckPeer(toAddr)
-	if err != nil {
+	if err := this.healthCheckPeer(toAddr); err != nil {
 		return err
 	}
 	state, _ := this.GetPeerStateByAddress(toAddr)
 	if state != network.PEER_REACHABLE {
-		return fmt.Errorf("can not send to inactive peer %s", toAddr)
+		if err := this.healthCheckPeer(toAddr); err != nil {
+			return fmt.Errorf("can not send to inactive peer %s", toAddr)
+		}
 	}
-	signed, err := this.P2p.PrepareMessage(context.Background(), msg)
-	if err != nil {
-		return fmt.Errorf("failed to sign message")
+	if len(msgId) == 0 {
+		msgId = utils.GenIdByTimestamp()
 	}
-	err = this.P2p.Write(toAddr, signed)
-	log.Debugf("write msg done sender:%s, to %s, nonce: %d", signed.GetSender().Address, toAddr, signed.GetMessageNonce())
-	if err != nil {
+	client := this.P2p.GetPeerClient(toAddr)
+	if client == nil {
+		return fmt.Errorf("client is nil")
+	}
+	if err := client.AsyncSendAndWaitAck(context.Background(), msg, msgId); err != nil {
 		this.AddSendFailedCnt(toAddr)
 		return fmt.Errorf("failed to send message to %s", toAddr)
+	}
+	status := <-client.AckStatusNotify
+	log.Debugf("receive ack status %v", status)
+	if status.MessageID == msgId && status.Status == network.ACK_SUCCESS {
+		return nil
 	}
 	return nil
 }
@@ -542,7 +557,7 @@ func (this *Network) RequestWithRetry(msg proto.Message, peer string, retry, rep
 // Broadcast. broadcast same msg to peers. Handle action if send msg success.
 // If one msg is sent failed, return err. But the previous success msgs can not be recalled.
 // callback(responseMsg, responseToAddr).
-func (this *Network) Broadcast(addrs []string, msg proto.Message, needReply bool, callback func(proto.Message, string) bool) (map[string]error, error) {
+func (this *Network) Broadcast(addrs []string, msg proto.Message, msgId string, needReply bool, callback func(proto.Message, string) bool) (map[string]error, error) {
 	err := this.healthCheckPeer(this.proxyAddr)
 	if err != nil {
 		return nil, err
@@ -583,7 +598,7 @@ func (this *Network) Broadcast(addrs []string, msg proto.Message, needReply bool
 				var res proto.Message
 				var err error
 				if !needReply {
-					err = this.Send(msg, req.addr)
+					err = this.Send(msg, msgId, req.addr)
 				} else {
 					res, err = this.Request(msg, req.addr)
 				}
@@ -746,10 +761,12 @@ func (this *Network) healthCheckPeer(addr string) error {
 		return nil
 	}
 	peerState, err := this.GetPeerStateByAddress(addr)
+	if peerState != network.PEER_REACHABLE {
+		log.Debugf("health check peer: %s unreachable, err: %s ", addr, err)
+	}
 	if err == nil && peerState == network.PEER_REACHABLE {
 		return nil
 	}
-	log.Debugf("health check peer: %s unreachable, err: %s ", addr, err)
 	this.AddDisconnectCnt(addr)
 	time.Sleep(time.Duration(common.BACKOFF_INIT_DELAY) * time.Second)
 	if addr == this.proxyAddr {

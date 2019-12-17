@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -137,6 +138,19 @@ type NodeProveDetail struct {
 	State       int
 	Index       int
 	UploadSize  uint64
+}
+type NodeProveDetails []NodeProveDetail
+
+func (s NodeProveDetails) Len() int {
+	return len(s)
+}
+
+func (s NodeProveDetails) Less(i, j int) bool {
+	return s[i].Index < s[j].Index
+}
+
+func (s NodeProveDetails) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
 }
 
 type DownloadFilesInfo struct {
@@ -1397,7 +1411,7 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uin
 					nodesDetail = append(nodesDetail, nodeDetail)
 				}
 			}
-
+			sort.Sort(NodeProveDetails(nodesDetail))
 			fr := &FileResp{
 				Hash:          fileHashStr,
 				Name:          string(fi.FileDesc),
