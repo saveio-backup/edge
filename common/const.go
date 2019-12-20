@@ -32,6 +32,9 @@ const (
 	KEEPALIVE_TIMEOUT              = 15      // keepalive timeout
 	EVENT_ACTOR_TIMEOUT            = 15      // event actor timeout
 	NETWORK_DIAL_TIMEOUT           = 5       // network dial timeout
+	MAX_MSG_RETRY                  = 3       // max msg retry count
+	ACK_MSG_CHECK_INTERVAL         = 20      // ack msg check interval
+	MAX_ACK_MSG_TIMEOUT            = 60      // max timeout for ack msg
 )
 
 // asset

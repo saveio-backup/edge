@@ -634,3 +634,17 @@ func GetChainIdList(cmd map[string]interface{}) map[string]interface{} {
 	resp["Result"] = m
 	return resp
 }
+
+func RemoveDBDir(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	v, ok := cmd["Type"].(float64)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	derr := dsp.DspService.RemoveDBDir(dsp.DBType(v))
+	if derr != nil {
+		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
+	}
+
+	return resp
+}

@@ -1,6 +1,8 @@
 package dsp
 
 import (
+	"os"
+
 	"github.com/saveio/edge/common/config"
 	"github.com/saveio/themis/common/log"
 )
@@ -98,4 +100,50 @@ func (this *Endpoint) SetConfigs(fields map[string]interface{}) (*ConfigResponse
 		return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
 	}
 	return newResp, nil
+}
+
+type DBType int
+
+const (
+	DBTypeAll DBType = iota
+	DBTypeEdge
+	DBTypeDsp
+	DBTypeChannel
+	DBTypeFs
+)
+
+func (this *Endpoint) RemoveDBDir(dbType DBType) *DspErr {
+	switch dbType {
+	case DBTypeAll:
+		if err := os.RemoveAll(config.DspDBPath()); err != nil {
+			return &DspErr{Code: INTERNAL_ERROR, Error: err}
+		}
+		if err := os.RemoveAll(config.ChannelDBPath()); err != nil {
+			return &DspErr{Code: INTERNAL_ERROR, Error: err}
+		}
+		if err := os.RemoveAll(config.ClientSqliteDBPath()); err != nil {
+			return &DspErr{Code: INTERNAL_ERROR, Error: err}
+		}
+		if err := os.RemoveAll(config.FsRepoRootPath()); err != nil {
+			return &DspErr{Code: INTERNAL_ERROR, Error: err}
+		}
+	case DBTypeEdge:
+		if err := os.RemoveAll(config.ClientSqliteDBPath()); err != nil {
+			return &DspErr{Code: INTERNAL_ERROR, Error: err}
+		}
+	case DBTypeDsp:
+		if err := os.RemoveAll(config.DspDBPath()); err != nil {
+			return &DspErr{Code: INTERNAL_ERROR, Error: err}
+		}
+	case DBTypeChannel:
+		if err := os.RemoveAll(config.ChannelDBPath()); err != nil {
+			return &DspErr{Code: INTERNAL_ERROR, Error: err}
+		}
+	case DBTypeFs:
+		if err := os.RemoveAll(config.FsRepoRootPath()); err != nil {
+			return &DspErr{Code: INTERNAL_ERROR, Error: err}
+		}
+	}
+	return nil
+
 }

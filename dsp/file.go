@@ -809,10 +809,45 @@ func (this *Endpoint) PauseDownloadFile(taskIds []string) *FileTaskResp {
 	return resp
 }
 
-func (this *Endpoint) ResumeDownloadFile(taskIds []string) *FileTaskResp {
+func (this *Endpoint) ResumeDownloadFile(taskIds []string) (*FileTaskResp, *DspErr) {
 	resp := &FileTaskResp{
 		Tasks: make([]*FileTask, 0, len(taskIds)),
 	}
+	if !this.Dsp.HasDNS() {
+		return nil, &DspErr{Code: DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST, Error: ErrMaps[DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST]}
+	}
+	canDownload := false
+	all, getChannelErr := this.Dsp.AllChannels()
+	if getChannelErr != nil {
+		return nil, &DspErr{Code: INTERNAL_ERROR, Error: getChannelErr}
+	}
+	if all == nil || len(all.Channels) == 0 {
+		return nil, &DspErr{Code: DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH, Error: ErrMaps[DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH]}
+	}
+
+	fee := uint64(0)
+	for _, id := range taskIds {
+		fee += this.Dsp.GetDownloadTaskRemainSize(id)
+	}
+	for _, ch := range all.Channels {
+		log.Debugf("ResumeDownloadFile %v ch.Balance : %v fileinfo.fee %v ", ch.Address, ch.Balance, fee, this.Dsp.IsDNS(ch.Address))
+		if this.Dsp.IsDNS(ch.Address) && ch.Balance >= fee {
+			canDownload = true
+			break
+		}
+	}
+	canDownload = true
+	if !canDownload {
+		return nil, &DspErr{Code: DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH, Error: ErrMaps[DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH]}
+	}
+	syncing, syncErr := this.IsChannelProcessBlocks()
+	if syncErr != nil {
+		return nil, syncErr
+	}
+	if syncing {
+		return nil, &DspErr{Code: DSP_CHANNEL_SYNCING, Error: ErrMaps[DSP_CHANNEL_SYNCING]}
+	}
+
 	for _, id := range taskIds {
 		taskResp := &FileTask{
 			Id: id,
@@ -838,7 +873,7 @@ func (this *Endpoint) ResumeDownloadFile(taskIds []string) *FileTaskResp {
 		taskResp.State = int(state)
 		resp.Tasks = append(resp.Tasks, taskResp)
 	}
-	return resp
+	return resp, nil
 }
 
 func (this *Endpoint) RetryDownloadFile(taskIds []string) *FileTaskResp {

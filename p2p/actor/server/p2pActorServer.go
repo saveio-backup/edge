@@ -158,6 +158,11 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 			ret, err := this.dspNet.RequestWithRetry(msg.Data, msg.Address, msg.Retry, msg.Timeout)
 			msg.Response <- &dspAct.RequestWithRetryResp{Data: ret, Error: err}
 		}()
+	case *dspAct.SendAndWaitReplyReq:
+		go func() {
+			ret, err := this.dspNet.SendAndWaitReply(msg.Data, msg.MsgId, msg.Address)
+			msg.Response <- &dspAct.RequestWithRetryResp{Data: ret, Error: err}
+		}()
 	case *dspAct.ReconnectPeerReq:
 		go func() {
 			switch msg.NetType {

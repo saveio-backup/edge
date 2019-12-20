@@ -756,7 +756,10 @@ func ResumeDownloadFile(cmd map[string]interface{}) map[string]interface{} {
 		}
 		ids = append(ids, id)
 	}
-	ret := dsp.DspService.ResumeDownloadFile(ids)
+	ret, err := dsp.DspService.ResumeDownloadFile(ids)
+	if err != nil {
+		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
+	}
 	resp["Result"] = ret
 	return resp
 }
