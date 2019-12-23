@@ -125,12 +125,14 @@ func (p *Peer) Send(msgId string, msg proto.Message) error {
 		return fmt.Errorf("client is nil")
 	}
 	ch := make(chan MsgReply, 1)
+	log.Debugf("add msg in send %s", msgId)
 	p.addMsg(msgId, &MsgWrap{msg: msg, id: msgId, sending: true, reply: ch})
 	go p.retryMsg()
 	if err := p.client.AsyncSendAndWaitAck(context.Background(), msg, msgId); err != nil {
 		p.failedCount.Send++
 		return err
 	}
+	log.Debugf("wait for msg reply of %s", msgId)
 	reply := <-ch
 	if reply.err != nil {
 		p.failedCount.Send++
@@ -150,6 +152,7 @@ func (p *Peer) SendAndWaitReply(msgId string, msg proto.Message) (proto.Message,
 		return nil, fmt.Errorf("client is nil")
 	}
 	ch := make(chan MsgReply, 1)
+	log.Debugf("SendAndWaitReply %s ", msgId)
 	p.addMsg(msgId, &MsgWrap{msg: msg, id: msgId, sending: true, needReply: true, reply: ch})
 	go p.retryMsg()
 	if err := p.client.AsyncSendAndWaitAck(context.Background(), msg, msgId); err != nil {
@@ -222,9 +225,11 @@ func (p *Peer) retryMsg() {
 }
 
 func (p *Peer) acceptAckNotify() {
+	log.Debugf("acceptAckNotify %v", p.client.Address)
 	for {
 		select {
 		case notify, ok := <-p.client.AckStatusNotify:
+			log.Debugf("receive notify %v %v", notify, ok)
 			if !ok {
 				continue
 			}
@@ -247,9 +252,11 @@ func (p *Peer) addMsg(msgId string, msg *MsgWrap) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	if _, ok := p.retry[msgId]; ok {
+		log.Warnf("msg exit %s", msgId)
 		return
 	}
 	p.mq.PushBack(msg)
+	log.Debugf("add msg %v, need reply %t, len %d", msgId, msg.needReply, p.mq.Len())
 	p.retry[msgId] = 0
 }
 
@@ -284,6 +291,7 @@ func (p *Peer) receiveMsgNotify(notify network.AckStatus) {
 	var e *list.Element
 	for e = p.mq.Front(); e != nil; e = e.Next() {
 		msgWrap := e.Value.(*MsgWrap)
+		log.Debugf("compare id %s %s", msgWrap.id, notify.MessageID)
 		if msgWrap.id == notify.MessageID {
 			break
 		}
@@ -292,6 +300,7 @@ func (p *Peer) receiveMsgNotify(notify network.AckStatus) {
 		return
 	}
 	msgWrap := e.Value.(*MsgWrap)
+	log.Debugf("get msg wrap %v %v", msgWrap.id, msgWrap.needReply)
 	// receive ack msg, remove it from list
 	if notify.Status == network.ACK_SUCCESS {
 		msgWrap.sended = true
@@ -299,7 +308,7 @@ func (p *Peer) receiveMsgNotify(notify network.AckStatus) {
 			msgWrap.reply <- MsgReply{}
 			p.mq.Remove(e)
 			delete(p.retry, msgWrap.id)
-			log.Debugf("after remove msg len %d", p.mq.Len())
+			log.Debugf("after remove %s msg len %d", msgWrap.id, p.mq.Len())
 		}
 		return
 	}
@@ -307,7 +316,7 @@ func (p *Peer) receiveMsgNotify(notify network.AckStatus) {
 		msgWrap.reply <- MsgReply{err: errors.New("retry too many")}
 		p.mq.Remove(e)
 		delete(p.retry, msgWrap.id)
-		log.Debugf("after remove msg len %d", p.mq.Len())
+		log.Debugf("after remove %s msg len %d", msgWrap.id, p.mq.Len())
 		p.failedCount.Recv++
 		return
 	}

@@ -35,6 +35,7 @@ import (
 var once sync.Once
 
 type Network struct {
+	builder    *network.Builder                // network builder
 	P2p        *network.Network                // underlay network p2p instance
 	listenAddr string                          // current listen address
 	proxyAddr  string                          // proxy address
@@ -43,6 +44,7 @@ type Network struct {
 	kill       chan struct{}                   // network stop signal
 	handler    func(*network.ComponentContext) // network msg handler
 	peers      *sync.Map                       // peer clients
+	lock       *sync.RWMutex                   // lock for sync control
 }
 
 func NewP2P() *Network {
@@ -51,6 +53,7 @@ func NewP2P() *Network {
 	}
 	n.kill = make(chan struct{})
 	n.peers = new(sync.Map)
+	n.lock = new(sync.RWMutex)
 	return n
 }
 
@@ -109,7 +112,7 @@ func (this *Network) Start(address string) error {
 		network.WriteTimeout(dspCom.NETWORK_STREAM_WRITE_TIMEOUT),
 	}
 	builder := network.NewBuilderWithOptions(builderOpt...)
-
+	this.builder = builder
 	// set keys
 	if this.Keys != nil {
 		log.Debugf("Network use account key")
@@ -430,6 +433,7 @@ func (this *Network) Send(msg proto.Message, msgId, toAddr string) error {
 	if err := this.healthCheckPeer(this.proxyAddr); err != nil {
 		return err
 	}
+	log.Debugf("before send, health check it")
 	if err := this.healthCheckPeer(toAddr); err != nil {
 		return err
 	}
@@ -440,23 +444,16 @@ func (this *Network) Send(msg proto.Message, msgId, toAddr string) error {
 		}
 	}
 	p, ok := this.peers.Load(toAddr)
+	log.Debugf("load peer success %t from %v", ok, toAddr)
 	if !ok {
 		return fmt.Errorf("peer not exist %s", toAddr)
 	}
-	ka := this.getKeepAliveComponent()
-	if ka != nil {
-		// stop keepalive for temporary
-		ka.GetStopChan() <- struct{}{}
-	}
+	this.stopKeepAlive()
 	pr := p.(*peer.Peer)
+	log.Debugf("send msg %s to %s", msgId, toAddr)
 	err := pr.Send(msgId, msg)
-	if ka != nil {
-		// update proxy and client time
-		this.updatePeerTime(this.proxyAddr)
-		this.updatePeerTime(toAddr)
-		// restart keepalive component
-		ka.Startup(this.P2p)
-	}
+	log.Debugf("send msg %s to %s done", msgId, toAddr)
+	this.restartKeepAlive()
 	return err
 }
 
@@ -478,20 +475,12 @@ func (this *Network) SendAndWaitReply(msg proto.Message, msgId, toAddr string) (
 	if !ok {
 		return nil, fmt.Errorf("peer not exist %s", toAddr)
 	}
-	ka := this.getKeepAliveComponent()
-	if ka != nil {
-		// stop keepalive for temporary
-		ka.GetStopChan() <- struct{}{}
-	}
+	this.stopKeepAlive()
 	pr := p.(*peer.Peer)
+	log.Debugf("send msg %s to %s", msgId, toAddr)
 	resp, err := pr.SendAndWaitReply(msgId, msg)
-	if ka != nil {
-		// update proxy and client time
-		this.updatePeerTime(this.proxyAddr)
-		this.updatePeerTime(toAddr)
-		// restart keepalive component
-		ka.Startup(this.P2p)
-	}
+	log.Debugf("send and wait reply done  %s", err)
+	this.restartKeepAlive()
 	return resp, err
 }
 
@@ -599,7 +588,7 @@ func (this *Network) RequestWithRetry(msg proto.Message, peer string, retry, rep
 // Broadcast. broadcast same msg to peers. Handle action if send msg success.
 // If one msg is sent failed, return err. But the previous success msgs can not be recalled.
 // callback(responseMsg, responseToAddr).
-func (this *Network) Broadcast(addrs []string, msg proto.Message, msgId string, needReply bool, callback func(proto.Message, string) bool) (map[string]error, error) {
+func (this *Network) Broadcast(addrs []string, msg proto.Message, msgId string, callbacks ...func(proto.Message, string) bool) (map[string]error, error) {
 	err := this.healthCheckPeer(this.proxyAddr)
 	if err != nil {
 		return nil, err
@@ -622,7 +611,6 @@ func (this *Network) Broadcast(addrs []string, msg proto.Message, msgId string, 
 		go func() {
 			for {
 				req, ok := <-dispatch
-				log.Debugf("receive request from %s, ok %t", req, ok)
 				if !ok || req == nil {
 					break
 				}
@@ -639,7 +627,7 @@ func (this *Network) Broadcast(addrs []string, msg proto.Message, msgId string, 
 				}
 				var res proto.Message
 				var err error
-				if !needReply {
+				if callbacks == nil || len(callbacks) == 0 {
 					err = this.Send(msg, msgId, req.addr)
 				} else {
 					res, err = this.SendAndWaitReply(msg, msgId, req.addr)
@@ -654,8 +642,15 @@ func (this *Network) Broadcast(addrs []string, msg proto.Message, msgId string, 
 				} else {
 					log.Debugf("receive reply msg from %s", req.addr)
 				}
-				if callback != nil {
-					finished := callback(res, req.addr)
+				var finished bool
+				for _, callback := range callbacks {
+					if callback == nil {
+						continue
+					}
+					if finished {
+						continue
+					}
+					finished = callback(res, req.addr)
 					if finished {
 						atomic.AddInt32(&stop, 1)
 					}
@@ -695,10 +690,14 @@ func (this *Network) Broadcast(addrs []string, msg proto.Message, msgId string, 
 
 func (this *Network) ReconnectPeer(addr string) error {
 	p, ok := this.peers.Load(addr)
+	var pr *peer.Peer
 	if !ok {
 		log.Warnf("peer no exist %s", addr)
+		pr = peer.New(addr)
+		this.peers.Store(addr, pr)
+	} else {
+		pr = p.(*peer.Peer)
 	}
-	pr := p.(*peer.Peer)
 	if pr.State() == peer.ConnectStateConnecting {
 		err := this.WaitForConnected(addr, time.Duration(common.MAX_WAIT_FOR_CONNECTED_TIMEOUT)*time.Second)
 		if err != nil {
@@ -727,7 +726,6 @@ func (this *Network) ReconnectPeer(addr string) error {
 func (this *Network) Receive(ctx *network.ComponentContext, message proto.Message, from string) error {
 	// TODO check message is nil
 	state, err := this.GetPeerStateByAddress(from)
-	log.Debugf("Network.Receive %T Msg %s, state: %d, err: %s", message, from, state, err)
 	switch message.(type) {
 	case *messages.Processed:
 		act.OnBusinessMessage(message, from)
@@ -756,10 +754,12 @@ func (this *Network) Receive(ctx *network.ComponentContext, message proto.Messag
 	case *messages.CooperativeSettle:
 		act.OnBusinessMessage(message, from)
 	case *dspMsg.Message:
+		log.Debugf("Network.Receive %T Msg %s, state: %d, err: %s", message, from, state, err)
 		msg := message.(*dspMsg.Message)
 		if len(msg.Syn) > 0 {
 			// reply to origin request msg, no need to enter handle router
 			pr, ok := this.peers.Load(from)
+			log.Debugf("receive reply msg from %s, sync id %s", from, msg.Syn)
 			if !ok {
 				log.Warnf("receive a unknown msg from %s", from)
 				return nil
@@ -818,6 +818,7 @@ func (this *Network) healthCheckPeer(addr string) error {
 		return nil
 	}
 	peerState, err := this.GetPeerStateByAddress(addr)
+	log.Debugf("get peer state of %s, state %d, err %s", addr, peerState, err)
 	if peerState != network.PEER_REACHABLE {
 		log.Debugf("health check peer: %s unreachable, err: %s ", addr, err)
 	}
@@ -895,6 +896,52 @@ func (this *Network) IsPeerNetQualityBad(addr string) bool {
 		return true
 	}
 	return false
+}
+
+func (this *Network) stopKeepAlive() {
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	var ka *keepalive.Component
+	var ok bool
+	for _, info := range this.P2p.Components.GetInstallComponents() {
+		ka, ok = info.Component.(*keepalive.Component)
+		if ok {
+			break
+		}
+	}
+	if ka == nil {
+		return
+	}
+	// stop keepalive for temporary
+	ka.Cleanup(this.P2p)
+	deleted := this.P2p.Components.Delete(ka)
+	log.Debugf("stop keep alive %t", deleted)
+}
+
+func (this *Network) restartKeepAlive() {
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	var ka *keepalive.Component
+	var ok bool
+	for _, info := range this.P2p.Components.GetInstallComponents() {
+		ka, ok = info.Component.(*keepalive.Component)
+		if ok {
+			break
+		}
+	}
+	if ka != nil {
+		return
+	}
+	options := []keepalive.ComponentOption{
+		keepalive.WithKeepaliveInterval(keepalive.DefaultKeepaliveInterval),
+		keepalive.WithKeepaliveTimeout(keepalive.DefaultKeepaliveTimeout),
+	}
+	ka = keepalive.New(options...)
+	err := this.builder.AddComponent(ka)
+	if err != nil {
+		return
+	}
+	ka.Startup(this.P2p)
 }
 
 func getProtocolFromAddr(addr string) string {

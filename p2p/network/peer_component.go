@@ -28,11 +28,7 @@ func (this *PeerComponent) PeerConnect(client *network.PeerClient) {
 	if this.Net.IsProxyAddr(client.Address) {
 		return
 	}
-	p, ok := this.Net.peers.Load(client.Address)
-	if !ok {
-		log.Errorf("peer has connected, but peer not found %s", client.Address, this.Net.GetProxyServer())
-		return
-	}
+	p, ok := this.Net.peers.LoadOrStore(client.Address, peer.New(client.Address))
 	pr, ok := p.(*peer.Peer)
 	if !ok {
 		log.Errorf("convert peer to peer.Peer failed")
