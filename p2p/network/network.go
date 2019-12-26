@@ -35,16 +35,17 @@ import (
 var once sync.Once
 
 type Network struct {
-	builder    *network.Builder                // network builder
-	P2p        *network.Network                // underlay network p2p instance
-	listenAddr string                          // current listen address
-	proxyAddr  string                          // proxy address
-	pid        *actor.PID                      // actor pid
-	Keys       *crypto.KeyPair                 // crypto network keys
-	kill       chan struct{}                   // network stop signal
-	handler    func(*network.ComponentContext) // network msg handler
-	peers      *sync.Map                       // peer clients
-	lock       *sync.RWMutex                   // lock for sync control
+	builder            *network.Builder                // network builder
+	P2p                *network.Network                // underlay network p2p instance
+	listenAddr         string                          // current listen address
+	proxyAddr          string                          // proxy address
+	pid                *actor.PID                      // actor pid
+	Keys               *crypto.KeyPair                 // crypto network keys
+	kill               chan struct{}                   // network stop signal
+	handler            func(*network.ComponentContext) // network msg handler
+	peers              *sync.Map                       // peer clients
+	lock               *sync.RWMutex                   // lock for sync control
+	addrForHealthCheck *sync.Map                       // address for keep health check
 }
 
 func NewP2P() *Network {
@@ -53,6 +54,7 @@ func NewP2P() *Network {
 	}
 	n.kill = make(chan struct{})
 	n.peers = new(sync.Map)
+	n.addrForHealthCheck = new(sync.Map)
 	n.lock = new(sync.RWMutex)
 	return n
 }
@@ -193,9 +195,7 @@ func (this *Network) Start(address string) error {
 	if len(this.P2p.ID.Address) == 6 {
 		return errors.New("invalid address")
 	}
-	if len(config.Parameters.BaseConfig.NATProxyServerAddrs) > 0 {
-		go this.healthCheckProxyService()
-	}
+	go this.healthCheckService()
 	return nil
 }
 
@@ -257,6 +257,7 @@ func (this *Network) StartProxy(builder *network.Builder) error {
 		select {
 		case <-done:
 			this.proxyAddr = proxyAddr
+			this.addrForHealthCheck.Store(proxyAddr, struct{}{})
 			log.Debugf("start proxy finish, publicAddr: %s", this.P2p.ID.Address)
 			return nil
 		case <-time.After(time.Duration(common.START_PROXY_TIMEOUT) * time.Second):
@@ -482,6 +483,10 @@ func (this *Network) SendAndWaitReply(msg proto.Message, msgId, toAddr string) (
 	log.Debugf("send and wait reply done  %s", err)
 	this.restartKeepAlive()
 	return resp, err
+}
+
+func (this *Network) AppendAddrToHealthCheck(addr string) {
+	this.addrForHealthCheck.Store(addr, struct{}{})
 }
 
 // [Deprecated] Request. send msg to peer and wait for response synchronously with timeout
@@ -790,21 +795,29 @@ func (this *Network) GetClientTime(addr string) (uint64, error) {
 	return uint64(t.Unix()), nil
 }
 
-func (this *Network) healthCheckProxyService() {
+func (this *Network) healthCheckService() {
 	ti := time.NewTicker(time.Duration(common.MAX_HEALTH_CHECK_INTERVAL) * time.Second)
 	startedAt := time.Now().Unix()
 	for {
 		select {
 		case <-ti.C:
-			if (time.Now().Unix()-startedAt)%60 == 0 {
-				proxyState, err := this.GetPeerStateByAddress(this.proxyAddr)
-				if err != nil {
-					log.Errorf("publicAddr: %s, proxy state: %d, err: %s", this.PublicAddr(), proxyState, err)
-				} else {
-					log.Debugf("publicAddr: %s, proxy state: %d", this.PublicAddr(), proxyState)
+			shouldLog := ((time.Now().Unix()-startedAt)%60 == 0)
+			this.addrForHealthCheck.Range(func(key, value interface{}) bool {
+				addr, _ := key.(string)
+				if len(addr) == 0 {
+					return true
 				}
-			}
-			this.healthCheckPeer(this.proxyAddr)
+				if shouldLog {
+					addrState, err := this.GetPeerStateByAddress(addr)
+					if err != nil {
+						log.Errorf("publicAddr: %s, addr %s state: %d, err: %s", this.PublicAddr(), addr, addrState, err)
+					} else {
+						log.Debugf("publicAddr: %s, addr %s state: %d", this.PublicAddr(), addr, addrState)
+					}
+				}
+				this.healthCheckPeer(addr)
+				return true
+			})
 		case <-this.kill:
 			log.Debugf("stop health check proxy service when receive kill")
 			ti.Stop()

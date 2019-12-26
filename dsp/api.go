@@ -131,6 +131,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		Trackers:             config.Parameters.BaseConfig.Trackers,
 		TrackerProtocol:      config.Parameters.BaseConfig.TrackerProtocol,
 		DNSWalletAddrs:       config.Parameters.BaseConfig.DNSWalletAddrs,
+		HealthCheckDNS:       config.Parameters.BaseConfig.HealthCheckDNS,
 	}
 	log.Debugf("dspConfig.dbPath %v, repo: %s, channelDB: %s, wallet: %s, enable backup: %t", dspConfig.DBPath, dspConfig.FsRepoRoot, dspConfig.ChannelDBPath, config.WalletDatFilePath(), config.Parameters.FsConfig.EnableBackup)
 	if err := dspCom.CreateDirIfNeed(config.ClientSqliteDBPath()); err != nil {

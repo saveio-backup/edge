@@ -64,6 +64,7 @@ type BaseConfig struct {
 	DnsNodeMaxNum      int      `json:"DnsNodeMaxNum"`
 	DnsChannelDeposit  uint64   `json:"DnsChannelDeposit"`
 	DNSWalletAddrs     []string `json:"DNSWalletAddrs"`
+	HealthCheckDNS     bool     `json:"HealthCheckDNS"`
 
 	TrackerNetworkId  uint32   `json:"TrackerNetworkId"`
 	TrackerProtocol   string   `json:"TrackerProtocol"`

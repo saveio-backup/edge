@@ -342,7 +342,10 @@ func (this *Endpoint) MediaTransfer(paymentId int32, amount uint64, to string) *
 	if syncing {
 		return &DspErr{Code: DSP_CHANNEL_SYNCING, Error: ErrMaps[DSP_CHANNEL_SYNCING]}
 	}
-	err := this.Dsp.WaitForConnected(to, time.Duration(dspCom.WAIT_CHANNEL_CONNECT_TIMEOUT)*time.Second)
+	if !this.Dsp.HasDNS() {
+		return &DspErr{Code: NO_DNS, Error: ErrMaps[NO_DNS]}
+	}
+	err := this.Dsp.WaitForConnected(this.Dsp.CurrentDNSWallet(), time.Duration(dspCom.WAIT_CHANNEL_CONNECT_TIMEOUT)*time.Second)
 	if err != nil {
 		log.Errorf("wait channel connected err %s %s", to, err)
 		return &DspErr{Code: DSP_CHANNEL_INTERNAL_ERROR, Error: err}
