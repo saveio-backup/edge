@@ -125,7 +125,7 @@ func (p *Peer) Send(msgId string, msg proto.Message) error {
 		return fmt.Errorf("client is nil")
 	}
 	ch := make(chan MsgReply, 1)
-	log.Debugf("add msg in send %s", msgId)
+	log.Debugf("send msg %s to %s", msgId, p.addr)
 	p.addMsg(msgId, &MsgWrap{msg: msg, id: msgId, sending: true, reply: ch})
 	go p.retryMsg()
 	if err := p.client.AsyncSendAndWaitAck(context.Background(), msg, msgId); err != nil {
@@ -134,6 +134,7 @@ func (p *Peer) Send(msgId string, msg proto.Message) error {
 	}
 	log.Debugf("wait for msg reply of %s", msgId)
 	reply := <-ch
+	log.Debugf("receive msg ack of %s from %s", msgId, p.addr)
 	if reply.err != nil {
 		p.failedCount.Send++
 	}
@@ -152,7 +153,7 @@ func (p *Peer) SendAndWaitReply(msgId string, msg proto.Message) (proto.Message,
 		return nil, fmt.Errorf("client is nil")
 	}
 	ch := make(chan MsgReply, 1)
-	log.Debugf("SendAndWaitReply %s ", msgId)
+	log.Debugf("send msg %s and wait for reply to %s", msgId, p.addr)
 	p.addMsg(msgId, &MsgWrap{msg: msg, id: msgId, sending: true, needReply: true, reply: ch})
 	go p.retryMsg()
 	if err := p.client.AsyncSendAndWaitAck(context.Background(), msg, msgId); err != nil {
@@ -160,6 +161,7 @@ func (p *Peer) SendAndWaitReply(msgId string, msg proto.Message) (proto.Message,
 		return nil, err
 	}
 	reply := <-ch
+	log.Debugf("receive msg reply of %d from %s", msgId, p.addr)
 	if reply.err != nil {
 		p.failedCount.Send++
 	}
@@ -190,7 +192,7 @@ func (p *Peer) Receive(origId string, replyMsg proto.Message) {
 	msgWrap.reply <- MsgReply{msg: replyMsg}
 	p.mq.Remove(e)
 	delete(p.retry, msgWrap.id)
-	log.Debugf("after remove msg len %d", p.mq.Len())
+	log.Debugf("after remove msg %s-%s len %d", origId, msgWrap.id, p.mq.Len())
 }
 
 func (p *Peer) retryMsg() {
@@ -217,6 +219,7 @@ func (p *Peer) retryMsg() {
 				log.Debugf("retry msg %s, but client is disconnect", msgWrap.id)
 				continue
 			}
+			log.Debugf("get msg to retry %s", msgWrap.id)
 			if err := p.client.AsyncSendAndWaitAck(context.Background(), msgWrap.msg, msgWrap.id); err != nil {
 				log.Errorf("send msg to %s err in retry service %s", p.client, err)
 			}
@@ -291,16 +294,16 @@ func (p *Peer) receiveMsgNotify(notify network.AckStatus) {
 	var e *list.Element
 	for e = p.mq.Front(); e != nil; e = e.Next() {
 		msgWrap := e.Value.(*MsgWrap)
-		log.Debugf("compare id %s %s", msgWrap.id, notify.MessageID)
 		if msgWrap.id == notify.MessageID {
 			break
 		}
 	}
 	if e == nil {
+		log.Debugf("receive notify of msg id %s, but it's removed from the queue", notify.MessageID)
 		return
 	}
 	msgWrap := e.Value.(*MsgWrap)
-	log.Debugf("get msg wrap %v %v", msgWrap.id, msgWrap.needReply)
+	log.Debugf("receive msg ack notify %d, result %d, need reply %t", msgWrap.id, notify.Status, msgWrap.needReply)
 	// receive ack msg, remove it from list
 	if notify.Status == network.ACK_SUCCESS {
 		msgWrap.sended = true
@@ -308,7 +311,7 @@ func (p *Peer) receiveMsgNotify(notify network.AckStatus) {
 			msgWrap.reply <- MsgReply{}
 			p.mq.Remove(e)
 			delete(p.retry, msgWrap.id)
-			log.Debugf("after remove %s msg len %d", msgWrap.id, p.mq.Len())
+			log.Debugf("remove no-reply msg %s from queue, left %d msg", msgWrap.id, p.mq.Len())
 		}
 		return
 	}
@@ -316,7 +319,7 @@ func (p *Peer) receiveMsgNotify(notify network.AckStatus) {
 		msgWrap.reply <- MsgReply{err: errors.New("retry too many")}
 		p.mq.Remove(e)
 		delete(p.retry, msgWrap.id)
-		log.Debugf("after remove %s msg len %d", msgWrap.id, p.mq.Len())
+		log.Debugf("remove %s msg which retry too much, left %d msg", msgWrap.id, p.mq.Len())
 		p.failedCount.Recv++
 		return
 	}
