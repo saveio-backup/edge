@@ -15,6 +15,14 @@ import (
 	"github.com/saveio/themis/common/log"
 )
 
+type MsgState int
+
+const (
+	MsgStateNone MsgState = iota
+	MsgStateSending
+	MsgStateSended
+)
+
 type MsgReply struct {
 	id  string
 	msg proto.Message
@@ -24,8 +32,7 @@ type MsgReply struct {
 type MsgWrap struct {
 	id        string
 	msg       proto.Message
-	sending   bool
-	sended    bool
+	state     MsgState
 	needReply bool
 	reply     chan MsgReply
 }
@@ -126,7 +133,7 @@ func (p *Peer) Send(msgId string, msg proto.Message) error {
 	}
 	ch := make(chan MsgReply, 1)
 	log.Debugf("send msg %s to %s", msgId, p.addr)
-	p.addMsg(msgId, &MsgWrap{msg: msg, id: msgId, sending: true, reply: ch})
+	p.addMsg(msgId, &MsgWrap{msg: msg, id: msgId, reply: ch})
 	go p.retryMsg()
 	if err := p.client.AsyncSendAndWaitAck(context.Background(), msg, msgId); err != nil {
 		p.failedCount.Send++
@@ -154,7 +161,7 @@ func (p *Peer) SendAndWaitReply(msgId string, msg proto.Message) (proto.Message,
 	}
 	ch := make(chan MsgReply, 1)
 	log.Debugf("send msg %s and wait for reply to %s", msgId, p.addr)
-	p.addMsg(msgId, &MsgWrap{msg: msg, id: msgId, sending: true, needReply: true, reply: ch})
+	p.addMsg(msgId, &MsgWrap{msg: msg, id: msgId, needReply: true, reply: ch})
 	go p.retryMsg()
 	if err := p.client.AsyncSendAndWaitAck(context.Background(), msg, msgId); err != nil {
 		p.failedCount.Send++
@@ -223,6 +230,9 @@ func (p *Peer) retryMsg() {
 			if err := p.client.AsyncSendAndWaitAck(context.Background(), msgWrap.msg, msgWrap.id); err != nil {
 				log.Errorf("send msg to %s err in retry service %s", p.client, err)
 			}
+		case <-p.client.CloseSignal:
+			log.Debugf("exit retry msg service, because client %s is closed", p.addr)
+			return
 		}
 	}
 }
@@ -242,6 +252,8 @@ func (p *Peer) acceptAckNotify() {
 			}
 			p.receiveMsgNotify(notify)
 		case <-p.client.CloseSignal:
+			log.Debugf("exit accept ack notify service, because client %s is closed", p.addr)
+			p.resetAllMsgs()
 			p.client = nil
 			p.closeTime = time.Now()
 			p.failedCount.Disconnect++
@@ -272,14 +284,20 @@ func (p *Peer) getMsgLen() int {
 func (p *Peer) getMsgToRetry() *MsgWrap {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
+	if p.client == nil {
+		log.Warnf("get msg to retry but client is nil %s", p.addr)
+		return nil
+	}
 	for e := p.mq.Front(); e != nil; e = e.Next() {
 		msgWrap := e.Value.(*MsgWrap)
-		if msgWrap.sended {
+		if msgWrap.state == MsgStateSended {
+			log.Debugf("msg %s has sended, ignore retring", msgWrap.id)
 			continue
 		}
-		// msg haven't sended
-		if msgWrap.sending {
-			return nil
+		// msg is sending
+		if _, ok := p.client.SyncWaitAck.Load(msgWrap.id); ok {
+			log.Warnf("msg %s already in component retry queue", msgWrap.id)
+			continue
 		}
 		// msg is waiting
 		return msgWrap
@@ -306,7 +324,7 @@ func (p *Peer) receiveMsgNotify(notify network.AckStatus) {
 	log.Debugf("receive msg ack notify %s, result %d, need reply %t", msgWrap.id, notify.Status, msgWrap.needReply)
 	// receive ack msg, remove it from list
 	if notify.Status == network.ACK_SUCCESS {
-		msgWrap.sended = true
+		msgWrap.state = MsgStateSended
 		if !msgWrap.needReply {
 			msgWrap.reply <- MsgReply{}
 			p.mq.Remove(e)
@@ -323,8 +341,20 @@ func (p *Peer) receiveMsgNotify(notify network.AckStatus) {
 		p.failedCount.Recv++
 		return
 	}
-	msgWrap.sending = false
 	p.retry[msgWrap.id]++
+}
+
+// resetAllMsgs. reset all msg state to none
+func (p *Peer) resetAllMsgs() {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	for e := p.mq.Front(); e != nil; e = e.Next() {
+		msgWrap := e.Value.(*MsgWrap)
+		if msgWrap == nil {
+			continue
+		}
+		msgWrap.state = MsgStateNone
+	}
 }
 
 func (p *Peer) serviceRetrying() bool {
