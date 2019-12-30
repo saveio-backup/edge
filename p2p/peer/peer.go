@@ -303,7 +303,7 @@ func (p *Peer) receiveMsgNotify(notify network.AckStatus) {
 		return
 	}
 	msgWrap := e.Value.(*MsgWrap)
-	log.Debugf("receive msg ack notify %d, result %d, need reply %t", msgWrap.id, notify.Status, msgWrap.needReply)
+	log.Debugf("receive msg ack notify %s, result %d, need reply %t", msgWrap.id, notify.Status, msgWrap.needReply)
 	// receive ack msg, remove it from list
 	if notify.Status == network.ACK_SUCCESS {
 		msgWrap.sended = true

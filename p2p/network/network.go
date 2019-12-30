@@ -378,7 +378,7 @@ func (this *Network) WaitForConnected(addr string, timeout time.Duration) error 
 		}
 		<-time.After(interval)
 	}
-	return errors.New("wait for connected timeout")
+	return fmt.Errorf("wait for connecting %s timeout", addr)
 }
 
 func (this *Network) Close(tAddr string) error {

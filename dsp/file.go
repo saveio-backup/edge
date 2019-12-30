@@ -246,6 +246,9 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, pr
 	if f.IsDir() {
 		return nil, &DspErr{Code: FS_UPLOAD_FILEPATH_ERROR, Error: fmt.Errorf("uploadFile error: %s is a directory", path)}
 	}
+	if len(this.dspNet.GetProxyServer()) > 0 && !this.dspNet.IsConnectionReachable(this.dspNet.GetProxyServer()) {
+		return nil, &DspErr{Code: INTERNAL_ERROR, Error: fmt.Errorf("proxy %s is unreachable", this.dspNet.GetProxyServer())}
+	}
 	currentAccount := this.Dsp.CurrentAccount()
 	fsSetting, err := this.Dsp.GetFsSetting()
 	if err != nil {
@@ -708,6 +711,12 @@ func (this *Endpoint) DownloadFile(fileHash, url, link, password string, max uin
 	fileInfo, err := this.GetDownloadFileInfo(url)
 	if err != nil {
 		return err
+	}
+	if len(this.dspNet.GetProxyServer()) > 0 && !this.dspNet.IsConnectionReachable(this.dspNet.GetProxyServer()) {
+		return &DspErr{Code: INTERNAL_ERROR, Error: fmt.Errorf("proxy %s is unreachable", this.dspNet.GetProxyServer())}
+	}
+	if len(this.channelNet.GetProxyServer()) > 0 && !this.channelNet.IsConnectionReachable(this.channelNet.GetProxyServer()) {
+		return &DspErr{Code: INTERNAL_ERROR, Error: fmt.Errorf("proxy %s is unreachable", this.channelNet.GetProxyServer())}
 	}
 
 	canDownload := false
