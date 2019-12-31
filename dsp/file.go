@@ -1448,6 +1448,10 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uin
 					if uploadSize > 0 {
 						uploadSize /= 1024 // convert to KB
 					}
+					if uploadSize > fi.FileBlockNum*fi.FileBlockSize {
+						log.Warnf("update size is wrong %d, file size %d", uploadSize, fi.FileBlockNum*fi.FileBlockSize)
+						uploadSize = fi.FileBlockNum * fi.FileBlockSize
+					}
 					nodeDetail.UploadSize = uploadSize
 					primaryNodeM[wallet] = nodeDetail
 				}

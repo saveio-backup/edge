@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
 	"sync"
 	"time"
 
@@ -126,14 +127,16 @@ func (p *Peer) Send(msgId string, msg proto.Message) error {
 		return fmt.Errorf("peer is nil")
 	}
 	if len(msgId) == 0 {
-		msgId = utils.GenIdByTimestamp()
+		msgId = utils.GenIdByTimestamp(rand.New(rand.NewSource(time.Now().UnixNano())))
 	}
 	if p.client == nil {
 		return fmt.Errorf("client is nil")
 	}
 	ch := make(chan MsgReply, 1)
 	log.Debugf("send msg %s to %s", msgId, p.addr)
-	p.addMsg(msgId, &MsgWrap{msg: msg, id: msgId, reply: ch})
+	if err := p.addMsg(msgId, &MsgWrap{msg: msg, id: msgId, reply: ch}); err != nil {
+		return err
+	}
 	go p.retryMsg()
 	if err := p.client.AsyncSendAndWaitAck(context.Background(), msg, msgId); err != nil {
 		p.failedCount.Send++
@@ -154,14 +157,16 @@ func (p *Peer) SendAndWaitReply(msgId string, msg proto.Message) (proto.Message,
 		return nil, fmt.Errorf("peer is nil")
 	}
 	if len(msgId) == 0 {
-		msgId = utils.GenIdByTimestamp()
+		msgId = utils.GenIdByTimestamp(rand.New(rand.NewSource(time.Now().UnixNano())))
 	}
 	if p.client == nil {
 		return nil, fmt.Errorf("client is nil")
 	}
 	ch := make(chan MsgReply, 1)
 	log.Debugf("send msg %s and wait for reply to %s", msgId, p.addr)
-	p.addMsg(msgId, &MsgWrap{msg: msg, id: msgId, needReply: true, reply: ch})
+	if err := p.addMsg(msgId, &MsgWrap{msg: msg, id: msgId, needReply: true, reply: ch}); err != nil {
+		return nil, err
+	}
 	go p.retryMsg()
 	if err := p.client.AsyncSendAndWaitAck(context.Background(), msg, msgId); err != nil {
 		p.failedCount.Send++
@@ -212,6 +217,10 @@ func (p *Peer) retryMsg() {
 		ti.Stop()
 		p.setRetrying(false)
 	}()
+	var closeSignal chan struct{}
+	if p.client != nil {
+		closeSignal = p.client.CloseSignal
+	}
 	for {
 		select {
 		case <-ti.C:
@@ -230,7 +239,7 @@ func (p *Peer) retryMsg() {
 			if err := p.client.AsyncSendAndWaitAck(context.Background(), msgWrap.msg, msgWrap.id); err != nil {
 				log.Errorf("send msg to %s err in retry service %s", p.client, err)
 			}
-		case <-p.client.CloseSignal:
+		case <-closeSignal:
 			log.Debugf("exit retry msg service, because client %s is closed", p.addr)
 			return
 		}
@@ -263,16 +272,16 @@ func (p *Peer) acceptAckNotify() {
 }
 
 // addMsg. add msg to list
-func (p *Peer) addMsg(msgId string, msg *MsgWrap) {
+func (p *Peer) addMsg(msgId string, msg *MsgWrap) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	if _, ok := p.retry[msgId]; ok {
-		log.Warnf("msg exit %s", msgId)
-		return
+		return fmt.Errorf("add a duplicated msg %s", msgId)
 	}
 	p.mq.PushBack(msg)
 	log.Debugf("add msg %v, need reply %t, len %d", msgId, msg.needReply, p.mq.Len())
 	p.retry[msgId] = 0
+	return nil
 }
 
 func (p *Peer) getMsgLen() int {
@@ -296,7 +305,7 @@ func (p *Peer) getMsgToRetry() *MsgWrap {
 		}
 		// msg is sending
 		if _, ok := p.client.SyncWaitAck.Load(msgWrap.id); ok {
-			log.Warnf("msg %s already in component retry queue", msgWrap.id)
+			log.Debugf("msg %s already in component retry queue", msgWrap.id)
 			continue
 		}
 		// msg is waiting
