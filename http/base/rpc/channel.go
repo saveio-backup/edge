@@ -18,11 +18,24 @@ func GetAllChannels(cmd []interface{}) map[string]interface{} {
 }
 
 func OpenChannel(cmd []interface{}) map[string]interface{} {
+	if len(cmd) < 3 {
+		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	params := convertSliceToMap(cmd, []string{"Partner", "Password", "Amount"})
+	v := rest.OpenChannel(params)
+	ret, err := parseRestResult(v)
+	if err != nil {
+		return responsePackError(err.Code, err.Error.Error())
+	}
+	return responseSuccess(ret)
+}
+
+func OpenToAllDNSChannel(cmd []interface{}) map[string]interface{} {
 	if len(cmd) < 2 {
 		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
-	params := convertSliceToMap(cmd, []string{"Partner", "Password"})
-	v := rest.OpenChannel(params)
+	params := convertSliceToMap(cmd, []string{"Password", "Amount"})
+	v := rest.OpenToAllDNSChannel(params)
 	ret, err := parseRestResult(v)
 	if err != nil {
 		return responsePackError(err.Code, err.Error.Error())

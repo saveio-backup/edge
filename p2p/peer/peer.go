@@ -123,6 +123,11 @@ func (p *Peer) GetFailedCnt() *FailedCount {
 
 // Send. send msg without wait it's reply
 func (p *Peer) Send(msgId string, msg proto.Message) error {
+	defer func() {
+		if e := recover(); e != nil {
+			log.Errorf("recover err %v", e)
+		}
+	}()
 	if p == nil {
 		return fmt.Errorf("peer is nil")
 	}
@@ -153,6 +158,11 @@ func (p *Peer) Send(msgId string, msg proto.Message) error {
 
 // SendAndWaitReply. send msg and wait the response reply msg
 func (p *Peer) SendAndWaitReply(msgId string, msg proto.Message) (proto.Message, error) {
+	defer func() {
+		if e := recover(); e != nil {
+			log.Errorf("recover err %v", e)
+		}
+	}()
 	if p == nil {
 		return nil, fmt.Errorf("peer is nil")
 	}
@@ -237,7 +247,7 @@ func (p *Peer) retryMsg() {
 			}
 			log.Debugf("get msg to retry %s", msgWrap.id)
 			if err := p.client.AsyncSendAndWaitAck(context.Background(), msgWrap.msg, msgWrap.id); err != nil {
-				log.Errorf("send msg to %s err in retry service %s", p.client, err)
+				log.Errorf("send msg to %s err in retry service %s", p.addr, err)
 			}
 		case <-closeSignal:
 			log.Debugf("exit retry msg service, because client %s is closed", p.addr)

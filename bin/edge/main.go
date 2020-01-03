@@ -121,6 +121,9 @@ func initLog(ctx *cli.Context) {
 	logLevel := config.Parameters.BaseConfig.LogLevel
 	logPath := config.Parameters.BaseConfig.LogPath
 	baseDir := config.Parameters.BaseConfig.BaseDir
+	if len(logPath) == 0 {
+		logPath = fmt.Sprintf("./Log_%s", time.Now().Format("2006-01-02"))
+	}
 
 	extra := ""
 	logFullPath := filepath.Join(baseDir, logPath) + extra + "/"

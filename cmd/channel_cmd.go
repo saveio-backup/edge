@@ -50,6 +50,17 @@ var ChannelCommand = cli.Command{
 			ArgsUsage: " ",
 			Flags: []cli.Flag{
 				flags.PartnerAddressFlag,
+				flags.AmountStrFlag,
+			},
+			Description: "Open a payment channel with partner",
+		},
+		{
+			Action:    openAllDNShannel,
+			Name:      "opentoalldns",
+			Usage:     "Open payment channels to all dns",
+			ArgsUsage: " ",
+			Flags: []cli.Flag{
+				flags.AmountStrFlag,
 			},
 			Description: "Open a payment channel with partner",
 		},
@@ -131,12 +142,33 @@ func openChannel(ctx *cli.Context) error {
 		return nil
 	}
 	partnerAddr := ctx.String(flags.GetFlagName(flags.PartnerAddressFlag))
+	amount := ctx.String(flags.GetFlagName(flags.AmountStrFlag))
 	pwd, err := password.GetPassword()
 	if err != nil {
 		return err
 	}
 	pwdHash := eUtils.Sha256HexStr(string(pwd))
-	ret, err := utils.OpenPaymentChannel(partnerAddr, pwdHash)
+	ret, err := utils.OpenPaymentChannel(partnerAddr, pwdHash, amount)
+	if err != nil {
+		return err
+	}
+	PrintJsonObject(ret)
+	return nil
+}
+
+func openAllDNShannel(ctx *cli.Context) error {
+	if ctx.NumFlags() < 1 {
+		PrintErrorMsg("Missing argument.")
+		cli.ShowSubcommandHelp(ctx)
+		return nil
+	}
+	amount := ctx.String(flags.GetFlagName(flags.AmountStrFlag))
+	pwd, err := password.GetPassword()
+	if err != nil {
+		return err
+	}
+	pwdHash := eUtils.Sha256HexStr(string(pwd))
+	ret, err := utils.OpenAllDNSPaymentChannel(pwdHash, amount)
 	if err != nil {
 		return err
 	}

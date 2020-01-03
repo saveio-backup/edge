@@ -300,6 +300,17 @@ func (this *Endpoint) OpenPaymentChannel(partnerAddr string, amount uint64) (cha
 	return id, nil
 }
 
+func (this *Endpoint) OpenToAllDNSChannel(amount uint64) *DspErr {
+	onlineDNS := this.Dsp.GetAllOnlineDNS()
+	for walletAddr, _ := range onlineDNS {
+		_, err := this.OpenPaymentChannel(walletAddr, amount)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (this *Endpoint) ClosePaymentChannel(partnerAddr string) *DspErr {
 	syncing, syncErr := this.IsChannelProcessBlocks()
 	if syncErr != nil {

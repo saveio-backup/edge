@@ -71,6 +71,34 @@ func OpenChannel(cmd map[string]interface{}) map[string]interface{} {
 }
 
 //Handle for channel
+func OpenToAllDNSChannel(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	password, ok := cmd["Password"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	amountStr, ok := cmd["Amount"].(string)
+	realAmount := uint64(0)
+	if ok {
+		amount, err := strconv.ParseFloat(amountStr, 10)
+		if err != nil {
+			ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+		}
+		realAmount = uint64(amount * math.Pow10(constants.USDT_DECIMALS))
+	}
+	if dsp.DspService == nil {
+		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
+	}
+	if checkErr := dsp.DspService.CheckPassword(password); checkErr != nil {
+		return ResponsePackWithErrMsg(checkErr.Code, checkErr.Error.Error())
+	}
+	if err := dsp.DspService.OpenToAllDNSChannel(realAmount); err != nil {
+		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
+	}
+	return resp
+}
+
+//Handle for channel
 func CloseChannel(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	partnerAddrstr, ok := cmd["Partner"].(string)

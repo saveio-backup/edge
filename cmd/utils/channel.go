@@ -21,8 +21,17 @@ func GetAllChannels() ([]byte, error) {
 	return ret, nil
 }
 
-func OpenPaymentChannel(partnerAddr, password string) (map[string]string, error) {
-	ret, dErr := sendRpcRequest("openchannel", []interface{}{partnerAddr, password})
+func OpenPaymentChannel(partnerAddr, password, amount string) (map[string]string, error) {
+	ret, dErr := sendRpcRequest("openchannel", []interface{}{partnerAddr, password, amount})
+	if dErr != nil {
+		return nil, dErr.Error
+	}
+	data := map[string]string{"Id": string(ret)}
+	return data, nil
+}
+
+func OpenAllDNSPaymentChannel(password, amount string) (map[string]string, error) {
+	ret, dErr := sendRpcRequest("openalldnschannel", []interface{}{password, amount})
 	if dErr != nil {
 		return nil, dErr.Error
 	}
