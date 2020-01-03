@@ -283,10 +283,13 @@ func GetChannelInitProgress(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
 	progress, err := dsp.DspService.GetFilterBlockProgress()
-	log.Debugf("progress: %v, dsp is nil %t", progress.Progress, dsp.DspService.Dsp == nil)
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
+	if progress == nil {
+		return resp
+	}
+	log.Debugf("progress: %v, dsp is nil %t", progress.Progress, dsp.DspService == nil)
 	resp["Result"] = progress
 	return resp
 }

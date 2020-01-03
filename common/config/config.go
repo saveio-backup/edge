@@ -29,6 +29,7 @@ type BaseConfig struct {
 	BlockTime          uint64 `json:"BlockTime"`
 	NetworkId          uint32 `json:"NetworkId"`
 	PublicIP           string `json:"PublicIP"`
+	IntranetIP         string `json:"IntranetIP"`
 	PortBase           uint32 `json:"PortBase"`
 	LogLevel           int    `json:"LogLevel"`
 	LocalRpcPortOffset int    `json:"LocalRpcPortOffset"`

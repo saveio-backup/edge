@@ -105,7 +105,8 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 	if len(config.Parameters.BaseConfig.PublicIP) > 0 {
 		listenHost = config.Parameters.BaseConfig.PublicIP
 	}
-	channelListenAddr := fmt.Sprintf("%s:%d", listenHost, int(config.Parameters.BaseConfig.PortBase+uint32(config.Parameters.BaseConfig.ChannelPortOffset)))
+	channelListenAddr := fmt.Sprintf("%s:%d", listenHost,
+		int(config.Parameters.BaseConfig.PortBase+uint32(config.Parameters.BaseConfig.ChannelPortOffset)))
 	log.Debugf("config.Parameters.BaseConfig.ChainRpcAddrs: %v", config.Parameters.BaseConfig.ChainRpcAddrs)
 	dspConfig := &dspCfg.DspConfig{
 		DBPath:               config.DspDBPath(),
@@ -133,7 +134,9 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		DNSWalletAddrs:       config.Parameters.BaseConfig.DNSWalletAddrs,
 		HealthCheckDNS:       config.Parameters.BaseConfig.HealthCheckDNS,
 	}
-	log.Debugf("dspConfig.dbPath %v, repo: %s, channelDB: %s, wallet: %s, enable backup: %t", dspConfig.DBPath, dspConfig.FsRepoRoot, dspConfig.ChannelDBPath, config.WalletDatFilePath(), config.Parameters.FsConfig.EnableBackup)
+	log.Debugf("dspConfig.dbPath %v, repo: %s, channelDB: %s, wallet: %s, enable backup: %t",
+		dspConfig.DBPath, dspConfig.FsRepoRoot, dspConfig.ChannelDBPath, config.WalletDatFilePath(),
+		config.Parameters.FsConfig.EnableBackup)
 	if err := dspCom.CreateDirIfNeed(config.ClientSqliteDBPath()); err != nil {
 		return err
 	}
@@ -225,22 +228,35 @@ func (this *Endpoint) Stop() error {
 
 func (this *Endpoint) startDspService(listenHost string) error {
 	// start tracker net
-	tkListenPort := int(config.Parameters.BaseConfig.PortBase + uint32(config.Parameters.BaseConfig.TrackerPortOffset))
-	tkListenAddr := fmt.Sprintf("%s://%s:%d", config.Parameters.BaseConfig.TrackerProtocol, listenHost, tkListenPort)
-	log.Debugf("TrackerProtocol: %v, listenAddr: %s", config.Parameters, tkListenAddr)
-	if err := this.startTrackerP2P(tkListenAddr, this.Account); err != nil {
+	tkHostAddr := &common.HostAddr{
+		Protocol: config.Parameters.BaseConfig.TrackerProtocol,
+		Address:  listenHost,
+		Port: fmt.Sprintf("%d", int(config.Parameters.BaseConfig.PortBase+
+			uint32(config.Parameters.BaseConfig.TrackerPortOffset))),
+	}
+	if err := this.startTrackerP2P(tkHostAddr, this.Account); err != nil {
 		return err
 	}
 	// start dsp net
-	dspListenPort := int(config.Parameters.BaseConfig.PortBase + uint32(config.Parameters.BaseConfig.DspPortOffset))
-	dspListenAddr := fmt.Sprintf("%s://%s:%d", config.Parameters.BaseConfig.DspProtocol, listenHost, dspListenPort)
-	if err := this.startDspP2P(dspListenAddr, this.Account); err != nil {
+	dspHostAddr := &common.HostAddr{
+		Protocol: config.Parameters.BaseConfig.DspProtocol,
+		Address:  listenHost,
+		Port: fmt.Sprintf("%d", int(config.Parameters.BaseConfig.PortBase+
+			uint32(config.Parameters.BaseConfig.DspPortOffset))),
+	}
+	if err := this.startDspP2P(dspHostAddr, this.Account); err != nil {
 		return err
 	}
 	log.Debugf("start dsp at %s", this.dspPublicAddr)
 	// start channel net
-	channelListenAddr := fmt.Sprintf("%s://%s:%d", config.Parameters.BaseConfig.ChannelProtocol, listenHost, int(config.Parameters.BaseConfig.PortBase+uint32(config.Parameters.BaseConfig.ChannelPortOffset)))
-	if err := this.startChannelP2P(channelListenAddr, this.Account); err != nil {
+	chHostAddr := &common.HostAddr{
+		Protocol: config.Parameters.BaseConfig.ChannelProtocol,
+		Address:  listenHost,
+		Port: fmt.Sprintf("%d", int(config.Parameters.BaseConfig.PortBase+
+			uint32(config.Parameters.BaseConfig.ChannelPortOffset))),
+	}
+
+	if err := this.startChannelP2P(chHostAddr, this.Account); err != nil {
 		return err
 	}
 	log.Debugf("start channel at %s", this.channelPublicAddr)
@@ -270,14 +286,17 @@ func (this *Endpoint) startDspService(listenHost string) error {
 	return nil
 }
 
-func (this *Endpoint) startDspP2P(dspListenAddr string, acc *account.Account) error {
+func (this *Endpoint) startDspP2P(hostAddr *common.HostAddr, acc *account.Account) error {
 	bPub := keypair.SerializePublicKey(acc.PubKey())
 	networkKey := utils.NewNetworkEd25519KeyPair(bPub, []byte("dsp"))
 	dspNetwork := network.NewP2P()
-	dspNetwork.SetNetworkKey(networkKey)
-	dspNetwork.SetHandler(this.Dsp.Receive)
 	f := utils.TimeoutFunc(func() error {
-		return dspNetwork.Start(dspListenAddr)
+		opts := []network.NetworkOption{network.WithKeys(networkKey),
+			network.WithMsgHandler(this.Dsp.Receive)}
+		if len(config.Parameters.BaseConfig.IntranetIP) > 0 {
+			opts = append(opts, network.WithIntranetIP(config.Parameters.BaseConfig.IntranetIP))
+		}
+		return dspNetwork.Start(hostAddr.Protocol, hostAddr.Address, hostAddr.Port, opts...)
 	})
 	err := utils.DoWithTimeout(f, time.Duration(common.START_P2P_TIMEOUT)*time.Second)
 	if err != nil {
@@ -289,13 +308,16 @@ func (this *Endpoint) startDspP2P(dspListenAddr string, acc *account.Account) er
 	return nil
 }
 
-func (this *Endpoint) startChannelP2P(channelListenAddr string, acc *account.Account) error {
+func (this *Endpoint) startChannelP2P(hostAddr *common.HostAddr, acc *account.Account) error {
 	channelNetwork := network.NewP2P()
 	bPub := keypair.SerializePublicKey(acc.PubKey())
-	channelNetwork.Keys = utils.NewNetworkEd25519KeyPair(bPub, []byte("channel"))
 	req.SetChannelPid(this.Dsp.GetChannelPid())
 	f := utils.TimeoutFunc(func() error {
-		return channelNetwork.Start(channelListenAddr)
+		opts := []network.NetworkOption{network.WithKeys(utils.NewNetworkEd25519KeyPair(bPub, []byte("channel")))}
+		if len(config.Parameters.BaseConfig.IntranetIP) > 0 {
+			opts = append(opts, network.WithIntranetIP(config.Parameters.BaseConfig.IntranetIP))
+		}
+		return channelNetwork.Start(hostAddr.Protocol, hostAddr.Address, hostAddr.Port, opts...)
 	})
 	err := utils.DoWithTimeout(f, time.Duration(common.START_P2P_TIMEOUT)*time.Second)
 	if err != nil {
@@ -307,7 +329,7 @@ func (this *Endpoint) startChannelP2P(channelListenAddr string, acc *account.Acc
 	return nil
 }
 
-func (this *Endpoint) startTrackerP2P(tkListenAddr string, acc *account.Account) error {
+func (this *Endpoint) startTrackerP2P(hostAddr *common.HostAddr, acc *account.Account) error {
 	tkSrc := tk.NewTrackerService(nil, acc.PublicKey, func(raw []byte) ([]byte, error) {
 		return chainSdk.Sign(acc, raw)
 	})
@@ -321,14 +343,14 @@ func (this *Endpoint) startTrackerP2P(tkListenAddr string, acc *account.Account)
 	tkNet.SetNetworkKey(tkNetworkKey)
 	tkNet.SetPID(tkActServer.GetLocalPID())
 	tkNet.SetProxyServer(config.Parameters.BaseConfig.NATProxyServerAddrs)
-	log.Debugf("goto start tk network %s", tkListenAddr)
 	tk_net.TkP2p = tkNet
 	tkActServer.SetNetwork(tkNet)
 	tkActClient.SetTrackerServerPid(tkActServer.GetLocalPID())
 	this.p2pActor.SetTrackerNet(tkActServer)
 
 	f := utils.TimeoutFunc(func() error {
-		err := tkNet.Start(tkListenAddr, config.Parameters.BaseConfig.TrackerNetworkId)
+		err := tkNet.Start(hostAddr.Protocol, hostAddr.Address, hostAddr.Port,
+			config.Parameters.BaseConfig.TrackerNetworkId)
 		if err != nil {
 			return err
 		}
@@ -464,12 +486,14 @@ func (this *Endpoint) stateChangeService() {
 			go this.checkGoRoutineNum()
 			go this.checkLogFileSize()
 			if this.dspPublicAddr != this.dspNet.PublicAddr() {
-				log.Debugf("dsp public address has change, old addr: %s, new addr:%s", this.dspPublicAddr, this.dspNet.PublicAddr())
+				log.Debugf("dsp public address has change, old addr: %s, new addr:%s",
+					this.dspPublicAddr, this.dspNet.PublicAddr())
 				this.dspPublicAddr = this.dspNet.PublicAddr()
 				go this.updateStorageNodeHost()
 			}
 			if this.channelPublicAddr != this.channelNet.PublicAddr() {
-				log.Debugf("channel public address has change, old addr: %s, new addr:%s", this.channelPublicAddr, this.channelNet.PublicAddr())
+				log.Debugf("channel public address has change, old addr: %s, new addr:%s",
+					this.channelPublicAddr, this.channelNet.PublicAddr())
 				this.channelPublicAddr = this.channelNet.PublicAddr()
 				go this.registerChannelEndpoint()
 			}

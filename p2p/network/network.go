@@ -35,12 +35,12 @@ import (
 var once sync.Once
 
 type Network struct {
-	builder            *network.Builder                // network builder
 	P2p                *network.Network                // underlay network p2p instance
-	listenAddr         string                          // current listen address
+	builder            *network.Builder                // network builder
+	intranetIP         string                          // intranet ip
 	proxyAddr          string                          // proxy address
 	pid                *actor.PID                      // actor pid
-	Keys               *crypto.KeyPair                 // crypto network keys
+	keys               *crypto.KeyPair                 // crypto network keys
 	kill               chan struct{}                   // network stop signal
 	handler            func(*network.ComponentContext) // network msg handler
 	peers              *sync.Map                       // peer clients
@@ -59,10 +59,6 @@ func NewP2P() *Network {
 	return n
 }
 
-func (this *Network) SetProxyServer(address string) {
-	this.proxyAddr = address
-}
-
 func (this *Network) GetProxyServer() string {
 	return this.proxyAddr
 }
@@ -78,20 +74,8 @@ func (this *Network) IsProxyAddr(addr string) bool {
 	return false
 }
 
-func (this *Network) SetNetworkKey(key *crypto.KeyPair) {
-	this.Keys = key
-}
-
-func (this *Network) SetHandler(handler func(*network.ComponentContext)) {
-	this.handler = handler
-}
-
 func (this *Network) Protocol() string {
 	return getProtocolFromAddr(this.PublicAddr())
-}
-
-func (this *Network) ListenAddr() string {
-	return this.listenAddr
 }
 
 func (this *Network) PublicAddr() string {
@@ -108,23 +92,33 @@ func (this *Network) GetPID() *actor.PID {
 	return this.pid
 }
 
-func (this *Network) Start(address string) error {
+func (this *Network) Start(protocol, addr, port string, opts ...NetworkOption) error {
 	builderOpt := []network.BuilderOption{
 		network.WriteFlushLatency(1 * time.Millisecond),
 		network.WriteTimeout(dspCom.NETWORK_STREAM_WRITE_TIMEOUT),
 	}
 	builder := network.NewBuilderWithOptions(builderOpt...)
 	this.builder = builder
+	for _, opt := range opts {
+		opt.apply(this)
+	}
 	// set keys
-	if this.Keys != nil {
+	if this.keys != nil {
 		log.Debugf("Network use account key")
-		builder.SetKeys(this.Keys)
+		builder.SetKeys(this.keys)
 	} else {
 		log.Debugf("Network use RandomKeyPair key")
 		builder.SetKeys(ed25519.RandomKeyPair())
 	}
+	intranetHost := "127.0.0.1"
+	if len(this.intranetIP) > 0 {
+		intranetHost = this.intranetIP
+	}
 
-	builder.SetAddress(address)
+	log.Debugf("network start at %s, listen addr %s",
+		fmt.Sprintf("%s://%s:%s", protocol, intranetHost, port), fmt.Sprintf("%s://%s:%s", protocol, addr, port))
+	builder.SetListenAddr(fmt.Sprintf("%s://%s:%s", protocol, intranetHost, port))
+	builder.SetAddress(fmt.Sprintf("%s://%s:%s", protocol, addr, port))
 
 	// add msg receiver
 	recvMsgComp := new(NetComponent)

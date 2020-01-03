@@ -1346,6 +1346,7 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uin
 	if err != nil {
 		return nil, &DspErr{Code: FS_GET_FILE_LIST_FAILED, Error: err}
 	}
+	log.Debugf("get file num %d", fileList.FileNum)
 	now, err := this.Dsp.GetCurrentBlockHeight()
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
@@ -1362,9 +1363,11 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uin
 		if err != nil {
 			continue
 		}
+		log.Debugf("get fileinfo list %v", fileInfoList.FileNum)
 		requestFileHashes = requestFileHashes[:0]
 		for _, fi := range fileInfoList.List {
 			fileHashStr := string(fi.FileHash)
+			log.Debugf("get file of %s", fileHashStr)
 			// 0: all, 1. image, 2. document. 3. video, 4. music
 			fileName := strings.ToLower(string(fi.FileDesc))
 			if !FileNameMatchType(fileType, fileName) {
