@@ -12,7 +12,7 @@ type NetworkOption interface {
 type NetworkFunc func(n *Network)
 
 func (f NetworkFunc) apply(n *Network) {
-	f.apply(n)
+	f(n)
 }
 
 func WithIntranetIP(intra string) NetworkOption {
