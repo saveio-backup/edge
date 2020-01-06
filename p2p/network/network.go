@@ -68,7 +68,8 @@ func (this *Network) IsProxyAddr(addr string) bool {
 	if len(this.proxyAddr) > 0 && addr == this.proxyAddr {
 		return true
 	}
-	if len(config.Parameters.BaseConfig.NATProxyServerAddrs) > 0 && strings.Contains(config.Parameters.BaseConfig.NATProxyServerAddrs, addr) {
+	if len(config.Parameters.BaseConfig.NATProxyServerAddrs) > 0 &&
+		strings.Contains(config.Parameters.BaseConfig.NATProxyServerAddrs, addr) {
 		return true
 	}
 	return false
@@ -233,7 +234,8 @@ func (this *Network) StartProxy(builder *network.Builder) error {
 		this.P2p.EnableProxyMode(true)
 		this.P2p.SetProxyServer(proxyAddr)
 		protocol := getProtocolFromAddr(proxyAddr)
-		log.Debugf("start proxy will blocking...%s %s, networkId: %d", protocol, proxyAddr, config.Parameters.BaseConfig.NetworkId)
+		log.Debugf("start proxy will blocking...%s %s, networkId: %d",
+			protocol, proxyAddr, config.Parameters.BaseConfig.NetworkId)
 		done := make(chan struct{}, 1)
 		go func() {
 			switch protocol {
@@ -498,7 +500,8 @@ func (this *Network) Request(msg proto.Message, peer string) (proto.Message, err
 		return nil, fmt.Errorf("get peer client is nil %s", peer)
 	}
 	// init context for timeout handling
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(dspCom.ACTOR_MAX_P2P_REQ_TIMEOUT)*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(),
+		time.Duration(dspCom.ACTOR_MAX_P2P_REQ_TIMEOUT)*time.Second)
 	defer cancel()
 	log.Debugf("send request msg to %s", peer)
 	resp, err := client.Request(ctx, msg, time.Duration(dspNetCom.REQUEST_MSG_TIMEOUT)*time.Second)
@@ -543,7 +546,8 @@ func (this *Network) RequestWithRetry(msg proto.Message, peer string, retry, rep
 			}
 			go func(msg proto.Message) {
 				// init context for timeout handling
-				ctx, cancel := context.WithTimeout(context.Background(), time.Duration(dspCom.ACTOR_MAX_P2P_REQ_TIMEOUT)*time.Second)
+				ctx, cancel := context.WithTimeout(context.Background(),
+					time.Duration(dspCom.ACTOR_MAX_P2P_REQ_TIMEOUT)*time.Second)
 				defer cancel()
 				// send msg by request api and wait for the response
 				res, reqErr := client.Request(ctx, msg, time.Duration(dspCom.ACTOR_MAX_P2P_REQ_TIMEOUT)*time.Second)
@@ -587,7 +591,8 @@ func (this *Network) RequestWithRetry(msg proto.Message, peer string, retry, rep
 // Broadcast. broadcast same msg to peers. Handle action if send msg success.
 // If one msg is sent failed, return err. But the previous success msgs can not be recalled.
 // callback(responseMsg, responseToAddr).
-func (this *Network) Broadcast(addrs []string, msg proto.Message, msgId string, callbacks ...func(proto.Message, string) bool) (map[string]error, error) {
+func (this *Network) Broadcast(addrs []string, msg proto.Message, msgId string,
+	callbacks ...func(proto.Message, string) bool) (map[string]error, error) {
 	err := this.healthCheckPeer(this.proxyAddr)
 	if err != nil {
 		return nil, err
@@ -675,15 +680,20 @@ func (this *Network) Broadcast(addrs []string, msg proto.Message, msgId string, 
 
 	m := make(map[string]error)
 	for {
-		result := <-done
-		if atomic.LoadInt32(&stop) > 0 {
+		select {
+		case result := <-done:
+			if atomic.LoadInt32(&stop) > 0 {
+				return m, nil
+			}
+			m[result.addr] = result.err
+			if len(m) != len(addrs) {
+				continue
+			}
+			return m, nil
+		case <-time.After(time.Duration(120) * time.Second):
+			log.Debugf("broadcast wait too long")
 			return m, nil
 		}
-		m[result.addr] = result.err
-		if len(m) != len(addrs) {
-			continue
-		}
-		return m, nil
 	}
 }
 
@@ -804,7 +814,8 @@ func (this *Network) healthCheckService() {
 				if shouldLog {
 					addrState, err := this.GetPeerStateByAddress(addr)
 					if err != nil {
-						log.Errorf("publicAddr: %s, addr %s state: %d, err: %s", this.PublicAddr(), addr, addrState, err)
+						log.Errorf("publicAddr: %s, addr %s state: %d, err: %s",
+							this.PublicAddr(), addr, addrState, err)
 					} else {
 						log.Debugf("publicAddr: %s, addr %s state: %d", this.PublicAddr(), addr, addrState)
 					}

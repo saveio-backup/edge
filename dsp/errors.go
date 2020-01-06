@@ -127,6 +127,7 @@ const (
 	DB_GET_FILEINFO_FAILED           = 59004
 
 	NET_RECONNECT_PEER_FAILED = 59100
+	NET_PROXY_DISCONNECTED    = 59101
 )
 
 var ErrMaps = map[int64]error{
@@ -238,4 +239,5 @@ var ErrMaps = map[int64]error{
 	DB_GET_FILEINFO_FAILED:           errors.New("db get fileinfo failed"),
 
 	NET_RECONNECT_PEER_FAILED: errors.New("net reconnect peer failed"),
+	NET_PROXY_DISCONNECTED:    errors.New("proxy has disconnted"),
 }
