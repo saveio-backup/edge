@@ -874,7 +874,7 @@ func (this *Network) healthCheckService() {
 }
 
 func (this *Network) healthCheckPeer(addr string) error {
-	if len(addr) == 0 || len(this.proxyAddr) == 0 {
+	if len(addr) == 0 {
 		return nil
 	}
 	peerState, err := this.GetPeerStateByAddress(addr)
