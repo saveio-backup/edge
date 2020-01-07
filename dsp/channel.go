@@ -112,7 +112,7 @@ func (this *Endpoint) GetFilterBlockProgress() (*FilterBlockProgress, *DspErr) {
 	return progress, nil
 }
 
-func (this *Endpoint) GetAllChannels() (interface{}, *DspErr) {
+func (this *Endpoint) GetAllChannels() (*ChannelInfosResp, *DspErr) {
 	log.Debugf("GetAllChannels")
 	if this.Account == nil {
 		return nil, &DspErr{Code: NO_ACCOUNT, Error: ErrMaps[NO_ACCOUNT]}
@@ -306,6 +306,28 @@ func (this *Endpoint) OpenToAllDNSChannel(amount uint64) *DspErr {
 		_, err := this.OpenPaymentChannel(walletAddr, amount)
 		if err != nil {
 			return err
+		}
+	}
+	return nil
+}
+
+func (this *Endpoint) CloseAllChannel() *DspErr {
+	syncing, syncErr := this.IsChannelProcessBlocks()
+	if syncErr != nil {
+		return syncErr
+	}
+	if syncing {
+		return &DspErr{Code: DSP_CHANNEL_SYNCING, Error: ErrMaps[DSP_CHANNEL_SYNCING]}
+	}
+	channels, err := this.GetAllChannels()
+	if err != nil {
+		return err
+	}
+	for _, ch := range channels.Channels {
+		err := this.Dsp.ChannelClose(ch.Address)
+		log.Debugf("closing channel of %s", ch.Address)
+		if err != nil {
+			return &DspErr{Code: DSP_CHANNEL_CLOSE_FAILED, Error: err}
 		}
 	}
 	return nil

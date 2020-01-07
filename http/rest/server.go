@@ -127,6 +127,7 @@ const (
 	GET_ALL_CHANNEL           = "/api/v1/channel"
 	OPEN_CHANNEL              = "/api/v1/channel/open"
 	CLOSE_CHANNEL             = "/api/v1/channel/close"
+	CLOSE_ALL_CHANNEL         = "/api/v1/channel/closeall"
 	DEPOSIT_CHANNEL           = "/api/v1/channel/deposit"
 	WITHDRAW_CHANNEL          = "/api/v1/channel/withdraw"
 	TRANSFER_BY_CHANNEL       = "/api/v1/channel/transfer/:toaddr/:amount/:paymentid"
@@ -324,11 +325,12 @@ func (this *restServer) registryMethod() {
 		DSP_UPDATE_FILE_WHITELIST:      {name: "updatewhitelist", handler: WhiteListOperate},
 		DSP_DELETE_TRANSFER_RECORD:     {name: "deletetransnferlist", handler: DeleteTransferRecord},
 
-		DEPOSIT_CHANNEL:  {name: "depositchannel", handler: DepositChannel},
-		WITHDRAW_CHANNEL: {name: "withdrawchannel", handler: WithdrawChannel},
-		OPEN_CHANNEL:     {name: "openchannel", handler: OpenChannel},
-		CLOSE_CHANNEL:    {name: "closechannel", handler: CloseChannel},
-		SWITCH_CHANNEL:   {name: "switchchannel", handler: SwitchChannel},
+		DEPOSIT_CHANNEL:   {name: "depositchannel", handler: DepositChannel},
+		WITHDRAW_CHANNEL:  {name: "withdrawchannel", handler: WithdrawChannel},
+		OPEN_CHANNEL:      {name: "openchannel", handler: OpenChannel},
+		CLOSE_CHANNEL:     {name: "closechannel", handler: CloseChannel},
+		CLOSE_ALL_CHANNEL: {name: "closechannel", handler: CloseAllChannel},
+		SWITCH_CHANNEL:    {name: "switchchannel", handler: SwitchChannel},
 
 		DNS_REGISTER:  {name: "registerurl", handler: RegisterUrl},
 		DNS_BIND:      {name: "bindurl", handler: BindUrl},

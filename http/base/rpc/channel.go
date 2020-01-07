@@ -57,6 +57,19 @@ func CloseChannel(cmd []interface{}) map[string]interface{} {
 	return responseSuccess(ret)
 }
 
+func CloseAllChannel(cmd []interface{}) map[string]interface{} {
+	if len(cmd) < 1 {
+		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	params := convertSliceToMap(cmd, []string{"Password"})
+	v := rest.CloseAllChannel(params)
+	ret, err := parseRestResult(v)
+	if err != nil {
+		return responsePackError(err.Code, err.Error.Error())
+	}
+	return responseSuccess(ret)
+}
+
 func DepositChannel(cmd []interface{}) map[string]interface{} {
 	if len(cmd) < 3 {
 		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())

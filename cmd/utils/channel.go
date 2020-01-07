@@ -47,6 +47,14 @@ func ClosePaymentChannel(partnerAddr, password string) error {
 	return nil
 }
 
+func CloseAllPaymentChannel(password string) error {
+	_, dErr := sendRpcRequest("closeallchannel", []interface{}{password})
+	if dErr != nil {
+		return dErr.Error
+	}
+	return nil
+}
+
 func DepositToChannel(partnerAddr, realAmount, password string) (interface{}, error) {
 	ret, dErr := sendRpcRequest("depositchannel", []interface{}{partnerAddr, realAmount, password})
 	if dErr != nil {

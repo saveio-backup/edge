@@ -75,6 +75,14 @@ var ChannelCommand = cli.Command{
 			Description: "Close a payment channel with partner",
 		},
 		{
+			Action:      closeAllChannel,
+			Name:        "close",
+			Usage:       "Close all payment channels",
+			ArgsUsage:   " ",
+			Flags:       []cli.Flag{},
+			Description: "Close a payment channel with partner",
+		},
+		{
 			Action:    depositToChannel,
 			Name:      "deposit",
 			Usage:     "Deposit token to channel",
@@ -189,6 +197,20 @@ func closeChannel(ctx *cli.Context) error {
 	}
 	pwdHash := eUtils.Sha256HexStr(string(pwd))
 	err = utils.ClosePaymentChannel(partnerAddr, pwdHash)
+	if err != nil {
+		return err
+	}
+	PrintInfoMsg("close channel success")
+	return nil
+}
+
+func closeAllChannel(ctx *cli.Context) error {
+	pwd, err := password.GetPassword()
+	if err != nil {
+		return err
+	}
+	pwdHash := eUtils.Sha256HexStr(string(pwd))
+	err = utils.CloseAllPaymentChannel(pwdHash)
 	if err != nil {
 		return err
 	}
