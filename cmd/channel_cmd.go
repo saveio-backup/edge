@@ -76,7 +76,7 @@ var ChannelCommand = cli.Command{
 		},
 		{
 			Action:      closeAllChannel,
-			Name:        "close",
+			Name:        "closeall",
 			Usage:       "Close all payment channels",
 			ArgsUsage:   " ",
 			Flags:       []cli.Flag{},
