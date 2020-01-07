@@ -35,6 +35,7 @@ const (
 	MAX_MSG_RETRY                  = 3       // max msg retry count
 	ACK_MSG_CHECK_INTERVAL         = 20      // ack msg check interval
 	MAX_ACK_MSG_TIMEOUT            = 60      // max timeout for ack msg
+	MAX_RECEIVED_MSG_CACHE         = 500     // max received msg cache
 )
 
 // asset

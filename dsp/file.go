@@ -210,6 +210,7 @@ type UserspaceCostResp struct {
 
 type FsContractSettingResp struct {
 	DefaultCopyNum     uint64
+	MaxCopyNum         uint64
 	DefaultProvePeriod uint64
 	MinProveInterval   uint64
 	MinVolume          uint64
@@ -693,9 +694,17 @@ func (this *Endpoint) GetFsConfig() (*FsContractSettingResp, *DspErr) {
 	if err != nil {
 		return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
 	}
-
+	info, err := this.Dsp.GetNodeList()
+	if err != nil {
+		return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
+	}
+	maxCopyNum := uint64(0)
+	if info.NodeNum >= 1 {
+		maxCopyNum = info.NodeNum - 1
+	}
 	return &FsContractSettingResp{
 		DefaultCopyNum:     set.DefaultCopyNum,
+		MaxCopyNum:         maxCopyNum,
 		DefaultProvePeriod: set.DefaultProvePeriod * config.BlockTime(),
 		MinProveInterval:   set.MinProveInterval,
 		MinVolume:          set.MinVolume,

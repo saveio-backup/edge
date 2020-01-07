@@ -424,6 +424,33 @@ func (this *Network) IsProxyConnectionExists() (bool, error) {
 	return this.P2p.ProxyConnectionStateExists()
 }
 
+// SendOnce send msg to peer asynchronous
+// peer can be addr(string) or client(*network.peerClient)
+func (this *Network) SendOnce(msg proto.Message, toAddr string) error {
+	err := this.healthCheckPeer(this.proxyAddr)
+	if err != nil {
+		return err
+	}
+	err = this.healthCheckPeer(toAddr)
+	if err != nil {
+		return err
+	}
+	state, _ := this.GetPeerStateByAddress(toAddr)
+	if state != network.PEER_REACHABLE {
+		return fmt.Errorf("can not send to inactive peer %s", toAddr)
+	}
+	signed, err := this.P2p.PrepareMessage(context.Background(), msg)
+	if err != nil {
+		return fmt.Errorf("failed to sign message")
+	}
+	err = this.P2p.Write(toAddr, signed)
+	log.Debugf("write msg done sender:%s, to %s, nonce: %d", signed.GetSender().Address, toAddr, signed.GetMessageNonce())
+	if err != nil {
+		return fmt.Errorf("failed to send message to %s", toAddr)
+	}
+	return nil
+}
+
 // Send send msg to peer asynchronous
 // peer can be addr(string) or client(*network.peerClient)
 func (this *Network) Send(msg proto.Message, msgId, toAddr string) error {
@@ -765,6 +792,21 @@ func (this *Network) Receive(ctx *network.ComponentContext, message proto.Messag
 	case *dspMsg.Message:
 		log.Debugf("Network.Receive %T Msg %s, state: %d, err: %s", message, from, state, err)
 		msg := message.(*dspMsg.Message)
+		p, ok := this.peers.Load(from)
+		if !ok {
+			log.Warnf("receive a msg, but peer not found %s", from)
+			return nil
+		}
+		pr, ok := p.(*peer.Peer)
+		if !ok {
+			log.Warnf("convert p to peer failed %s", from)
+			return nil
+		}
+		if pr.IsMsgReceived(msg.MsgId) {
+			log.Warnf("receive a duplicated msg, ignore it %s", msg.MsgId)
+			return nil
+		}
+		pr.AddReceivedMsg(msg.MsgId)
 		if len(msg.Syn) > 0 {
 			// reply to origin request msg, no need to enter handle router
 			pr, ok := this.peers.Load(from)

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gogo/protobuf/proto"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/saveio/carrier/network"
 	"github.com/saveio/dsp-go-sdk/utils"
 	"github.com/saveio/edge/common"
@@ -65,15 +66,18 @@ type Peer struct {
 	closeTime   time.Time           // peer closed time
 	failedCount *FailedCount        // peer QoS failed count
 	state       ConnectState        // connect state
+	receivedMsg *lru.ARCCache
 }
 
 func New(addr string) *Peer {
+	cache, _ := lru.NewARC(common.MAX_RECEIVED_MSG_CACHE)
 	p := &Peer{
 		addr:        addr,
 		mq:          list.New(),
 		lock:        new(sync.RWMutex),
 		failedCount: new(FailedCount),
 		retry:       make(map[string]int),
+		receivedMsg: cache,
 	}
 	return p
 }
@@ -85,6 +89,7 @@ func (p *Peer) SetClient(client *network.PeerClient) {
 	if p.client != nil {
 		return
 	}
+	p.receivedMsg.Purge()
 	p.client = client
 	go p.acceptAckNotify()
 	if p.mq.Len() == 0 {
@@ -119,6 +124,19 @@ func (p *Peer) SetState(s ConnectState) {
 
 func (p *Peer) GetFailedCnt() *FailedCount {
 	return p.failedCount
+}
+
+func (p *Peer) AddReceivedMsg(msgId string) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	p.receivedMsg.Add(msgId, "")
+}
+
+func (p *Peer) IsMsgReceived(msgId string) bool {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+	_, ok := p.receivedMsg.Get(msgId)
+	return ok
 }
 
 // Send. send msg without wait it's reply
