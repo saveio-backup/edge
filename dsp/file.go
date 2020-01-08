@@ -756,15 +756,6 @@ func (this *Endpoint) DownloadFile(fileHash, url, link, password string, max uin
 		return &DspErr{Code: DSP_CHANNEL_SYNCING, Error: ErrMaps[DSP_CHANNEL_SYNCING]}
 	}
 
-	if len(fileHash) > 0 {
-		go func() {
-			err := this.Dsp.DownloadFileByHash(fileHash, dspCom.ASSET_USDT, true, password, false, setFileName, int(max))
-			if err != nil {
-				log.Errorf("Downloadfile from url failed %s", err)
-			}
-		}()
-		return nil
-	}
 	if len(url) > 0 {
 		hash := this.Dsp.GetFileHashFromUrl(url)
 		if len(hash) == 0 {
@@ -778,6 +769,17 @@ func (this *Endpoint) DownloadFile(fileHash, url, link, password string, max uin
 		}()
 		return nil
 	}
+
+	if len(fileHash) > 0 {
+		go func() {
+			err := this.Dsp.DownloadFileByHash(fileHash, dspCom.ASSET_USDT, true, password, false, setFileName, int(max))
+			if err != nil {
+				log.Errorf("Downloadfile from url failed %s", err)
+			}
+		}()
+		return nil
+	}
+
 	if len(link) > 0 {
 		hash := dspUtils.GetFileHashFromLink(link)
 		if len(hash) == 0 {
