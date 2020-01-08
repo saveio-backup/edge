@@ -20,12 +20,24 @@ type ShareRecord struct {
 
 // InsertShareRecord. insert a new miner_record or replace it
 func (this *SQLiteStorage) InsertShareRecord(id, fileHash, fileName, fileOwner, toWalletAddr string, profit uint64) (bool, error) {
+	record, _ := this.FindShareRecordById(id)
+	if record != nil {
+		sql := fmt.Sprintf("UPDATE  %s SET fileHash = ?, fileName = ?, fileOwner = ?,  toWalletAddr = ?, profit = ? where id = ?", SHARE_RECORDS_TABLE_NAME)
+		log.Debugf("UPDATE profit %s, hash %s, %s %s %s %d %s", sql, fileHash, fileName, fileOwner, toWalletAddr, profit, id)
+		return this.Exec(sql, fileHash, fileName, fileOwner, toWalletAddr, profit, id)
+	}
 	sql := fmt.Sprintf("INSERT INTO %s (id, fileHash, fileName, fileOwner,downloader, profit, createdAt, updatedAt) VALUES(?, ?, ?, ?, ?, ?, ?, ?)", SHARE_RECORDS_TABLE_NAME)
 	return this.Exec(sql, id, fileHash, fileName, fileOwner, toWalletAddr, profit, time.Now(), time.Now())
 }
 
 // IncreaseShareRecordProfit. increase miner profit by increment
 func (this *SQLiteStorage) IncreaseShareRecordProfit(id string, added uint64) (bool, error) {
+	record, _ := this.FindShareRecordById(id)
+	if record == nil {
+		sql := fmt.Sprintf("INSERT INTO %s (id, fileHash, fileName, fileOwner,downloader, profit, createdAt, updatedAt) VALUES(?, ?, ?, ?, ?, ?, ?, ?)", SHARE_RECORDS_TABLE_NAME)
+		log.Debugf("INSERT sql %s", sql)
+		return this.Exec(sql, id, "", "", "", "", added, time.Now(), time.Now())
+	}
 	sql := fmt.Sprintf("UPDATE  %s SET profit = profit + ?, updatedAt = ? where id = ?", SHARE_RECORDS_TABLE_NAME)
 	log.Debugf("increase profit %s, added %d, now %v", sql, added, time.Now(), id)
 	return this.Exec(sql, added, time.Now(), id)

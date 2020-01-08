@@ -483,6 +483,9 @@ func (this *Network) Send(msg proto.Message, msgId, toAddr string) error {
 
 // Request. send msg to peer and wait for response synchronously with timeout
 func (this *Network) SendAndWaitReply(msg proto.Message, msgId, toAddr string) (proto.Message, error) {
+	if this == nil {
+		return nil, errors.New("no network")
+	}
 	if err := this.healthCheckPeer(this.proxyAddr); err != nil {
 		return nil, err
 	}
