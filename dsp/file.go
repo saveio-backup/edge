@@ -1283,7 +1283,7 @@ func (this *Endpoint) GetFileRevene() (uint64, *DspErr) {
 	if this.sqliteDB == nil {
 		return 0, &DspErr{Code: NO_DB, Error: ErrMaps[NO_DB]}
 	}
-	sum, err := this.sqliteDB.SumRecordsProfit()
+	sum, err := this.Dsp.SumRecordsProfit()
 	if err != nil {
 		return 0, &DspErr{Code: DB_SUM_SHARE_PROFIT_FAILED, Error: err}
 	}
@@ -1292,7 +1292,7 @@ func (this *Endpoint) GetFileRevene() (uint64, *DspErr) {
 
 func (this *Endpoint) GetFileShareIncome(start, end, offset, limit uint64) (*FileShareIncomeResp, *DspErr) {
 	resp := &FileShareIncomeResp{}
-	records, err := this.sqliteDB.FineShareRecordsByCreatedAt(int64(start), int64(end), int64(offset), int64(limit))
+	records, err := this.Dsp.FineShareRecordsByCreatedAt(int64(start), int64(end), int64(offset), int64(limit))
 	if err != nil {
 		return nil, &DspErr{Code: DB_FIND_SHARE_RECORDS_FAILED, Error: err}
 	}
@@ -1307,7 +1307,7 @@ func (this *Endpoint) GetFileShareIncome(start, end, offset, limit uint64) (*Fil
 			OwnerAddress: record.FileOwner,
 			Profit:       record.Profit,
 			ProfitFormat: utils.FormatUsdt(record.Profit),
-			SharedAt:     uint64(record.CreatedAt.Unix()),
+			SharedAt:     uint64(record.CreatedAt),
 		})
 	}
 	resp.TotalIncomeFormat = utils.FormatUsdt(resp.TotalIncome)
@@ -1326,23 +1326,24 @@ func (this *Endpoint) RegisterShareNotificationCh() {
 			if !ok {
 				break
 			}
-			log.Debugf("share notification taskkey=%s, filehash=%s, walletaddr=%s, state=%d, amount=%d", v.TaskKey, v.FileHash, v.ToWalletAddr, v.State, v.PaymentAmount)
-			switch v.State {
-			case task.ShareStateBegin:
-				_, err := this.sqliteDB.InsertShareRecord(v.TaskKey, v.FileHash, v.FileName, v.FileOwner, v.ToWalletAddr, v.PaymentAmount)
-				log.Debugf("insert share record : %s, %v", v.TaskKey, v)
-				if err != nil {
-					log.Errorf("insert new share_record failed %s, err %s", v.TaskKey, err)
-				}
-			case task.ShareStateReceivedPaying, task.ShareStateEnd:
-				_, err := this.sqliteDB.IncreaseShareRecordProfit(v.TaskKey, v.PaymentAmount)
-				log.Debugf("insert share record : %s, %v", v)
-				if err != nil {
-					log.Errorf("increase share_record profit failed %s, err %s", v.TaskKey, err)
-				}
-			default:
-				log.Warn("unknown state type")
-			}
+			log.Debugf("share notification taskkey=%s, filehash=%s, walletaddr=%s, state=%d, amount=%d",
+				v.TaskKey, v.FileHash, v.ToWalletAddr, v.State, v.PaymentAmount)
+			// switch v.State {
+			// case task.ShareStateBegin:
+
+			// 	log.Debugf("insert share record : %s, %v", v.TaskKey, v)
+			// 	if err := this.Dsp.InsertShareRecord(v.TaskKey, v.FileHash, v.FileName,
+			// 		v.FileOwner, v.ToWalletAddr, v.PaymentAmount); err != nil {
+			// 		log.Errorf("insert new share_record failed %s, err %s", v.TaskKey, err)
+			// 	}
+			// case task.ShareStateReceivedPaying, task.ShareStateEnd:
+			// 	log.Debugf("insert share record : %s, %v", v)
+			// 	if err := this.Dsp.IncreaseShareRecordProfit(v.TaskKey, v.PaymentAmount); err != nil {
+			// 		log.Errorf("increase share_record profit failed %s, err %s", v.TaskKey, err)
+			// 	}
+			// default:
+			// 	log.Warn("unknown state type")
+			// }
 			client.EventNotifyRevenue()
 
 		case <-this.closeCh:
@@ -1400,8 +1401,8 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uin
 				updatedAt -= (uint64(now) - fi.BlockHeight) * config.BlockTime()
 			}
 			url := this.Dsp.GetUrlOfUploadedfile(fileHashStr)
-			downloadedCount, _ := this.sqliteDB.CountRecordByFileHash(fileHashStr)
-			profit, _ := this.sqliteDB.SumRecordsProfitByFileHash(fileHashStr)
+			downloadedCount, _ := this.Dsp.CountRecordByFileHash(fileHashStr)
+			profit, _ := this.Dsp.SumRecordsProfitByFileHash(fileHashStr)
 			proveDetail, err := this.Dsp.GetFileProveDetails(fileHashStr)
 			if err != nil {
 				log.Errorf("get prove detail failed")
@@ -1604,9 +1605,9 @@ func (this *Endpoint) GetDownloadFiles(fileType DspFileListType, offset, limit u
 			continue
 		}
 		offsetCnt++
-		downloadedCount, _ := this.sqliteDB.CountRecordByFileHash(file)
-		profit, _ := this.sqliteDB.SumRecordsProfitByFileHash(file)
-		lastSharedAt, _ := this.sqliteDB.FindLastShareTime(file)
+		downloadedCount, _ := this.Dsp.CountRecordByFileHash(file)
+		profit, _ := this.Dsp.SumRecordsProfitByFileHash(file)
+		lastSharedAt, _ := this.Dsp.FindLastShareTime(file)
 		// TODO: get owner and privilege from DB
 		fileInfo, _ := this.Dsp.GetFileInfo(file)
 		owner := ""

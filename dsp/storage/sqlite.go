@@ -13,7 +13,7 @@ const DBVersion int = 6
 
 type SQLiteStorage struct {
 	db          *sql.DB
-	writeDBLock sync.Mutex
+	writeDBLock *sync.Mutex
 	dbWg        sync.WaitGroup
 }
 
@@ -39,6 +39,7 @@ func NewSQLiteStorage(databasePath string) (*SQLiteStorage, error) {
 	}
 
 	self.db = connState
+	self.writeDBLock = new(sync.Mutex)
 
 	createStateScript := GetCreateTables()
 	_, err = self.db.Exec(createStateScript)
