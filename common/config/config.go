@@ -25,6 +25,7 @@ const (
 type BaseConfig struct {
 	BaseDir            string `json:"BaseDir"`
 	LogPath            string `json:"LogPath"`
+	LogMaxSize         uint64 `json:"LogMaxSize"`
 	ChainId            string `json:"ChainId"`
 	BlockTime          uint64 `json:"BlockTime"`
 	NetworkId          uint32 `json:"NetworkId"`
@@ -242,6 +243,10 @@ func SetDefaultFieldForConfig(cfg *DspConfig) {
 
 	if cfg.BaseConfig.MaxUnpaidPayment == 0 {
 		cfg.BaseConfig.MaxUnpaidPayment = common.MAX_UNPAID_PAYMENT
+	}
+
+	if cfg.BaseConfig.LogMaxSize == 0 {
+		cfg.BaseConfig.LogMaxSize = 5 * 1024 * 1024
 	}
 }
 

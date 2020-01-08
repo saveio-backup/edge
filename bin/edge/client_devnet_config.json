@@ -2,6 +2,7 @@
   "Base": {
     "BaseDir": ".",
     "LogPath": "./EdgeLog",
+    "LogMaxSize": 102400,
     "ChainId": "0",
     "BlockTime": 5,
     "NetworkId": 1567481543,

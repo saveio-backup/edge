@@ -134,6 +134,28 @@ func initLog(ctx *cli.Context) {
 	logFullPath = filepath.Join(baseDir, logPath) + extra + "/"
 	log.InitLog(logLevel, logFullPath, log.Stdout)
 	log.Infof("start logging at %s", logFullPath)
+	go cleanOldestLogs(logFullPath)
+}
+
+func cleanOldestLogs(path string) {
+	var size uint64
+	filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
+		if !info.IsDir() {
+			size += uint64(info.Size())
+		}
+		return nil
+	})
+	if size < config.Parameters.BaseConfig.LogMaxSize*1024 {
+		return
+	}
+	filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
+		if !info.IsDir() && time.Now().Unix() > info.ModTime().Unix() &&
+			time.Now().Unix()-info.ModTime().Unix() > 604800 {
+			log.Debugf("name: %s time: %d", filepath.Join(path, info.Name()), info.ModTime().Unix())
+			os.Remove(filepath.Join(path, info.Name()))
+		}
+		return nil
+	})
 }
 
 func initRest() {
