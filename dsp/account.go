@@ -280,16 +280,25 @@ func (this *Endpoint) ExportWalletFile() (*WalletfileResp, *DspErr) {
 }
 
 func (this *Endpoint) Logout() *DspErr {
+	log.Debugf("Logout ++++")
 	isExists := common.FileExisted(config.WalletDatFilePath())
-	if !isExists || this.Dsp == nil || this.Dsp.CurrentAccount() == nil {
+	if !isExists || this == nil || this.Dsp == nil || this.Dsp.CurrentAccount() == nil {
 		log.Debugf("logout of no wallet dat files")
-		this.Account = nil
-		if this.Dsp != nil {
-			this.Dsp.SetAccount(nil)
+		if this != nil {
+			this.Account = nil
+			if this.Dsp != nil {
+				this.Dsp.SetAccount(nil)
+			}
+			this.AccountLabel = ""
+			this.notifyAccountLogout()
+			log.Debugf("notify user logout")
 		}
-		this.AccountLabel = ""
-		this.notifyAccountLogout()
-		log.Debugf("notify user logout")
+		if isExists {
+			err := os.Remove(config.WalletDatFilePath())
+			if err != nil {
+				return &DspErr{Code: INTERNAL_ERROR, Error: err}
+			}
+		}
 		DspService = &Endpoint{}
 		return nil
 	}

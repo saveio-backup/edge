@@ -693,30 +693,36 @@ func (this *Endpoint) GetSmartContractEventByEventId(contractAddr, addr string, 
 
 // GetAccountSmartContractEventByBlock. get smartcontract event for current account by block height
 func (this *Endpoint) GetAccountSmartContractEventByBlock(height uint32) (*sdkCom.SmartContactEvent, error) {
-	event, err := this.Dsp.GetSmartContractEventByBlock(height)
+	txs, err := this.Dsp.GetBlockTxHashesByHeight(height)
 	if err != nil {
 		return nil, err
 	}
-	log.Debugf("Events :%v, err %s", event, err)
-	if event == nil {
-		return nil, nil
-	}
-	for _, n := range event.Notify {
-		contractAddr, err := common.AddressFromHexString(n.ContractAddress)
+	for _, tx := range txs.Transactions {
+		event, err := this.Dsp.GetSmartContractEvent(tx.ToHexString())
 		if err != nil {
 			continue
 		}
-		switch contractAddr.ToBase58() {
-		case usdt.USDT_CONTRACT_ADDRESS.ToBase58():
-			states, ok := n.States.([]interface{})
-			if !ok || states[0].(string) != "transfer" || len(states) != 4 {
+		if event == nil {
+			continue
+		}
+		log.Debugf("Events :%v, err %s", event.TxHash, err)
+		for _, n := range event.Notify {
+			contractAddr, err := common.AddressFromHexString(n.ContractAddress)
+			if err != nil {
 				continue
 			}
-			curWalletAddr := this.Dsp.WalletAddress()
-			if states[1] != curWalletAddr && states[2] != curWalletAddr {
-				continue
+			switch contractAddr.ToBase58() {
+			case usdt.USDT_CONTRACT_ADDRESS.ToBase58():
+				states, ok := n.States.([]interface{})
+				if !ok || states[0].(string) != "transfer" || len(states) < 4 {
+					continue
+				}
+				curWalletAddr := this.Dsp.WalletAddress()
+				if states[1] != curWalletAddr && states[2] != curWalletAddr {
+					continue
+				}
+				return event, nil
 			}
-			return event, nil
 		}
 	}
 	return nil, nil

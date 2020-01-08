@@ -3,6 +3,7 @@ package dsp
 import (
 	"github.com/saveio/edge/common/config"
 	"github.com/saveio/edge/dsp/actor/client"
+	"github.com/saveio/themis/common/log"
 )
 
 type EventHub struct {
@@ -55,16 +56,29 @@ func (this *Endpoint) notifyNewSmartContractEvent() {
 	}
 
 	currentHeight, _ := this.Dsp.GetCurrentBlockHeight()
-	if this.eventHub.lastNotifyHeight >= currentHeight {
+	if this.eventHub.lastNotifyHeight == 0 {
+		this.eventHub.lastNotifyHeight = currentHeight
+		log.Debugf("first set up %d", currentHeight)
+	}
+	if this.eventHub.lastNotifyHeight > currentHeight {
 		return
 	}
 
-	event, err := this.GetAccountSmartContractEventByBlock(currentHeight)
-	if err != nil {
-		return
+	notify := false
+	for i := this.eventHub.lastNotifyHeight + 1; i <= currentHeight; i++ {
+		event, err := this.GetAccountSmartContractEventByBlock(i)
+		if err != nil {
+			continue
+		}
+		if event == nil {
+			continue
+		}
+		notify = true
+		break
 	}
+	log.Debugf("notifyNewSmartContractEvent from %d-%d %t", this.eventHub.lastNotifyHeight, currentHeight, notify)
 	this.eventHub.lastNotifyHeight = currentHeight
-	if event == nil {
+	if !notify {
 		return
 	}
 	client.EventNotifyInvolvedSmartContract()

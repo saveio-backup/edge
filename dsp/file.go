@@ -1724,7 +1724,7 @@ func (this *Endpoint) SetUserSpace(walletAddr string, size, sizeOpType, blockCou
 		if !ok {
 			continue
 		}
-		if len(states) != 4 || states[0] != "transfer" {
+		if len(states) < 4 || states[0] != "transfer" {
 			continue
 		}
 		from := states[1].(string)
