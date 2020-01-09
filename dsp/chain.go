@@ -620,6 +620,9 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 			if len(states) < 3 {
 				continue
 			}
+			if _, ok := states[3].(uint64); !ok {
+				continue
+			}
 			from := states[1].(string)
 			to := states[2].(string)
 			tx.From = from

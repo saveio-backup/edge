@@ -17,7 +17,7 @@ import (
 	"github.com/saveio/carrier/network/components/ackreply"
 	"github.com/saveio/carrier/network/components/backoff"
 	"github.com/saveio/carrier/network/components/keepalive"
-	keepaliveProxy "github.com/saveio/carrier/network/components/keepalive/proxyKeepAlive"
+	"github.com/saveio/carrier/network/components/keepalive/proxyKeepalive"
 	"github.com/saveio/carrier/network/components/proxy"
 	"github.com/saveio/carrier/types/opcode"
 	dspCom "github.com/saveio/dsp-go-sdk/common"
@@ -53,6 +53,7 @@ func NewP2P() *Network {
 	n := &Network{
 		P2p: new(network.Network),
 	}
+
 	n.kill = make(chan struct{})
 	n.peers = new(sync.Map)
 	n.addrForHealthCheck = new(sync.Map)
@@ -140,7 +141,7 @@ func (this *Network) Start(protocol, addr, port string, opts ...NetworkOption) e
 	builder.AddComponent(keepalive.New(options...))
 
 	// add proxy keepalive
-	builder.AddComponent(keepaliveProxy.New())
+	builder.AddComponent(proxyKeepalive.New())
 
 	// add backoff
 	if len(config.Parameters.BaseConfig.NATProxyServerAddrs) > 0 {
