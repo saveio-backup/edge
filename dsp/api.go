@@ -20,7 +20,6 @@ import (
 	"github.com/saveio/dsp-go-sdk/dsp"
 	"github.com/saveio/edge/common"
 	"github.com/saveio/edge/common/config"
-	"github.com/saveio/edge/dsp/storage"
 	"github.com/saveio/edge/p2p/actor/req"
 	p2p_actor "github.com/saveio/edge/p2p/actor/server"
 	"github.com/saveio/edge/p2p/network"
@@ -47,7 +46,6 @@ type Endpoint struct {
 	Password          string
 	AccountLabel      string
 	progress          sync.Map
-	sqliteDB          *storage.SQLiteStorage
 	closeCh           chan struct{}
 	p2pActor          *p2p_actor.P2PActor
 	dspNet            *network.Network
@@ -140,12 +138,6 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 	if err := dspCom.CreateDirIfNeed(config.ClientSqliteDBPath()); err != nil {
 		return err
 	}
-	sqliteDB, err := storage.NewSQLiteStorage(config.ClientSqliteDBPath() + "/" + common.SQLITE_DB_NAME)
-	if err != nil {
-		log.Errorf("SQLite err %s", err)
-		return err
-	}
-	endpoint.sqliteDB = sqliteDB
 	// Skip init fs if Dsp doesn't start listen
 	if !startListen {
 		dspConfig.FsRepoRoot = ""
@@ -217,10 +209,6 @@ func (this *Endpoint) Stop() error {
 	}
 	if this.closeCh != nil {
 		close(this.closeCh)
-	}
-	err := this.sqliteDB.Close()
-	if err != nil {
-		return err
 	}
 	this.ResetChannelProgress()
 	return this.Dsp.Stop()

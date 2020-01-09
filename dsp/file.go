@@ -1280,9 +1280,6 @@ func (this *Endpoint) DecryptFile(path, password string) *DspErr {
 }
 
 func (this *Endpoint) GetFileRevene() (uint64, *DspErr) {
-	if this.sqliteDB == nil {
-		return 0, &DspErr{Code: NO_DB, Error: ErrMaps[NO_DB]}
-	}
 	sum, err := this.Dsp.SumRecordsProfit()
 	if err != nil {
 		return 0, &DspErr{Code: DB_SUM_SHARE_PROFIT_FAILED, Error: err}
@@ -1714,8 +1711,8 @@ func (this *Endpoint) SetUserSpace(walletAddr string, size, sizeOpType, blockCou
 	event, err := this.Dsp.GetSmartContractEvent(tx)
 	if err != nil || event == nil {
 		log.Debugf("get event err %s, event :%v", err, event)
-		_, err := this.sqliteDB.InsertUserspaceRecord(tx, walletAddr, size, storage.UserspaceOperation(sizeOpType), blockCount*config.BlockTime(), storage.UserspaceOperation(countOpType), 0, storage.TransferTypeNone)
-		if err != nil {
+		if err := this.Dsp.InsertUserspaceRecord(tx, walletAddr, size, store.UserspaceOperation(sizeOpType),
+			blockCount*config.BlockTime(), store.UserspaceOperation(countOpType), 0, store.TransferTypeNone); err != nil {
 			log.Errorf("insert userspace record err %s", err)
 			return "", &DspErr{Code: DB_ADD_USER_SPACE_RECORD_FAILED, Error: err}
 		}
@@ -1737,19 +1734,21 @@ func (this *Endpoint) SetUserSpace(walletAddr string, size, sizeOpType, blockCou
 		}
 		hasTransfer = true
 		amount := states[3].(uint64)
-		transferType := storage.TransferTypeIn
+		transferType := store.TransferTypeIn
 		if to == walletAddr {
-			transferType = storage.TransferTypeOut
+			transferType = store.TransferTypeOut
 		}
-		_, err := this.sqliteDB.InsertUserspaceRecord(tx, walletAddr, size, storage.UserspaceOperation(sizeOpType), blockCount*config.BlockTime(), storage.UserspaceOperation(countOpType), amount, transferType)
-		if err != nil {
+		if err := this.Dsp.InsertUserspaceRecord(tx, walletAddr, size, store.UserspaceOperation(sizeOpType),
+			blockCount*config.BlockTime(), store.UserspaceOperation(countOpType), amount,
+			transferType); err != nil {
 			log.Errorf("insert userspace record err %s", err)
 		}
 		log.Debugf("from %s to %s amount %d", from, to, amount)
 	}
 	if len(event.Notify) == 0 || !hasTransfer {
-		_, err := this.sqliteDB.InsertUserspaceRecord(tx, walletAddr, size, storage.UserspaceOperation(sizeOpType), blockCount*config.BlockTime(), storage.UserspaceOperation(countOpType), 0, storage.TransferTypeNone)
-		if err != nil {
+		if err := this.Dsp.InsertUserspaceRecord(tx, walletAddr, size, store.UserspaceOperation(sizeOpType),
+			blockCount*config.BlockTime(), store.UserspaceOperation(countOpType),
+			0, store.TransferTypeNone); err != nil {
 			log.Errorf("insert userspace record err %s", err)
 			return "", &DspErr{Code: DB_ADD_USER_SPACE_RECORD_FAILED, Error: err}
 		}
@@ -1853,7 +1852,7 @@ func (this *Endpoint) GetUserSpace(addr string) (*Userspace, *DspErr) {
 }
 
 func (this *Endpoint) GetUserspaceRecords(walletAddr string, offset, limit uint64) ([]*UserspaceRecordResp, *DspErr) {
-	records, err := this.sqliteDB.SelectUserspaceRecordByWalletAddr(walletAddr, offset, limit)
+	records, err := this.Dsp.SelectUserspaceRecordByWalletAddr(walletAddr, offset, limit)
 	if err != nil {
 		return nil, &DspErr{Code: DB_FIND_USER_SPACE_RECORD_FAILED, Error: err}
 	}
@@ -1867,7 +1866,7 @@ func (this *Endpoint) GetUserspaceRecords(walletAddr string, offset, limit uint6
 	for _, record := range records {
 		amount := int64(record.Amount)
 		amountFormat := utils.FormatUsdt(record.Amount)
-		if record.TransferType == storage.TransferTypeOut {
+		if record.TransferType == store.TransferTypeOut {
 			amount = -amount
 			amountFormat = fmt.Sprintf("-%s", amountFormat)
 		}
