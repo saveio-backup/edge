@@ -117,6 +117,7 @@ const (
 	DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH   = 56013
 	DSP_CHANNEL_WITHDRAW_WRONG_AMOUNT    = 56014
 	DSP_CHANNEL_SYNCING                  = 56015
+	DSP_CHANNEL_OPEN_TO_NO_DNS           = 56016
 
 	DSP_TASK_NOT_EXIST = 58000
 
@@ -238,6 +239,7 @@ var ErrMaps = map[int64]error{
 	DB_ADD_USER_SPACE_RECORD_FAILED:  errors.New("db add user space record failed"),
 	DB_GET_FILEINFO_FAILED:           errors.New("db get fileinfo failed"),
 
-	NET_RECONNECT_PEER_FAILED: errors.New("net reconnect peer failed"),
-	NET_PROXY_DISCONNECTED:    errors.New("proxy has disconnted"),
+	NET_RECONNECT_PEER_FAILED:  errors.New("net reconnect peer failed"),
+	NET_PROXY_DISCONNECTED:     errors.New("proxy has disconnted"),
+	DSP_CHANNEL_OPEN_TO_NO_DNS: errors.New("dsp channel open to nodns"),
 }

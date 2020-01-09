@@ -650,7 +650,7 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 			log.Debugf("type wrong %d", txType)
 			continue
 		}
-		if ignoreOtherCont && tx.ContractAddr != sUtils.UsdtContractAddress.ToBase58() {
+		if ignoreOtherCont && tx.ContractAddr != sUtils.UsdtContractAddress.ToBase58() && tx.Amount == 0 {
 			continue
 		}
 		toAppend := make([]*TxResp, 0)
