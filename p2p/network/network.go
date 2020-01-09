@@ -17,6 +17,7 @@ import (
 	"github.com/saveio/carrier/network/components/ackreply"
 	"github.com/saveio/carrier/network/components/backoff"
 	"github.com/saveio/carrier/network/components/keepalive"
+	keepaliveProxy "github.com/saveio/carrier/network/components/keepalive/proxyKeepAlive"
 	"github.com/saveio/carrier/network/components/proxy"
 	"github.com/saveio/carrier/types/opcode"
 	dspCom "github.com/saveio/dsp-go-sdk/common"
@@ -131,12 +132,15 @@ func (this *Network) Start(protocol, addr, port string, opts ...NetworkOption) e
 	peerComp.Net = this
 	builder.AddComponent(peerComp)
 
-	// add keepalive
+	// add peer keepalive
 	options := []keepalive.ComponentOption{
 		keepalive.WithKeepaliveInterval(keepalive.DefaultKeepaliveInterval),
 		keepalive.WithKeepaliveTimeout(keepalive.DefaultKeepaliveTimeout),
 	}
 	builder.AddComponent(keepalive.New(options...))
+
+	// add proxy keepalive
+	builder.AddComponent(keepaliveProxy.New())
 
 	// add backoff
 	if len(config.Parameters.BaseConfig.NATProxyServerAddrs) > 0 {
