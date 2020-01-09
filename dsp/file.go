@@ -297,7 +297,7 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, pr
 		opt.ExpiredHeight = userspace.ExpireHeight
 	} else {
 		duration, _ := durationVal.(float64)
-		opt.ExpiredHeight = uint64(currentHeight) + uint64(duration/float64(config.BlockTime()))
+		opt.ExpiredHeight = uint64(currentHeight + uint32(duration/float64(config.BlockTime())))
 	}
 	log.Debugf("opt.ExpiredHeight :%d, minInterval :%d, current: %d", opt.ExpiredHeight, fsSetting.MinProveInterval, currentHeight)
 	if opt.ExpiredHeight < fsSetting.MinProveInterval+uint64(currentHeight) {
@@ -334,12 +334,17 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, pr
 		Num:  uint64(len(whitelist)),
 		List: make([]fs.Rule, 0, uint64(len(whitelist))),
 	}
+	whitelistM := make(map[string]struct{}, 0)
 	log.Debugf("whitelist :%v, len: %d %d", whitelist, len(whitelistObj.List), cap(whitelistObj.List))
 	for i, whitelistAddr := range whitelist {
 		addr, err := chainCom.AddressFromBase58(whitelistAddr)
 		if err != nil {
 			return nil, &DspErr{Code: INVALID_WALLET_ADDRESS, Error: err}
 		}
+		if _, ok := whitelistM[whitelistAddr]; ok {
+			continue
+		}
+		whitelistM[whitelistAddr] = struct{}{}
 		log.Debugf("index :%d", i)
 		whitelistObj.List = append(whitelistObj.List, fs.Rule{
 			Addr:         addr,

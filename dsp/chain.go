@@ -596,7 +596,6 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 			ContractType: TxInvokeUsdtContract,
 		}
 		sendToSelf := false
-		log.Debugf("tx %s", event.TxHash)
 		for _, n := range event.Notify {
 			addrFromHex, err := common.AddressFromHexString(n.ContractAddress)
 			if err != nil {
@@ -612,6 +611,7 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 		if len(tx.ContractAddr) == 0 {
 			tx.ContractAddr = sUtils.UsdtContractAddress.ToBase58()
 		}
+		statesSli := make([][]interface{}, 0, len(event.Notify))
 		for _, n := range event.Notify {
 			states, ok := n.States.([]interface{})
 			if !ok {
@@ -625,22 +625,45 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 			}
 			from := states[1].(string)
 			to := states[2].(string)
-			tx.From = from
+			if from != addr && to != addr {
+				continue
+			}
+			statesSli = append(statesSli, states)
+		}
+		var in, out uint64
+		partner := ""
+		for _, states := range statesSli {
+			from := states[1].(string)
+			to := states[2].(string)
+			if from == addr && to != sUtils.GovernanceContractAddress.ToBase58() {
+				out += states[3].(uint64)
+				partner = to
+			} else if to == addr {
+				in += states[3].(uint64)
+				partner = from
+			}
 			// set up amount
 			if to == sUtils.GovernanceContractAddress.ToBase58() {
 				tx.FeeFormat = utils.FormatUsdt(states[3].(uint64))
-				if len(event.Notify) == 1 {
+				if len(statesSli) == 1 {
+					tx.From = from
 					tx.To = to
-				}
-			} else {
-				tx.Amount = states[3].(uint64)
-				tx.AmountFormat = utils.FormatUsdt(states[3].(uint64))
-				if tx.ContractAddr == sUtils.UsdtContractAddress.ToBase58() && len(tx.To) == 0 {
-					tx.To = to
+					tx.ContractType = TxInvokeOtherContract
 				}
 			}
 		}
-		log.Debugf("+++ tx %v ~ %v", tx.From, tx.To)
+		if out > in {
+			tx.From = addr
+			tx.To = partner
+			tx.Amount = (out - in)
+			tx.AmountFormat = utils.FormatUsdt(out - in)
+		} else if in > out {
+			tx.From = partner
+			tx.To = addr
+			tx.Amount = in - out
+			tx.AmountFormat = utils.FormatUsdt(in - out)
+		}
+		log.Debugf("+++ tx %v, %v ~ %v %d", tx, tx.From, tx.To, tx.Amount)
 		if tx.From != addr && tx.To == addr {
 			tx.Type = TxTypeReceive
 		}
@@ -650,7 +673,8 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 			log.Debugf("type wrong %d", txType)
 			continue
 		}
-		if ignoreOtherCont && tx.ContractAddr != sUtils.UsdtContractAddress.ToBase58() && tx.Amount == 0 {
+		if ignoreOtherCont && (tx.To == sUtils.GovernanceContractAddress.ToBase58() ||
+			tx.ContractAddr != sUtils.UsdtContractAddress.ToBase58()) && tx.Amount == 0 {
 			continue
 		}
 		toAppend := make([]*TxResp, 0)
