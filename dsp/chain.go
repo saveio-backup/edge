@@ -563,12 +563,11 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 
 	txs := make([]*TxResp, 0)
 	events, err := this.Dsp.GetSmartContractEventByEventId(usdt.USDT_CONTRACT_ADDRESS.ToBase58(), addr, cUsdt.EVENT_USDT_STATE_CHANGE)
-	log.Debugf("events-len %d, addr %s-%s-%d skipTxCnt %d %t", len(events), usdt.USDT_CONTRACT_ADDRESS.ToBase58(), addr, cUsdt.EVENT_USDT_STATE_CHANGE, skipTxCnt, ignoreOtherCont)
 	if err != nil {
 		return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
 	}
 	// TODO: fixed this
-	tempMap := make(map[string]struct{}, 0)
+	// tempMap := make(map[string]struct{}, 0)
 	hasSkip := uint64(0)
 	for i := len(events) - 1; i >= 0; i-- {
 		event := events[i]
@@ -583,6 +582,36 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 		if err != nil {
 			continue
 		}
+		// flag if find the fee consumed event
+		// findFeeEvent := false
+		tx := &TxResp{
+			Txid:         event.TxHash,
+			BlockHeight:  uint32(blockHeight),
+			FeeFormat:    "0",
+			Timestamp:    blk.Header.Timestamp,
+			Amount:       0,
+			AmountFormat: "0",
+			Asset:        edgeCom.SAVE_ASSET,
+			Type:         TxTypeSend,
+			ContractType: TxInvokeUsdtContract,
+		}
+		sendToSelf := false
+		log.Debugf("tx %s", event.TxHash)
+		for _, n := range event.Notify {
+			addrFromHex, err := common.AddressFromHexString(n.ContractAddress)
+			if err != nil {
+				continue
+			}
+			if addrFromHex.ToBase58() != sUtils.UsdtContractAddress.ToBase58() {
+				tx.ContractAddr = addrFromHex.ToBase58()
+				tx.To = tx.ContractAddr
+				tx.ContractType = TxInvokeOtherContract
+				break
+			}
+		}
+		if len(tx.ContractAddr) == 0 {
+			tx.ContractAddr = sUtils.UsdtContractAddress.ToBase58()
+		}
 		for _, n := range event.Notify {
 			states, ok := n.States.([]interface{})
 			if !ok {
@@ -591,93 +620,61 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 			if len(states) < 3 {
 				continue
 			}
-			addrFromHex, _ := common.AddressFromHexString(n.ContractAddress)
-			contractBase58Addr := addrFromHex.ToBase58()
 			from := states[1].(string)
 			to := states[2].(string)
-			if asset == edgeCom.SAVE_ASSET && to != sUtils.GovernanceContractAddress.ToBase58() {
-				if txType == TxTypeAll && (from != addr && to != addr) {
-					continue
-				}
-				if txType == TxTypeSend && from != addr {
-					continue
-				}
-				if txType == TxTypeReceive && to != addr {
-					continue
-				}
-				if ignoreOtherCont && contractBase58Addr != sUtils.UsdtContractAddress.ToBase58() {
-					continue
-				}
-				tempKey := fmt.Sprintf("%s-%v-%v", event.TxHash, states[1], states[2])
-				if _, ok := tempMap[tempKey]; ok {
-					continue
-				}
-				tempMap[tempKey] = struct{}{}
-				txType := TxTypeSend
-				if from != addr && to == addr {
-					txType = TxTypeReceive
-				}
-				sendToSelf := (from == addr && to == addr)
-				tx := &TxResp{
-					Txid:         event.TxHash,
-					BlockHeight:  uint32(blockHeight),
-					FeeFormat:    utils.FormatUsdt(10000000),
-					Timestamp:    blk.Header.Timestamp,
-					Amount:       0,
-					AmountFormat: "0",
-					Asset:        edgeCom.SAVE_ASSET,
-					Type:         uint(txType),
-					ContractAddr: contractBase58Addr,
-					From:         from,
-					ContractType: TxInvokeUsdtContract,
-				}
-
-				if contractBase58Addr != sUtils.UsdtContractAddress.ToBase58() {
-					// invoke contract tx
-					tx.To = contractBase58Addr
-					tx.ContractType = TxInvokeOtherContract
-				} else {
+			tx.From = from
+			// set up amount
+			if to == sUtils.GovernanceContractAddress.ToBase58() {
+				tx.FeeFormat = utils.FormatUsdt(states[3].(uint64))
+			} else {
+				tx.Amount = states[3].(uint64)
+				tx.AmountFormat = utils.FormatUsdt(states[3].(uint64))
+				if tx.ContractAddr == sUtils.UsdtContractAddress.ToBase58() && len(tx.To) == 0 {
 					tx.To = to
-					amountFormat := utils.FormatUsdt(states[3].(uint64))
-					tx.Amount = states[3].(uint64)
-					tx.AmountFormat = amountFormat
-					if IsNativeContractAddr(to) || IsNativeContractAddr(from) {
-						tx.ContractType = TxInvokeOtherContract
-					}
 				}
-				toAppend := make([]*TxResp, 0)
-				if !sendToSelf {
-					toAppend = append(toAppend, tx)
-				} else {
-					toAppend = append(toAppend, tx)
-					tx2 := *tx
-					tx2.Type = TxTypeReceive
-					toAppend = append(toAppend, &tx2)
-				}
-
-				if skipTxCnt > 0 && !sendToSelf && skipTxCnt > hasSkip {
-					hasSkip++
-					continue
-				}
-				if skipTxCnt > 0 && sendToSelf {
-					if skipTxCnt >= hasSkip+2 {
-						hasSkip += 2
-						continue
-					}
-					if skipTxCnt == hasSkip+1 {
-						hasSkip++
-						toAppend = toAppend[1:]
-					}
-				}
-				txs = append(txs, toAppend...)
-				if limit > 0 && uint32(len(txs)) >= limit {
-					if uint32(len(txs)) > limit {
-						return txs[:limit], nil
-					}
-					return txs, nil
-				}
+			}
+		}
+		if tx.From != addr && tx.To == addr {
+			tx.Type = TxTypeReceive
+		}
+		sendToSelf = (tx.From == addr && tx.To == addr)
+		if txType != TxTypeAll &&
+			((txType == TxTypeSend && tx.Type != TxTypeSend) || (txType == TxTypeReceive && tx.Type != TxTypeReceive)) {
+			log.Debugf("type wrong %d", txType)
+			continue
+		}
+		if ignoreOtherCont && tx.ContractAddr != sUtils.UsdtContractAddress.ToBase58() {
+			continue
+		}
+		toAppend := make([]*TxResp, 0)
+		if !sendToSelf {
+			toAppend = append(toAppend, tx)
+		} else {
+			toAppend = append(toAppend, tx)
+			tx2 := *tx
+			tx2.Type = TxTypeReceive
+			toAppend = append(toAppend, &tx2)
+		}
+		if skipTxCnt > 0 && !sendToSelf && skipTxCnt > hasSkip {
+			hasSkip++
+			continue
+		}
+		if skipTxCnt > 0 && sendToSelf {
+			if skipTxCnt >= hasSkip+2 {
+				hasSkip += 2
 				continue
 			}
+			if skipTxCnt == hasSkip+1 {
+				hasSkip++
+				toAppend = toAppend[1:]
+			}
+		}
+		txs = append(txs, toAppend...)
+		if limit > 0 && uint32(len(txs)) >= limit {
+			if uint32(len(txs)) > limit {
+				return txs[:limit], nil
+			}
+			return txs, nil
 		}
 	}
 	return txs, nil

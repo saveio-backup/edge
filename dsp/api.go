@@ -521,6 +521,7 @@ func (this *Endpoint) initLog() {
 	}
 	logFullPath = filepath.Join(baseDir, logPath) + extra + "/"
 	log.InitLog(int(config.Parameters.BaseConfig.LogLevel), logFullPath, log.Stdout)
+	log.SetProcName("saveio")
 }
 
 func (this *Endpoint) checkOnlineDNS() {
