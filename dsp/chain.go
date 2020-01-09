@@ -629,6 +629,9 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 			// set up amount
 			if to == sUtils.GovernanceContractAddress.ToBase58() {
 				tx.FeeFormat = utils.FormatUsdt(states[3].(uint64))
+				if len(event.Notify) == 1 {
+					tx.To = to
+				}
 			} else {
 				tx.Amount = states[3].(uint64)
 				tx.AmountFormat = utils.FormatUsdt(states[3].(uint64))
@@ -637,6 +640,7 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 				}
 			}
 		}
+		log.Debugf("+++ tx %v ~ %v", tx.From, tx.To)
 		if tx.From != addr && tx.To == addr {
 			tx.Type = TxTypeReceive
 		}
@@ -680,6 +684,7 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 			return txs, nil
 		}
 	}
+
 	return txs, nil
 }
 
