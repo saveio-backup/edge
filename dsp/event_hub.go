@@ -25,6 +25,7 @@ func (this *Endpoint) notifyWhenStartup() {
 	if !config.WsEnabled() {
 		return
 	}
+	log.Debugf("event notify all")
 	client.EventNotifyAll()
 }
 

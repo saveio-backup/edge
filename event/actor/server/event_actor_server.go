@@ -92,10 +92,8 @@ func (this *EventActorServer) Receive(ctx actor.Context) {
 		}()
 	case *edgeCli.NotifyChannelProgress:
 		go func() {
-			log.Debugf("push msg...")
 			websocket.Server().PushChannelInitProgress()
 			msg.Response <- &edgeCli.NotifyResp{}
-			log.Debugf("push msg...done")
 		}()
 	case *edgeCli.NotifyUploadTransferList:
 		go func() {

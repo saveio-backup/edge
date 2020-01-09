@@ -1822,11 +1822,21 @@ func (this *Endpoint) GetUserSpace(addr string) (*Userspace, *DspErr) {
 		}
 	}
 	log.Debugf("expiredAt %d, now %d  space.ExpireHeight:%d", expiredAt, now, space.ExpireHeight)
-	if expiredAt <= now {
+	if space.ExpireHeight <= uint64(currentHeight) {
+		if expiredAt < now {
+			return &Userspace{
+				Used:          0,
+				Remain:        0,
+				ExpiredAt:     expiredAt,
+				Balance:       space.Balance,
+				CurrentHeight: uint64(currentHeight),
+				ExpiredHeight: space.ExpireHeight,
+			}, nil
+		}
 		return &Userspace{
 			Used:          0,
 			Remain:        0,
-			ExpiredAt:     expiredAt,
+			ExpiredAt:     now - 1,
 			Balance:       space.Balance,
 			CurrentHeight: uint64(currentHeight),
 			ExpiredHeight: space.ExpireHeight,
