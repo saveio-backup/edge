@@ -408,6 +408,7 @@ func (this *Endpoint) PauseUploadFile(taskIds []string) *FileTaskResp {
 		taskResp.State = int(state)
 		resp.Tasks = append(resp.Tasks, taskResp)
 	}
+	go this.notifyUploadingTransferList()
 	return resp
 }
 
@@ -501,6 +502,9 @@ func (this *Endpoint) RetryUploadFile(taskIds []string) *FileTaskResp {
 }
 
 func (this *Endpoint) CancelUploadFile(taskIds []string) *FileTaskResp {
+	defer func() {
+		go this.notifyUploadingTransferList()
+	}()
 	bal, err := this.Dsp.BalanceOf(this.Dsp.Address())
 	if err != nil || bal == 0 {
 		resp := &FileTaskResp{
@@ -831,6 +835,7 @@ func (this *Endpoint) PauseDownloadFile(taskIds []string) *FileTaskResp {
 		taskResp.State = int(state)
 		resp.Tasks = append(resp.Tasks, taskResp)
 	}
+	go this.notifyDownloadingTransferList()
 	return resp
 }
 
@@ -968,6 +973,7 @@ func (this *Endpoint) CancelDownloadFile(taskIds []string) *FileTaskResp {
 		log.Debugf("cancel download file, id :%s, resp :%v", id, taskResp)
 		resp.Tasks = append(resp.Tasks, taskResp)
 	}
+	go this.notifyDownloadingTransferList()
 	return resp
 }
 
