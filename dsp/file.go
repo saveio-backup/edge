@@ -1113,7 +1113,12 @@ func (this *Endpoint) GetTransferDetailByUrl(pType TransferType, url string) (*T
 	if len(id) == 0 {
 		return nil, nil
 	}
-	return this.GetTransferDetail(pType, id)
+	tr, err := this.GetTransferDetail(pType, id)
+	if tr != nil && tr.Url != url {
+		log.Warnf("transfer old url is %s, but got %s", tr.Url, url)
+		tr.Url = url
+	}
+	return tr, err
 }
 
 func (this *Endpoint) CalculateUploadFee(filePath string, durationVal, intervalVal, timesVal, copynumVal, whitelistVal, storeType interface{}) (*CalculateResp, *DspErr) {

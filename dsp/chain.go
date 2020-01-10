@@ -663,7 +663,6 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 			tx.Amount = in - out
 			tx.AmountFormat = utils.FormatUsdt(in - out)
 		}
-		log.Debugf("+++ tx %v, %v ~ %v %d", tx, tx.From, tx.To, tx.Amount)
 		if tx.From != addr && tx.To == addr {
 			tx.Type = TxTypeReceive
 		}
