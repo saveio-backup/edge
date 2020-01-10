@@ -667,7 +667,7 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 			tx.Type = TxTypeReceive
 		}
 		sendToSelf = (tx.From == addr && tx.To == addr)
-		if txType != TxTypeAll &&
+		if !sendToSelf && txType != TxTypeAll &&
 			((txType == TxTypeSend && tx.Type != TxTypeSend) || (txType == TxTypeReceive && tx.Type != TxTypeReceive)) {
 			log.Debugf("type wrong %d", txType)
 			continue
@@ -680,10 +680,16 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 		if !sendToSelf {
 			toAppend = append(toAppend, tx)
 		} else {
-			toAppend = append(toAppend, tx)
-			tx2 := *tx
-			tx2.Type = TxTypeReceive
-			toAppend = append(toAppend, &tx2)
+			if txType == TxTypeAll {
+				tx.Type = TxTypeSend
+				toAppend = append(toAppend, tx)
+				tx2 := *tx
+				tx2.Type = TxTypeReceive
+				toAppend = append(toAppend, &tx2)
+			} else {
+				tx.Type = uint(txType)
+				toAppend = append(toAppend, tx)
+			}
 		}
 		if skipTxCnt > 0 && !sendToSelf && skipTxCnt > hasSkip {
 			hasSkip++
@@ -707,7 +713,6 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 			return txs, nil
 		}
 	}
-
 	return txs, nil
 }
 
