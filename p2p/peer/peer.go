@@ -113,6 +113,11 @@ func (p *Peer) State() ConnectState {
 	return p.state
 }
 
+func (p *Peer) IsSendingMsg() bool {
+	cnt := p.getMsgLen()
+	return cnt > 0
+}
+
 func (p *Peer) SetState(s ConnectState) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
