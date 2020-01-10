@@ -35,8 +35,6 @@ func initAPP() *cli.App {
 	app.Copyright = "Copyright in 2018 The SAVE Authors"
 	app.Commands = []cli.Command{
 		cmd.AccountCommand,
-		cmd.InfoCommand,
-		cmd.AssetCommand,
 		cmd.FileCommand,
 		cmd.UserspaceCommand,
 		cmd.NodeCommand,
