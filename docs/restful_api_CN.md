@@ -1,88 +1,227 @@
-### 错误码
+### API接口错误码
 
-|错误码|内容|含义|
-|---|---|---|
-0|SUCCESS               |成功
-40001|INTERNAL_ERROR        |内部服务器错误
-40002|INVALID_PARAMS        |参数不正确（缺少）
-40003|NO_DSP                |服务没有实例化
-40004|NO_DB                 |数据库初始化失败
-40005|CONTRACT_ERROR        |合约调用失败
-40006|INSUFFICIENT_BALANCE  |余额不足
-40007|NO_ACCOUNT            |没有账号
-40008|ACCOUNT_EXIST         |账号已存在
-50000|CHAIN_INTERNAL_ERROR               |链上内部错误
-50001|CHAIN_GET_HEIGHT_FAILED            |获取当前高度失败
-50002|CHAIN_GET_BLK_BY_HEIGHT_FAILED     |获取区块失败
-50003|CHAIN_WAIT_TX_COMFIRMED_TIMEOUT    |等待交易确认超时
-50004|CHAIN_UNKNOWN_BLOCK                |未知区块
-50005|CHAIN_UNKNOWN_TX                   |未知交易
-50006|CHAIN_UNKNOWN_SMARTCONTRACT        |未知合约
-50007|CHAIN_UNKNOWN_SMARTCONTRACT_EVENT  |未知合约事件
-50008|CHAIN_UNKNOWN_ASSET                |未知资产
-50009|CHAIN_TRANSFER_ERROR               |转账失败
-50013|WALLET_FILE_NOT_EXIST   |钱包文件不存在
-50014|ACCOUNTDATA_NOT_EXIST   |钱包账号数据不存在
-50015|ACCOUNT_PASSWORD_WRONG  |密码错误
-50016|CREATE_ACCOUNT_FAILED   |创建账号失败
-50017|ACCOUNT_EXPORT_FAILED   |账号导出失败
-54001|FS_GET_SETTING_FAILED            |获取FS合约配置失败
-54002|FS_GET_USER_SPACE_FAILED         |获取用户空间失败
-54003|FS_GET_FILE_LIST_FAILED          |获取文件列表失败
-54004|FS_UPDATE_USERSPACE_FAILED       |更新用户空间失败
-54005|FS_CANT_REVOKE_OF_EXISTS_FILE    |不能撤销有存储文件的空间
-54006|FS_NO_USER_SPACE_TO_REVOKE       |没有空间可以撤销
-54007|FS_USER_SPACE_SECOND_TOO_SMALL   |增加的秒数太小
-54008|FS_USER_SPACE_PERMISSION_DENIED  |没有权限更新
-55000|DSP_INIT_FAILED                       |DSP初始化失败
-55001|DSP_START_FAILED                      |DSP启动失败
-55002|DSP_STOP_FAILED                       |DSP停止失败
-55010|DSP_UPLOAD_FILE_FAILED                |上传文件失败
-55011|DSP_USER_SPACE_EXPIRED                |用户空间过期
-55012|DSP_USER_SPACE_NOT_ENOUGH             |用户空间不足
-55013|DSP_UPLOAD_URL_EXIST                  |文件的URL已存在
-55014|DSP_DELETE_FILE_FAILED                |删除文件失败
-55015|DSP_CALC_UPLOAD_FEE_FAILED            |计算上传费用失败
-55016|DSP_GET_FILE_LINK_FAILED              |获取文件链接失败
-55017|DSP_ENCRYPTED_FILE_FAILED             |文件加密失败
-55018|DSP_DECRYPTED_FILE_FAILED             |文件解密失败
-55019|DSP_WHITELIST_OP_FAILED               |白名单操作失败
-55020|DSP_GET_WHITELIST_FAILED              |获取白名单失败
-55021|DSP_UPDATE_CONFIG_FAILED              |更新系统配置失败
-55030|DSP_NODE_REGISTER_FAILED              |节点注册失败
-55031|DSP_NODE_UNREGISTER_FAILED            |节点注销失败
-55032|DSP_NODE_UPDATE_FAILED                |节点更新失败
-55033|DSP_NODE_WITHDRAW_FAILED              |节点提现失败
-55034|DSP_NODE_QUERY_FAILED                 |节点查询失败
-55040|DSP_URL_REGISTER_FAILED               |URL注册失败
-55041|DSP_URL_BIND_FAILED                   |URL绑定失败
-55050|DSP_DNS_REGISTER_FAILED               |DNS节点注册失败
-55051|DSP_DNS_UNREGISTER_FAILED             |DNS节点注销失败
-55052|DSP_DNS_UPDATE_FAILED                 |DNS节点更新失败
-55053|DSP_DNS_WITHDRAW_FAILED               |DNS节点提现失败
-55054|DSP_DNS_QUIT_FAILED                   |DNS节点退出失败
-55055|DSP_DNS_ADDPOS_FAILED                 |DNS节点添加抵押失败
-55056|DSP_DNS_REDUCEPOS_FAILED              |DNS节点减少抵押失败
-55057|DSP_DNS_GET_NODE_BY_ADDR              |查询DNS节点失败
-55058|DSP_DNS_QUERY_INFOS_FAILED            |查询所有DNS节点信息失败
-55059|DSP_DNS_QUERY_INFO_FAILED             |查询单个DNS节点信息失败
-55060|DSP_DNS_QUERY_ALLINFOS_FAILED         |查询所有DNS节点信息失败
-56000|DSP_CHANNEL_INTERNAL_ERROR            |通道内部错误
-56001|DSP_CHANNEL_OPEN_FAILED               |开启通道失败
-56002|DSP_CHANNEL_CLOSE_FAILED              |关闭通道失败
-56003|DSP_CHANNEL_QUERY_AVA_BALANCE_FAILED  |查询通道可用余额失败
-56004|DSP_CHANNEL_DEPOSIT_FAILED            |通道充值失败
-56005|DSP_CHANNEL_WITHDRAW_FAILED           |通道提现失败
-56006|DSP_CHANNEL_WITHDRAW_OVERFLOW         |通道提现金额错误
-56007|DSP_CHANNEL_GET_ALL_FAILED            |获取所有通道失败
-56008|DSP_CHANNEL_MEDIATRANSFER_FAILED      |路由支付失败
-56009|DSP_CHANNEL_CO_SETTLE_FAILED          |合作关闭失败
-56010|DSP_CHANNEL_INIT_NOT_FINISH           |通道初始化未完成
-56011|DSP_CHANNEL_EXIST                     |通道不存在或没有settle完成
-56012|DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST    |与DNS连接的当前通道不存在
-56013|DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH    |与DNS连接的当前通道余额不足支付下载费用
-56014|DSP_CHANNEL_WITHDRAW_WRONG_AMOUNT     |通道体现数额错误
-59000|DB_FIND_SHARE_RECORDS_FAILED      |数据库查询分享收益失败
-59001|DB_SUM_SHARE_PROFIT_FAILED        |数据库统计分享收益失败
-59002|DB_FIND_USER_SPACE_RECORD_FAILED  |数据库查询调整空间记录失败
-59003|DB_ADD_USER_SPACE_RECORD_FAILED   |数据库添加调整空间记录失败
+| 错误码 | 内容                                 | 含义                           |
+| ------ | ------------------------------------ | ------------------------------ |
+| 0      | SUCCESS                              | 成功                           |
+| 40001  | INTERNAL_ERROR                       | 内部服务器错误                 |
+| 40002  | INVALID_PARAMS                       | 参数不正确（缺少）             |
+| 40003  | NO_DSP                               | 服务没有实例化                 |
+| 40004  | NO_DB                                | 数据库初始化失败               |
+| 40005  | CONTRACT_ERROR                       | 合约调用失败                   |
+| 40006  | INSUFFICIENT_BALANCE                 | 余额不足                       |
+| 40007  | NO_ACCOUNT                           | 没有账号                       |
+| 40008  | ACCOUNT_EXIST                        | 账号已存在                     |
+| 40009  | NO_DNS                               | 没有连接DNS节点                |
+| 40010  | INVALID_WALLET_ADDRESS               | 钱包地址非法                   |
+| 50000  | CHAIN_INTERNAL_ERROR                 | 链上内部错误                   |
+| 50001  | CHAIN_GET_HEIGHT_FAILED              | 获取当前高度失败               |
+| 50002  | CHAIN_GET_BLK_BY_HEIGHT_FAILED       | 获取区块失败                   |
+| 50003  | CHAIN_WAIT_TX_COMFIRMED_TIMEOUT      | 等待交易确认超时               |
+| 50004  | CHAIN_UNKNOWN_BLOCK                  | 未知区块                       |
+| 50005  | CHAIN_UNKNOWN_TX                     | 未知交易                       |
+| 50006  | CHAIN_UNKNOWN_SMARTCONTRACT          | 未知合约                       |
+| 50007  | CHAIN_UNKNOWN_SMARTCONTRACT_EVENT    | 未知合约事件                   |
+| 50008  | CHAIN_UNKNOWN_ASSET                  | 未知资产                       |
+| 50009  | CHAIN_TRANSFER_ERROR                 | 转账失败                       |
+| 50012  | ACCOUNT_NOT_LOGIN                | 钱包文件不存在                 |
+| 50013  | WALLET_FILE_NOT_EXIST                | 钱包文件不存在                 |
+| 50014  | ACCOUNTDATA_NOT_EXIST                | 钱包账号数据不存在             |
+| 50015  | ACCOUNT_PASSWORD_WRONG               | 密码错误                       |
+| 50016  | CREATE_ACCOUNT_FAILED                | 创建账号失败                   |
+| 50017  | ACCOUNT_EXPORT_FAILED                | 账号导出失败                   |
+| 54001  | FS_GET_SETTING_FAILED                | 获取FS合约配置失败             |
+| 54002  | FS_GET_USER_SPACE_FAILED             | 获取用户空间失败               |
+| 54003  | FS_GET_FILE_LIST_FAILED              | 获取文件列表失败               |
+| 54004  | FS_UPDATE_USERSPACE_FAILED           | 更新用户空间失败               |
+| 54005  | FS_CANT_REVOKE_OF_EXISTS_FILE        | 不能撤销有存储文件的空间       |
+| 54006  | FS_NO_USER_SPACE_TO_REVOKE           | 没有空间可以撤销               |
+| 54007  | FS_USER_SPACE_SECOND_TOO_SMALL       | 增加的秒数太小                 |
+| 54008  | FS_USER_SPACE_PERMISSION_DENIED      | 没有权限更新                   |
+| 54009  | FS_UPLOAD_FILEPATH_ERROR             | 文件上传路径出错               |
+| 54010  | FS_UPLOAD_INTERVAL_TOO_SMALL         | 计算文件费用上传的验证周期太小 |
+| 54011  | FS_UPLOAD_GET_FILESIZE_FAILED        | 计算文件费用获取文件大小失败   |
+| 54012  | FS_UPLOAD_CALC_FEE_FAILED            | 计算文件费用失败               |
+| 55000  | DSP_INIT_FAILED                      | DSP初始化失败                  |
+| 55001  | DSP_START_FAILED                     | DSP启动失败                    |
+| 55002  | DSP_STOP_FAILED                      | DSP停止失败                    |
+| 55010  | DSP_UPLOAD_FILE_FAILED               | 上传文件失败                   |
+| 55011  | DSP_USER_SPACE_EXPIRED               | 用户空间过期                   |
+| 55012  | DSP_USER_SPACE_NOT_ENOUGH            | 用户空间不足                   |
+| 55013  | DSP_UPLOAD_URL_EXIST                 | 文件的URL已存在                |
+| 55014  | DSP_DELETE_FILE_FAILED               | 删除文件失败                   |
+| 55015  | DSP_CALC_UPLOAD_FEE_FAILED           | 计算上传费用失败               |
+| 55016  | DSP_GET_FILE_LINK_FAILED             | 获取文件链接失败               |
+| 55017  | DSP_ENCRYPTED_FILE_FAILED            | 文件加密失败                   |
+| 55018  | DSP_DECRYPTED_FILE_FAILED            | 文件解密失败                   |
+| 55019  | DSP_WHITELIST_OP_FAILED              | 白名单操作失败                 |
+| 55020  | DSP_GET_WHITELIST_FAILED             | 获取白名单失败                 |
+| 55021  | DSP_UPDATE_CONFIG_FAILED             | 更新系统配置失败               |
+| 55022  | DSP_UPLOAD_FILE_EXIST                | 文件已上传                     |
+| 55023  | DSP_PAUSE_UPLOAD_FAIELD              | 暂停上传失败                   |
+| 55024  | DSP_RESUME_UPLOAD_FAIELD             | 继续上传失败                   |
+| 55025  | DSP_RETRY_UPLOAD_FAIELD              | 重试上传失败                   |
+| 55026  | DSP_PAUSE_DOWNLOAD_FAIELD            | 暂停下载失败                   |
+| 55027  | DSP_RESUME_DOWNLOAD_FAIELD           | 继续下载失败                   |
+| 55028  | DSP_RETRY_DOWNLOAD_FAIELD            | 重试下载失败                   |
+| 55029  | DSP_CANCEL_TASK_FAILED               | 取消任务失败                   |
+| 55030  | DSP_NODE_REGISTER_FAILED             | 节点注册失败                   |
+| 55031  | DSP_NODE_UNREGISTER_FAILED           | 节点注销失败                   |
+| 55032  | DSP_NODE_UPDATE_FAILED               | 节点更新失败                   |
+| 55033  | DSP_NODE_WITHDRAW_FAILED             | 节点提现失败                   |
+| 55034  | DSP_NODE_QUERY_FAILED                | 节点查询失败                   |
+| 55040  | DSP_URL_REGISTER_FAILED              | URL注册失败                    |
+| 55041  | DSP_URL_BIND_FAILED                  | URL绑定失败                    |
+| 55050  | DSP_DNS_REGISTER_FAILED              | DNS节点注册失败                |
+| 55051  | DSP_DNS_UNREGISTER_FAILED            | DNS节点注销失败                |
+| 55052  | DSP_DNS_UPDATE_FAILED                | DNS节点更新失败                |
+| 55053  | DSP_DNS_WITHDRAW_FAILED              | DNS节点提现失败                |
+| 55054  | DSP_DNS_QUIT_FAILED                  | DNS节点退出失败                |
+| 55055  | DSP_DNS_ADDPOS_FAILED                | DNS节点添加抵押失败            |
+| 55056  | DSP_DNS_REDUCEPOS_FAILED             | DNS节点减少抵押失败            |
+| 55057  | DSP_DNS_GET_NODE_BY_ADDR             | 查询DNS节点失败                |
+| 55058  | DSP_DNS_QUERY_INFOS_FAILED           | 查询所有DNS节点信息失败        |
+| 55059  | DSP_DNS_QUERY_INFO_FAILED            | 查询单个DNS节点信息失败        |
+| 55060  | DSP_DNS_QUERY_ALLINFOS_FAILED        | 查询所有DNS节点信息失败        |
+| 55061  | DSP_DNS_GET_EXTERNALIP_FAILED        | 查询DNS节点获取IP信息失败      |
+| 55062  | DSP_USER_SPACE_PERIOD_NOT_ENOUGH     | 用户空间剩余时间不够           |
+| 55063  | DSP_CUSTOM_EXPIRED_NOT_ENOUGH        | 上传设置的存储时间不够         |
+| 55100  | DSP_FILE_INFO_NOT_FOUND              | 链上查不到文件信息             |
+| 55101  | DSP_FILE_NOT_EXISTS                  | wenj                           |
+| 55102  | DSP_FILE_DECRYPTED_WRONG_PWD         | 解密密码错误                   |
+| 56000  | DSP_CHANNEL_INTERNAL_ERROR           | 通道内部错误                   |
+| 56001  | DSP_CHANNEL_OPEN_FAILED              | 开启通道失败                   |
+| 56002  | DSP_CHANNEL_CLOSE_FAILED             | 关闭通道失败                   |
+| 56003  | DSP_CHANNEL_QUERY_AVA_BALANCE_FAILED | 查询通道可用余额失败           |
+| 56004  | DSP_CHANNEL_DEPOSIT_FAILED           | 通道充值失败                   |
+| 56005  | DSP_CHANNEL_WITHDRAW_FAILED          | 通道提现失败                   |
+| 56006  | DSP_CHANNEL_WITHDRAW_OVERFLOW        | 通道提现金额错误               |
+| 56007  | DSP_CHANNEL_GET_ALL_FAILED           | 获取所有通道失败               |
+| 56008  | DSP_CHANNEL_MEDIATRANSFER_FAILED     | 路由支付失败                   |
+| 56009  | DSP_CHANNEL_CO_SETTLE_FAILED         | 合作关闭失败                   |
+| 56010  | DSP_CHANNEL_INIT_NOT_FINISH          | channel实例化未完成            |
+| 56011  | DSP_CHANNEL_EXIST                    | 通道已存在                     |
+| 56012  | DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST   | 没有连接DNS节点，无法下载      |
+| 56013  | DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH   | DNS节点余额不足，无法下载      |
+| 56014  | DSP_CHANNEL_WITHDRAW_WRONG_AMOUNT    | 通道提现金额有误               |
+| 56015  | DSP_CHANNEL_SYNCING                  | Channel正在同步区块            |
+| 56016  | DSP_CHANNEL_OPEN_TO_NO_DNS                  | 禁止向非DNS账号开通道            |
+| 58000  | DSP_TASK_NOT_EXIST                   | 操作的任务不存在               |
+| 59000  | DB_FIND_SHARE_RECORDS_FAILED         | 数据库查询分享收益失败         |
+| 59001  | DB_SUM_SHARE_PROFIT_FAILED           | 数据库统计分享收益失败         |
+| 59002  | DB_FIND_USER_SPACE_RECORD_FAILED     | 数据库查询调整空间记录失败     |
+| 59003  | DB_ADD_USER_SPACE_RECORD_FAILED      | 数据库添加调整空间记录失败     |
+| 59004  | DB_GET_FILEINFO_FAILED               | 获取文件信息失败               |
+| 59100  | NET_RECONNECT_PEER_FAILED            | 重连节点失败                   |
+| 59101  | NET_PROXY_DISCONNECTED            |  PROXY断开连接                  |
+
+
+
+
+
+### dsp-go-sdk-错误码
+
+| 错误码 | 内容                                | 含义                                |
+| ------ | ----------------------------------- | ----------------------------------- |
+| 40000  | INVALID_PARAMS                      | 参数不对                            |
+| 40001  | INTERNAL_ERROR                      | 内部错误                            |
+| 40002  | INVALID_ADDRESS                      | 内部错误                            |
+| 40003  | CLOSE_DB_ERROR                      | 内部错误                            |
+| 50000  | NEW_TASK_FAILED                     | 创建任务失败                        |
+| 50001  | PREPARE_UPLOAD_ERROR                | 上传前数据处理异常                  |
+| 50002  | TASK_INTERNAL_ERROR                 | 任务异常                            |
+| 50003  | UPLOAD_TASK_EXIST                   | 上传任务已存在                      |
+| 50004  | SHARDING_FAIELD                     | 分片失败                            |
+| 50005  | FILE_HAS_UPLOADED                   | 文件已经上传过                      |
+| 50006  | GET_STORAGE_NODES_FAILED            | 获取存储节点失败                    |
+| 50007  | ONLINE_NODES_NOT_ENOUGH             | 全网的存储节点数目不足              |
+| 50008  | PAY_FOR_STORE_FILE_FAILED           | 文件上链支付失败                    |
+| 50009  | SET_FILEINFO_DB_ERROR               | 文件数据库保存失败                  |
+| 50010  | ADD_WHITELIST_ERROR                 | 添加白名单失败                      |
+| 50011  | GET_PDP_PARAMS_ERROR                | 获取PDP证明参数失败                 |
+| 50012  | GET_ALL_BLOCK_ERROR                 | 获取文件块数据异常                  |
+| 50013  | SEARCH_RECEIVERS_FAILED             | 寻找存储节点失败                    |
+| 50014  | RECEIVERS_NOT_ENOUGH                | 在线存储节点数目不足                |
+| 50015  | RECEIVERS_REJECTED                  | 存储节点拒绝响应                    |
+| 50016  | TASK_WAIT_TIMEOUT                   | 任务等待超时                        |
+| 50017  | FILE_UPLOADED_CHECK_PDP_FAILED      | 文件已上传，存储节点提交PDP证明失败 |
+| 50018  | GET_SESSION_ID_FAILED               | 获取SessionID失败                   |
+| 50019  | FILE_UNIT_PRICE_ERROR               | 文件下载价格异常                    |
+| 50020  | TOO_MANY_TASKS                      | 任务已达上限                        |
+| 50021  | FILE_NOT_FOUND_FROM_CHAIN           | 文件信息链上不存在                  |
+| 50022  | DOWNLOAD_REFUSED                    | 下载被拒绝                          |
+| 50023  | CHAIN_ERROR                         | 主链请求异常                        |
+| 50024  | TASK_PAUSE_ERROR                    | 任务暂停失败                        |
+| 50025  | GET_FILEINFO_FROM_DB_ERROR          | 从数据库获取文件信息失败            |
+| 50026  | DOWNLOAD_FILEHASH_NOT_FOUND         | 文件Hash未找到                      |
+| 50027  | NO_CONNECTED_DNS                    | 没有已连接的DNS                     |
+| 50028  | NO_DOWNLOAD_SEED                    | 没有可下载的数据源                  |
+| 50029  | GET_DOWNLOAD_INFO_FAILED_FROM_PEERS | 从下载节点获取信息失败              |
+| 50030  | PREPARE_CHANNEL_ERROR               | 下载前准备Channel失败               |
+| 50031  | FILEINFO_NOT_EXIST                  | 文件信息不存在                      |
+| 50032  | PAY_UNPAID_BLOCK_FAILED             | 支付未支付的文件块失败              |
+| 50033  | CREATE_DOWNLOAD_FILE_FAILED         | 创建下载文件失败                    |
+| 50034  | GET_UNDOWNLOAD_BLOCK_FAILED         | 获取未下载的文件块失败              |
+| 50035  | DOWNLOAD_BLOCK_FAILED               | 下载文件块失败                      |
+| 50036  | GET_FILE_STATE_ERROR                | 获取文件信息失败                    |
+| 50037  | WRITE_FILE_DATA_FAILED              | 往文件写数据失败                    |
+| 50038  | FS_PUT_BLOCK_FAILED                 | 往FS存文件块失败                    |
+| 50039  | ADD_GET_BLOCK_REQUEST_FAILED        | 增加请求文件块的任务失败            |
+| 50040  | DECRYPT_FILE_FAILED                 | 解密失败                            |
+| 50041  | RENAME_FILED_FAILED                 | 文件重命名失败                      |
+| 50042  | DOWNLOAD_FILE_TIMEOUT               | 下载文件超时                        |
+| 50043  | DOWNLOAD_FILE_RESUSED               | 下载文件被拒绝                      |
+| 50044  | UNITPRICE_ERROR                     | 获取文件下载单价失败                |
+| 50045  | DOWNLOAD_TASK_EXIST                 | 下载任务已存在                      |
+| 50046  | DECRYPT_WRONG_PASSWORD              | 解密密码错误                        |
+| 50047  | DELETE_FILE_HASHES_EMPTY            | 删除的文件Hash为空                  |
+| 50048  | NO_FILE_NEED_DELETED                | 没有文件需要删除                    |
+| 50049  | PDP_PRIVKEY_NOT_FOUND           | 没有权限删除文件                    |
+| 50050  | GET_SIMPLE_CHECKSUM_ERROR           | 获取文件校验和失败                    |
+| 50051  | WRONG_TASK_TYPE           | 任务状态失败                    |
+| 50052  | FILE_IS_EXPIRED           | 文件过期了                    |
+| 50053  | BLOCK_HAS_SENT           | 数据块已发送                    |
+| 50054  | REMOTE_PEER_DELETE_FILE           | 远端节点已经删除了文件                    |
+| 50055  | NO_BLOCK_TO_DOWNLOAD           | 没有文件块去下载                    |
+| 50056  | PAY_BLOCK_TO_SELF           | 禁止自己支付给自己                    |
+| 50057  | TASK_NOT_EXIST           | 任务已存在                    |
+| 50058  | NO_PRIVILEGE_TO_DOWNLOAD           | 没有权限下载文件                    |
+| 50059  | CHECK_FILE_FAILED           | 检查文件失败                    |
+
+
+
+
+
+### 传输过程的状态码
+
+| 状态码 | 内容                              | 含义                                |
+| ------ | --------------------------------- | ----------------------------------- |
+| 0      | None                              | 无                                  |
+| 1      | TaskPause                         | 任务暂停                            |
+| 2      | TaskDoing                         | 任务继续                            |
+| 3      | TaskUploadFileMakeSlice           | 开始分片                            |
+| 4      | TaskUploadFileMakeSliceDone       | 分片完成                            |
+| 5      | TaskUploadFilePaying              | 支付上链                            |
+| 6      | TaskUploadFilePayingDone          | 支付上链完成                        |
+| 7      | TaskUploadFileCommitWhitelist     | 提交白名单信息                      |
+| 8      | TaskUploadFileCommitWhitelistDone | 提交白名单信息完成                  |
+| 9      | TaskUploadFileFindReceivers       | 寻找存储节点                        |
+| 10     | TaskUploadFileFindReceiversDone   | 寻找存储节点完成                    |
+| 11     | TaskUploadFileGeneratePDPData     | 生成PDP证明数据                     |
+| 12     | TaskUploadFileTransferBlocks      | 开始传输文件块数据                  |
+| 13     | TaskUploadFileTransferBlocksDone  | 传输文件块数据完成                  |
+| 14     | TaskUploadFileWaitForPDPProve     | 等待存储节点提交PDP证明             |
+| 15     | TaskUploadFileWaitForPDPProveDone | 存储节点提交PDP证明完成             |
+| 16     | TaskUploadFileRegisterDNS         | 注册信息到DNS节点                   |
+| 17     | TaskUploadFileRegisterDNSDone     | 注册信息到DNS节点完成               |
+| 18     | TaskDownloadFileStart             | 开始下载文件                        |
+| 19     | TaskDownloadSearchPeers           | 寻找可供下载的节点                  |
+| 20     | TaskDownloadFileDownloading       | 文件下载中                          |
+| 21     | TaskDownloadRequestBlocks         | 下载数据块                          |
+| 22     | TaskDownloadReceiveBlocks         | 接收到数据块                        |
+| 23     | TaskDownloadPayForBlocks          | 为数据块支付下载费用                |
+| 24     | TaskDownloadPayForBlocksDone      | 为数据块支付下载费用完成            |
+| 25     | TaskDownloadFileMakeSeed          | 文件下载完成，向DNS节点提交分享信息 |
+| 26     | TaskDownloadPayForBlocksFailed          | 为数据块支付失败 |
+| 27     | TaskDownloadCheckingFile          | 检查文件完整性中 |
+| 28     | TaskDownloadCheckingFileFailed          | 检查文件失败 |
+| 29     | TaskDownloadCheckingFileDone          | 检查文件完成 |

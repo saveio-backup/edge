@@ -291,16 +291,9 @@ func (this *Endpoint) OpenPaymentChannel(partnerAddr string, amount uint64) (cha
 	if err != nil {
 		return 0, &DspErr{Code: DSP_CHANNEL_OPEN_FAILED, Error: err}
 	}
-	var isDNS bool
-	if this.Dsp.IsDnsOnline(partnerAddr) {
-		isDNS = true
-		this.Dsp.UpdateDNS(partnerAddr, this.Dsp.GetOnlineDNSHostAddr(partnerAddr))
-	} else {
-		partnerAddress, _ := chainCom.AddressFromBase58(partnerAddr)
-		info, _ := this.Dsp.GetDnsNodeByAddr(partnerAddress)
-		isDNS = (info != nil)
-	}
-	this.Dsp.SetChannelIsDNS(partnerAddr, isDNS)
+	hostAddr, _ := this.Dsp.GetExternalIP(partnerAddr)
+	this.Dsp.UpdateDNS(partnerAddr, hostAddr)
+	this.Dsp.SetChannelIsDNS(partnerAddr, true)
 	return id, nil
 }
 
