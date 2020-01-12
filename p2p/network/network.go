@@ -957,10 +957,10 @@ func (this *Network) IsPeerNetQualityBad(addr string) bool {
 		return false
 	}
 	log.Debugf("peer failed %v, totalFailed %v, peer cnt %v", peerFailed, totalFailed, peerCnt)
-	if peerFailed.Dial >= totalFailed.Dial/peerCnt ||
-		peerFailed.Send >= totalFailed.Send/peerCnt ||
-		peerFailed.Disconnect >= totalFailed.Disconnect/peerCnt ||
-		peerFailed.Recv >= totalFailed.Recv/peerCnt {
+	if (peerFailed.Dial > 0 && peerFailed.Dial >= totalFailed.Dial/peerCnt) ||
+		(peerFailed.Send > 0 && peerFailed.Send >= totalFailed.Send/peerCnt) ||
+		(peerFailed.Disconnect > 0 && peerFailed.Disconnect >= totalFailed.Disconnect/peerCnt) ||
+		(peerFailed.Recv > 0 && peerFailed.Recv >= totalFailed.Recv/peerCnt) {
 		return true
 	}
 	return false
