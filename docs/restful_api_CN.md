@@ -225,3 +225,5 @@
 | 27     | TaskDownloadCheckingFile          | 检查文件完整性中 |
 | 28     | TaskDownloadCheckingFileFailed          | 检查文件失败 |
 | 29     | TaskDownloadCheckingFileDone          | 检查文件完成 |
+| 30     | TaskWaitForBlockConfirmed          | 等待区块确认 |
+| 31     | TaskWaitForBlockConfirmedDone          | 等待区块确认完成 |
