@@ -170,6 +170,7 @@ func (this *Network) Start(protocol, addr, port string, opts ...NetworkOption) e
 		log.Error("[P2pNetwork] Start builder.Build error: ", err.Error())
 		return err
 	}
+	this.P2p.DisableCompress()
 	once.Do(func() {
 		for k, v := range msg_opcode.OpCodes {
 			err := opcode.RegisterMessageType(k, v)

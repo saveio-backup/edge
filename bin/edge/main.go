@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime"
+	"runtime/pprof"
 	"strconv"
 	"syscall"
 	"time"
@@ -49,6 +50,7 @@ func initAPP() *cli.App {
 		flags.ConfigFlag,
 		flags.LaunchManualFlag,
 		flags.WalletPasswordFlag,
+		flags.ProfileFlag,
 	}
 	app.Before = func(context *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())
@@ -84,7 +86,9 @@ func dspInit(ctx *cli.Context) {
 	config.SetDspConfig(ctx)
 	initLog(ctx)
 	log.Debugf("set dsp config, config %v", config.Parameters)
-
+	if ctx.Bool(flags.GetFlagName(flags.ProfileFlag)) {
+		go dumpMemory()
+	}
 	eventActorServer, _ := server.NewEventActorServer()
 	client.SetEventPid(eventActorServer.GetLocalPID())
 
@@ -218,4 +222,22 @@ func initLocalRpc() error {
 
 	log.Infof("Local rpc init success")
 	return nil
+}
+
+func dumpMemory() {
+	os.MkdirAll(filepath.Join(filepath.Base("."), "profile"), 0755)
+	filename := fmt.Sprintf("./profile/CPU.prof.%d", time.Now().Unix())
+	f, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0666)
+	if err != nil {
+		log.Tracef("Heap Profile generated FAILED")
+		log.Fatal(err)
+	}
+	log.Info("Heap Profile %s generated", filename)
+	pprof.StartCPUProfile(f)
+	defer func() {
+		log.Infof("stop cpu profile")
+		pprof.StopCPUProfile()
+		f.Close()
+	}()
+	waitToExit()
 }

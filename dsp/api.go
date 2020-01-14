@@ -112,6 +112,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		FsFileRoot:           config.FsFileRootPath(),
 		FsType:               dspCfg.FSType(config.Parameters.FsConfig.FsType),
 		FsGcPeriod:           config.Parameters.FsConfig.FsGCPeriod,
+		FsMaxStorage:         config.Parameters.FsConfig.FsMaxStorage,
 		EnableBackup:         config.Parameters.FsConfig.EnableBackup,
 		ChainRpcAddrs:        config.Parameters.BaseConfig.ChainRpcAddrs,
 		BlockConfirm:         config.Parameters.BaseConfig.BlockConfirm,

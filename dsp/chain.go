@@ -562,12 +562,12 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 	}
 
 	txs := make([]*TxResp, 0)
-	events, err := this.Dsp.GetSmartContractEventByEventId(usdt.USDT_CONTRACT_ADDRESS.ToBase58(), addr, cUsdt.EVENT_USDT_STATE_CHANGE)
+	events, err := this.Dsp.GetSmartContractEventByEventIdAndHeights(usdt.USDT_CONTRACT_ADDRESS.ToBase58(),
+		addr, cUsdt.EVENT_USDT_STATE_CHANGE, 1, height)
 	if err != nil {
 		return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
 	}
-	// TODO: fixed this
-	// tempMap := make(map[string]struct{}, 0)
+	log.Debugf("events len: %d", len(events))
 	hasSkip := uint64(0)
 	for i := len(events) - 1; i >= 0; i-- {
 		event := events[i]

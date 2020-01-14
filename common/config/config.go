@@ -82,6 +82,7 @@ type FsConfig struct {
 	FsFileRoot   string `json:"FsFileRoot"`
 	FsType       int    `json:"FsType"`
 	FsGCPeriod   string `json:"FsGCPeriod"`
+	FsMaxStorage string `json:"FsMaxStorage"`
 	EnableBackup bool   `json:"EnableBackup"`
 }
 

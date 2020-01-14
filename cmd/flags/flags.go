@@ -362,6 +362,10 @@ var (
 		Name:  "test",
 		Usage: "use in test case",
 	}
+	ProfileFlag = cli.BoolFlag{
+		Name:  "profile",
+		Usage: "profile with memory",
+	}
 )
 
 //GetFlagName deal with short flag, and return the flag name whether flag name have short name
