@@ -37,6 +37,7 @@ type MsgWrap struct {
 	state     MsgState
 	needReply bool
 	reply     chan MsgReply
+	createdAt uint64
 }
 
 type FailedCount struct {
@@ -311,6 +312,7 @@ func (p *Peer) addMsg(msgId string, msg *MsgWrap) error {
 	if _, ok := p.retry[msgId]; ok {
 		return fmt.Errorf("add a duplicated msg %s", msgId)
 	}
+	msg.createdAt = utils.GetMilliSecTimestamp()
 	p.mq.PushBack(msg)
 	log.Debugf("add msg %v, need reply %t, len %d", msgId, msg.needReply, p.mq.Len())
 	p.retry[msgId] = 0
@@ -339,6 +341,10 @@ func (p *Peer) getMsgToRetry() *MsgWrap {
 		// msg is sending
 		if _, ok := p.client.SyncWaitAck.Load(msgWrap.id); ok {
 			log.Debugf("msg %s already in component retry queue", msgWrap.id)
+			continue
+		}
+		if utils.GetMilliSecTimestamp() < msgWrap.createdAt+(common.ACK_MSG_CHECK_INTERVAL*1000) {
+			log.Debugf("msg %s just send, delay retry it after %ds", msgWrap.id, common.ACK_MSG_CHECK_INTERVAL)
 			continue
 		}
 		// msg is waiting

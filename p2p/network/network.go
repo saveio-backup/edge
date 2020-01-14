@@ -372,8 +372,8 @@ func (this *Network) WaitForConnected(addr string, timeout time.Duration) error 
 		secs = 1
 	}
 	for i := 0; i < secs; i++ {
-		state, _ := this.GetPeerStateByAddress(addr)
-		log.Debugf("GetPeerStateByAddress state addr:%s, :%d", addr, state)
+		state, err := this.GetPeerStateByAddress(addr)
+		log.Debugf("GetPeerStateByAddress state addr:%s, :%d, err %v", addr, state, err)
 		if state == network.PEER_REACHABLE {
 			return nil
 		}

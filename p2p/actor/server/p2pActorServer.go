@@ -104,7 +104,7 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 		}()
 	case *chAct.SendReq:
 		go func() {
-			msg.Ret.Err = this.channelNet.Send(msg.Data, "", msg.Address)
+			msg.Ret.Err = this.channelNet.SendOnce(msg.Data, msg.Address)
 			msg.Ret.Done <- true
 		}()
 	case *dspAct.ConnectReq:
@@ -112,11 +112,6 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 			err := this.dspNet.ConnectAndWait(msg.Address)
 			msg.Response <- &dspAct.P2pResp{Error: err}
 		}()
-	// case *dspAct.ChannelWaitForConnectedReq:
-	// 	go func() {
-	// 		err := this.channelNet.WaitForConnected(msg.Address, msg.Timeout)
-	// 		msg.Response <- &dspAct.P2pResp{Error: err}
-	// 	}()
 	case *dspAct.WaitForConnectedReq:
 		go func() {
 			err := this.dspNet.WaitForConnected(msg.Address, msg.Timeout)
