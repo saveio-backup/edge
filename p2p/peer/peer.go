@@ -169,7 +169,7 @@ func (p *Peer) Send(msgId string, msg proto.Message) error {
 	go p.retryMsg()
 	if err := p.client.AsyncSendAndWaitAck(context.Background(), msg, msgId); err != nil {
 		p.failedCount.Send++
-		return err
+		log.Errorf("async send msg %s err %s", msgId, err)
 	}
 	log.Debugf("wait for msg reply of %s", msgId)
 	reply := <-ch
@@ -204,7 +204,7 @@ func (p *Peer) SendAndWaitReply(msgId string, msg proto.Message) (proto.Message,
 	go p.retryMsg()
 	if err := p.client.AsyncSendAndWaitAck(context.Background(), msg, msgId); err != nil {
 		p.failedCount.Send++
-		return nil, err
+		log.Errorf("async send msg %s err %s", msgId, err)
 	}
 	reply := <-ch
 	log.Debugf("receive msg reply of %d from %s", msgId, p.addr)
