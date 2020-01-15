@@ -47,6 +47,7 @@ type Network struct {
 	peers              *sync.Map                       // peer clients
 	lock               *sync.RWMutex                   // lock for sync control
 	addrForHealthCheck *sync.Map                       // address for keep health check
+	asyncRecvDisabled  bool                            // disabled async receive msg
 }
 
 func NewP2P() *Network {
@@ -171,6 +172,9 @@ func (this *Network) Start(protocol, addr, port string, opts ...NetworkOption) e
 		return err
 	}
 	this.P2p.DisableCompress()
+	if this.asyncRecvDisabled {
+		this.P2p.DisableMsgGoroutine()
+	}
 	once.Do(func() {
 		for k, v := range msg_opcode.OpCodes {
 			err := opcode.RegisterMessageType(k, v)

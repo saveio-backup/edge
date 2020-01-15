@@ -149,7 +149,7 @@ func (p *Peer) IsMsgReceived(msgId string) bool {
 func (p *Peer) Send(msgId string, msg proto.Message) error {
 	defer func() {
 		if e := recover(); e != nil {
-			log.Errorf("recover err %v", e)
+			log.Errorf("send panic recover err %v", e)
 		}
 	}()
 	if p == nil {
@@ -184,7 +184,7 @@ func (p *Peer) Send(msgId string, msg proto.Message) error {
 func (p *Peer) SendAndWaitReply(msgId string, msg proto.Message) (proto.Message, error) {
 	defer func() {
 		if e := recover(); e != nil {
-			log.Errorf("recover err %v", e)
+			log.Errorf("send and wait reply recover err %v", e)
 		}
 	}()
 	if p == nil {
@@ -242,6 +242,11 @@ func (p *Peer) Receive(origId string, replyMsg proto.Message) {
 }
 
 func (p *Peer) retryMsg() {
+	defer func() {
+		if e := recover(); e != nil {
+			log.Errorf("retry msg panic recover err %v", e)
+		}
+	}()
 	if p.serviceRetrying() {
 		return
 	}

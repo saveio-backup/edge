@@ -38,3 +38,9 @@ func WithMsgHandler(handler func(*network.ComponentContext)) NetworkOption {
 		n.handler = handler
 	})
 }
+
+func WithAsyncRecvMsgDisabled(asyncRecvMsgDisabled bool) NetworkOption {
+	return NetworkFunc(func(n *Network) {
+		n.asyncRecvDisabled = asyncRecvMsgDisabled
+	})
+}

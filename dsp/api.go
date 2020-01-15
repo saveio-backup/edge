@@ -302,7 +302,10 @@ func (this *Endpoint) startChannelP2P(hostAddr *common.HostAddr, acc *account.Ac
 	bPub := keypair.SerializePublicKey(acc.PubKey())
 	req.SetChannelPid(this.Dsp.GetChannelPid())
 	f := utils.TimeoutFunc(func() error {
-		opts := []network.NetworkOption{network.WithKeys(utils.NewNetworkEd25519KeyPair(bPub, []byte("channel")))}
+		opts := []network.NetworkOption{
+			network.WithKeys(utils.NewNetworkEd25519KeyPair(bPub, []byte("channel"))),
+			network.WithAsyncRecvMsgDisabled(true),
+		}
 		if len(config.Parameters.BaseConfig.IntranetIP) > 0 {
 			opts = append(opts, network.WithIntranetIP(config.Parameters.BaseConfig.IntranetIP))
 		}
