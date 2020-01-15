@@ -85,6 +85,7 @@
 | 55061  | DSP_DNS_GET_EXTERNALIP_FAILED        | 查询DNS节点获取IP信息失败      |
 | 55062  | DSP_USER_SPACE_PERIOD_NOT_ENOUGH     | 用户空间剩余时间不够           |
 | 55063  | DSP_CUSTOM_EXPIRED_NOT_ENOUGH        | 上传设置的存储时间不够         |
+| 55064  | DSP_NO_PRIVILEGE_TO_DOWNLOAD        | 没有权限下载         |
 | 55100  | DSP_FILE_INFO_NOT_FOUND              | 链上查不到文件信息             |
 | 55101  | DSP_FILE_NOT_EXISTS                  | wenj                           |
 | 55102  | DSP_FILE_DECRYPTED_WRONG_PWD         | 解密密码错误                   |
@@ -113,6 +114,7 @@
 | 59004  | DB_GET_FILEINFO_FAILED               | 获取文件信息失败               |
 | 59100  | NET_RECONNECT_PEER_FAILED            | 重连节点失败                   |
 | 59101  | NET_PROXY_DISCONNECTED            |  PROXY断开连接                  |
+
 
 
 

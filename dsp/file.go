@@ -778,6 +778,12 @@ func (this *Endpoint) DownloadFile(fileHash, url, link, password string, max uin
 		if len(hash) == 0 {
 			return &DspErr{Code: INTERNAL_ERROR, Error: fmt.Errorf("file hash not found for url %s", url)}
 		}
+		info, _ := this.Dsp.GetFileInfo(hash)
+		if info != nil && !this.Dsp.CheckFilePrivilege(info, hash, this.Dsp.WalletAddress()) {
+			return &DspErr{Code: DSP_NO_PRIVILEGE_TO_DOWNLOAD,
+				Error: fmt.Errorf("user %s has no privilege to download this file", this.Dsp.WalletAddress())}
+		}
+
 		go func() {
 			err := this.Dsp.DownloadFileByUrl(url, dspCom.ASSET_USDT, true, password, false, setFileName, int(max))
 			if err != nil {
@@ -788,6 +794,11 @@ func (this *Endpoint) DownloadFile(fileHash, url, link, password string, max uin
 	}
 
 	if len(fileHash) > 0 {
+		info, _ := this.Dsp.GetFileInfo(fileHash)
+		if info != nil && !this.Dsp.CheckFilePrivilege(info, fileHash, this.Dsp.WalletAddress()) {
+			return &DspErr{Code: DSP_NO_PRIVILEGE_TO_DOWNLOAD,
+				Error: fmt.Errorf("user %s has no privilege to download this file", this.Dsp.WalletAddress())}
+		}
 		go func() {
 			err := this.Dsp.DownloadFileByHash(fileHash, dspCom.ASSET_USDT, true, password, false, setFileName, int(max))
 			if err != nil {
@@ -801,6 +812,11 @@ func (this *Endpoint) DownloadFile(fileHash, url, link, password string, max uin
 		hash := dspUtils.GetFileHashFromLink(link)
 		if len(hash) == 0 {
 			return &DspErr{Code: INTERNAL_ERROR, Error: fmt.Errorf("file hash not found for url %s", hash)}
+		}
+		info, _ := this.Dsp.GetFileInfo(hash)
+		if info != nil && !this.Dsp.CheckFilePrivilege(info, hash, this.Dsp.WalletAddress()) {
+			return &DspErr{Code: DSP_NO_PRIVILEGE_TO_DOWNLOAD,
+				Error: fmt.Errorf("user %s has no privilege to download this file", this.Dsp.WalletAddress())}
 		}
 		go func() {
 			err := this.Dsp.DownloadFileByLink(link, dspCom.ASSET_USDT, true, password, false, setFileName, int(max))
@@ -1379,6 +1395,7 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uin
 	if err != nil {
 		return nil, &DspErr{Code: FS_GET_FILE_LIST_FAILED, Error: err}
 	}
+
 	log.Debugf("get file num %d", fileList.FileNum)
 	now, err := this.Dsp.GetCurrentBlockHeight()
 	if err != nil {
