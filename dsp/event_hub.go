@@ -64,6 +64,11 @@ func (this *Endpoint) notifyNewSmartContractEvent() {
 	if this.eventHub.lastNotifyHeight > currentHeight {
 		return
 	}
+	if currentHeight-this.eventHub.lastNotifyHeight > 100 {
+		this.eventHub.lastNotifyHeight = currentHeight
+		client.EventNotifyInvolvedSmartContract()
+		return
+	}
 
 	notify := false
 	for i := this.eventHub.lastNotifyHeight + 1; i <= currentHeight; i++ {
