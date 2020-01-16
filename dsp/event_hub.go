@@ -3,6 +3,7 @@ package dsp
 import (
 	"github.com/saveio/edge/common/config"
 	"github.com/saveio/edge/dsp/actor/client"
+	"github.com/saveio/themis-go-sdk/usdt"
 	"github.com/saveio/themis/common/log"
 )
 
@@ -69,24 +70,20 @@ func (this *Endpoint) notifyNewSmartContractEvent() {
 		client.EventNotifyInvolvedSmartContract()
 		return
 	}
-
-	notify := false
-	for i := this.eventHub.lastNotifyHeight + 1; i <= currentHeight; i++ {
-		event, err := this.GetAccountSmartContractEventByBlock(i)
-		if err != nil {
-			continue
-		}
-		if event == nil {
-			continue
-		}
-		notify = true
-		break
-	}
-	log.Debugf("notifyNewSmartContractEvent from %d-%d %t", this.eventHub.lastNotifyHeight, currentHeight, notify)
-	this.eventHub.lastNotifyHeight = currentHeight
-	if !notify {
+	if this.Dsp == nil {
 		return
 	}
+	log.Debugf("this.eventHub.lastNotifyHeight %d, current %d", this.eventHub.lastNotifyHeight, currentHeight)
+	events, err := this.Dsp.GetSmartContractEventByEventIdAndHeights(usdt.USDT_CONTRACT_ADDRESS.ToBase58(),
+		this.Dsp.WalletAddress(), 0, this.eventHub.lastNotifyHeight, currentHeight+1)
+	this.eventHub.lastNotifyHeight = currentHeight
+	if err != nil {
+		return
+	}
+	if len(events) == 0 {
+		return
+	}
+	log.Debugf("notifyNewSmartContractEvent from %d-%d", this.eventHub.lastNotifyHeight, currentHeight)
 	client.EventNotifyInvolvedSmartContract()
 }
 

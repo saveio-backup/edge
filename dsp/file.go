@@ -1035,6 +1035,15 @@ func (this *Endpoint) RegisterProgressCh() {
 				default:
 				}
 			}
+			if v.Result != nil {
+				switch v.Type {
+				case store.TaskTypeUpload:
+					go this.notifyUploadingTransferList()
+				case store.TaskTypeDownload:
+					go this.notifyDownloadingTransferList()
+				default:
+				}
+			}
 		case <-this.closeCh:
 			this.Dsp.CloseProgressChannel()
 			return
