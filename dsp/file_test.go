@@ -3,6 +3,7 @@ package dsp
 import (
 	"testing"
 
+	"github.com/saveio/dsp-go-sdk/dsp"
 	chainCom "github.com/saveio/themis/common"
 	fs "github.com/saveio/themis/smartcontract/service/native/savefs"
 )
@@ -32,4 +33,9 @@ func TestCapSlice(t *testing.T) {
 	whitelist := []string{"AcApvuXZTFVmyM8SA8UxG23oqFyYvf35mP"}
 	List := make([]string, 0, uint64(len(whitelist)))
 	List[0] = whitelist[0]
+}
+
+func TestGetUploadFiles(t *testing.T) {
+	endPoint := &Endpoint{}
+	endPoint.Dsp = &dsp.Dsp{}
 }

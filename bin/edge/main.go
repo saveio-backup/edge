@@ -86,9 +86,7 @@ func dspInit(ctx *cli.Context) {
 	config.SetDspConfig(ctx)
 	initLog(ctx)
 	log.Debugf("set dsp config, config %v", config.Parameters)
-	if ctx.Bool(flags.GetFlagName(flags.ProfileFlag)) {
-		go dumpMemory()
-	}
+
 	eventActorServer, _ := server.NewEventActorServer()
 	client.SetEventPid(eventActorServer.GetLocalPID())
 
@@ -97,7 +95,7 @@ func dspInit(ctx *cli.Context) {
 	initJsonRpc()
 
 	if launchManual {
-		waitToExit()
+		waitToExit(ctx)
 		return
 	}
 	endpoint, err := dsp.Init(config.WalletDatFilePath(), walletPwd)
@@ -115,7 +113,8 @@ func dspInit(ctx *cli.Context) {
 	} else {
 		log.Infof("current wallet is empty, please create one")
 	}
-	waitToExit()
+	waitToExit(ctx)
+
 }
 
 func initLog(ctx *cli.Context) {
@@ -185,7 +184,18 @@ func initJsonRpc() {
 	log.Info("JsonRpc init success")
 }
 
-func waitToExit() {
+func waitToExit(ctx *cli.Context) {
+	var f os.File
+	if ctx.Bool(flags.GetFlagName(flags.ProfileFlag)) {
+		os.MkdirAll(filepath.Join(filepath.Base("."), "profile"), 0755)
+		filename := fmt.Sprintf("./profile/CPU.prof.%d", time.Now().Unix())
+		f, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0666)
+		if err != nil {
+			os.Exit(1)
+		}
+		pprof.StartCPUProfile(f)
+	}
+
 	exit := make(chan bool, 0)
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
@@ -197,6 +207,10 @@ func waitToExit() {
 		}
 	}()
 	<-exit
+	if ctx.Bool(flags.GetFlagName(flags.ProfileFlag)) {
+		pprof.StopCPUProfile()
+		f.Close()
+	}
 }
 
 func initLocalRpc() error {
@@ -222,22 +236,4 @@ func initLocalRpc() error {
 
 	log.Infof("Local rpc init success")
 	return nil
-}
-
-func dumpMemory() {
-	os.MkdirAll(filepath.Join(filepath.Base("."), "profile"), 0755)
-	filename := fmt.Sprintf("./profile/CPU.prof.%d", time.Now().Unix())
-	f, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0666)
-	if err != nil {
-		log.Tracef("Heap Profile generated FAILED")
-		log.Fatal(err)
-	}
-	log.Info("Heap Profile %s generated", filename)
-	pprof.StartCPUProfile(f)
-	defer func() {
-		log.Infof("stop cpu profile")
-		pprof.StopCPUProfile()
-		f.Close()
-	}()
-	waitToExit()
 }
