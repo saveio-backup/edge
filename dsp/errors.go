@@ -50,6 +50,7 @@ const (
 	FS_UPLOAD_INTERVAL_TOO_SMALL    = 54010
 	FS_UPLOAD_GET_FILESIZE_FAILED   = 54011
 	FS_UPLOAD_CALC_FEE_FAILED       = 54012
+	FS_DELETE_CALC_FEE_FAILED       = 54013
 
 	DSP_INIT_FAILED            = 55000
 	DSP_START_FAILED           = 55001
@@ -172,6 +173,7 @@ var ErrMaps = map[int64]error{
 	FS_UPLOAD_INTERVAL_TOO_SMALL:    errors.New("fs upload interval too small"),
 	FS_UPLOAD_GET_FILESIZE_FAILED:   errors.New("fs upload get file size failed"),
 	FS_UPLOAD_CALC_FEE_FAILED:       errors.New("fs upload calculate fee failed"),
+	FS_DELETE_CALC_FEE_FAILED:       errors.New("fs delete calculate fee failed"),
 
 	DSP_INIT_FAILED:                      errors.New("dsp init failed"),
 	DSP_START_FAILED:                     errors.New("dsp start failed"),

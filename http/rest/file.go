@@ -74,13 +74,17 @@ func DeleteUploadFile(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
+	gasLimit, ok := cmd["GasLimit"].(uint64)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
 	if checkErr := dsp.DspService.CheckPassword(password); checkErr != nil {
 		return ResponsePackWithErrMsg(checkErr.Code, checkErr.Error.Error())
 	}
-	ret, err := dsp.DspService.DeleteUploadFile(fileHash)
+	ret, err := dsp.DspService.DeleteUploadFile(fileHash, gasLimit)
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
@@ -98,6 +102,15 @@ func DeleteUploadFiles(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
+	gl, _ := cmd["GasLimit"].(string)
+	gasLimit := uint64(0)
+	if len(gl) > 0 {
+		var err error
+		gasLimit, err = strconv.ParseUint(gl, 10, 64)
+		if err != nil {
+			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, err.Error())
+		}
+	}
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
@@ -112,7 +125,25 @@ func DeleteUploadFiles(cmd map[string]interface{}) map[string]interface{} {
 	if checkErr := dsp.DspService.CheckPassword(password); checkErr != nil {
 		return ResponsePackWithErrMsg(checkErr.Code, checkErr.Error.Error())
 	}
-	ret, err := dsp.DspService.DeleteUploadFiles(fileHashes)
+	ret, err := dsp.DspService.DeleteUploadFiles(fileHashes, gasLimit)
+	if err != nil {
+		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
+	}
+	resp["Result"] = ret
+	return resp
+}
+
+func CalculateDeleteFilesFee(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	fileHashesStr, ok := cmd["FileHashes"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	if dsp.DspService == nil {
+		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
+	}
+	fileHashes := strings.Split(fileHashesStr, "::")
+	ret, err := dsp.DspService.CalculateDeleteFilesFee(fileHashes)
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
@@ -706,6 +737,10 @@ func CancelUploadFile(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
+	gasLimit, ok := cmd["GasLimit"].(uint64)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
 	if checkErr := dsp.DspService.CheckPassword(password); checkErr != nil {
 		return ResponsePackWithErrMsg(checkErr.Code, checkErr.Error.Error())
 	}
@@ -718,7 +753,7 @@ func CancelUploadFile(cmd map[string]interface{}) map[string]interface{} {
 		ids = append(ids, id)
 	}
 
-	ret := dsp.DspService.CancelUploadFile(ids)
+	ret := dsp.DspService.CancelUploadFile(ids, gasLimit)
 	resp["Result"] = ret
 	return resp
 }

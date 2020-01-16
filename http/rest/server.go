@@ -107,6 +107,7 @@ const (
 	DSP_FILE_UPLOAD_FEE                   = "/api/v1/dsp/file/uploadfee/:file"
 	DSP_FILE_DELETE                       = "/api/v1/dsp/file/delete"
 	DSP_FILES_DELETE                      = "/api/v1/dsp/files/delete"
+	DSP_FILES_DELETE_FEE                  = "/api/v1/dsp/files/deletefee"
 	DSP_FILE_DOWNLOAD                     = "/api/v1/dsp/file/download"
 	DSP_FILE_DOWNLOAD_PAUSE               = "/api/v1/dsp/file/download/pause"
 	DSP_FILE_DOWNLOAD_RESUME              = "/api/v1/dsp/file/download/resume"
@@ -263,6 +264,7 @@ func (this *restServer) registryMethod() {
 		DSP_FILE_UPLOAD_INFO:                  {name: "getuploadfileinfo", handler: GetUploadFileInfo},
 		DSP_FILE_PROVE_DETAIL:                 {name: "getuploadfileprovedetail", handler: GetUploadFileProveDetail},
 		DSP_FILE_PEER_COUNT:                   {name: "getfilepeercount", handler: GetPeerCountOfHash},
+		DSP_FILES_DELETE_FEE:                  {name: "deletefilesfee", handler: CalculateDeleteFilesFee},
 
 		GET_CHANNEL_INIT_PROGRESS: {name: "channelinitprogress", handler: GetChannelInitProgress},
 		GET_ALL_CHANNEL:           {name: "getallchannels", handler: GetAllChannels},
@@ -410,6 +412,8 @@ func (this *restServer) getPath(url string) string {
 		return DSP_GET_FILE_TRANSFERLIST
 	} else if strings.Contains(url, strings.TrimSuffix(DSP_FILE_UPLOAD_FEE, ":file")) {
 		return DSP_FILE_UPLOAD_FEE
+	} else if strings.Contains(url, DSP_FILES_DELETE_FEE) {
+		return DSP_FILES_DELETE_FEE
 	} else if strings.Contains(url, strings.TrimSuffix(DSP_FILE_DOWNLOAD_INFO, ":url")) {
 		return DSP_FILE_DOWNLOAD_INFO
 	} else if strings.Contains(url, strings.TrimSuffix(DSP_FILE_SHARE_INCOME, ":begin/:end/:offset/:limit")) {
@@ -545,6 +549,13 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 	case DSP_FILE_UPLOAD_FEE:
 		req["Path"], req["Duration"], req["Interval"], req["CopyNum"], req["WhiteList"] = getParam(r, "file"), r.FormValue("duration"), r.FormValue("interval"), r.FormValue("copyNum"), r.FormValue("whitelistCount")
 		req["StoreType"] = r.FormValue("storeType")
+	case DSP_FILES_DELETE_FEE:
+		hashList := r.URL.Query()["hash"]
+		hashesStr := ""
+		for _, hash := range hashList {
+			hashesStr += hash + "::"
+		}
+		req["FileHashes"] = hashesStr
 	case DSP_FILE_DOWNLOAD_INFO:
 		req["Url"] = getParam(r, "url")
 	case DSP_FILE_SHARE_INCOME:
@@ -609,6 +620,7 @@ func (this *restServer) initGetHandler() {
 
 			var req = make(map[string]interface{})
 			var resp map[string]interface{}
+			log.Debugf("initGetHandler url: %s", r.URL.Path)
 
 			if r.URL.Path == GOROUTINE_LIST {
 				stack := debug.Stack()

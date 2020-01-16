@@ -501,7 +501,7 @@ func (this *Endpoint) RetryUploadFile(taskIds []string) *FileTaskResp {
 	return resp
 }
 
-func (this *Endpoint) CancelUploadFile(taskIds []string) *FileTaskResp {
+func (this *Endpoint) CancelUploadFile(taskIds []string, gasLimit uint64) *FileTaskResp {
 	defer func() {
 		go this.notifyUploadingTransferList()
 	}()
@@ -532,7 +532,7 @@ func (this *Endpoint) CancelUploadFile(taskIds []string) *FileTaskResp {
 	}
 	var deleteTxErr error
 	if len(fileHashes) > 0 {
-		_, _, deleteTxErr = this.Dsp.DeleteUploadFilesFromChain(fileHashes)
+		_, _, deleteTxErr = this.Dsp.DeleteUploadFilesFromChain(fileHashes, gasLimit)
 	}
 
 	args := make([][]interface{}, 0, len(taskIds))
@@ -583,7 +583,7 @@ func (this *Endpoint) CancelUploadFile(taskIds []string) *FileTaskResp {
 			return
 		}
 
-		deleteResp, err := this.Dsp.CancelUpload(id)
+		deleteResp, err := this.Dsp.CancelUpload(id, gasLimit)
 		if err != nil {
 			taskResp.Code = DSP_CANCEL_TASK_FAILED
 			taskResp.Error = err.Error()
@@ -609,7 +609,7 @@ func (this *Endpoint) CancelUploadFile(taskIds []string) *FileTaskResp {
 	return resp
 }
 
-func (this *Endpoint) DeleteUploadFile(fileHash string) (*DeleteFileResp, *DspErr) {
+func (this *Endpoint) DeleteUploadFile(fileHash string, gasLimit uint64) (*DeleteFileResp, *DspErr) {
 	fi, err := this.Dsp.GetFileInfo(fileHash)
 	if fi == nil && this.Dsp.IsFileInfoDeleted(err) {
 		log.Debugf("file info is deleted: %v, %s", fi, err)
@@ -618,7 +618,7 @@ func (this *Endpoint) DeleteUploadFile(fileHash string) (*DeleteFileResp, *DspEr
 	if fi != nil && err == nil && fi.FileOwner.ToBase58() == this.Dsp.WalletAddress() {
 		taskId := this.Dsp.GetUploadTaskId(fileHash)
 		if len(taskId) == 0 {
-			tx, _, deletErr := this.Dsp.DeleteUploadFilesFromChain([]string{fileHash})
+			tx, _, deletErr := this.Dsp.DeleteUploadFilesFromChain([]string{fileHash}, gasLimit)
 			if deletErr != nil {
 				return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: deletErr}
 			}
@@ -627,7 +627,7 @@ func (this *Endpoint) DeleteUploadFile(fileHash string) (*DeleteFileResp, *DspEr
 			resp.FileHash = fileHash
 			return resp, nil
 		}
-		result, err := this.Dsp.DeleteUploadedFileByIds([]string{taskId})
+		result, err := this.Dsp.DeleteUploadedFileByIds([]string{taskId}, gasLimit)
 		if err != nil {
 			log.Errorf("[Endpoint DeleteUploadFile] delete upload file failed, err %s", err)
 			return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: err}
@@ -655,7 +655,7 @@ func (this *Endpoint) DeleteDownloadFile(fileHash string) (*DeleteFileResp, *Dsp
 	return &DeleteFileResp{IsUploaded: false}, nil
 }
 
-func (this *Endpoint) DeleteUploadFiles(fileHashes []string) ([]*DeleteFileResp, *DspErr) {
+func (this *Endpoint) DeleteUploadFiles(fileHashes []string, gasLimit uint64) ([]*DeleteFileResp, *DspErr) {
 	taskIds := make([]string, 0, len(fileHashes))
 	for _, fileHash := range fileHashes {
 		taskId := this.Dsp.GetUploadTaskId(fileHash)
@@ -666,7 +666,7 @@ func (this *Endpoint) DeleteUploadFiles(fileHashes []string) ([]*DeleteFileResp,
 		taskIds = append(taskIds, taskId)
 	}
 	if len(taskIds) == 0 {
-		tx, _, serr := this.Dsp.DeleteUploadFilesFromChain(fileHashes)
+		tx, _, serr := this.Dsp.DeleteUploadFilesFromChain(fileHashes, gasLimit)
 		if serr != nil {
 			return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: ErrMaps[DSP_DELETE_FILE_FAILED]}
 		}
@@ -679,7 +679,7 @@ func (this *Endpoint) DeleteUploadFiles(fileHashes []string) ([]*DeleteFileResp,
 		}
 		return resps, nil
 	}
-	result, err := this.Dsp.DeleteUploadedFileByIds(taskIds)
+	result, err := this.Dsp.DeleteUploadedFileByIds(taskIds, gasLimit)
 	if err != nil {
 		return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: err}
 	}
@@ -696,6 +696,14 @@ func (this *Endpoint) DeleteUploadFiles(fileHashes []string) ([]*DeleteFileResp,
 		resps = append(resps, resp)
 	}
 	return resps, nil
+}
+
+func (this *Endpoint) CalculateDeleteFilesFee(fileHashes []string) (uint64, *DspErr) {
+	preExecFee, err := this.Dsp.GetDeleteFilesStorageFee(fileHashes)
+	if err != nil {
+		return 0, &DspErr{Code: FS_DELETE_CALC_FEE_FAILED, Error: err}
+	}
+	return preExecFee, nil
 }
 
 func (this *Endpoint) GetFsConfig() (*FsContractSettingResp, *DspErr) {
