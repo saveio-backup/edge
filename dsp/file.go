@@ -21,6 +21,7 @@ import (
 	"github.com/saveio/edge/common/config"
 	"github.com/saveio/edge/dsp/actor/client"
 	"github.com/saveio/edge/dsp/storage"
+	sdkcom "github.com/saveio/themis-go-sdk/common"
 	chainSdkFs "github.com/saveio/themis-go-sdk/fs"
 	"github.com/saveio/themis/cmd/utils"
 	chainCom "github.com/saveio/themis/common"
@@ -698,12 +699,12 @@ func (this *Endpoint) DeleteUploadFiles(fileHashes []string, gasLimit uint64) ([
 	return resps, nil
 }
 
-func (this *Endpoint) CalculateDeleteFilesFee(fileHashes []string) (uint64, *DspErr) {
-	preExecFee, err := this.Dsp.GetDeleteFilesStorageFee(fileHashes)
+func (this *Endpoint) CalculateDeleteFilesFee(fileHashes []string) (*dspCom.Gas, *DspErr) {
+	preExecFee, err := this.Dsp.GetDeleteFilesStorageFee(this.Account.Address, fileHashes)
 	if err != nil {
-		return 0, &DspErr{Code: FS_DELETE_CALC_FEE_FAILED, Error: err}
+		return &dspCom.Gas{GasPrice: sdkcom.GAS_PRICE, GasLimit: preExecFee}, &DspErr{Code: FS_DELETE_CALC_FEE_FAILED, Error: err}
 	}
-	return preExecFee, nil
+	return &dspCom.Gas{GasPrice: sdkcom.GAS_PRICE, GasLimit: preExecFee}, nil
 }
 
 func (this *Endpoint) GetFsConfig() (*FsContractSettingResp, *DspErr) {
@@ -1400,7 +1401,7 @@ func (this *Endpoint) RegisterShareNotificationCh() {
 }
 
 func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uint64, filterType UploadFileFilterType) ([]*FileResp, *DspErr) {
-	fileList, err := this.Dsp.GetFileList(this.Dsp.Address())
+	fileList, err := this.Dsp.GetFileList(this.Account.Address)
 	if err != nil {
 		return nil, &DspErr{Code: FS_GET_FILE_LIST_FAILED, Error: err}
 	}
@@ -1415,7 +1416,7 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uin
 	requestFileHashes := make([]string, 0)
 	for listIndex, hash := range fileList.List {
 		requestFileHashes = append(requestFileHashes, string(hash.Hash))
-		if len(requestFileHashes) < 20 && uint64(listIndex) != fileList.FileNum-1 {
+		if len(requestFileHashes) < 100 && uint64(listIndex) != fileList.FileNum-1 {
 			continue
 		}
 		fileInfoList, err := this.Dsp.GetFileInfos(requestFileHashes)

@@ -140,17 +140,26 @@ func DeleteUploadFiles(cmd map[string]interface{}) map[string]interface{} {
 
 func CalculateDeleteFilesFee(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
-	fileHashesStr, ok := cmd["FileHashes"].(string)
+	v, ok := cmd["FileHashes"].([]interface{})
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
-	fileHashes := strings.Split(fileHashesStr, "::")
+	fileHashes := make([]string, 0, len(v))
+	for _, str := range v {
+		fileHash, ok := str.(string)
+		if !ok {
+			continue
+		}
+		fileHashes = append(fileHashes, fileHash)
+	}
 	ret, err := dsp.DspService.CalculateDeleteFilesFee(fileHashes)
 	if err != nil {
-		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
+		resp := ResponsePackWithErrMsg(err.Code, err.Error.Error())
+		resp["Result"] = ret
+		return resp
 	}
 	resp["Result"] = ret
 	return resp

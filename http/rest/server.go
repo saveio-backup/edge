@@ -551,11 +551,11 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 		req["StoreType"] = r.FormValue("storeType")
 	case DSP_FILES_DELETE_FEE:
 		hashList := r.URL.Query()["hash"]
-		hashesStr := ""
-		for _, hash := range hashList {
-			hashesStr += hash + "::"
+		var hashListInterface []interface{} = make([]interface{}, len(hashList))
+		for i, hash := range hashList {
+			hashListInterface[i] = hash
 		}
-		req["FileHashes"] = hashesStr
+		req["FileHashes"] = hashListInterface
 	case DSP_FILE_DOWNLOAD_INFO:
 		req["Url"] = getParam(r, "url")
 	case DSP_FILE_SHARE_INCOME:
