@@ -199,12 +199,12 @@
 | 状态码 | 内容                              | 含义                                |
 | ------ | --------------------------------- | ----------------------------------- |
 | 0      | None                              | 无                                  |
-| 1      | TaskPause                         | 任务暂停                            |
+| 1      | TaskPause                         | 任务暂停中                            |
 | 2      | TaskDoing                         | 任务继续                            |
-| 3      | TaskUploadFileMakeSlice           | 开始分片                            |
-| 4      | TaskUploadFileMakeSliceDone       | 分片完成                            |
-| 5      | TaskUploadFilePaying              | 支付上链                            |
-| 6      | TaskUploadFilePayingDone          | 支付上链完成                        |
+| 3      | TaskUploadFileMakeSlice           | 文件准备上传，开始分片                            |
+| 4      | TaskUploadFileMakeSliceDone       | 文件分片完成, 准备上链                            |
+| 5      | TaskUploadFilePaying              | 文件上链，调用合约合约                            |
+| 6      | TaskUploadFilePayingDone          | 智能合约执行完成                        |
 | 7      | TaskUploadFileCommitWhitelist     | 提交白名单信息                      |
 | 8      | TaskUploadFileCommitWhitelistDone | 提交白名单信息完成                  |
 | 9      | TaskUploadFileFindReceivers       | 寻找存储节点                        |
@@ -218,13 +218,13 @@
 | 17     | TaskUploadFileRegisterDNSDone     | 注册信息到DNS节点完成               |
 | 18     | TaskDownloadFileStart             | 开始下载文件                        |
 | 19     | TaskDownloadSearchPeers           | 寻找可供下载的节点                  |
-| 20     | TaskDownloadFileDownloading       | 文件下载中                          |
-| 21     | TaskDownloadRequestBlocks         | 下载数据块                          |
-| 22     | TaskDownloadReceiveBlocks         | 接收到数据块                        |
-| 23     | TaskDownloadPayForBlocks          | 为数据块支付下载费用                |
-| 24     | TaskDownloadPayForBlocksDone      | 为数据块支付下载费用完成            |
+| 20     | TaskDownloadFileDownloading       | 开始下载文件，分析需要下载的数据                          |
+| 21     | TaskDownloadRequestBlocks         | 发送数据块请求到节点                          |
+| 22     | TaskDownloadReceiveBlocks         | 接收到从节点返回的数据块                        |
+| 23     | TaskDownloadPayForBlocks          | 为获取到的数据块向节点支付下载费用                |
+| 24     | TaskDownloadPayForBlocksDone      | 为获取到的数据块向节点支付下载费用完成            |
 | 25     | TaskDownloadFileMakeSeed          | 文件下载完成，向DNS节点提交分享信息 |
-| 26     | TaskDownloadPayForBlocksFailed          | 为数据块支付失败 |
+| 26     | TaskDownloadPayForBlocksFailed          | 为获取到的数据块向节点支付失败 |
 | 27     | TaskDownloadCheckingFile          | 检查文件完整性中 |
 | 28     | TaskDownloadCheckingFileFailed          | 检查文件失败 |
 | 29     | TaskDownloadCheckingFileDone          | 检查文件完成 |

@@ -263,7 +263,9 @@ func (this *Network) Connect(tAddr string) error {
 	} else {
 		pr = p.(*peer.Peer)
 	}
+	log.Debugf("connecting....+")
 	this.P2p.Bootstrap(tAddr)
+	log.Debugf("connecting....+ done")
 	pr.SetState(peer.ConnectStateConnected)
 	return nil
 }
@@ -445,7 +447,7 @@ func (this *Network) SendOnce(msg proto.Message, toAddr string) error {
 
 // Send send msg to peer asynchronous
 // peer can be addr(string) or client(*network.peerClient)
-func (this *Network) Send(msg proto.Message, msgId, toAddr string) error {
+func (this *Network) Send(msg proto.Message, msgId, toAddr string, sendTimeout time.Duration) error {
 	if err := this.HealthCheckPeer(this.proxyAddr); err != nil {
 		return err
 	}
@@ -467,14 +469,20 @@ func (this *Network) Send(msg proto.Message, msgId, toAddr string) error {
 	this.stopKeepAlive()
 	pr := p.(*peer.Peer)
 	log.Debugf("send msg %s to %s", msgId, toAddr)
-	err := pr.Send(msgId, msg)
+	var err error
+	if sendTimeout > 0 {
+		err = pr.StreamSend(msgId, msg, sendTimeout)
+	} else {
+		err = pr.Send(msgId, msg)
+	}
 	log.Debugf("send msg %s to %s done", msgId, toAddr)
 	this.restartKeepAlive()
 	return err
 }
 
 // Request. send msg to peer and wait for response synchronously with timeout
-func (this *Network) SendAndWaitReply(msg proto.Message, msgId, toAddr string) (proto.Message, error) {
+func (this *Network) SendAndWaitReply(msg proto.Message, msgId, toAddr string, sendTimeout time.Duration) (
+	proto.Message, error) {
 	if this == nil {
 		return nil, errors.New("no network")
 	}
@@ -497,7 +505,13 @@ func (this *Network) SendAndWaitReply(msg proto.Message, msgId, toAddr string) (
 	this.stopKeepAlive()
 	pr := p.(*peer.Peer)
 	log.Debugf("send msg %s to %s", msgId, toAddr)
-	resp, err := pr.SendAndWaitReply(msgId, msg)
+	var err error
+	var resp proto.Message
+	if sendTimeout > 0 {
+		resp, err = pr.StreamSendAndWaitReply(msgId, msg, sendTimeout)
+	} else {
+		resp, err = pr.SendAndWaitReply(msgId, msg)
+	}
 	log.Debugf("send and wait reply done  %s", err)
 	this.restartKeepAlive()
 	return resp, err
@@ -658,9 +672,9 @@ func (this *Network) Broadcast(addrs []string, msg proto.Message, msgId string,
 				var res proto.Message
 				var err error
 				if callbacks == nil || len(callbacks) == 0 {
-					err = this.Send(msg, msgId, req.addr)
+					err = this.Send(msg, msgId, req.addr, 0)
 				} else {
-					res, err = this.SendAndWaitReply(msg, msgId, req.addr)
+					res, err = this.SendAndWaitReply(msg, msgId, req.addr, 0)
 				}
 				if err != nil {
 					log.Errorf("broadcast msg to %s err %s", req.addr, err)

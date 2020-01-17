@@ -57,6 +57,7 @@ type NodeProgress struct {
 	HostAddr     string
 	UploadSize   uint64
 	DownloadSize uint64
+	Speed        uint64
 }
 
 type Transfer struct {
@@ -1030,12 +1031,16 @@ func (this *Endpoint) RegisterProgressCh() {
 				go this.notifyDownloadingTransferList()
 			default:
 			}
-			for node, cnt := range v.Count {
+			for node, cnt := range v.Progress {
 				switch v.Type {
 				case store.TaskTypeUpload:
-					log.Infof("file:%s, hash:%s, total:%d, peer:%s, uploaded:%d, progress:%f", v.FileName, v.FileHash, v.Total, node, cnt, float64(cnt)/float64(v.Total))
+					log.Infof("file:%s, hash:%s, total:%d, peer:%v, uploaded:%d, progress:%f, speed: %d",
+						v.FileName, v.FileHash, v.Total, node, cnt.Progress, float64(cnt.Progress)/float64(v.Total),
+						cnt.AvgSpeed())
 				case store.TaskTypeDownload:
-					log.Infof("file:%s, hash:%s, total:%d, peer:%s, downloaded:%d, progress:%f", v.FileName, v.FileHash, v.Total, node, cnt, float64(cnt)/float64(v.Total))
+					log.Infof("file:%s, hash:%s, total:%d, peer:%v, downloaded:%d, progress:%f, speed: %d",
+						v.FileName, v.FileHash, v.Total, node, cnt.Progress, float64(cnt.Progress)/float64(v.Total),
+						cnt.AvgSpeed())
 				default:
 				}
 			}
@@ -1993,15 +1998,16 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 	}
 	sum := uint64(0)
 	nPros := make([]*NodeProgress, 0)
-	for hAddr, cnt := range info.Count {
-		sum += uint64(cnt)
+	for hAddr, cnt := range info.Progress {
+		sum += uint64(cnt.Progress)
 		pros := &NodeProgress{
 			HostAddr: hAddr,
+			Speed:    cnt.AvgSpeed(),
 		}
 		if info.Type == store.TaskTypeUpload {
-			pros.UploadSize = uint64(cnt) * dspCom.CHUNK_SIZE / 1024
+			pros.UploadSize = uint64(cnt.Progress) * dspCom.CHUNK_SIZE / 1024
 		} else if info.Type == store.TaskTypeDownload {
-			pros.DownloadSize = uint64(cnt) * dspCom.CHUNK_SIZE / 1024
+			pros.DownloadSize = uint64(cnt.Progress) * dspCom.CHUNK_SIZE / 1024
 		}
 		nPros = append(nPros, pros)
 	}

@@ -121,7 +121,7 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 		}()
 	case *dspAct.SendReq:
 		go func() {
-			err := this.dspNet.Send(msg.Data, msg.MsgId, msg.Address)
+			err := this.dspNet.Send(msg.Data, msg.MsgId, msg.Address, msg.SendTimeout)
 			msg.Response <- &dspAct.P2pResp{Error: err}
 		}()
 	case *dspAct.BroadcastReq:
@@ -151,7 +151,7 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 		}()
 	case *dspAct.SendAndWaitReplyReq:
 		go func() {
-			ret, err := this.dspNet.SendAndWaitReply(msg.Data, msg.MsgId, msg.Address)
+			ret, err := this.dspNet.SendAndWaitReply(msg.Data, msg.MsgId, msg.Address, msg.SendTimeout)
 			msg.Response <- &dspAct.RequestWithRetryResp{Data: ret, Error: err}
 		}()
 	case *dspAct.ReconnectPeerReq:

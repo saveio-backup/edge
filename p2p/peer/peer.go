@@ -32,12 +32,14 @@ type MsgReply struct {
 }
 
 type MsgWrap struct {
-	id        string
-	msg       proto.Message
-	state     MsgState
-	needReply bool
-	reply     chan MsgReply
-	createdAt uint64
+	id           string        // msg id
+	msg          proto.Message // msg
+	state        MsgState      // msg state
+	needReply    bool          // if msg need reply
+	reply        chan MsgReply // msg reply channel
+	createdAt    uint64        // msg created time
+	writeTimeout time.Duration // timeout for msg to sent
+	retry        uint32        // msg retry times
 }
 
 type FailedCount struct {
@@ -67,7 +69,9 @@ type Peer struct {
 	closeTime   time.Time           // peer closed time
 	failedCount *FailedCount        // peer QoS failed count
 	state       ConnectState        // connect state
-	receivedMsg *lru.ARCCache
+	receivedMsg *lru.ARCCache       // received msg cache
+	stream      *network.Stream     // network stream
+	streamLock  *sync.RWMutex       // stream lock
 }
 
 func New(addr string) *Peer {
@@ -79,6 +83,7 @@ func New(addr string) *Peer {
 		failedCount: new(FailedCount),
 		retry:       make(map[string]int),
 		receivedMsg: cache,
+		streamLock:  new(sync.RWMutex),
 	}
 	return p
 }
@@ -214,6 +219,81 @@ func (p *Peer) SendAndWaitReply(msgId string, msg proto.Message) (proto.Message,
 	return reply.msg, reply.err
 }
 
+// Send. send msg without wait it's reply
+func (p *Peer) StreamSend(msgId string, msg proto.Message, sendTimeout time.Duration) error {
+	defer func() {
+		if e := recover(); e != nil {
+			log.Errorf("send panic recover err %v", e)
+		}
+	}()
+	if p == nil {
+		return fmt.Errorf("peer is nil")
+	}
+	if len(msgId) == 0 {
+		msgId = utils.GenIdByTimestamp(rand.New(rand.NewSource(time.Now().UnixNano())))
+	}
+	if p.client == nil || p.stream == nil {
+		return fmt.Errorf("client is nil")
+	}
+	ch := make(chan MsgReply, 1)
+	log.Debugf("send msg %s to %s", msgId, p.addr)
+	streamMsg := &MsgWrap{
+		msg:          msg,
+		id:           msgId,
+		reply:        ch,
+		writeTimeout: sendTimeout,
+	}
+	if err := p.addMsg(msgId, streamMsg); err != nil {
+		return err
+	}
+	go p.retryMsg()
+	if _, err := p.streamAsyncSendAndWaitAck(msg, msgId, sendTimeout); err != nil {
+		log.Errorf("stream send msg %s err %s", msgId, err)
+	}
+	log.Debugf("wait for msg reply of %s", msgId)
+	reply := <-ch
+	log.Debugf("receive msg ack of %s from %s", msgId, p.addr)
+	if reply.err != nil {
+		p.failedCount.Send++
+	}
+	return reply.err
+}
+
+// SendAndWaitReply. send msg and wait the response reply msg
+func (p *Peer) StreamSendAndWaitReply(msgId string, msg proto.Message, sendTimeout time.Duration) (
+	proto.Message, error) {
+	defer func() {
+		if e := recover(); e != nil {
+			log.Errorf("send and wait reply recover err %v", e)
+		}
+	}()
+	if p == nil {
+		return nil, fmt.Errorf("peer is nil")
+	}
+	if len(msgId) == 0 {
+		msgId = utils.GenIdByTimestamp(rand.New(rand.NewSource(time.Now().UnixNano())))
+	}
+	if p.client == nil {
+		return nil, fmt.Errorf("client is nil")
+	}
+	ch := make(chan MsgReply, 1)
+	log.Debugf("send msg %s and wait for reply to %s", msgId, p.addr)
+	if err := p.addMsg(msgId, &MsgWrap{msg: msg, id: msgId, needReply: true, reply: ch,
+		writeTimeout: sendTimeout}); err != nil {
+		return nil, err
+	}
+	go p.retryMsg()
+	if _, err := p.streamAsyncSendAndWaitAck(msg, msgId, sendTimeout); err != nil {
+		log.Errorf("stream send msg %s err %s", msgId, err)
+	}
+	reply := <-ch
+	log.Debugf("receive msg reply of %d from %s", msgId, p.addr)
+	if reply.err != nil {
+		p.failedCount.Send++
+	}
+	return reply.msg, reply.err
+}
+
 // ReceiveMsg. handle receive msg
 func (p *Peer) Receive(origId string, replyMsg proto.Message) {
 	if len(origId) == 0 {
@@ -274,7 +354,14 @@ func (p *Peer) retryMsg() {
 				log.Debugf("retry msg %s, but client is disconnect", msgWrap.id)
 				continue
 			}
-			log.Debugf("get msg to retry %s", msgWrap.id)
+			log.Debugf("get msg to retry %s timeout %d", msgWrap.id, msgWrap.writeTimeout)
+			if msgWrap.writeTimeout > 0 {
+				if _, err := p.streamAsyncSendAndWaitAck(msgWrap.msg, msgWrap.id,
+					calcTimeout(msgWrap.retry, msgWrap.writeTimeout)); err != nil {
+					log.Errorf("send msg to %s err in retry service %s", p.addr, err)
+				}
+				continue
+			}
 			if err := p.client.AsyncSendAndWaitAck(context.Background(), msgWrap.msg, msgWrap.id); err != nil {
 				log.Errorf("send msg to %s err in retry service %s", p.addr, err)
 			}
@@ -303,6 +390,7 @@ func (p *Peer) acceptAckNotify() {
 			log.Debugf("exit accept ack notify service, because client %s is closed", p.addr)
 			p.resetAllMsgs()
 			p.client = nil
+			p.closeStream()
 			p.closeTime = time.Now()
 			p.failedCount.Disconnect++
 			return
@@ -352,6 +440,7 @@ func (p *Peer) getMsgToRetry() *MsgWrap {
 			log.Debugf("msg %s just send, delay retry it after %ds", msgWrap.id, common.ACK_MSG_CHECK_INTERVAL)
 			continue
 		}
+		msgWrap.retry++
 		// msg is waiting
 		return msgWrap
 	}
@@ -420,4 +509,74 @@ func (p *Peer) setRetrying(r bool) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	p.retrying = r
+}
+
+func (p *Peer) openStream() {
+	p.streamLock.Lock()
+	defer p.streamLock.Unlock()
+	if p.stream != nil {
+		return
+	}
+	p.stream = p.client.OpenStream()
+	log.Debugf("open stream for peer %s, streamId %s", p.addr, p.stream.ID)
+}
+
+func (p *Peer) closeStream() {
+	p.streamLock.Lock()
+	defer p.streamLock.Unlock()
+	if p.stream == nil {
+		return
+	}
+	streamId := p.stream.ID
+	p.client.CloseStream(streamId)
+	p.stream = nil
+	log.Debugf("close stream for peer %s, streamId %s", p.addr, streamId)
+}
+
+func (p *Peer) streamId() string {
+	p.streamLock.RLock()
+	defer p.streamLock.RUnlock()
+	if p.stream != nil {
+		return p.stream.ID
+	}
+	return ""
+}
+
+func (p *Peer) streamAsyncSendAndWaitAck(msg proto.Message, msgId string, sendTimeout time.Duration) (int32, error) {
+	p.openStream()
+	p.streamLock.Lock()
+	defer p.streamLock.Unlock()
+	if p == nil {
+		return 0, fmt.Errorf("peer is nil")
+	}
+	if p.client == nil || p.stream == nil {
+		return 0, fmt.Errorf("client is nil")
+	}
+	streamId := p.stream.ID
+	sentCh := make(chan struct{}, 1)
+	go func() {
+		select {
+		case <-time.After(sendTimeout):
+			log.Errorf("stream %s send msg %s timeout %d", streamId, msgId, sendTimeout)
+			p.client.CloseStream(streamId)
+			return
+		case <-p.client.CloseSignal:
+			return
+		case <-sentCh:
+			return
+		}
+	}()
+	var wrote int32
+	var err error
+	if err, wrote = p.client.StreamAsyncSendAndWaitAck(streamId, context.Background(), msg, msgId); err != nil {
+		p.failedCount.Send++
+		log.Errorf("stream %s send msg %s failed %s", streamId, msgId, err)
+	}
+	close(sentCh)
+	return wrote, err
+}
+
+func calcTimeout(ratio uint32, timeout time.Duration) time.Duration {
+	result := float64(1+float64(ratio)*0.2) * float64(timeout)
+	return time.Duration(result)
 }
