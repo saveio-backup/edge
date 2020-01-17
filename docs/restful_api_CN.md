@@ -40,7 +40,8 @@
 | 54009  | FS_UPLOAD_FILEPATH_ERROR             | 文件上传路径出错               |
 | 54010  | FS_UPLOAD_INTERVAL_TOO_SMALL         | 计算文件费用上传的验证周期太小 |
 | 54011  | FS_UPLOAD_GET_FILESIZE_FAILED        | 计算文件费用获取文件大小失败   |
-| 54012  | FS_UPLOAD_CALC_FEE_FAILED            | 计算文件费用失败               |
+| 54012  | FS_UPLOAD_CALC_FEE_FAILED            | 计算上传文件费用失败               |
+| 54013  | FS_DELETE_CALC_FEE_FAILED            | 计算批量删除文件费用失败         |
 | 55000  | DSP_INIT_FAILED                      | DSP初始化失败                  |
 | 55001  | DSP_START_FAILED                     | DSP启动失败                    |
 | 55002  | DSP_STOP_FAILED                      | DSP停止失败                    |
