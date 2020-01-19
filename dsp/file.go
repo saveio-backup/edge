@@ -2036,7 +2036,10 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 		}
 		log.Debugf("info.total %d, sum :%d, info.result : %v, errormsg: %v, progress: %v", info.Total, sum, info.Result, info.ErrorMsg, pInfo.Progress)
 	case transferTypeDownloading:
-		if info.Total > 0 && sum >= uint64(info.Total) {
+		if info.Total > 0 && sum > uint64(info.Total) {
+			return nil
+		}
+		if info.TaskState == store.TaskStateDone {
 			return nil
 		}
 		pInfo.DownloadSize = sum * dspCom.CHUNK_SIZE / 1024
