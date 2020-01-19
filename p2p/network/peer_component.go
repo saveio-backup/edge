@@ -44,9 +44,6 @@ func (this *PeerComponent) PeerDisconnect(client *network.PeerClient) {
 		return
 	}
 	addr := client.Address
-	if this.Net.IsProxyAddr(addr) {
-		return
-	}
-	log.Debugf("health check peer %s", addr)
-	this.Net.healthCheckPeer(client.Address)
+	log.Debugf("peer has disconnected, health check peer %s", addr)
+	this.Net.HealthCheckPeer(addr)
 }

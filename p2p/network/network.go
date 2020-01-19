@@ -15,7 +15,6 @@ import (
 	"github.com/saveio/carrier/crypto/ed25519"
 	"github.com/saveio/carrier/network"
 	"github.com/saveio/carrier/network/components/ackreply"
-	"github.com/saveio/carrier/network/components/backoff"
 	"github.com/saveio/carrier/network/components/keepalive"
 	"github.com/saveio/carrier/network/components/keepalive/proxyKeepalive"
 	"github.com/saveio/carrier/network/components/proxy"
@@ -144,18 +143,6 @@ func (this *Network) Start(protocol, addr, port string, opts ...NetworkOption) e
 	// add proxy keepalive
 	builder.AddComponent(proxyKeepalive.New())
 
-	// add backoff
-	if len(config.Parameters.BaseConfig.NATProxyServerAddrs) > 0 {
-		backoff_options := []backoff.ComponentOption{
-			backoff.WithInitialDelay(common.BACKOFF_INIT_DELAY * time.Second),
-			backoff.WithMaxAttempts(common.BACKOFF_MAX_ATTEMPTS),
-			backoff.WithPriority(65535),
-			backoff.WithMaxInterval(time.Duration(300) * time.Second),
-		}
-		log.Debugf("backoff opt %v", backoff_options)
-		builder.AddComponent(backoff.New(backoff_options...))
-	}
-
 	// add ack reply
 	ackOption := []ackreply.ComponentOption{
 		ackreply.WithAckCheckedInterval(time.Second * common.ACK_MSG_CHECK_INTERVAL),
@@ -163,7 +150,7 @@ func (this *Network) Start(protocol, addr, port string, opts ...NetworkOption) e
 	}
 	builder.AddComponent(ackreply.New(ackOption...))
 
-	this.AddProxyComponents(builder)
+	this.addProxyComponents(builder)
 
 	var err error
 	this.P2p, err = builder.Build()
@@ -202,32 +189,6 @@ func (this *Network) Start(protocol, addr, port string, opts ...NetworkOption) e
 	}
 	go this.healthCheckService()
 	return nil
-}
-
-func (this *Network) AddProxyComponents(builder *network.Builder) {
-	servers := strings.Split(config.Parameters.BaseConfig.NATProxyServerAddrs, ",")
-	hasAdd := make(map[string]struct{})
-	for _, proxyAddr := range servers {
-		if len(proxyAddr) == 0 {
-			continue
-		}
-		protocol := getProtocolFromAddr(proxyAddr)
-		_, ok := hasAdd[protocol]
-		if ok {
-			continue
-		}
-		switch protocol {
-		case "udp":
-			builder.AddComponent(new(proxy.UDPProxyComponent))
-		case "kcp":
-			builder.AddComponent(new(proxy.KCPProxyComponent))
-		case "quic":
-			builder.AddComponent(new(proxy.QuicProxyComponent))
-		case "tcp":
-			builder.AddComponent(new(proxy.TcpProxyComponent))
-		}
-		hasAdd[protocol] = struct{}{}
-	}
 }
 
 func (this *Network) StartProxy(builder *network.Builder) error {
@@ -387,27 +348,6 @@ func (this *Network) WaitForConnected(addr string, timeout time.Duration) error 
 	return fmt.Errorf("wait for connecting %s timeout", addr)
 }
 
-func (this *Network) Close(tAddr string) error {
-	peer, err := this.P2p.Client(tAddr)
-	if err != nil {
-		log.Error("[P2P Close] close addr: %s error ", tAddr)
-	} else {
-		peer.Close()
-	}
-	return nil
-}
-
-func (this *Network) Disconnect(addr string) error {
-	if this.P2p == nil {
-		return errors.New("network is nil")
-	}
-	peer := this.P2p.GetPeerClient(addr)
-	if peer == nil {
-		return errors.New("client is nil")
-	}
-	return peer.Close()
-}
-
 func (this *Network) IsConnectionExists(addr string) bool {
 	if this.P2p == nil {
 		return false
@@ -434,14 +374,56 @@ func (this *Network) IsProxyConnectionExists() (bool, error) {
 	return this.P2p.ProxyConnectionStateExists()
 }
 
+func (this *Network) HealthCheckPeer(addr string) error {
+	if !this.P2p.ProxyModeEnable() {
+		if _, ok := this.addrForHealthCheck.Load(addr); !ok {
+			log.Debugf("ignore check health of peer %s, because proxy mode is disabled", addr)
+			return nil
+		}
+		log.Debugf("proxy mode is disabled, but %s exist in health check list", addr)
+	}
+	if len(addr) == 0 {
+		return nil
+	}
+	peerState, err := this.GetPeerStateByAddress(addr)
+	log.Debugf("get peer state of %s, state %d, err %s", addr, peerState, err)
+	if peerState != network.PEER_REACHABLE {
+		log.Debugf("health check peer: %s unreachable, err: %s ", addr, err)
+	}
+	if err == nil && peerState == network.PEER_REACHABLE {
+		return nil
+	}
+	time.Sleep(time.Duration(common.BACKOFF_INIT_DELAY) * time.Second)
+	if addr == this.proxyAddr {
+		log.Debugf("reconnect proxy server ....")
+		err = this.P2p.ReconnectProxyServer(this.proxyAddr)
+		if err != nil {
+			log.Errorf("proxy reconnect failed, err %s", err)
+			return err
+		}
+	} else {
+		err = this.reconnectPeer(addr)
+		if err != nil {
+			return err
+		}
+	}
+	err = this.WaitForConnected(addr, time.Duration(common.MAX_WAIT_FOR_CONNECTED_TIMEOUT)*time.Second)
+	if err != nil {
+		log.Errorf("reconnect peer failed , err: %s", err)
+		return err
+	}
+	log.Debugf("reconnect peer success: %s", addr)
+	return nil
+}
+
 // SendOnce send msg to peer asynchronous
 // peer can be addr(string) or client(*network.peerClient)
 func (this *Network) SendOnce(msg proto.Message, toAddr string) error {
-	err := this.healthCheckPeer(this.proxyAddr)
+	err := this.HealthCheckPeer(this.proxyAddr)
 	if err != nil {
 		return err
 	}
-	err = this.healthCheckPeer(toAddr)
+	err = this.HealthCheckPeer(toAddr)
 	if err != nil {
 		return err
 	}
@@ -464,16 +446,16 @@ func (this *Network) SendOnce(msg proto.Message, toAddr string) error {
 // Send send msg to peer asynchronous
 // peer can be addr(string) or client(*network.peerClient)
 func (this *Network) Send(msg proto.Message, msgId, toAddr string) error {
-	if err := this.healthCheckPeer(this.proxyAddr); err != nil {
+	if err := this.HealthCheckPeer(this.proxyAddr); err != nil {
 		return err
 	}
 	log.Debugf("before send, health check it")
-	if err := this.healthCheckPeer(toAddr); err != nil {
+	if err := this.HealthCheckPeer(toAddr); err != nil {
 		return err
 	}
 	state, _ := this.GetPeerStateByAddress(toAddr)
 	if state != network.PEER_REACHABLE {
-		if err := this.healthCheckPeer(toAddr); err != nil {
+		if err := this.HealthCheckPeer(toAddr); err != nil {
 			return fmt.Errorf("can not send to inactive peer %s", toAddr)
 		}
 	}
@@ -496,15 +478,15 @@ func (this *Network) SendAndWaitReply(msg proto.Message, msgId, toAddr string) (
 	if this == nil {
 		return nil, errors.New("no network")
 	}
-	if err := this.healthCheckPeer(this.proxyAddr); err != nil {
+	if err := this.HealthCheckPeer(this.proxyAddr); err != nil {
 		return nil, err
 	}
-	if err := this.healthCheckPeer(toAddr); err != nil {
+	if err := this.HealthCheckPeer(toAddr); err != nil {
 		return nil, err
 	}
 	state, _ := this.GetPeerStateByAddress(toAddr)
 	if state != network.PEER_REACHABLE {
-		if err := this.healthCheckPeer(toAddr); err != nil {
+		if err := this.HealthCheckPeer(toAddr); err != nil {
 			return nil, fmt.Errorf("can not send to inactive peer %s", toAddr)
 		}
 	}
@@ -525,13 +507,17 @@ func (this *Network) AppendAddrToHealthCheck(addr string) {
 	this.addrForHealthCheck.Store(addr, struct{}{})
 }
 
+func (this *Network) RemoveAddrFromHealthCheck(addr string) {
+	this.addrForHealthCheck.Delete(addr)
+}
+
 // [Deprecated] Request. send msg to peer and wait for response synchronously with timeout
 func (this *Network) Request(msg proto.Message, peer string) (proto.Message, error) {
-	err := this.healthCheckPeer(this.proxyAddr)
+	err := this.HealthCheckPeer(this.proxyAddr)
 	if err != nil {
 		return nil, err
 	}
-	err = this.healthCheckPeer(peer)
+	err = this.HealthCheckPeer(peer)
 	if err != nil {
 		return nil, err
 	}
@@ -566,12 +552,12 @@ func (this *Network) RequestWithRetry(msg proto.Message, peer string, retry, rep
 	go func() {
 		for i := 0; i < retry; i++ {
 			// check proxy state
-			err = this.healthCheckPeer(this.proxyAddr)
+			err = this.HealthCheckPeer(this.proxyAddr)
 			if err != nil {
 				continue
 			}
 			// check receiver state
-			err = this.healthCheckPeer(peer)
+			err = this.HealthCheckPeer(peer)
 			if err != nil {
 				continue
 			}
@@ -633,7 +619,7 @@ func (this *Network) RequestWithRetry(msg proto.Message, peer string, retry, rep
 // callback(responseMsg, responseToAddr).
 func (this *Network) Broadcast(addrs []string, msg proto.Message, msgId string,
 	callbacks ...func(proto.Message, string) bool) (map[string]error, error) {
-	err := this.healthCheckPeer(this.proxyAddr)
+	err := this.HealthCheckPeer(this.proxyAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -737,7 +723,7 @@ func (this *Network) Broadcast(addrs []string, msg proto.Message, msgId string,
 	}
 }
 
-func (this *Network) ReconnectPeer(addr string) error {
+func (this *Network) reconnectPeer(addr string) error {
 	p, ok := this.peers.Load(addr)
 	var pr *peer.Peer
 	if !ok {
@@ -854,6 +840,32 @@ func (this *Network) GetClientTime(addr string) (uint64, error) {
 	return uint64(t.Unix()), nil
 }
 
+func (this *Network) addProxyComponents(builder *network.Builder) {
+	servers := strings.Split(config.Parameters.BaseConfig.NATProxyServerAddrs, ",")
+	hasAdd := make(map[string]struct{})
+	for _, proxyAddr := range servers {
+		if len(proxyAddr) == 0 {
+			continue
+		}
+		protocol := getProtocolFromAddr(proxyAddr)
+		_, ok := hasAdd[protocol]
+		if ok {
+			continue
+		}
+		switch protocol {
+		case "udp":
+			builder.AddComponent(new(proxy.UDPProxyComponent))
+		case "kcp":
+			builder.AddComponent(new(proxy.KCPProxyComponent))
+		case "quic":
+			builder.AddComponent(new(proxy.QuicProxyComponent))
+		case "tcp":
+			builder.AddComponent(new(proxy.TcpProxyComponent))
+		}
+		hasAdd[protocol] = struct{}{}
+	}
+}
+
 func (this *Network) healthCheckService() {
 	ti := time.NewTicker(time.Duration(common.MAX_HEALTH_CHECK_INTERVAL) * time.Second)
 	startedAt := time.Now().Unix()
@@ -875,7 +887,7 @@ func (this *Network) healthCheckService() {
 						log.Debugf("publicAddr: %s, addr %s state: %d", this.PublicAddr(), addr, addrState)
 					}
 				}
-				this.healthCheckPeer(addr)
+				this.HealthCheckPeer(addr)
 				return true
 			})
 		case <-this.kill:
@@ -884,41 +896,6 @@ func (this *Network) healthCheckService() {
 			return
 		}
 	}
-}
-
-func (this *Network) healthCheckPeer(addr string) error {
-	if len(addr) == 0 {
-		return nil
-	}
-	peerState, err := this.GetPeerStateByAddress(addr)
-	log.Debugf("get peer state of %s, state %d, err %s", addr, peerState, err)
-	if peerState != network.PEER_REACHABLE {
-		log.Debugf("health check peer: %s unreachable, err: %s ", addr, err)
-	}
-	if err == nil && peerState == network.PEER_REACHABLE {
-		return nil
-	}
-	time.Sleep(time.Duration(common.BACKOFF_INIT_DELAY) * time.Second)
-	if addr == this.proxyAddr {
-		log.Debugf("reconnect proxy server ....")
-		err = this.P2p.ReconnectProxyServer(this.proxyAddr)
-		if err != nil {
-			log.Errorf("proxy reconnect failed, err %s", err)
-			return err
-		}
-	} else {
-		err = this.ReconnectPeer(addr)
-		if err != nil {
-			return err
-		}
-	}
-	err = this.WaitForConnected(addr, time.Duration(common.MAX_WAIT_FOR_CONNECTED_TIMEOUT)*time.Second)
-	if err != nil {
-		log.Errorf("reconnect peer failed , err: %s", err)
-		return err
-	}
-	log.Debugf("reconnect peer success: %s", addr)
-	return nil
 }
 
 func (this *Network) getKeepAliveComponent() *keepalive.Component {

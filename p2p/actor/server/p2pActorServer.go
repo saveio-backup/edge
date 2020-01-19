@@ -97,11 +97,6 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 			msg.Ret.Err = this.channelNet.Connect(msg.Address)
 			msg.Ret.Done <- true
 		}()
-	case *chAct.CloseReq:
-		go func() {
-			msg.Ret.Err = this.channelNet.Close(msg.Address)
-			msg.Ret.Done <- true
-		}()
 	case *chAct.SendReq:
 		go func() {
 			msg.Ret.Err = this.channelNet.SendOnce(msg.Data, msg.Address)
@@ -123,11 +118,6 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 			msg.Ret.State = int(state)
 			msg.Ret.Err = err
 			msg.Ret.Done <- true
-		}()
-	case *dspAct.CloseReq:
-		go func() {
-			err := this.dspNet.Disconnect(msg.Address)
-			msg.Response <- &dspAct.P2pResp{Error: err}
 		}()
 	case *dspAct.SendReq:
 		go func() {
@@ -173,7 +163,7 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 					msg.Response <- &dspAct.P2pResp{Error: nil}
 					return
 				}
-				err = this.dspNet.ReconnectPeer(msg.Address)
+				err = this.dspNet.HealthCheckPeer(msg.Address)
 				msg.Response <- &dspAct.P2pResp{Error: err}
 			case dspAct.P2pNetTypeChannel:
 				state, err := this.channelNet.GetPeerStateByAddress(msg.Address)
@@ -181,7 +171,7 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 					msg.Response <- &dspAct.P2pResp{Error: nil}
 					return
 				}
-				err = this.channelNet.ReconnectPeer(msg.Address)
+				err = this.channelNet.HealthCheckPeer(msg.Address)
 				msg.Response <- &dspAct.P2pResp{Error: err}
 			}
 		}()
@@ -290,6 +280,16 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 				this.dspNet.AppendAddrToHealthCheck(msg.Address)
 			case dspAct.P2pNetTypeChannel:
 				this.channelNet.AppendAddrToHealthCheck(msg.Address)
+			}
+			msg.Response <- &dspAct.P2pResp{Error: nil}
+		}()
+	case *dspAct.RemoveAddrFromHealthCheckReq:
+		go func() {
+			switch msg.NetType {
+			case dspAct.P2pNetTypeDsp:
+				this.dspNet.RemoveAddrFromHealthCheck(msg.Address)
+			case dspAct.P2pNetTypeChannel:
+				this.channelNet.RemoveAddrFromHealthCheck(msg.Address)
 			}
 			msg.Response <- &dspAct.P2pResp{Error: nil}
 		}()

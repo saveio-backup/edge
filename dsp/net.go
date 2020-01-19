@@ -109,7 +109,7 @@ func (this *Endpoint) ReconnectChannelPeers(peers []string) []*ReconnectResp {
 		res := &ReconnectResp{
 			HostAddr: p,
 		}
-		err := this.channelNet.ReconnectPeer(p)
+		err := this.channelNet.HealthCheckPeer(p)
 		if err != nil {
 			res.Code = NET_RECONNECT_PEER_FAILED
 			res.Error = err.Error()
