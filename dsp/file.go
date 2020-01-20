@@ -734,6 +734,9 @@ func (this *Endpoint) DownloadFile(fileHash, url, link, password string, max uin
 	if !this.Dsp.HasDNS() {
 		return &DspErr{Code: DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST, Error: ErrMaps[DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST]}
 	}
+	if !this.channelNet.IsConnectionReachable(this.Dsp.CurrentDNSHostAddr()) {
+		return &DspErr{Code: DSP_CHANNEL_DNS_OFFLINE, Error: ErrMaps[DSP_CHANNEL_DNS_OFFLINE]}
+	}
 
 	fileInfo, err := this.GetDownloadFileInfo(url)
 	if err != nil {
