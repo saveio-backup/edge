@@ -6,11 +6,13 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/saveio/dsp-go-sdk/dsp"
 	"github.com/saveio/edge/common"
 	"github.com/saveio/edge/common/config"
 	"github.com/saveio/edge/utils"
 	"github.com/saveio/themis-go-sdk/wallet"
 	"github.com/saveio/themis/account"
+	chainCom "github.com/saveio/themis/common"
 	"github.com/saveio/themis/common/log"
 	"github.com/saveio/themis/core/types"
 	"github.com/saveio/themis/crypto/keypair"
@@ -27,11 +29,17 @@ type AccountResp struct {
 	Wallet     string
 }
 
-func (this *Endpoint) AccountExists() bool {
-	if this != nil && this.Dsp != nil && this.Dsp.CurrentAccount() != nil {
-		return true
+func (this *Endpoint) GetDspAccount() *account.Account {
+	if this == nil || this.dspAccLock == nil {
+		return nil
 	}
-	return false
+	this.dspAccLock.Lock()
+	defer this.dspAccLock.Unlock()
+	return this.account
+}
+
+func (this *Endpoint) AccountExists() bool {
+	return this.dspExist()
 }
 
 func (this *Endpoint) GetWalletFilePath() string {
@@ -51,12 +59,16 @@ func (this *Endpoint) GetAccount(path, password string) (*account.Account, *DspE
 }
 
 func (this *Endpoint) GetCurrentAccount() (*AccountResp, *DspErr) {
-	if this != nil && this.Account != nil {
+	if this.dspExist() {
+		account := this.GetDspAccount()
+		if account == nil {
+			return nil, &DspErr{Code: ACCOUNT_NOT_LOGIN, Error: ErrMaps[ACCOUNT_NOT_LOGIN]}
+		}
 		return &AccountResp{
-			PublicKey: hex.EncodeToString(keypair.SerializePublicKey(this.Account.PublicKey)),
-			Address:   this.Account.Address.ToBase58(),
-			SigScheme: this.Account.SigScheme,
-			Label:     this.AccountLabel,
+			PublicKey: hex.EncodeToString(keypair.SerializePublicKey(account.PublicKey)),
+			Address:   account.Address.ToBase58(),
+			SigScheme: account.SigScheme,
+			Label:     this.getDspAccountLabel(),
 		}, nil
 	}
 	if common.FileExisted(config.WalletDatFilePath()) {
@@ -88,11 +100,15 @@ func (this *Endpoint) Login(password string) (*AccountResp, *DspErr) {
 			log.Errorf("dsp start err %s", err)
 		}
 	}()
+	account := service.GetDspAccount()
+	if account == nil {
+		return nil, &DspErr{Code: DSP_INIT_FAILED, Error: ErrMaps[DSP_INIT_FAILED]}
+	}
 	return &AccountResp{
-		PublicKey: hex.EncodeToString(keypair.SerializePublicKey(service.Account.PublicKey)),
-		Address:   service.Account.Address.ToBase58(),
-		SigScheme: service.Account.SigScheme,
-		Label:     service.AccountLabel,
+		PublicKey: hex.EncodeToString(keypair.SerializePublicKey(account.PublicKey)),
+		Address:   account.Address.ToBase58(),
+		SigScheme: account.SigScheme,
+		Label:     service.getDspAccountLabel(),
 	}, nil
 }
 
@@ -260,7 +276,7 @@ type WIFKeyResp struct {
 }
 
 func (this *Endpoint) ExportWIFPrivateKey() (*WIFKeyResp, *DspErr) {
-	acc, derr := this.GetAccount(config.WalletDatFilePath(), this.Password)
+	acc, derr := this.GetAccount(config.WalletDatFilePath(), this.getDspPassword())
 	if derr != nil {
 		return nil, derr
 	}
@@ -282,14 +298,10 @@ func (this *Endpoint) ExportWalletFile() (*WalletfileResp, *DspErr) {
 func (this *Endpoint) Logout() *DspErr {
 	log.Debugf("Logout ++++")
 	isExists := common.FileExisted(config.WalletDatFilePath())
-	if !isExists || this == nil || this.Dsp == nil || this.Dsp.CurrentAccount() == nil {
+	if !isExists || !this.dspExist() {
 		log.Debugf("logout of no wallet dat files")
 		if this != nil {
-			this.Account = nil
-			if this.Dsp != nil {
-				this.Dsp.SetAccount(nil)
-			}
-			this.AccountLabel = ""
+			this.cleanDspAccount()
 			this.notifyAccountLogout()
 			log.Debugf("notify user logout")
 		}
@@ -317,9 +329,7 @@ func (this *Endpoint) Logout() *DspErr {
 	if err != nil {
 		return &DspErr{Code: DSP_STOP_FAILED, Error: err}
 	}
-	this.Account = nil
-	this.Dsp.SetAccount(nil)
-	this.AccountLabel = ""
+	this.cleanDspAccount()
 	this.notifyAccountLogout()
 	log.Debugf("notify user logout")
 	DspService = &Endpoint{}
@@ -327,8 +337,8 @@ func (this *Endpoint) Logout() *DspErr {
 }
 
 func (this *Endpoint) CheckPassword(pwd string) *DspErr {
-	pwdHash := utils.Sha256HexStr(this.Password)
-	log.Debugf("CheckPassword: %s, %s, %s", this.Password, pwd, pwdHash)
+	pwdHash := utils.Sha256HexStr(this.getDspPassword())
+	log.Debugf("CheckPassword: %s, %s, %s", this.getDspPassword(), pwd, pwdHash)
 	if len(pwdHash) != len(pwd) {
 		return &DspErr{Code: ACCOUNT_PASSWORD_WRONG, Error: ErrMaps[ACCOUNT_PASSWORD_WRONG]}
 	}
@@ -336,4 +346,108 @@ func (this *Endpoint) CheckPassword(pwd string) *DspErr {
 		return &DspErr{Code: ACCOUNT_PASSWORD_WRONG, Error: ErrMaps[ACCOUNT_PASSWORD_WRONG]}
 	}
 	return nil
+}
+
+func (this *Endpoint) dspExist() bool {
+	if this == nil || this.dspAccLock == nil {
+		return false
+	}
+	this.dspAccLock.Lock()
+	defer this.dspAccLock.Unlock()
+	if this.dsp != nil && this.account != nil {
+		return true
+	}
+	return false
+}
+
+func (this *Endpoint) getDsp() *dsp.Dsp {
+	if this == nil || this.dspAccLock == nil {
+		return nil
+	}
+	this.dspAccLock.Lock()
+	defer this.dspAccLock.Unlock()
+	return this.dsp
+}
+
+func (this *Endpoint) setDsp(dsp *dsp.Dsp) {
+	if this == nil || this.dspAccLock == nil {
+		return
+	}
+	this.dspAccLock.Lock()
+	defer this.dspAccLock.Unlock()
+	this.dsp = dsp
+}
+
+func (this *Endpoint) getDspAccountLabel() string {
+	if this == nil || this.dspAccLock == nil {
+		return ""
+	}
+	this.dspAccLock.Lock()
+	defer this.dspAccLock.Unlock()
+	if this.account != nil {
+		return this.accountLabel
+	}
+	return ""
+}
+
+func (this *Endpoint) getDspPassword() string {
+	if this == nil || this.dspAccLock == nil {
+		return ""
+	}
+	this.dspAccLock.Lock()
+	defer this.dspAccLock.Unlock()
+	if this.account != nil {
+		return this.password
+	}
+	return ""
+}
+
+func (this *Endpoint) cleanDspAccount() {
+	if this == nil || this.dspAccLock == nil {
+		return
+	}
+	this.dspAccLock.Lock()
+	defer this.dspAccLock.Unlock()
+	this.accountLabel = ""
+	if this.account != nil {
+		this.account = nil
+	}
+	if this.dsp != nil {
+		this.dsp.SetAccount(nil)
+	}
+}
+
+func (this *Endpoint) getDspWalletAddr() chainCom.Address {
+	if this == nil || this.dspAccLock == nil {
+		return chainCom.ADDRESS_EMPTY
+	}
+	this.dspAccLock.Lock()
+	defer this.dspAccLock.Unlock()
+	if this.account == nil {
+		return chainCom.ADDRESS_EMPTY
+	}
+	return this.account.Address
+}
+
+func (this *Endpoint) getDspWalletAddress() string {
+	if this == nil || this.dspAccLock == nil {
+		return ""
+	}
+	this.dspAccLock.Lock()
+	defer this.dspAccLock.Unlock()
+	if this.account == nil {
+		return ""
+	}
+	return this.account.Address.ToBase58()
+}
+
+func (this *Endpoint) setDspAccount(acc *account.Account, accLabel, pwd string) {
+	if this == nil || this.dspAccLock == nil {
+		return
+	}
+	this.dspAccLock.Lock()
+	defer this.dspAccLock.Unlock()
+	this.account = acc
+	this.accountLabel = accLabel
+	this.password = pwd
 }

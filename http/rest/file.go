@@ -42,7 +42,8 @@ func UploadFile(cmd map[string]interface{}) map[string]interface{} {
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
-	opt, err := dsp.DspService.UploadFile(path, desc, cmd["Duration"], cmd["Interval"], cmd["Privilege"], cmd["CopyNum"], cmd["StoreType"], pwd, url, whitelist, share)
+	opt, err := dsp.DspService.UploadFile(path, desc, cmd["Duration"], cmd["Interval"],
+		cmd["Privilege"], cmd["CopyNum"], cmd["StoreType"], pwd, url, whitelist, share)
 	if err != nil {
 		log.Errorf("upload file failed, err %v", err)
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
@@ -343,7 +344,10 @@ func GetTransferList(cmd map[string]interface{}) map[string]interface{} {
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
-	list := dsp.DspService.GetTransferList(transferType, uint32(offset), uint32(limit))
+	list, derr := dsp.DspService.GetTransferList(transferType, uint32(offset), uint32(limit))
+	if derr != nil {
+		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
+	}
 	resp["Result"] = list
 	return resp
 }
@@ -362,7 +366,8 @@ func CalculateUploadFee(cmd map[string]interface{}) map[string]interface{} {
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
-	res, derr := dsp.DspService.CalculateUploadFee(string(path), cmd["Duration"], cmd["Interval"], cmd["Times"], cmd["CopyNum"], cmd["WhiteList"], cmd["StoreType"])
+	res, derr := dsp.DspService.CalculateUploadFee(string(path), cmd["Duration"], cmd["Interval"],
+		cmd["Times"], cmd["CopyNum"], cmd["WhiteList"], cmd["StoreType"])
 	if derr != nil {
 		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
 	}
@@ -573,14 +578,7 @@ func GetFileWhiteList(cmd map[string]interface{}) map[string]interface{} {
 
 func GetUserSpace(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
-	addr, ok := cmd["Addr"].(string)
-	if !ok {
-		if dsp.DspService != nil && dsp.DspService.Account != nil {
-			addr = dsp.DspService.Account.Address.ToBase58()
-		} else {
-			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-		}
-	}
+	addr, _ := cmd["Addr"].(string)
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
@@ -719,7 +717,10 @@ func PauseUploadFile(cmd map[string]interface{}) map[string]interface{} {
 		}
 		ids = append(ids, id)
 	}
-	ret := dsp.DspService.PauseUploadFile(ids)
+	ret, derr := dsp.DspService.PauseUploadFile(ids)
+	if derr != nil {
+		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
+	}
 	resp["Result"] = ret
 	return resp
 }
@@ -738,7 +739,10 @@ func ResumeUploadFile(cmd map[string]interface{}) map[string]interface{} {
 		}
 		ids = append(ids, id)
 	}
-	ret := dsp.DspService.ResumeUploadFile(ids)
+	ret, derr := dsp.DspService.ResumeUploadFile(ids)
+	if derr != nil {
+		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
+	}
 	resp["Result"] = ret
 	return resp
 }
@@ -757,7 +761,10 @@ func RetryUploadFile(cmd map[string]interface{}) map[string]interface{} {
 		}
 		ids = append(ids, id)
 	}
-	ret := dsp.DspService.RetryUploadFile(ids)
+	ret, derr := dsp.DspService.RetryUploadFile(ids)
+	if derr != nil {
+		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
+	}
 	resp["Result"] = ret
 	return resp
 }
@@ -796,7 +803,10 @@ func CancelUploadFile(cmd map[string]interface{}) map[string]interface{} {
 		ids = append(ids, id)
 	}
 
-	ret := dsp.DspService.CancelUploadFile(ids, gasLimit)
+	ret, derr := dsp.DspService.CancelUploadFile(ids, gasLimit)
+	if derr != nil {
+		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
+	}
 	resp["Result"] = ret
 	return resp
 }
@@ -815,7 +825,10 @@ func PauseDownloadFile(cmd map[string]interface{}) map[string]interface{} {
 		}
 		ids = append(ids, id)
 	}
-	ret := dsp.DspService.PauseDownloadFile(ids)
+	ret, derr := dsp.DspService.PauseDownloadFile(ids)
+	if derr != nil {
+		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
+	}
 	resp["Result"] = ret
 	return resp
 }
@@ -856,7 +869,10 @@ func RetryDownloadFile(cmd map[string]interface{}) map[string]interface{} {
 		}
 		ids = append(ids, id)
 	}
-	ret := dsp.DspService.RetryDownloadFile(ids)
+	ret, derr := dsp.DspService.RetryDownloadFile(ids)
+	if derr != nil {
+		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
+	}
 	resp["Result"] = ret
 	return resp
 }
@@ -875,7 +891,10 @@ func CancelDownloadFile(cmd map[string]interface{}) map[string]interface{} {
 		}
 		ids = append(ids, id)
 	}
-	ret := dsp.DspService.CancelDownloadFile(ids)
+	ret, derr := dsp.DspService.CancelDownloadFile(ids)
+	if derr != nil {
+		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
+	}
 	resp["Result"] = ret
 	return resp
 }
@@ -894,7 +913,10 @@ func DeleteTransferRecord(cmd map[string]interface{}) map[string]interface{} {
 		}
 		ids = append(ids, id)
 	}
-	ret := dsp.DspService.DeleteTransferRecord(ids)
+	ret, derr := dsp.DspService.DeleteTransferRecord(ids)
+	if derr != nil {
+		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
+	}
 	resp["Result"] = ret
 	return resp
 }

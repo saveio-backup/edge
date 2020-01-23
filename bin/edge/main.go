@@ -103,7 +103,7 @@ func dspInit(ctx *cli.Context) {
 		log.Error("dsp init failed: %s", err.Error())
 		os.Exit(1)
 	}
-	if endpoint.Account != nil {
+	if endpoint.GetDspAccount() != nil {
 		if err := dsp.StartDspNode(endpoint, true, true, true); err != nil {
 			log.Errorf("start dsp node err %s", err.Error())
 		}

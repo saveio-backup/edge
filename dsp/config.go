@@ -89,11 +89,21 @@ func (this *Endpoint) SetConfigs(fields map[string]interface{}) (*ConfigResponse
 				log.Debugf("unsupport type %s %T", key, value)
 				continue
 			}
+			if this == nil {
+				continue
+			}
+			dsp := this.getDsp()
+			if dsp == nil {
+				continue
+			}
+			oldPath := config.Parameters.FsConfig.FsFileRoot
 			config.Parameters.FsConfig.FsFileRoot = newPath
-			if this != nil && this.Dsp != nil {
-				if err := this.Dsp.UpdateConfig("FsFileRoot", config.FsFileRootPath()); err != nil {
-					log.Errorf("update config err %s", err)
-				}
+			if err := dsp.UpdateConfig("FsFileRoot", config.FsFileRootPath()); err != nil {
+				log.Errorf("update config err %s", err)
+				config.Parameters.FsConfig.FsFileRoot = oldPath
+				newResp.DownloadPath = oldPath
+			} else {
+				newResp.DownloadPath = newPath
 			}
 			newResp.DownloadPath = newPath
 		case "LogMaxSize":

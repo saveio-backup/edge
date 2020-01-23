@@ -58,20 +58,24 @@ func (this *Endpoint) GetNetworkState() (*NetworkStateResp, *DspErr) {
 		DspProxy:     &PeerState{},
 		ChannelProxy: &PeerState{},
 	}
-	if this == nil || this.Dsp == nil {
+	if this == nil {
 		return state, nil
 	}
-	_, err := this.Dsp.GetCurrentBlockHeight()
+	dsp := this.getDsp()
+	if dsp == nil {
+		return state, nil
+	}
+	_, err := dsp.GetCurrentBlockHeight()
 	if err == nil {
 		now := uint64(time.Now().Unix())
 		state.Chain.State = networkStateReachable
 		state.Chain.UpdatedAt = now
 	}
-	if this.Dsp.HasDNS() {
-		state.DNS.HostAddr = this.Dsp.CurrentDNSHostAddr()
+	if dsp.HasDNS() {
+		state.DNS.HostAddr = dsp.CurrentDNSHostAddr()
 		updatedAt, _ := this.channelNet.GetClientTime(state.DNS.HostAddr)
 		state.DNS.UpdatedAt = updatedAt
-		if this.channelNet.IsStateReachable(this.Dsp.CurrentDNSHostAddr()) {
+		if this.channelNet.IsStateReachable(dsp.CurrentDNSHostAddr()) {
 			state.DNS.State = networkStateReachable
 		} else {
 			state.DNS.State = networkStateUnReachable

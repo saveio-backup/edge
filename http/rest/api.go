@@ -293,14 +293,7 @@ func GetStorage(cmd map[string]interface{}) map[string]interface{} {
 //get balance of address
 func GetBalance(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
-	addrBase58, ok := cmd["Addr"].(string)
-	if !ok {
-		if dsp.DspService != nil && dsp.DspService.Account != nil {
-			addrBase58 = dsp.DspService.Account.Address.ToBase58()
-		} else {
-			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-		}
-	}
+	addrBase58, _ := cmd["Addr"].(string)
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_DSP, dsp.ErrMaps[dsp.NO_DSP].Error())
 	}

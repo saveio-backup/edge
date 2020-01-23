@@ -704,24 +704,26 @@ func (this *restServer) write(w http.ResponseWriter, data []byte) {
 
 func (this *restServer) checkDspService(url, method string) (int64, string) {
 	if method == "GET" {
-		skipCheck := []string{EXPORT_WALLETFILE, EXPORT_WIFPRIVATEKEY, GET_CURRENT_ACCOUNT, GET_CHAINID, GET_CHAINID_LIST, GET_VERSION, GET_CONFIG}
+		skipCheck := []string{EXPORT_WALLETFILE, EXPORT_WIFPRIVATEKEY, GET_CURRENT_ACCOUNT, GET_CHAINID,
+			GET_CHAINID_LIST, GET_VERSION, GET_CONFIG}
 		for _, skip := range skipCheck {
 			if url == skip {
 				return dsp.SUCCESS, ""
 			}
 		}
-		if dsp.DspService == nil || dsp.DspService.Dsp == nil {
+		if dsp.DspService == nil || !dsp.DspService.AccountExists() {
 			return dsp.NO_DSP, dsp.ErrMaps[dsp.NO_DSP].Error()
 		}
 		return dsp.SUCCESS, ""
 	} else {
-		skipCheck := []string{NEW_ACCOUNT, IMPORT_ACCOUNT_WITH_PRIVATEKEY, IMPORT_ACCOUNT_WITH_WALLETFILE, LOGIN_ACCOUNT, SWITCH_CHAINID, LOGOUT_ACCOUNT, SET_CONFIG}
+		skipCheck := []string{NEW_ACCOUNT, IMPORT_ACCOUNT_WITH_PRIVATEKEY, IMPORT_ACCOUNT_WITH_WALLETFILE,
+			LOGIN_ACCOUNT, SWITCH_CHAINID, LOGOUT_ACCOUNT, SET_CONFIG}
 		for _, skip := range skipCheck {
 			if url == skip {
 				return dsp.SUCCESS, ""
 			}
 		}
-		if dsp.DspService == nil || dsp.DspService.Dsp == nil {
+		if dsp.DspService == nil || !dsp.DspService.AccountExists() {
 			return dsp.NO_DSP, dsp.ErrMaps[dsp.NO_DSP].Error()
 		}
 		return dsp.SUCCESS, ""

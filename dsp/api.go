@@ -18,6 +18,7 @@ import (
 	dspCom "github.com/saveio/dsp-go-sdk/common"
 	dspCfg "github.com/saveio/dsp-go-sdk/config"
 	"github.com/saveio/dsp-go-sdk/dsp"
+	dspSdk "github.com/saveio/dsp-go-sdk/dsp"
 	"github.com/saveio/edge/common"
 	"github.com/saveio/edge/common/config"
 	"github.com/saveio/edge/p2p/actor/req"
@@ -41,10 +42,11 @@ import (
 var DspService *Endpoint
 
 type Endpoint struct {
-	Dsp               *dsp.Dsp
-	Account           *account.Account
-	Password          string
-	AccountLabel      string
+	dsp               *dspSdk.Dsp
+	account           *account.Account
+	password          string
+	accountLabel      string
+	dspAccLock        *sync.Mutex
 	progress          sync.Map
 	closeCh           chan struct{}
 	p2pActor          *p2p_actor.P2PActor
@@ -58,9 +60,10 @@ type Endpoint struct {
 
 func Init(walletDir, pwd string) (*Endpoint, error) {
 	e := &Endpoint{
-		closeCh:  make(chan struct{}, 1),
-		eventHub: NewEventHub(),
-		state:    NewLifeCycle(),
+		closeCh:    make(chan struct{}, 1),
+		eventHub:   NewEventHub(),
+		state:      NewLifeCycle(),
+		dspAccLock: new(sync.Mutex),
 	}
 	DspService = e
 	log.Debugf("walletDir: %s, %d", walletDir, len(walletDir))
@@ -85,10 +88,8 @@ func Init(walletDir, pwd string) (*Endpoint, error) {
 	if err != nil {
 		return nil, err
 	}
-	e.Account = acc
-	e.AccountLabel = accData.Label
-	e.Password = pwd
-	config.SetCurrentUserWalletAddress(e.Account.Address.ToBase58())
+	e.setDspAccount(acc, accData.Label, pwd)
+	config.SetCurrentUserWalletAddress(e.getDspWalletAddress())
 	log.Debug("Endpoint init success")
 	return e, nil
 }
@@ -153,11 +154,12 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		return err
 	}
 	endpoint.p2pActor = p2pActor
-	dspSrv := dsp.NewDsp(dspConfig, endpoint.Account, p2pActor.GetLocalPID())
+	dspSrv := dsp.NewDsp(dspConfig, endpoint.GetDspAccount(), p2pActor.GetLocalPID())
+	log.Debugf("new dsp svr %v", dspSrv)
 	if dspSrv == nil {
 		return errors.New("dsp server init failed")
 	}
-	endpoint.Dsp = dspSrv
+	endpoint.setDsp(dspSrv)
 	version, _ := endpoint.GetNodeVersion()
 
 	// start dsp service
@@ -212,7 +214,7 @@ func (this *Endpoint) Stop() error {
 		close(this.closeCh)
 	}
 	this.ResetChannelProgress()
-	return this.Dsp.Stop()
+	return this.getDsp().Stop()
 }
 
 func (this *Endpoint) startDspService(listenHost string) error {
@@ -223,7 +225,7 @@ func (this *Endpoint) startDspService(listenHost string) error {
 		Port: fmt.Sprintf("%d", int(config.Parameters.BaseConfig.PortBase+
 			uint32(config.Parameters.BaseConfig.TrackerPortOffset))),
 	}
-	if err := this.startTrackerP2P(tkHostAddr, this.Account); err != nil {
+	if err := this.startTrackerP2P(tkHostAddr, this.GetDspAccount()); err != nil {
 		return err
 	}
 	// start dsp net
@@ -233,7 +235,7 @@ func (this *Endpoint) startDspService(listenHost string) error {
 		Port: fmt.Sprintf("%d", int(config.Parameters.BaseConfig.PortBase+
 			uint32(config.Parameters.BaseConfig.DspPortOffset))),
 	}
-	if err := this.startDspP2P(dspHostAddr, this.Account); err != nil {
+	if err := this.startDspP2P(dspHostAddr, this.GetDspAccount()); err != nil {
 		return err
 	}
 	log.Debugf("start dsp at %s", this.dspPublicAddr)
@@ -245,7 +247,7 @@ func (this *Endpoint) startDspService(listenHost string) error {
 			uint32(config.Parameters.BaseConfig.ChannelPortOffset))),
 	}
 
-	if err := this.startChannelP2P(chHostAddr, this.Account); err != nil {
+	if err := this.startChannelP2P(chHostAddr, this.GetDspAccount()); err != nil {
 		return err
 	}
 	log.Debugf("start channel at %s", this.channelPublicAddr)
@@ -254,7 +256,7 @@ func (this *Endpoint) startDspService(listenHost string) error {
 		log.Warnf("register endpoint failed err %s", err)
 	}
 	log.Debugf("update node finished")
-	if this.Account == nil {
+	if this.GetDspAccount() == nil {
 		return errors.New("account is nil")
 	}
 	// setup filter block range before start
@@ -262,14 +264,14 @@ func (this *Endpoint) startDspService(listenHost string) error {
 	go func() {
 		for {
 			this.notifyChannelProgress()
-			if this.Dsp.Running() {
+			if this.getDsp().Running() {
 				log.Debugf("return channel progress after runing")
 				return
 			}
 			<-time.After(time.Duration(2) * time.Second)
 		}
 	}()
-	if err := this.Dsp.Start(); err != nil {
+	if err := this.getDsp().Start(); err != nil {
 		return err
 	}
 	return nil
@@ -281,7 +283,7 @@ func (this *Endpoint) startDspP2P(hostAddr *common.HostAddr, acc *account.Accoun
 	dspNetwork := network.NewP2P()
 	f := utils.TimeoutFunc(func() error {
 		opts := []network.NetworkOption{network.WithKeys(networkKey),
-			network.WithMsgHandler(this.Dsp.Receive)}
+			network.WithMsgHandler(this.getDsp().Receive)}
 		if len(config.Parameters.BaseConfig.IntranetIP) > 0 {
 			opts = append(opts, network.WithIntranetIP(config.Parameters.BaseConfig.IntranetIP))
 		}
@@ -300,7 +302,9 @@ func (this *Endpoint) startDspP2P(hostAddr *common.HostAddr, acc *account.Accoun
 func (this *Endpoint) startChannelP2P(hostAddr *common.HostAddr, acc *account.Account) error {
 	channelNetwork := network.NewP2P()
 	bPub := keypair.SerializePublicKey(acc.PubKey())
-	req.SetChannelPid(this.Dsp.GetChannelPid())
+	dsp := this.getDsp()
+	log.Debugf("channel p2p dsp %v", dsp)
+	req.SetChannelPid(dsp.GetChannelPid())
 	f := utils.TimeoutFunc(func() error {
 		opts := []network.NetworkOption{
 			network.WithKeys(utils.NewNetworkEd25519KeyPair(bPub, []byte("channel"))),
@@ -353,10 +357,10 @@ func (this *Endpoint) startTrackerP2P(hostAddr *common.HostAddr, acc *account.Ac
 }
 
 func (this *Endpoint) registerChannelEndpoint() error {
-	walletAddr := this.Dsp.Address()
+	walletAddr := this.getDsp().Address()
 	publicAddr := this.channelNet.PublicAddr()
 	for i := 0; i < common.MAX_REG_CHANNEL_TIMES; i++ {
-		err := this.Dsp.RegNodeEndpoint(walletAddr, publicAddr)
+		err := this.getDsp().RegNodeEndpoint(walletAddr, publicAddr)
 		log.Debugf("register endpoint for channel %s, err %s", publicAddr, err)
 		if err == nil {
 			return nil
@@ -374,7 +378,11 @@ func (this *Endpoint) registerChannelEndpoint() error {
 }
 
 func (this *Endpoint) updateStorageNodeHost() {
-	nodeInfo, err := this.NodeQuery(this.Account.Address.ToBase58())
+	walletAddr := this.getDspWalletAddress()
+	if len(walletAddr) == 0 {
+		return
+	}
+	nodeInfo, err := this.NodeQuery(walletAddr)
 	if err != nil || nodeInfo == nil {
 		return
 	}
@@ -384,22 +392,21 @@ func (this *Endpoint) updateStorageNodeHost() {
 		log.Debugf("no need to update")
 		return
 	}
-	log.Debugf("update it %v %v %v", publicAddr, nodeInfo.Volume, nodeInfo.ServiceTime)
-	_, err = this.NodeUpdate(publicAddr, nodeInfo.Volume, nodeInfo.ServiceTime)
-	log.Debugf("update node result")
-	if err != nil {
+	if _, err := this.NodeUpdate(publicAddr, nodeInfo.Volume, nodeInfo.ServiceTime); err != nil {
 		log.Errorf("update node addr failed, err %s", err)
+	} else {
+		log.Debugf("update it %v %v %v", publicAddr, nodeInfo.Volume, nodeInfo.ServiceTime)
 	}
 }
 
 func (this *Endpoint) startShareService() {
 	// TODO: price needed to be discuss
-	this.Dsp.SetUnitPriceForAllFile(dspCom.ASSET_USDT, common.DSP_DOWNLOAD_UNIT_PRICE)
-	_, files, err := this.Dsp.AllDownloadFiles()
+	this.getDsp().SetUnitPriceForAllFile(dspCom.ASSET_USDT, common.DSP_DOWNLOAD_UNIT_PRICE)
+	_, files, err := this.getDsp().AllDownloadFiles()
 	if err == nil {
-		this.Dsp.PushFilesToTrackers(files)
+		this.getDsp().PushFilesToTrackers(files)
 	}
-	this.Dsp.StartShareServices()
+	this.getDsp().StartShareServices()
 }
 
 // SetupDNSNodeBackground. setup a dns node background when received first payments.
@@ -407,7 +414,7 @@ func (this *Endpoint) setupDNSNodeBackground() {
 	if !config.Parameters.BaseConfig.AutoSetupDNSEnable {
 		return
 	}
-	allChannels := this.Dsp.GetAllPartners()
+	allChannels := this.getDsp().GetAllPartners()
 	log.Debugf("setup dns node len %v", len(allChannels))
 	setup := func() bool {
 		syncing, derr := this.IsChannelProcessBlocks()
@@ -422,19 +429,19 @@ func (this *Endpoint) setupDNSNodeBackground() {
 		}
 
 		if len(allChannels) > 0 {
-			err := this.Dsp.SetupDNSChannels()
+			err := this.getDsp().SetupDNSChannels()
 			if err != nil {
 				log.Errorf("SetupDNSChannels err %s", err)
 				return false
 			}
 			return true
 		}
-		address, err := chainCom.AddressFromBase58(this.Dsp.WalletAddress())
+		address, err := chainCom.AddressFromBase58(this.getDsp().WalletAddress())
 		if err != nil {
 			log.Errorf("setup dns failed address decoded failed")
 			return false
 		}
-		bal, err := this.Dsp.BalanceOf(address)
+		bal, err := this.getDsp().BalanceOf(address)
 		if bal == 0 || err != nil {
 			log.Errorf("setup dns failed balance is 0")
 			return false
@@ -443,7 +450,7 @@ func (this *Endpoint) setupDNSNodeBackground() {
 			log.Errorf("setup dns failed balance not enough %d", bal)
 			return false
 		}
-		err = this.Dsp.SetupDNSChannels()
+		err = this.getDsp().SetupDNSChannels()
 		if err != nil {
 			log.Errorf("setup dns channel err %s", err)
 			return false
@@ -529,8 +536,8 @@ func (this *Endpoint) initLog() {
 }
 
 func (this *Endpoint) checkOnlineDNS() {
-	if this.Dsp.HasDNS() {
+	if this.getDsp().HasDNS() {
 		return
 	}
-	this.Dsp.BootstrapDNS()
+	this.getDsp().BootstrapDNS()
 }

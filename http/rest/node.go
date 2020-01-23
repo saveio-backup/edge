@@ -353,9 +353,9 @@ func QueryPublicIP(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
-	ret, err := dsp.DspService.Dsp.GetExternalIP(addr)
-	if err != nil {
-		return ResponsePackWithErrMsg(dsp.INTERNAL_ERROR, err.Error())
+	ret, derr := dsp.DspService.GetExternalIP(addr)
+	if derr != nil {
+		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
 	}
 	resp["Result"] = ret
 	return resp

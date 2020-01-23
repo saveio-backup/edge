@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"strconv"
@@ -35,18 +36,15 @@ const (
 var Version string
 
 func (this *Endpoint) GetNodeVersion() (string, *DspErr) {
-	if this == nil || this.Dsp == nil {
-		return "", nil
-	}
-	version, err := this.Dsp.GetChainVersion()
-	if err != nil {
-		return "", &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
+	chainVer := ""
+	if dsp := this.getDsp(); dsp != nil {
+		chainVer, _ = dsp.GetChainVersion()
 	}
 	max := 6
 	if len(Version) < max {
 		max = len(Version)
 	}
-	return fmt.Sprintf("%s-%s", version, Version[:max]), nil
+	return fmt.Sprintf("%s-%s", chainVer, Version[:max]), nil
 }
 
 func (this *Endpoint) GetChainId() string {
@@ -60,7 +58,11 @@ func (this *Endpoint) GetNetworkId() string {
 
 //get block height
 func (this *Endpoint) GetBlockHeight() (uint32, *DspErr) {
-	height, err := this.Dsp.GetCurrentBlockHeight()
+	dsp := this.getDsp()
+	if dsp == nil {
+		return 0, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+	height, err := dsp.GetCurrentBlockHeight()
 	if err != nil {
 		return 0, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
@@ -69,7 +71,11 @@ func (this *Endpoint) GetBlockHeight() (uint32, *DspErr) {
 
 //get block hash by height
 func (this *Endpoint) GetBlockHash(height uint32) (string, *DspErr) {
-	hash, err := this.Dsp.GetBlockHash(uint32(height))
+	dsp := this.getDsp()
+	if dsp == nil {
+		return "", &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+	hash, err := dsp.GetBlockHash(uint32(height))
 	if err != nil {
 		return "", &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
@@ -85,8 +91,11 @@ func (this *Endpoint) GetBlockByHash(hash, raw string) (interface{}, *DspErr) {
 	if raw == "1" {
 		getTxBytes = true
 	}
-
-	block, err := this.Dsp.GetBlockByHash(hash)
+	dsp := this.getDsp()
+	if dsp == nil {
+		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+	block, err := dsp.GetBlockByHash(hash)
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
@@ -109,7 +118,11 @@ func (this *Endpoint) GetBlockHeightByTxHash(str string) (uint32, *DspErr) {
 	if len(str) == 0 {
 		return 0, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
 	}
-	height, err := this.Dsp.GetBlockHeightByTxHash(str)
+	dsp := this.getDsp()
+	if dsp == nil {
+		return 0, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+	height, err := dsp.GetBlockHeightByTxHash(str)
 	if err != nil {
 		return height, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
@@ -118,7 +131,11 @@ func (this *Endpoint) GetBlockHeightByTxHash(str string) (uint32, *DspErr) {
 
 //get block transaction hashes by height
 func (this *Endpoint) GetBlockTxsByHeight(height uint32) (interface{}, *DspErr) {
-	data, err := this.Dsp.GetBlockTxHashesByHeight(uint32(height))
+	dsp := this.getDsp()
+	if dsp == nil {
+		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+	data, err := dsp.GetBlockTxHashesByHeight(uint32(height))
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
@@ -132,7 +149,11 @@ func (this *Endpoint) GetBlockByHeight(height uint32, raw string) (interface{}, 
 	if raw == "1" {
 		getTxBytes = true
 	}
-	block, err := this.Dsp.GetBlockByHeight(height)
+	dsp := this.getDsp()
+	if dsp == nil {
+		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+	block, err := dsp.GetBlockByHeight(height)
 	if err != nil || block == nil {
 		return nil, &DspErr{Code: CHAIN_UNKNOWN_BLOCK, Error: ErrMaps[CHAIN_UNKNOWN_BLOCK]}
 	}
@@ -147,7 +168,11 @@ func (this *Endpoint) GetBlockByHeight(height uint32, raw string) (interface{}, 
 
 //get transaction by hash
 func (this *Endpoint) GetTransactionByHash(hash, raw string) (interface{}, *DspErr) {
-	tx, err := this.Dsp.GetTransaction(hash)
+	dsp := this.getDsp()
+	if dsp == nil {
+		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+	tx, err := dsp.GetTransaction(hash)
 	if tx == nil {
 		return nil, &DspErr{Code: CHAIN_UNKNOWN_TX, Error: ErrMaps[CHAIN_UNKNOWN_TX]}
 	}
@@ -168,31 +193,45 @@ func (this *Endpoint) GetTransactionByHash(hash, raw string) (interface{}, *DspE
 
 //get smartcontract event by height
 func (this *Endpoint) GetSmartCodeEventTxsByHeight(height uint32) (interface{}, *DspErr) {
-	eInfos, err := this.Dsp.GetSmartContractEventByBlock(uint32(height))
+	dsp := this.getDsp()
+	if dsp == nil {
+		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+	eInfos, err := dsp.GetSmartContractEventByBlock(uint32(height))
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
 	if eInfos == nil {
-		return nil, &DspErr{Code: CHAIN_UNKNOWN_SMARTCONTRACT_EVENT, Error: ErrMaps[CHAIN_UNKNOWN_SMARTCONTRACT_EVENT]}
+		return nil, &DspErr{Code: CHAIN_UNKNOWN_SMARTCONTRACT_EVENT,
+			Error: ErrMaps[CHAIN_UNKNOWN_SMARTCONTRACT_EVENT]}
 	}
 	return eInfos, nil
 }
 
 //get smartcontract event by transaction hash
 func (this *Endpoint) GetSmartCodeEventByTxHash(hash string) (interface{}, *DspErr) {
-	notify, err := this.Dsp.GetSmartContractEvent(hash)
+	dsp := this.getDsp()
+	if dsp == nil {
+		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+	notify, err := dsp.GetSmartContractEvent(hash)
 	if err != nil {
 		return "", &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
 	if notify == nil {
-		return nil, &DspErr{Code: CHAIN_UNKNOWN_SMARTCONTRACT_EVENT, Error: ErrMaps[CHAIN_UNKNOWN_SMARTCONTRACT_EVENT]}
+		return nil, &DspErr{Code: CHAIN_UNKNOWN_SMARTCONTRACT_EVENT,
+			Error: ErrMaps[CHAIN_UNKNOWN_SMARTCONTRACT_EVENT]}
 	}
 	return notify, nil
 }
 
 //get contract state
 func (this *Endpoint) GetContractState(hash, raw string) (interface{}, *DspErr) {
-	smartContract, err := this.Dsp.GetSmartContract(hash)
+	dsp := this.getDsp()
+	if dsp == nil {
+		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+	smartContract, err := dsp.GetSmartContract(hash)
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
@@ -216,7 +255,11 @@ func (this *Endpoint) GetStorage(hash, key string) (string, *DspErr) {
 	if err != nil {
 		return "", &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
-	value, err := this.Dsp.GetStorage(hash, item)
+	dsp := this.getDsp()
+	if dsp == nil {
+		return "", &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+	value, err := dsp.GetStorage(hash, item)
 	if err != nil {
 		return "", &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
@@ -234,14 +277,18 @@ type BalanceResp struct {
 
 //get balance of address
 func (this *Endpoint) GetBalance(address string) ([]*BalanceResp, *DspErr) {
+	if len(address) == 0 {
+		address = this.getDspWalletAddress()
+	}
 	addr, err := common.AddressFromBase58(address)
 	if err != nil {
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
 	}
-	if this.Dsp == nil {
+	dsp := this.getDsp()
+	if dsp == nil {
 		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
-	usdt, err := this.Dsp.BalanceOf(addr)
+	usdt, err := dsp.BalanceOf(addr)
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
@@ -291,8 +338,11 @@ func (this *Endpoint) GetBalanceHistory(address, limitStr string) ([]*BalanceHis
 	if err != nil || limit < 0 || limit > 31 {
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
 	}
-
-	bal, err := this.Dsp.BalanceOf(addr)
+	dsp := this.getDsp()
+	if dsp == nil {
+		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+	bal, err := dsp.BalanceOf(addr)
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
@@ -327,8 +377,8 @@ func (this *Endpoint) GetBalanceHistory(address, limitStr string) ([]*BalanceHis
 	flagForRequest := true
 	filterFeeWithSameTxId := ""
 	for flagForRequest {
-		txs, derr := this.GetTxByHeightAndLimit(address, "save", TxTypeAll, string(heightForRequest), limitForRequest, string(skipForRequest), false)
-		// fmt.Printf("txs: %+v\n", txs)
+		txs, derr := this.GetTxByHeightAndLimit(address, "save", TxTypeAll, string(heightForRequest),
+			limitForRequest, string(skipForRequest), false)
 		if derr != nil {
 			return nil, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 		}
@@ -344,9 +394,7 @@ func (this *Endpoint) GetBalanceHistory(address, limitStr string) ([]*BalanceHis
 				return nil, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 			}
 
-			// fmt.Printf("\ntTxId: %s, tTxStr: %s, tAmountFormat: %s, tFeeFormat: %s, tType: %u, tHeight: %u, tFrom: %s, tTo: %s, tToHex: %s, %d \n", tx.Txid, tTxStr, tx.AmountFormat, tx.FeeFormat, tx.Type, tx.BlockHeight, tx.From, tx.To, txToHexStr.ToHexString(), tx.Amount)
 			if tTxStr < tEndStr {
-				// fmt.Printf("tTxStr: %s ,tEndStr: %s\n", tTxStr, tEndStr)
 				flagForRequest = false
 				break
 			}
@@ -363,7 +411,6 @@ func (this *Endpoint) GetBalanceHistory(address, limitStr string) ([]*BalanceHis
 				skipForRequestI++
 				skipForRequest = strconv.FormatUint(skipForRequestI, 10)
 			}
-			// fmt.Printf("txBlockHeiStr: %s, heightForRequest: %s, skipForRequest: %s\n", txBlockHeightStr, heightForRequest, skipForRequest)
 
 			// filter tx with same txid , only process once
 			if filterFeeWithSameTxId == tx.Txid {
@@ -372,32 +419,31 @@ func (this *Endpoint) GetBalanceHistory(address, limitStr string) ([]*BalanceHis
 
 			for itemI, dateItemStr := range balanceHistoryDates {
 				// Balance calculate time until dateItemStr
-				// fmt.Printf("\ndateItemStr: %s ;", dateItemStr)
 				if dateItemStr <= tTxStr {
-					// fmt.Printf("dateItemStr < tTxStr isTrue;")
 					if tx.Type == TxTypeSend || tx.From == address {
-						if tx.Amount == 10000000 && strings.Contains(txToHexStr.ToHexString(), "0000000000000000000000000000000000000") {
+						if tx.Amount == 10000000 &&
+							strings.Contains(txToHexStr.ToHexString(), "0000000000000000000000000000000000000") {
 							balanceHistoryMap[dateItemStr].Balance += tx.Amount
 						} else {
 							balanceHistoryMap[dateItemStr].Balance += tx.Amount + utils.ParseUsdt(tx.FeeFormat)
 						}
-						balanceHistoryMap[dateItemStr].BalanceFormat = utils.FormatUsdt(balanceHistoryMap[dateItemStr].Balance)
+						balanceHistoryMap[dateItemStr].BalanceFormat = utils.FormatUsdt(
+							balanceHistoryMap[dateItemStr].Balance)
 					} else if tx.Type == TxTypeReceive || tx.To == address {
 						if balanceHistoryMap[dateItemStr].Balance > tx.Amount {
 							balanceHistoryMap[dateItemStr].Balance -= tx.Amount
 						} else {
 							balanceHistoryMap[dateItemStr].Balance = 0
 						}
-						balanceHistoryMap[dateItemStr].BalanceFormat = utils.FormatUsdt(balanceHistoryMap[dateItemStr].Balance)
+						balanceHistoryMap[dateItemStr].BalanceFormat = utils.FormatUsdt(
+							balanceHistoryMap[dateItemStr].Balance)
 					} else {
-						// fmt.Println("unknown tx type")
 					}
 				}
 				// Txs count calculate, without the last day
 				if dateItemStr == tTxStr {
 					if itemI > 0 {
 						dateItemStrYsdt := balanceHistoryDates[itemI-1]
-						// fmt.Printf("dateItemStr == tTxStr isTrue.")
 						if tx.Type == TxTypeSend {
 							balanceHistoryMap[dateItemStrYsdt].TxsSendCount++
 						} else if tx.Type == TxTypeReceive {
@@ -412,7 +458,6 @@ func (this *Endpoint) GetBalanceHistory(address, limitStr string) ([]*BalanceHis
 
 			// process the last day, calcalate txs count
 			if tTxStr == tEndStr {
-				// fmt.Printf("tTxStr == tEndStr isTrue.")
 				if tx.Type == TxTypeSend {
 					balanceHistoryMap[balanceHistoryDates[limit-1]].TxsSendCount++
 				} else if tx.Type == TxTypeReceive {
@@ -420,10 +465,6 @@ func (this *Endpoint) GetBalanceHistory(address, limitStr string) ([]*BalanceHis
 				}
 				balanceHistoryMap[balanceHistoryDates[limit-1]].TxsCount++
 			}
-			// fmt.Println("")
-			// for mapKey, mapVal := range balanceHistoryMap {
-			// 	fmt.Println(mapKey, mapVal)
-			// }
 		}
 		// use for debug paging, if there are difference with no paging
 		// flagForRequest = false
@@ -441,7 +482,11 @@ func (this *Endpoint) GetBalanceHistory(address, limitStr string) ([]*BalanceHis
 
 //get merkle proof by transaction hash
 func (this *Endpoint) GetMerkleProof(hash string) (interface{}, *DspErr) {
-	proof, err := this.Dsp.GetMerkleProof(hash)
+	dsp := this.getDsp()
+	if dsp == nil {
+		return 0, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+	proof, err := dsp.GetMerkleProof(hash)
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
@@ -452,7 +497,11 @@ func (this *Endpoint) GetMerkleProof(hash string) (interface{}, *DspErr) {
 //[TODO] need change themis hCom.GetGasPrice return gasprice and height as string
 //[TODO] or just return gasprice
 func (this *Endpoint) GetGasPrice() (uint64, *DspErr) {
-	price, err := this.Dsp.GetGasPrice()
+	dsp := this.getDsp()
+	if dsp == nil {
+		return 0, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+	price, err := dsp.GetGasPrice()
 	if err != nil {
 		return 0, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
@@ -478,7 +527,11 @@ func (this *Endpoint) GetAllowance(asset, from, to string) (string, *DspErr) {
 
 //get memory pool transaction count
 func (this *Endpoint) GetMemPoolTxCount() (interface{}, *DspErr) {
-	cnt, err := this.Dsp.GetMemPoolTxCount()
+	dsp := this.getDsp()
+	if dsp == nil {
+		return 0, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+	cnt, err := dsp.GetMemPoolTxCount()
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
@@ -487,7 +540,11 @@ func (this *Endpoint) GetMemPoolTxCount() (interface{}, *DspErr) {
 
 //get memory poll transaction state
 func (this *Endpoint) GetMemPoolTxState(hash string) (interface{}, *DspErr) {
-	state, err := this.Dsp.GetMemPoolTxState(hash)
+	dsp := this.getDsp()
+	if dsp == nil {
+		return 0, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+	state, err := dsp.GetMemPoolTxState(hash)
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
@@ -516,8 +573,10 @@ type TxResp struct {
 	ContractType TxInvokeType
 }
 
-func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, heightStr, limitStr, skipTxCntStr string, ignoreOtherCont bool) ([]*TxResp, *DspErr) {
-	log.Debugf("GetTxByHeightAndLimit %v %v %v %v %v %v", addr, asset, txType, heightStr, limitStr, skipTxCntStr)
+func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64,
+	heightStr, limitStr, skipTxCntStr string, ignoreOtherCont bool) ([]*TxResp, *DspErr) {
+	log.Debugf("GetTxByHeightAndLimit %v %v %v %v %v %v",
+		addr, asset, txType, heightStr, limitStr, skipTxCntStr)
 	if len(asset) == 0 {
 		asset = "save"
 	} else {
@@ -541,8 +600,11 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 		}
 		limit = uint32(limit64)
 	}
-
-	currentHeight, err := this.Dsp.GetCurrentBlockHeight()
+	dsp := this.getDsp()
+	if dsp == nil {
+		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+	currentHeight, err := dsp.GetCurrentBlockHeight()
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
 	}
@@ -562,7 +624,7 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 	}
 
 	txs := make([]*TxResp, 0)
-	events, err := this.Dsp.GetSmartContractEventByEventIdAndHeights(usdt.USDT_CONTRACT_ADDRESS.ToBase58(),
+	events, err := dsp.GetSmartContractEventByEventIdAndHeights(usdt.USDT_CONTRACT_ADDRESS.ToBase58(),
 		addr, cUsdt.EVENT_USDT_STATE_CHANGE, 1, height)
 	if err != nil {
 		return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
@@ -571,14 +633,14 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 	hasSkip := uint64(0)
 	for i := len(events) - 1; i >= 0; i-- {
 		event := events[i]
-		blockHeight, err := this.Dsp.GetBlockHeightByTxHash(event.TxHash)
+		blockHeight, err := dsp.GetBlockHeightByTxHash(event.TxHash)
 		if err != nil {
 			continue
 		}
 		if blockHeight > height {
 			continue
 		}
-		blk, err := this.Dsp.GetBlockByHeight(blockHeight)
+		blk, err := dsp.GetBlockByHeight(blockHeight)
 		if err != nil {
 			continue
 		}
@@ -668,7 +730,8 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 		}
 		sendToSelf = (tx.From == addr && tx.To == addr)
 		if !sendToSelf && txType != TxTypeAll &&
-			((txType == TxTypeSend && tx.Type != TxTypeSend) || (txType == TxTypeReceive && tx.Type != TxTypeReceive)) {
+			((txType == TxTypeSend && tx.Type != TxTypeSend) ||
+				(txType == TxTypeReceive && tx.Type != TxTypeReceive)) {
 			log.Debugf("type wrong %d", txType)
 			continue
 		}
@@ -716,8 +779,13 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64, h
 	return txs, nil
 }
 
-func (this *Endpoint) GetSmartContractEventByEventId(contractAddr, addr string, eventId uint32) ([]*sdkCom.SmartContactEvent, *DspErr) {
-	events, err := this.Dsp.GetSmartContractEventByEventId(contractAddr, addr, eventId)
+func (this *Endpoint) GetSmartContractEventByEventId(contractAddr, addr string, eventId uint32) (
+	[]*sdkCom.SmartContactEvent, *DspErr) {
+	dsp := this.getDsp()
+	if dsp == nil {
+		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+	events, err := dsp.GetSmartContractEventByEventId(contractAddr, addr, eventId)
 	if err != nil {
 		return nil, &DspErr{CHAIN_INTERNAL_ERROR, err}
 	}
@@ -726,12 +794,16 @@ func (this *Endpoint) GetSmartContractEventByEventId(contractAddr, addr string, 
 
 // GetAccountSmartContractEventByBlock. get smartcontract event for current account by block height
 func (this *Endpoint) GetAccountSmartContractEventByBlock(height uint32) (*sdkCom.SmartContactEvent, error) {
-	txs, err := this.Dsp.GetBlockTxHashesByHeight(height)
+	dsp := this.getDsp()
+	if dsp == nil {
+		return nil, errors.New("no dsp")
+	}
+	txs, err := dsp.GetBlockTxHashesByHeight(height)
 	if err != nil {
 		return nil, err
 	}
 	for _, tx := range txs.Transactions {
-		event, err := this.Dsp.GetSmartContractEvent(tx.ToHexString())
+		event, err := dsp.GetSmartContractEvent(tx.ToHexString())
 		if err != nil {
 			continue
 		}
@@ -750,7 +822,7 @@ func (this *Endpoint) GetAccountSmartContractEventByBlock(height uint32) (*sdkCo
 				if !ok || states[0].(string) != "transfer" || len(states) < 4 {
 					continue
 				}
-				curWalletAddr := this.Dsp.WalletAddress()
+				curWalletAddr := dsp.WalletAddress()
 				if states[1] != curWalletAddr && states[2] != curWalletAddr {
 					continue
 				}
@@ -763,7 +835,7 @@ func (this *Endpoint) GetAccountSmartContractEventByBlock(height uint32) (*sdkCo
 
 //asset transfer direct
 func (this *Endpoint) AssetTransferDirect(to, asset, amountStr string) (string, *DspErr) {
-	acc, derr := this.GetAccount(config.WalletDatFilePath(), this.Password)
+	acc, derr := this.GetAccount(config.WalletDatFilePath(), this.getDspPassword())
 	if derr != nil {
 		return "", derr
 	}
@@ -777,20 +849,24 @@ func (this *Endpoint) AssetTransferDirect(to, asset, amountStr string) (string, 
 	}
 	amount = temp
 	realAmount := uint64(amount * 1000000000)
-	log.Debugf("amount :%v", realAmount)
+	log.Debugf("transfer amount :%v", realAmount)
+	dsp := this.getDsp()
+	if dsp == nil {
+		return "", &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
 	if asset == "usdt" {
 		toAddr, err := common.AddressFromBase58(to)
 		if err != nil {
 			return "", &DspErr{Code: INVALID_WALLET_ADDRESS, Error: err}
 		}
-		balance, err := this.Dsp.BalanceOf(acc.Address)
+		balance, err := dsp.BalanceOf(acc.Address)
 		if err != nil {
 			return "", &DspErr{Code: CHAIN_TRANSFER_ERROR, Error: err}
 		}
 		if balance < realAmount+chainCfg.DEFAULT_GAS_PRICE*chainCfg.DEFAULT_GAS_LIMIT {
 			return "", &DspErr{Code: INSUFFICIENT_BALANCE, Error: ErrMaps[INSUFFICIENT_BALANCE]}
 		}
-		tx, err := this.Dsp.Transfer(chainCfg.DEFAULT_GAS_PRICE, chainCfg.DEFAULT_GAS_LIMIT, acc, toAddr, realAmount)
+		tx, err := dsp.Transfer(chainCfg.DEFAULT_GAS_PRICE, chainCfg.DEFAULT_GAS_LIMIT, acc, toAddr, realAmount)
 		if err != nil {
 			return "", &DspErr{Code: CHAIN_TRANSFER_ERROR, Error: err}
 		}
@@ -804,7 +880,8 @@ func (this *Endpoint) SwitchChain(chainId, configFileName string) *DspErr {
 	if config.Parameters.BaseConfig.ChainId == chainId {
 		return nil
 	}
-	if this != nil && this.Dsp != nil {
+	dsp := this.getDsp()
+	if this != nil && dsp != nil {
 		syncing, _ := this.IsChannelProcessBlocks()
 		log.Debugf("SwitchChain syncing: %t", syncing)
 		if syncing {
@@ -820,9 +897,10 @@ func (this *Endpoint) SwitchChain(chainId, configFileName string) *DspErr {
 		return &DspErr{Code: INTERNAL_ERROR, Error: fmt.Errorf("config file not found: %s", cfgName)}
 	}
 	if newCfg.BaseConfig.ChainId != chainId {
-		return &DspErr{Code: INTERNAL_ERROR, Error: fmt.Errorf("chainId: %s not match id: %s from config file", chainId, newCfg.BaseConfig.ChainId)}
+		return &DspErr{Code: INTERNAL_ERROR, Error: fmt.Errorf("chainId: %s not match id: %s from config file",
+			chainId, newCfg.BaseConfig.ChainId)}
 	}
-	if this != nil && this.Dsp != nil {
+	if this != nil && dsp != nil {
 		if err := this.Stop(); err != nil {
 			return &DspErr{Code: INTERNAL_ERROR, Error: err}
 		}
@@ -837,7 +915,7 @@ func (this *Endpoint) SwitchChain(chainId, configFileName string) *DspErr {
 		return nil
 	}
 	this.initLog()
-	if this.Account == nil {
+	if this.GetDspAccount() == nil {
 		return nil
 	}
 	go func() {
@@ -877,8 +955,9 @@ func (this *Endpoint) GetChainIdList() ([]string, *DspErr) {
 	return ids, nil
 }
 
-func (this *Endpoint) InvokeNativeContract(version byte, contractAddr, method string, params []interface{}, gasPrice, gasLimit uint64) (string, *DspErr) {
-	acc, derr := this.GetAccount(config.WalletDatFilePath(), this.Password)
+func (this *Endpoint) InvokeNativeContract(version byte, contractAddr, method string, params []interface{},
+	gasPrice, gasLimit uint64) (string, *DspErr) {
+	acc, derr := this.GetAccount(config.WalletDatFilePath(), this.getDspPassword())
 	if derr != nil {
 		return "", derr
 	}
@@ -896,11 +975,17 @@ func (this *Endpoint) InvokeNativeContract(version byte, contractAddr, method st
 	if gasLimit == 0 {
 		gasLimit = chainCfg.DEFAULT_GAS_LIMIT
 	}
-	tx, err := this.Dsp.InvokeNativeContract(gasPrice, gasLimit, acc, version, contractAddress, method, []interface{}{buf})
+	dsp := this.getDsp()
+	if dsp == nil {
+		return "", &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+	tx, err := dsp.InvokeNativeContract(gasPrice, gasLimit, acc, version,
+		contractAddress, method, []interface{}{buf})
 	return tx, nil
 }
 
-func (this *Endpoint) PreExecNativeContract(version byte, contractAddr, method string, params []interface{}) (interface{}, *DspErr) {
+func (this *Endpoint) PreExecNativeContract(version byte, contractAddr, method string, params []interface{}) (
+	interface{}, *DspErr) {
 	contractAddress, err := common.AddressFromBase58(contractAddr)
 	if err != nil {
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: err}
@@ -909,7 +994,11 @@ func (this *Endpoint) PreExecNativeContract(version byte, contractAddr, method s
 	if err != nil {
 		return "", &DspErr{Code: INVALID_PARAMS, Error: err}
 	}
-	ret, err := this.Dsp.PreExecInvokeNativeContract(contractAddress, version, method, []interface{}{buf})
+	dsp := this.getDsp()
+	if dsp == nil {
+		return 0, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+	ret, err := dsp.PreExecInvokeNativeContract(contractAddress, version, method, []interface{}{buf})
 	if err != nil {
 		return nil, &DspErr{Code: CONTRACT_ERROR, Error: err}
 	}

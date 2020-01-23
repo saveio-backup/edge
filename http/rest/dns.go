@@ -11,8 +11,12 @@ func GetAllDNS(cmd map[string]interface{}) map[string]interface{} {
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
-	list := make([]map[string]string, 0, len(dsp.DspService.Dsp.GetAllOnlineDNS()))
-	for addr, host := range dsp.DspService.Dsp.GetAllOnlineDNS() {
+	allOnlineDns, err := dsp.DspService.GetAllOnlineDNS()
+	if err != nil {
+		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
+	}
+	list := make([]map[string]string, 0, len(allOnlineDns))
+	for addr, host := range allOnlineDns {
 		m := make(map[string]string)
 		m["WalletAddr"] = addr
 		m["HostAddr"] = host
@@ -35,7 +39,10 @@ func GetHashFromUrl(cmd map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
-	hash := dsp.DspService.GetFileHashFromUrl(string(url))
+	hash, derr := dsp.DspService.GetFileHashFromUrl(string(url))
+	if derr != nil {
+		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
+	}
 	m := make(map[string]interface{}, 0)
 	m["Hash"] = hash
 	resp["Result"] = m

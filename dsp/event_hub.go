@@ -56,8 +56,11 @@ func (this *Endpoint) notifyNewSmartContractEvent() {
 	if !config.WsEnabled() {
 		return
 	}
-
-	currentHeight, _ := this.Dsp.GetCurrentBlockHeight()
+	dsp := this.getDsp()
+	if dsp == nil {
+		return
+	}
+	currentHeight, _ := dsp.GetCurrentBlockHeight()
 	if this.eventHub.lastNotifyHeight == 0 {
 		this.eventHub.lastNotifyHeight = currentHeight
 		log.Debugf("first set up %d", currentHeight)
@@ -70,12 +73,10 @@ func (this *Endpoint) notifyNewSmartContractEvent() {
 		client.EventNotifyInvolvedSmartContract()
 		return
 	}
-	if this.Dsp == nil {
-		return
-	}
+
 	log.Debugf("this.eventHub.lastNotifyHeight %d, current %d", this.eventHub.lastNotifyHeight, currentHeight)
-	events, err := this.Dsp.GetSmartContractEventByEventIdAndHeights(usdt.USDT_CONTRACT_ADDRESS.ToBase58(),
-		this.Dsp.WalletAddress(), 0, this.eventHub.lastNotifyHeight, currentHeight+1)
+	events, err := dsp.GetSmartContractEventByEventIdAndHeights(usdt.USDT_CONTRACT_ADDRESS.ToBase58(),
+		dsp.WalletAddress(), 0, this.eventHub.lastNotifyHeight, currentHeight+1)
 	this.eventHub.lastNotifyHeight = currentHeight
 	if err != nil {
 		return
@@ -91,17 +92,21 @@ func (this *Endpoint) notifyIfSwitchChannel() {
 	if !config.WsEnabled() {
 		return
 	}
-	if !this.Dsp.HasDNS() {
+	dsp := this.getDsp()
+	if dsp == nil {
+		return
+	}
+	if !dsp.HasDNS() {
 		if len(this.eventHub.lastDNSChannel) == 0 {
 			return
 		}
 		client.EventNotifySwitchChannel()
 		return
 	}
-	if this.eventHub.lastDNSChannel == this.Dsp.CurrentDNSWallet() {
+	if this.eventHub.lastDNSChannel == dsp.CurrentDNSWallet() {
 		return
 	}
-	this.eventHub.lastDNSChannel = this.Dsp.CurrentDNSWallet()
+	this.eventHub.lastDNSChannel = dsp.CurrentDNSWallet()
 	client.EventNotifySwitchChannel()
 }
 
@@ -112,7 +117,11 @@ func (this *Endpoint) notifyUploadingTransferList() {
 
 	client.EventNotifyUploadTransferList()
 
-	resp := this.GetTransferList(transferTypeComplete, 0, 0)
+	resp, err := this.GetTransferList(transferTypeComplete, 0, 0)
+	if err != nil {
+		log.Errorf("get transfer list err %v", err)
+		return
+	}
 	completeCount := len(resp.Transfers)
 
 	if completeCount == this.eventHub.completeTaskCount {
@@ -129,7 +138,11 @@ func (this *Endpoint) notifyDownloadingTransferList() {
 	}
 
 	client.EventNotifyDownloadTransferList()
-	resp := this.GetTransferList(transferTypeComplete, 0, 0)
+	resp, err := this.GetTransferList(transferTypeComplete, 0, 0)
+	if err != nil {
+		log.Errorf("get transfer list err %v", err)
+		return
+	}
 	completeCount := len(resp.Transfers)
 
 	if completeCount == this.eventHub.completeTaskCount {
