@@ -918,12 +918,11 @@ func (this *Endpoint) SwitchChain(chainId, configFileName string) *DspErr {
 	if this.GetDspAccount() == nil {
 		return nil
 	}
-	go func() {
-		log.Debugf("restart dsp")
-		if err := StartDspNode(this, true, true, true); err != nil {
-			log.Errorf("Start dsp node err : %s", err)
-		}
-	}()
+	log.Debugf("restart dsp")
+	if err := StartDspNode(this, true, true, true); err != nil {
+		log.Errorf("Start dsp node err : %s", err)
+		return &DspErr{Code: INTERNAL_ERROR, Error: err}
+	}
 	return nil
 }
 

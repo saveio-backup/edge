@@ -94,12 +94,10 @@ func (this *Endpoint) Login(password string) (*AccountResp, *DspErr) {
 		}
 		return nil, &DspErr{Code: DSP_INIT_FAILED, Error: err}
 	}
-	go func() {
-		err = StartDspNode(service, true, true, true)
-		if err != nil {
-			log.Errorf("dsp start err %s", err)
-		}
-	}()
+	if err := StartDspNode(service, true, true, true); err != nil {
+		log.Errorf("dsp start err %s", err)
+		return nil, &DspErr{Code: DSP_INIT_FAILED, Error: err}
+	}
 	account := service.GetDspAccount()
 	if account == nil {
 		return nil, &DspErr{Code: DSP_INIT_FAILED, Error: ErrMaps[DSP_INIT_FAILED]}
@@ -151,12 +149,9 @@ func (this *Endpoint) NewAccount(label string, typeCode keypair.KeyType, curveCo
 		log.Errorf("dsp init err %s", err)
 		return nil, &DspErr{Code: DSP_INIT_FAILED, Error: err}
 	}
-	go func() {
-		err = StartDspNode(service, true, true, true)
-		if err != nil {
-			log.Errorf("dsp start err %s", err)
-		}
-	}()
+	if err := StartDspNode(service, true, true, true); err != nil {
+		log.Errorf("dsp start err %s", err)
+	}
 	config.Save()
 	return acc2, nil
 }
@@ -211,12 +206,10 @@ func (this *Endpoint) ImportWithPrivateKey(wif, label, password string) (*Accoun
 	if err != nil {
 		return nil, &DspErr{Code: DSP_INIT_FAILED, Error: err}
 	}
-	go func() {
-		err = StartDspNode(service, true, true, true)
-		if err != nil {
-			log.Errorf("dsp start err %s", err)
-		}
-	}()
+	if err := StartDspNode(service, true, true, true); err != nil {
+		log.Errorf("dsp start err %s", err)
+		return nil, &DspErr{Code: DSP_INIT_FAILED, Error: err}
+	}
 	return acc2, nil
 }
 func (this *Endpoint) ImportWithWalletData(walletStr, password, walletPath string) (*AccountResp, *DspErr) {
@@ -259,12 +252,11 @@ func (this *Endpoint) ImportWithWalletData(walletStr, password, walletPath strin
 		}
 		return nil, &DspErr{Code: DSP_INIT_FAILED, Error: err}
 	}
-	go func() {
-		err = StartDspNode(service, true, true, true)
-		if err != nil {
-			log.Errorf("dsp start err %s", err)
-		}
-	}()
+
+	if err := StartDspNode(service, true, true, true); err != nil {
+		log.Errorf("dsp start err %s", err)
+		return nil, &DspErr{Code: ACCOUNT_PASSWORD_WRONG, Error: err}
+	}
 	return acc2, nil
 }
 

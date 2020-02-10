@@ -45,7 +45,11 @@ func (this *Endpoint) notifyChannelProgress() {
 		client.EventNotifyChannelSyncing()
 	}
 
-	progress, _ := this.GetFilterBlockProgress()
+	progress, err := this.GetFilterBlockProgress()
+	if err != nil {
+		log.Errorf("get channel filter progress err %v", err)
+		return
+	}
 	if this.eventHub.channelFilterHeight != progress.Now {
 		this.eventHub.channelFilterHeight = progress.Now
 		client.EventNotifyChannelProgress()

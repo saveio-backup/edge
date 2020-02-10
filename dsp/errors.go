@@ -19,6 +19,7 @@ const (
 	ACCOUNT_EXIST          = 40008
 	NO_DNS                 = 40009
 	INVALID_WALLET_ADDRESS = 40010
+	NO_CHANNEL             = 40011
 
 	CHAIN_INTERNAL_ERROR              = 50000
 	CHAIN_GET_HEIGHT_FAILED           = 50001
@@ -135,15 +136,17 @@ const (
 )
 
 var ErrMaps = map[int64]error{
-	INTERNAL_ERROR:       errors.New("internal error"),
-	INVALID_PARAMS:       errors.New("invalid params"),
-	NO_DSP:               errors.New("no dsp"),
-	NO_DB:                errors.New("no db"),
-	CONTRACT_ERROR:       errors.New("contract error"),
-	INSUFFICIENT_BALANCE: errors.New("insufficient balance"),
-	NO_ACCOUNT:           errors.New("no account"),
-	ACCOUNT_EXIST:        errors.New("account exist"),
-	NO_DNS:               errors.New("no dns"),
+	INTERNAL_ERROR:         errors.New("internal error"),
+	INVALID_PARAMS:         errors.New("invalid params"),
+	NO_DSP:                 errors.New("no dsp"),
+	NO_DB:                  errors.New("no db"),
+	CONTRACT_ERROR:         errors.New("contract error"),
+	INSUFFICIENT_BALANCE:   errors.New("insufficient balance"),
+	NO_ACCOUNT:             errors.New("no account"),
+	ACCOUNT_EXIST:          errors.New("account exist"),
+	NO_DNS:                 errors.New("no dns"),
+	INVALID_WALLET_ADDRESS: errors.New("no invalid wallet addr"),
+	NO_CHANNEL:             errors.New("no channel"),
 
 	CHAIN_INTERNAL_ERROR:              errors.New("chain internal error"),
 	CHAIN_GET_HEIGHT_FAILED:           errors.New("chain get height failed"),

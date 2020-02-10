@@ -164,9 +164,11 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 
 	// start dsp service
 	if startListen {
-		if err = endpoint.startDspService(listenHost); err != nil {
-			return err
-		}
+		go func() {
+			if err = endpoint.startDspService(listenHost); err != nil {
+				log.Errorf("start dsp err %s", err)
+			}
+		}()
 	}
 
 	// start share service
@@ -176,9 +178,11 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 
 	// start channel only
 	if !startListen && startChannel {
-		if err := dspSrv.StartChannelService(); err != nil {
-			return err
-		}
+		go func() {
+			if err := dspSrv.StartChannelService(); err != nil {
+				log.Errorf("start dsp channel err %s", err)
+			}
+		}()
 	}
 	endpoint.closeCh = make(chan struct{}, 1)
 	if startListen {
@@ -304,7 +308,9 @@ func (this *Endpoint) startChannelP2P(hostAddr *common.HostAddr, acc *account.Ac
 	bPub := keypair.SerializePublicKey(acc.PubKey())
 	dsp := this.getDsp()
 	log.Debugf("channel p2p dsp %v", dsp)
-	req.SetChannelPid(dsp.GetChannelPid())
+	if dsp.GetChannelPid() != nil {
+		req.SetChannelPid(dsp.GetChannelPid())
+	}
 	f := utils.TimeoutFunc(func() error {
 		opts := []network.NetworkOption{
 			network.WithKeys(utils.NewNetworkEd25519KeyPair(bPub, []byte("channel"))),

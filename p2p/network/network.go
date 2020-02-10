@@ -263,9 +263,7 @@ func (this *Network) Connect(tAddr string) error {
 	} else {
 		pr = p.(*peer.Peer)
 	}
-	log.Debugf("connecting....+")
 	this.P2p.Bootstrap(tAddr)
-	log.Debugf("connecting....+ done")
 	pr.SetState(peer.ConnectStateConnected)
 	return nil
 }
