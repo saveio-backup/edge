@@ -177,6 +177,7 @@ func DownloadFile(cmd map[string]interface{}) map[string]interface{} {
 		max = 1
 	}
 	setFileName, _ := cmd["SetFileName"].(bool)
+	inOrder, _ := cmd["InOrder"].(bool)
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
@@ -187,7 +188,7 @@ func DownloadFile(cmd map[string]interface{}) map[string]interface{} {
 	// if checkErr := dsp.DspService.CheckPassword(password); checkErr != nil {
 	// 	return ResponsePackWithErrMsg(checkErr.Code, checkErr.Error.Error())
 	// }
-	err := dsp.DspService.DownloadFile(fileHash, url, link, decryptedPassword, uint64(max), setFileName)
+	err := dsp.DspService.DownloadFile(fileHash, url, link, decryptedPassword, uint64(max), setFileName, inOrder)
 	if err != nil {
 		log.Errorf("download file failed, err %v", err)
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())

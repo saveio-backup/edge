@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -759,7 +758,8 @@ func (this *Endpoint) GetFsConfig() (*FsContractSettingResp, *DspErr) {
 	}, nil
 }
 
-func (this *Endpoint) DownloadFile(fileHash, url, link, password string, max uint64, setFileName bool) *DspErr {
+func (this *Endpoint) DownloadFile(fileHash, url, linkStr, password string, max uint64,
+	setFileName, inOrder bool) *DspErr {
 	dsp := this.getDsp()
 	if dsp == nil {
 		return &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
@@ -776,11 +776,15 @@ func (this *Endpoint) DownloadFile(fileHash, url, link, password string, max uin
 	if err != nil {
 		return err
 	}
-	if len(this.dspNet.GetProxyServer()) > 0 && !this.dspNet.IsConnectionReachable(this.dspNet.GetProxyServer()) {
-		return &DspErr{Code: NET_PROXY_DISCONNECTED, Error: fmt.Errorf("proxy %s is unreachable", this.dspNet.GetProxyServer())}
+	if len(this.dspNet.GetProxyServer()) > 0 &&
+		!this.dspNet.IsConnectionReachable(this.dspNet.GetProxyServer()) {
+		return &DspErr{Code: NET_PROXY_DISCONNECTED,
+			Error: fmt.Errorf("proxy %s is unreachable", this.dspNet.GetProxyServer())}
 	}
-	if len(this.channelNet.GetProxyServer()) > 0 && !this.channelNet.IsConnectionReachable(this.channelNet.GetProxyServer()) {
-		return &DspErr{Code: NET_PROXY_DISCONNECTED, Error: fmt.Errorf("proxy %s is unreachable", this.channelNet.GetProxyServer())}
+	if len(this.channelNet.GetProxyServer()) > 0 &&
+		!this.channelNet.IsConnectionReachable(this.channelNet.GetProxyServer()) {
+		return &DspErr{Code: NET_PROXY_DISCONNECTED,
+			Error: fmt.Errorf("proxy %s is unreachable", this.channelNet.GetProxyServer())}
 	}
 
 	canDownload := false
@@ -828,7 +832,7 @@ func (this *Endpoint) DownloadFile(fileHash, url, link, password string, max uin
 					log.Errorf("panic recover err %v", e)
 				}
 			}()
-			err := dsp.DownloadFileByUrl(url, dspCom.ASSET_USDT, true, password, false, setFileName, int(max))
+			err := dsp.DownloadFileByUrl(url, dspCom.ASSET_USDT, inOrder, password, false, setFileName, int(max))
 			if err != nil {
 				log.Errorf("Downloadfile from url failed %s", err)
 			}
@@ -848,7 +852,7 @@ func (this *Endpoint) DownloadFile(fileHash, url, link, password string, max uin
 					log.Errorf("panic recover err %v", e)
 				}
 			}()
-			err := dsp.DownloadFileByHash(fileHash, dspCom.ASSET_USDT, true, password, false, setFileName, int(max))
+			err := dsp.DownloadFileByHash(fileHash, dspCom.ASSET_USDT, inOrder, password, false, setFileName, int(max))
 			if err != nil {
 				log.Errorf("Downloadfile from url failed %s", err)
 			}
@@ -856,8 +860,12 @@ func (this *Endpoint) DownloadFile(fileHash, url, link, password string, max uin
 		return nil
 	}
 
-	if len(link) > 0 {
-		hash := dspUtils.GetFileHashFromLink(link)
+	if len(linkStr) > 0 {
+		link, err := dspUtils.DecodeLinkStr(linkStr)
+		if err != nil {
+			return &DspErr{Code: INTERNAL_ERROR, Error: err}
+		}
+		hash := link.FileHashStr
 		if len(hash) == 0 {
 			return &DspErr{Code: INTERNAL_ERROR, Error: fmt.Errorf("file hash not found for url %s", hash)}
 		}
@@ -872,7 +880,7 @@ func (this *Endpoint) DownloadFile(fileHash, url, link, password string, max uin
 					log.Errorf("panic recover err %v", e)
 				}
 			}()
-			err := dsp.DownloadFileByLink(link, dspCom.ASSET_USDT, true, password, false, setFileName, int(max))
+			err := dsp.DownloadFileByLink(linkStr, dspCom.ASSET_USDT, inOrder, password, false, setFileName, int(max))
 			if err != nil {
 				log.Errorf("Downloadfile from url failed %s", err)
 			}
@@ -1373,23 +1381,18 @@ func (this *Endpoint) GetDownloadFileInfo(url string) (*DownloadFileInfo, *DspEr
 	if len(fileLink) == 0 {
 		return nil, &DspErr{Code: DSP_GET_FILE_LINK_FAILED, Error: ErrMaps[DSP_GET_FILE_LINK_FAILED]}
 	}
-	values := dsp.GetLinkValues(fileLink)
-	if values == nil {
+	link, err := dsp.GetLinkValues(fileLink)
+	if err != nil {
 		return nil, &DspErr{Code: DSP_GET_FILE_LINK_FAILED, Error: ErrMaps[DSP_GET_FILE_LINK_FAILED]}
 	}
-	info.Hash = values[dspCom.FILE_LINK_HASH_KEY]
-	info.Name = values[dspCom.FILE_LINK_NAME_KEY]
-	blockNumStr := values[dspCom.FILE_LINK_BLOCKNUM_KEY]
-	blockNum, err := strconv.ParseUint(blockNumStr, 10, 64)
-	if err != nil {
-		return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
-	}
-	info.Size = blockNum * dspCom.CHUNK_SIZE / 1024
+	info.Hash = link.FileHashStr
+	info.Name = link.FileName
+	info.Size = link.BlockNum * dspCom.CHUNK_SIZE / 1024
 	extParts := strings.Split(info.Name, ".")
 	if len(extParts) > 1 {
 		info.Ext = extParts[len(extParts)-1]
 	}
-	info.Fee = blockNum * dspCom.CHUNK_SIZE * common.DSP_DOWNLOAD_UNIT_PRICE
+	info.Fee = link.BlockNum * dspCom.CHUNK_SIZE * common.DSP_DOWNLOAD_UNIT_PRICE
 	info.FeeFormat = utils.FormatUsdt(info.Fee)
 	info.Path = this.getDownloadFilePath(info.Name)
 	info.DownloadDir = this.getDownloadFilePath("")

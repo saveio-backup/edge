@@ -490,13 +490,13 @@ func (this *Endpoint) stateChangeService() {
 			// check log file size
 			go this.checkGoRoutineNum()
 			go this.checkLogFileSize()
-			if this.dspPublicAddr != this.dspNet.PublicAddr() {
+			if this.dspNet != nil && this.dspPublicAddr != this.dspNet.PublicAddr() {
 				log.Debugf("dsp public address has change, old addr: %s, new addr:%s",
 					this.dspPublicAddr, this.dspNet.PublicAddr())
 				this.dspPublicAddr = this.dspNet.PublicAddr()
 				go this.updateStorageNodeHost()
 			}
-			if this.channelPublicAddr != this.channelNet.PublicAddr() {
+			if this.channelNet != nil && this.channelPublicAddr != this.channelNet.PublicAddr() {
 				log.Debugf("channel public address has change, old addr: %s, new addr:%s",
 					this.channelPublicAddr, this.channelNet.PublicAddr())
 				this.channelPublicAddr = this.channelNet.PublicAddr()
