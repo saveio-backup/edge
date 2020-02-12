@@ -650,11 +650,11 @@ func (this *Endpoint) DeleteUploadFile(fileHash string, gasLimit uint64) (*Delet
 }
 
 func (this *Endpoint) DeleteDownloadFile(fileHash string) (*DeleteFileResp, *DspErr) {
-	err := this.Dsp.DeleteDownloadedFile(fileHash)
+	err := this.Dsp.DeleteDownloadedLocalFile(fileHash)
 	if err != nil {
 		return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: err}
 	}
-	return &DeleteFileResp{IsUploaded: false}, nil
+	return nil, nil
 }
 
 func (this *Endpoint) DeleteUploadFiles(fileHashes []string, gasLimit uint64) ([]*DeleteFileResp, *DspErr) {

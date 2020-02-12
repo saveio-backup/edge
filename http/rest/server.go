@@ -105,8 +105,8 @@ const (
 	DSP_FILE_UPLOAD_RETRY                 = "/api/v1/dsp/file/upload/retry"
 	DSP_FILE_UPLOAD_CANCEL                = "/api/v1/dsp/file/upload/cancel"
 	DSP_FILE_UPLOAD_FEE                   = "/api/v1/dsp/file/uploadfee/:file"
-	DSP_FILE_DELETE                       = "/api/v1/dsp/file/delete"
-	DSP_FILES_DELETE                      = "/api/v1/dsp/files/delete"
+	DSP_FILE_UPLOAD_DELETE                = "/api/v1/dsp/file/delete"
+	DSP_FILES_UPLOAD_DELETE               = "/api/v1/dsp/files/delete"
 	DSP_FILES_DELETE_FEE                  = "/api/v1/dsp/files/deletefee"
 	DSP_FILE_DOWNLOAD                     = "/api/v1/dsp/file/download"
 	DSP_FILE_DOWNLOAD_PAUSE               = "/api/v1/dsp/file/download/pause"
@@ -114,6 +114,7 @@ const (
 	DSP_FILE_DOWNLOAD_RETRY               = "/api/v1/dsp/file/download/retry"
 	DSP_FILE_DOWNLOAD_CANCEL              = "/api/v1/dsp/file/download/cancel"
 	DSP_FILE_DOWNLOAD_INFO                = "/api/v1/dsp/file/downloadinfo/:url"
+	DSP_FILE_DOWNLOAD_DELETE              = "/api/v1/dsp/file/download/delete"
 	DSP_FILE_ENCRYPT                      = "/api/v1/dsp/file/encrypt"
 	DSP_FILE_DECRYPT                      = "/api/v1/dsp/file/decrypt"
 	DSP_FILE_SHARE_INCOME                 = "/api/v1/dsp/file/share/income/:begin/:end/:offset/:limit"
@@ -315,13 +316,14 @@ func (this *restServer) registryMethod() {
 		DSP_FILE_UPLOAD_PAUSE:          {name: "pauseuploadfile", handler: PauseUploadFile},
 		DSP_FILE_UPLOAD_RETRY:          {name: "retryuploadfile", handler: RetryUploadFile},
 		DSP_FILE_UPLOAD_CANCEL:         {name: "canceluploadfile", handler: CancelUploadFile},
-		DSP_FILE_DELETE:                {name: "deleteuploadfile", handler: DeleteUploadFile},
-		DSP_FILES_DELETE:               {name: "deletefiles", handler: DeleteUploadFiles},
+		DSP_FILE_UPLOAD_DELETE:         {name: "deleteuploadfile", handler: DeleteUploadFile},
+		DSP_FILES_UPLOAD_DELETE:        {name: "deletefiles", handler: DeleteUploadFiles},
 		DSP_FILE_DOWNLOAD:              {name: "downloadfile", handler: DownloadFile},
 		DSP_FILE_DOWNLOAD_RESUME:       {name: "resumedownloadfile", handler: ResumeDownloadFile},
 		DSP_FILE_DOWNLOAD_PAUSE:        {name: "pausedownloadfile", handler: PauseDownloadFile},
 		DSP_FILE_DOWNLOAD_RETRY:        {name: "retrydownloadfile", handler: RetryDownloadFile},
 		DSP_FILE_DOWNLOAD_CANCEL:       {name: "canceldownloadfile", handler: CancelDownloadFile},
+		DSP_FILE_DOWNLOAD_DELETE:       {name: "deletedownloadfile", handler: DeleteDownloadFile},
 		DSP_FILE_ENCRYPT:               {name: "encryptfile", handler: EncryptFile},
 		DSP_FILE_DECRYPT:               {name: "decryptfile", handler: DecryptFile},
 		DSP_UPDATE_FILE_WHITELIST:      {name: "updatewhitelist", handler: WhiteListOperate},

@@ -12,6 +12,7 @@ type ConfigResponse struct {
 	DownloadPath string
 	LogDirName   string
 	LogLevel     int
+	LogMaxSize   int
 	BlockConfirm int
 	SeedInterval int
 }
@@ -22,6 +23,7 @@ func (this *Endpoint) GetConfigs() *ConfigResponse {
 		DownloadPath: config.FsFileRootPath(),
 		LogDirName:   config.Parameters.BaseConfig.LogPath,
 		LogLevel:     config.Parameters.BaseConfig.LogLevel,
+		LogMaxSize:   int(config.Parameters.BaseConfig.LogMaxSize),
 		BlockConfirm: int(config.Parameters.BaseConfig.BlockConfirm),
 		SeedInterval: config.Parameters.BaseConfig.SeedInterval,
 	}
@@ -34,6 +36,7 @@ func (this *Endpoint) SetConfigs(fields map[string]interface{}) (*ConfigResponse
 		DownloadPath: config.FsFileRootPath(),
 		LogDirName:   config.Parameters.BaseConfig.LogPath,
 		LogLevel:     config.Parameters.BaseConfig.LogLevel,
+		LogMaxSize:   int(config.Parameters.BaseConfig.LogMaxSize),
 		BlockConfirm: int(config.Parameters.BaseConfig.BlockConfirm),
 		SeedInterval: config.Parameters.BaseConfig.SeedInterval,
 	}
@@ -42,7 +45,7 @@ func (this *Endpoint) SetConfigs(fields map[string]interface{}) (*ConfigResponse
 		case "BaseDir":
 			newPath, ok := value.(string)
 			if !ok {
-				log.Debugf("unspport type %s %T", key, value)
+				log.Debugf("unsupport type %s %T", key, value)
 				continue
 			}
 			// TODO: need reboot now, support no reboot future
@@ -51,7 +54,7 @@ func (this *Endpoint) SetConfigs(fields map[string]interface{}) (*ConfigResponse
 		case "LogDirName":
 			newPath, ok := value.(string)
 			if !ok {
-				log.Debugf("unspport type %s %T", key, value)
+				log.Debugf("unsupport type %s %T", key, value)
 				continue
 			}
 			config.Parameters.BaseConfig.LogPath = newPath
@@ -59,7 +62,7 @@ func (this *Endpoint) SetConfigs(fields map[string]interface{}) (*ConfigResponse
 		case "LogLevel":
 			newLevel, ok := value.(float64)
 			if !ok {
-				log.Debugf("unspport type %s %T", key, value)
+				log.Debugf("unsupport type %s %T", key, value)
 				continue
 			}
 			config.Parameters.BaseConfig.LogLevel = int(newLevel)
@@ -67,7 +70,7 @@ func (this *Endpoint) SetConfigs(fields map[string]interface{}) (*ConfigResponse
 		case "BlockConfirm":
 			newConfirm, ok := value.(float64)
 			if !ok {
-				log.Debugf("unspport type %s %T", key, value)
+				log.Debugf("unsupport type %s %T", key, value)
 				continue
 			}
 			config.Parameters.BaseConfig.BlockConfirm = uint32(newConfirm)
@@ -75,7 +78,7 @@ func (this *Endpoint) SetConfigs(fields map[string]interface{}) (*ConfigResponse
 		case "SeedInterval":
 			newInterval, ok := value.(float64)
 			if !ok {
-				log.Debugf("unspport type %s %T", key, value)
+				log.Debugf("unsupport type %s %T", key, value)
 				continue
 			}
 			config.Parameters.BaseConfig.SeedInterval = int(newInterval)
@@ -83,7 +86,7 @@ func (this *Endpoint) SetConfigs(fields map[string]interface{}) (*ConfigResponse
 		case "DownloadPath":
 			newPath, ok := value.(string)
 			if !ok {
-				log.Debugf("unspport type %s %T", key, value)
+				log.Debugf("unsupport type %s %T", key, value)
 				continue
 			}
 			config.Parameters.FsConfig.FsFileRoot = newPath
@@ -93,6 +96,14 @@ func (this *Endpoint) SetConfigs(fields map[string]interface{}) (*ConfigResponse
 				}
 			}
 			newResp.DownloadPath = newPath
+		case "LogMaxSize":
+			newLogSize, ok := value.(float64)
+			if !ok {
+				log.Debugf("unsupport type %s %T", key, value)
+				continue
+			}
+			config.Parameters.BaseConfig.LogMaxSize = uint64(newLogSize)
+			newResp.LogMaxSize = int(newLogSize)
 		}
 	}
 	err := config.Save()
