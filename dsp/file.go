@@ -53,10 +53,12 @@ const (
 )
 
 type NodeProgress struct {
-	HostAddr     string
-	UploadSize   uint64
-	DownloadSize uint64
-	Speed        uint64
+	HostAddr         string
+	UploadSize       uint64
+	RealUploadSize   uint64
+	RealDownloadSize uint64
+	DownloadSize     uint64
+	Speed            uint64
 }
 
 type Transfer struct {
@@ -73,6 +75,7 @@ type Transfer struct {
 	UploadSize     uint64
 	DownloadSize   uint64
 	FileSize       uint64
+	RealFileSize   uint64
 	Nodes          []*NodeProgress
 	Progress       float64
 	CreatedAt      uint64
@@ -239,7 +242,7 @@ const (
 )
 
 func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, privilegeVal, copyNumVal,
-	storageTypeVal interface{}, encryptPwd, url string,
+	storageTypeVal, realFileSizeVal interface{}, encryptPwd, url string,
 	whitelist []string, share bool) (*fs.UploadOption, *DspErr) {
 	f, err := os.Stat(path)
 	if err != nil {
@@ -284,9 +287,15 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, pr
 		return nil, &DspErr{Code: FS_UPLOAD_INTERVAL_TOO_SMALL, Error: ErrMaps[FS_UPLOAD_INTERVAL_TOO_SMALL]}
 	}
 	storageType, _ := storageTypeVal.(float64)
-	fileSizeInKB := f.Size() / 1024
-	if fileSizeInKB == 0 {
-		fileSizeInKB = 1
+	realFileSize, _ := realFileSizeVal.(float64)
+	var fileSizeInKB uint64
+	if uint64(realFileSize) > 0 {
+		fileSizeInKB = uint64(realFileSize)
+	} else {
+		fileSizeInKB = uint64(f.Size() / 1024)
+		if fileSizeInKB == 0 {
+			fileSizeInKB = 1
+		}
 	}
 	opt := &fs.UploadOption{
 		FileDesc:      []byte(desc),
@@ -2127,16 +2136,20 @@ func (this *Endpoint) UpdateFileUrlLink(url, hash, fileName string, fileSize, to
 	if dsp == nil {
 		return "", &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
+	fileOwner := dsp.WalletAddress()
+	blocksRoot := ""
 	if fileSize == 0 || totalCount == 0 {
 		info, _ := dsp.GetFileInfo(hash)
 		if info != nil {
 			fileSize = info.RealFileSize
 			totalCount = info.FileBlockNum
+			fileOwner = info.FileOwner.ToBase58()
+			blocksRoot = string(info.BlocksRoot)
 		} else {
 			totalCount = fileSize * 1024 / dspCom.CHUNK_SIZE
 		}
 	}
-	link := dsp.GenLink(hash, fileName, uint64(fileSize), totalCount)
+	link := dsp.GenLink(hash, fileName, blocksRoot, fileOwner, uint64(fileSize), totalCount)
 	tx, err := dsp.BindFileUrl(url, link)
 	if err != nil {
 		tx, err = dsp.RegisterFileUrl(url, link)
@@ -2169,8 +2182,10 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 		}
 		if info.Type == store.TaskTypeUpload {
 			pros.UploadSize = uint64(cnt.Progress) * dspCom.CHUNK_SIZE / 1024
+			pros.RealUploadSize = uint64(float64(cnt.Progress) / float64(info.Total) * float64(info.RealFileSize))
 		} else if info.Type == store.TaskTypeDownload {
 			pros.DownloadSize = uint64(cnt.Progress) * dspCom.CHUNK_SIZE / 1024
+			pros.RealDownloadSize = uint64(float64(cnt.Progress) / float64(info.Total) * float64(info.RealFileSize))
 		}
 		nPros = append(nPros, pros)
 	}
@@ -2185,7 +2200,8 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 		StoreType:    info.StoreType,
 		Status:       info.TaskState,
 		DetailStatus: info.ProgressState,
-		FileSize:     uint64(info.Total * dspCom.CHUNK_SIZE / 1024),
+		FileSize:     info.FileSize,
+		RealFileSize: info.RealFileSize,
 		Nodes:        nPros,
 		CreatedAt:    info.CreatedAt,
 		UpdatedAt:    info.UpdatedAt,

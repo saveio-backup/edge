@@ -43,14 +43,14 @@ func UploadFile(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
 	opt, err := dsp.DspService.UploadFile(path, desc, cmd["Duration"], cmd["Interval"],
-		cmd["Privilege"], cmd["CopyNum"], cmd["StoreType"], pwd, url, whitelist, share)
+		cmd["Privilege"], cmd["CopyNum"], cmd["StoreType"], cmd["RealFileSize"], pwd, url, whitelist, share)
 	if err != nil {
 		log.Errorf("upload file failed, err %v", err)
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
 	uploadOption := make(map[string]interface{})
 	uploadOption["FileName"] = string(opt.FileDesc)
-	uploadOption["FileSize"] = opt.FileSize
+	uploadOption["RealFileSize"] = opt.FileSize
 	uploadOption["ProveInterval"] = opt.ProveInterval
 	uploadOption["ExpiredHeight"] = opt.ExpiredHeight
 	uploadOption["Privilege"] = opt.Privilege
