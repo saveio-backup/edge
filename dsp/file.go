@@ -1424,7 +1424,7 @@ func (this *Endpoint) EncryptFile(path, password string) *DspErr {
 	return nil
 }
 
-func (this *Endpoint) DecryptFile(path, password string) *DspErr {
+func (this *Endpoint) DecryptFile(path, fileName, password string) *DspErr {
 	sourceFile, err := os.Open(path)
 	if err != nil {
 		return &DspErr{Code: DSP_FILE_NOT_EXISTS, Error: err}
@@ -1444,7 +1444,11 @@ func (this *Endpoint) DecryptFile(path, password string) *DspErr {
 	if dsp == nil {
 		return &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
-	err = dsp.AESDecryptFile(path, string(prefix), password, dspUtils.GetDecryptedFilePath(path))
+	if len(fileName) == 0 {
+		fileName = dsp.GetFileNameWithPath(path)
+	}
+	err = dsp.AESDecryptFile(path, string(prefix), password, dspUtils.GetDecryptedFilePath(path, fileName))
+	log.Debugf("decrypted file output %s", dspUtils.GetDecryptedFilePath(path, fileName))
 	if err != nil {
 		return &DspErr{Code: DSP_DECRYPTED_FILE_FAILED, Error: err}
 	}

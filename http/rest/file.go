@@ -423,10 +423,14 @@ func DecryptFile(cmd map[string]interface{}) map[string]interface{} {
 	if !ok || len(password) == 0 {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
+	fileName, ok := cmd["FileName"].(string)
+	// if !ok || len(fileName) == 0 {
+	// 	return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	// }
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
-	err := dsp.DspService.DecryptFile(string(path), password)
+	err := dsp.DspService.DecryptFile(path, fileName, password)
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
