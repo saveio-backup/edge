@@ -121,6 +121,7 @@ type FileShareIncomeResp struct {
 type FileResp struct {
 	Hash          string
 	Name          string
+	Encrypt       bool
 	Url           string
 	Size          uint64
 	DownloadCount uint64
@@ -1525,149 +1526,133 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uin
 	if dsp == nil {
 		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
-	fileList, err := dsp.GetFileList(this.getDspWalletAddr())
-	if err != nil {
-		return nil, &DspErr{Code: FS_GET_FILE_LIST_FAILED, Error: err}
-	}
-
-	log.Debugf("get file num %d", fileList.FileNum)
-	now, err := dsp.GetCurrentBlockHeight()
+	// rpc request
+	curBlockHeight, err := dsp.GetCurrentBlockHeight()
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
 	}
-	files := make([]*FileResp, 0)
+	taskInfos, err := dsp.GetUploadTaskInfos()
+	if err != nil {
+		return nil, &DspErr{Code: DSP_FILE_INFO_NOT_FOUND, Error: err}
+	}
+	files := make([]*FileResp, 0, limit)
 	offsetCnt := uint64(0)
-	requestFileHashes := make([]string, 0)
-	for listIndex, hash := range fileList.List {
-		requestFileHashes = append(requestFileHashes, string(hash.Hash))
-		if len(requestFileHashes) < 100 && uint64(listIndex) != fileList.FileNum-1 {
+	for _, info := range taskInfos {
+		if info == nil {
 			continue
 		}
-		fileInfoList, err := dsp.GetFileInfos(requestFileHashes)
+		if info.ExpiredHeight < uint64(curBlockHeight) {
+			continue
+		}
+		// 0: all, 1. image, 2. document. 3. video, 4. music
+		if !FileNameMatchType(fileType, info.FileName) {
+			continue
+		}
+		fileHashStr := info.FileHash
+		log.Debugf("get file of %s", fileHashStr)
+		downloadedCount, _ := dsp.CountRecordByFileHash(fileHashStr)
+		profit, _ := dsp.SumRecordsProfitByFileHash(fileHashStr)
+		// rpc request
+		proveDetail, err := dsp.GetFileProveDetails(fileHashStr)
 		if err != nil {
+			log.Errorf("get prove detail failed")
 			continue
 		}
-		log.Debugf("get fileinfo list %v", fileInfoList.FileNum)
-		requestFileHashes = requestFileHashes[:0]
-		for _, fi := range fileInfoList.List {
-			fileHashStr := string(fi.FileHash)
-			log.Debugf("get file of %s", fileHashStr)
-			// 0: all, 1. image, 2. document. 3. video, 4. music
-			fileName := strings.ToLower(string(fi.FileDesc))
-			if !FileNameMatchType(fileType, fileName) {
-				continue
-			}
-			if offsetCnt < offset {
-				offsetCnt++
-				continue
-			}
-			offsetCnt++
+		nodesDetail := make([]NodeProveDetail, 0, proveDetail.ProveDetailNum)
+		primaryNodeM := make(map[chainCom.Address]NodeProveDetail, 0)
 
-			expired := fi.ExpiredHeight
-			nowUnix := uint64(time.Now().Unix())
-			expiredAt := blockHeightToTimestamp(uint64(now), expired, nowUnix)
-			updatedAt := uint64(time.Now().Unix())
-			if fi.BlockHeight > uint64(now) {
-				updatedAt -= (fi.BlockHeight - uint64(now)) * config.BlockTime()
-			} else {
-				updatedAt -= (uint64(now) - fi.BlockHeight) * config.BlockTime()
-			}
-			url := dsp.GetUrlOfUploadedfile(fileHashStr)
-			downloadedCount, _ := dsp.CountRecordByFileHash(fileHashStr)
-			profit, _ := dsp.SumRecordsProfitByFileHash(fileHashStr)
-			proveDetail, err := dsp.GetFileProveDetails(fileHashStr)
+		for index, addr := range info.PrimaryNodes {
+			walletAddr, err := chainCom.AddressFromBase58(addr)
 			if err != nil {
-				log.Errorf("get prove detail failed")
 				continue
 			}
-
-			nodesDetail := make([]NodeProveDetail, 0, proveDetail.ProveDetailNum)
-			primaryNodeM := make(map[chainCom.Address]NodeProveDetail, 0)
-			for index, primN := range fi.PrimaryNodes.AddrList {
-				primaryNodeM[primN] = NodeProveDetail{
-					Index: index,
-				}
+			primaryNodeM[walletAddr] = NodeProveDetail{
+				Index: index,
 			}
-			for _, detail := range proveDetail.ProveDetails {
-				nodeState := 2
-				if detail.ProveTimes > 0 {
-					nodeState = 3
-				}
-				uploadSize, _ := dsp.GetFileUploadSize(fileHashStr, string(detail.NodeAddr))
+		}
+		for _, detail := range proveDetail.ProveDetails {
+			nodeState := 2
+			if detail.ProveTimes > 0 {
+				nodeState = 3
+			}
+			uploadSize, _ := dsp.GetFileUploadSize(fileHashStr, string(detail.NodeAddr))
+			if uploadSize > 0 {
+				uploadSize /= 1024 // convert to KB
+			}
+			if detail.ProveTimes > 0 {
+				uploadSize = info.FileSize
+			}
+			nodesDetail = append(nodesDetail, NodeProveDetail{
+				HostAddr:    string(detail.NodeAddr),
+				WalletAddr:  detail.WalletAddr.ToBase58(),
+				PdpProveNum: detail.ProveTimes,
+				State:       nodeState,
+				Index:       primaryNodeM[detail.WalletAddr].Index,
+				UploadSize:  uploadSize,
+			})
+			delete(primaryNodeM, detail.WalletAddr)
+		}
+		if filterType == UploadFileFilterTypeDoing && len(primaryNodeM) == 0 {
+			continue
+		}
+		if filterType == UploadFileFilterTypeDone && len(primaryNodeM) > 0 {
+			continue
+		}
+		if len(primaryNodeM) > 0 {
+			unprovedNodeWallets := make([]chainCom.Address, 0)
+			for addr, _ := range primaryNodeM {
+				unprovedNodeWallets = append(unprovedNodeWallets, addr)
+			}
+			hostAddrs, err := dsp.GetNodeHostAddrListByWallets(unprovedNodeWallets)
+			if err != nil {
+				continue
+			}
+			for i, wallet := range unprovedNodeWallets {
+				nodeDetail := primaryNodeM[wallet]
+				nodeDetail.HostAddr = hostAddrs[i]
+				nodeDetail.WalletAddr = wallet.ToBase58()
+				uploadSize, _ := dsp.GetFileUploadSize(fileHashStr, string(nodeDetail.HostAddr))
+				log.Debugf("file: %s, wallet %v, uploadsize %d", fileHashStr, wallet, uploadSize)
 				if uploadSize > 0 {
 					uploadSize /= 1024 // convert to KB
 				}
-				if detail.ProveTimes > 0 {
-					uploadSize = fi.FileBlockNum * fi.FileBlockSize
+				if uploadSize > info.FileSize {
+					log.Warnf("update size is wrong %d, file size %d", uploadSize, info.FileSize)
+					uploadSize = info.FileSize
 				}
-				nodesDetail = append(nodesDetail, NodeProveDetail{
-					HostAddr:    string(detail.NodeAddr),
-					WalletAddr:  detail.WalletAddr.ToBase58(),
-					PdpProveNum: detail.ProveTimes,
-					State:       nodeState,
-					Index:       primaryNodeM[detail.WalletAddr].Index,
-					UploadSize:  uploadSize,
-				})
-				delete(primaryNodeM, detail.WalletAddr)
+				nodeDetail.UploadSize = uploadSize
+				primaryNodeM[wallet] = nodeDetail
 			}
-			if filterType == UploadFileFilterTypeDoing && len(primaryNodeM) == 0 {
-				continue
+			for _, nodeDetail := range primaryNodeM {
+				nodesDetail = append(nodesDetail, nodeDetail)
 			}
-			if filterType == UploadFileFilterTypeDone && len(primaryNodeM) > 0 {
-				continue
-			}
-
-			if len(primaryNodeM) > 0 {
-				unprovedNodeWallets := make([]chainCom.Address, 0)
-				for addr, _ := range primaryNodeM {
-					unprovedNodeWallets = append(unprovedNodeWallets, addr)
-				}
-				hostAddrs, err := dsp.GetNodeHostAddrListByWallets(unprovedNodeWallets)
-				if err != nil {
-					continue
-				}
-				for i, wallet := range unprovedNodeWallets {
-					nodeDetail := primaryNodeM[wallet]
-					nodeDetail.HostAddr = hostAddrs[i]
-					nodeDetail.WalletAddr = wallet.ToBase58()
-					uploadSize, _ := dsp.GetFileUploadSize(fileHashStr, string(nodeDetail.HostAddr))
-					log.Debugf("file: %s, wallet %v, uploadsize %d", fileHashStr, wallet, uploadSize)
-					if uploadSize > 0 {
-						uploadSize /= 1024 // convert to KB
-					}
-					if uploadSize > fi.FileBlockNum*fi.FileBlockSize {
-						log.Warnf("update size is wrong %d, file size %d", uploadSize, fi.FileBlockNum*fi.FileBlockSize)
-						uploadSize = fi.FileBlockNum * fi.FileBlockSize
-					}
-					nodeDetail.UploadSize = uploadSize
-					primaryNodeM[wallet] = nodeDetail
-				}
-				for _, nodeDetail := range primaryNodeM {
-					nodesDetail = append(nodesDetail, nodeDetail)
-				}
-			}
-			sort.Sort(NodeProveDetails(nodesDetail))
-			fr := &FileResp{
-				Hash:          fileHashStr,
-				Name:          string(fi.FileDesc),
-				Url:           url,
-				Size:          fi.FileBlockNum * fi.FileBlockSize,
-				DownloadCount: downloadedCount,
-				ExpiredAt:     expiredAt,
-				// TODO fix by db
-				UpdatedAt:     updatedAt,
-				Profit:        profit,
-				Privilege:     fi.Privilege,
-				CurrentHeight: uint64(now),
-				ExpiredHeight: expired,
-				StoreType:     fs.FileStoreType(fi.StorageType),
-				RealFileSize:  fi.RealFileSize,
-				Nodes:         nodesDetail,
-			}
-			files = append(files, fr)
-			if limit > 0 && uint64(len(files)) >= limit {
-				return files, nil
-			}
+		}
+		if offsetCnt < offset {
+			offsetCnt++
+			continue
+		}
+		offsetCnt++
+		sort.Sort(NodeProveDetails(nodesDetail))
+		fr := &FileResp{
+			Hash:          fileHashStr,
+			Name:          info.FileName,
+			Encrypt:       info.Encrypt,
+			Url:           info.Url,
+			Size:          info.FileSize,
+			DownloadCount: downloadedCount,
+			ExpiredAt:     blockHeightToTimestamp(uint64(curBlockHeight), info.ExpiredHeight),
+			UpdatedAt:     info.UpdatedAt / 1000,
+			Profit:        profit,
+			Privilege:     info.Privilege,
+			CurrentHeight: uint64(curBlockHeight),
+			ExpiredHeight: info.ExpiredHeight,
+			StoreType:     fs.FileStoreType(info.StoreType),
+			RealFileSize:  info.RealFileSize,
+			Nodes:         nodesDetail,
+		}
+		files = append(files, fr)
+		if limit > 0 && uint64(len(files)) >= limit {
+			return files, nil
 		}
 	}
 	return files, nil
@@ -1707,8 +1692,7 @@ func (this *Endpoint) GetFileInfo(fileHashStr string) (*fileInfoResp, *DspErr) {
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
 	}
-	nowUnix := uint64(time.Now().Unix())
-	expiredAt := blockHeightToTimestamp(uint64(now), info.ExpiredHeight, nowUnix)
+	expiredAt := blockHeightToTimestamp(uint64(now), info.ExpiredHeight)
 	result := &fileInfoResp{
 		FileHash:      string(info.FileHash),
 		CopyNum:       info.CopyNum,
@@ -2016,7 +2000,7 @@ func (this *Endpoint) GetUserSpace(addr string) (*Userspace, *DspErr) {
 	now := uint64(time.Now().Unix())
 	log.Debugf("space.ExpireHeight %v\n", space.ExpireHeight)
 	if space.ExpireHeight > uint64(currentHeight) {
-		expiredAt = blockHeightToTimestamp(uint64(currentHeight), space.ExpireHeight, now)
+		expiredAt = blockHeightToTimestamp(uint64(currentHeight), space.ExpireHeight)
 		log.Debugf("expiredAt %d currentHeight %d, expiredheight %d updatedheight %d",
 			expiredAt, currentHeight, space.ExpireHeight, updateHeight)
 	} else {
@@ -2315,7 +2299,8 @@ func (this *Endpoint) getDownloadFilePath(fileName string) string {
 	return config.FsFileRootPath() + "/" + fileName
 }
 
-func blockHeightToTimestamp(curBlockHeight, endBlockHeight, now uint64) uint64 {
+func blockHeightToTimestamp(curBlockHeight, endBlockHeight uint64) uint64 {
+	now := uint64(time.Now().Unix())
 	if endBlockHeight > curBlockHeight {
 		return now + uint64(endBlockHeight-curBlockHeight)*config.BlockTime()
 	}
