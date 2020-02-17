@@ -445,7 +445,7 @@ func (this *Network) SendOnce(msg proto.Message, toAddr string) error {
 
 // Send send msg to peer asynchronous
 // peer can be addr(string) or client(*network.peerClient)
-func (this *Network) Send(msg proto.Message, msgId, toAddr string, sendTimeout time.Duration) error {
+func (this *Network) Send(msg proto.Message, sessionId, msgId, toAddr string, sendTimeout time.Duration) error {
 	if err := this.HealthCheckPeer(this.proxyAddr); err != nil {
 		return err
 	}
@@ -469,7 +469,7 @@ func (this *Network) Send(msg proto.Message, msgId, toAddr string, sendTimeout t
 	log.Debugf("send msg %s to %s", msgId, toAddr)
 	var err error
 	if sendTimeout > 0 {
-		err = pr.StreamSend(msgId, msg, sendTimeout)
+		err = pr.StreamSend(sessionId, msgId, msg, sendTimeout)
 	} else {
 		err = pr.Send(msgId, msg)
 	}
@@ -479,7 +479,7 @@ func (this *Network) Send(msg proto.Message, msgId, toAddr string, sendTimeout t
 }
 
 // Request. send msg to peer and wait for response synchronously with timeout
-func (this *Network) SendAndWaitReply(msg proto.Message, msgId, toAddr string, sendTimeout time.Duration) (
+func (this *Network) SendAndWaitReply(msg proto.Message, sessionId, msgId, toAddr string, sendTimeout time.Duration) (
 	proto.Message, error) {
 	if this == nil {
 		return nil, errors.New("no network")
@@ -506,7 +506,7 @@ func (this *Network) SendAndWaitReply(msg proto.Message, msgId, toAddr string, s
 	var err error
 	var resp proto.Message
 	if sendTimeout > 0 {
-		resp, err = pr.StreamSendAndWaitReply(msgId, msg, sendTimeout)
+		resp, err = pr.StreamSendAndWaitReply(sessionId, msgId, msg, sendTimeout)
 	} else {
 		resp, err = pr.SendAndWaitReply(msgId, msg)
 	}
@@ -521,6 +521,26 @@ func (this *Network) AppendAddrToHealthCheck(addr string) {
 
 func (this *Network) RemoveAddrFromHealthCheck(addr string) {
 	this.addrForHealthCheck.Delete(addr)
+}
+
+// ClosePeerSession
+func (this *Network) ClosePeerSession(addr, sessionId string) error {
+	p, ok := this.peers.Load(addr)
+	if !ok {
+		return fmt.Errorf("peer %s not found", addr)
+	}
+	pr := p.(*peer.Peer)
+	return pr.CloseSession(sessionId)
+}
+
+// GetPeerSendSpeed. return send speed for peer
+func (this *Network) GetPeerSessionSpeed(addr, sessionId string) (uint64, uint64, error) {
+	p, ok := this.peers.Load(addr)
+	if !ok {
+		return 0, 0, fmt.Errorf("peer %s not found", addr)
+	}
+	pr := p.(*peer.Peer)
+	return pr.GetSessionSpeed(sessionId)
 }
 
 // [Deprecated] Request. send msg to peer and wait for response synchronously with timeout
@@ -629,7 +649,7 @@ func (this *Network) RequestWithRetry(msg proto.Message, peer string, retry, rep
 // Broadcast. broadcast same msg to peers. Handle action if send msg success.
 // If one msg is sent failed, return err. But the previous success msgs can not be recalled.
 // callback(responseMsg, responseToAddr).
-func (this *Network) Broadcast(addrs []string, msg proto.Message, msgId string,
+func (this *Network) Broadcast(addrs []string, msg proto.Message, sessionId, msgId string,
 	callbacks ...func(proto.Message, string) bool) (map[string]error, error) {
 	err := this.HealthCheckPeer(this.proxyAddr)
 	if err != nil {
@@ -670,9 +690,9 @@ func (this *Network) Broadcast(addrs []string, msg proto.Message, msgId string,
 				var res proto.Message
 				var err error
 				if callbacks == nil || len(callbacks) == 0 {
-					err = this.Send(msg, msgId, req.addr, 0)
+					err = this.Send(msg, sessionId, msgId, req.addr, 0)
 				} else {
-					res, err = this.SendAndWaitReply(msg, msgId, req.addr, 0)
+					res, err = this.SendAndWaitReply(msg, sessionId, msgId, req.addr, 0)
 				}
 				if err != nil {
 					log.Errorf("broadcast msg to %s err %s", req.addr, err)

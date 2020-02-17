@@ -4,7 +4,6 @@ import (
 	"container/list"
 	"fmt"
 	"testing"
-	"time"
 )
 
 func TestMQList(t *testing.T) {
@@ -18,11 +17,11 @@ func TestMQList(t *testing.T) {
 	fmt.Printf("ret: %v len: %d\n", ret, p.mq.Len())
 }
 
-func TestCalcTimeout(t *testing.T) {
-	a := time.Duration(128) * time.Second
-	fmt.Printf("a= %d\n", a)
-	for i := 1; i < 10; i++ {
-		b := calcTimeout(i, a)
-		fmt.Printf("b= %v\n", b/time.Second)
+func TestNewSession(t *testing.T) {
+	s := NewSession("123")
+	for i := uint64(0); i < 20; i++ {
+		s.txSpeeds = append(s.txSpeeds, i)
 	}
+	fmt.Printf("s.tx %v %d\n", s.txSpeeds, len(s.txSpeeds))
+	fmt.Printf("s.tx %v %d\n", s.rxSpeeds, len(s.rxSpeeds))
 }

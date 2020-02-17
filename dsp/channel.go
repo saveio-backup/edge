@@ -270,7 +270,7 @@ func (this *Endpoint) SwitchPaymentChannel(partnerAddr string) *DspErr {
 		return &DspErr{Code: DSP_NODE_REGISTER_FAILED, Error: ErrMaps[DSP_NODE_REGISTER_FAILED]}
 	}
 
-	dsp.UpdateDNS(partnerAddr, dsp.GetOnlineDNSHostAddr(partnerAddr))
+	dsp.UpdateDNS(partnerAddr, dsp.GetOnlineDNSHostAddr(partnerAddr), true)
 	this.notifyIfSwitchChannel()
 	return nil
 }
@@ -313,7 +313,7 @@ func (this *Endpoint) OpenPaymentChannel(partnerAddr string, amount uint64) (cha
 		return 0, &DspErr{Code: DSP_CHANNEL_OPEN_FAILED, Error: err}
 	}
 	hostAddr, _ := dsp.GetExternalIP(partnerAddr)
-	dsp.UpdateDNS(partnerAddr, hostAddr)
+	dsp.UpdateDNS(partnerAddr, hostAddr, false)
 	dsp.SetChannelIsDNS(partnerAddr, true)
 	return id, nil
 }

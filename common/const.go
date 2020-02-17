@@ -36,6 +36,8 @@ const (
 	ACK_MSG_CHECK_INTERVAL         = 20      // ack msg check interval
 	MAX_ACK_MSG_TIMEOUT            = 60      // max timeout for ack msg
 	MAX_RECEIVED_MSG_CACHE         = 500     // max received msg cache
+	SESSION_SPEED_RECORD_INTERVAL  = 3       // speed record interval
+	MAX_SESSION_RECORD_SPEED_LEN   = 3       // max record speed array length
 )
 
 // asset

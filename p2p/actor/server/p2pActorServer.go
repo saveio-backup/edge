@@ -121,7 +121,7 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 		}()
 	case *dspAct.SendReq:
 		go func() {
-			err := this.dspNet.Send(msg.Data, msg.MsgId, msg.Address, msg.SendTimeout)
+			err := this.dspNet.Send(msg.Data, msg.SessionId, msg.MsgId, msg.Address, msg.SendTimeout)
 			msg.Response <- &dspAct.P2pResp{Error: err}
 		}()
 	case *dspAct.BroadcastReq:
@@ -129,9 +129,9 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 			var m map[string]error
 			var err error
 			if msg.Action != nil {
-				m, err = this.dspNet.Broadcast(msg.Addresses, msg.Data, msg.MsgId, msg.Action)
+				m, err = this.dspNet.Broadcast(msg.Addresses, msg.Data, msg.SessionId, msg.MsgId, msg.Action)
 			} else {
-				m, err = this.dspNet.Broadcast(msg.Addresses, msg.Data, msg.MsgId)
+				m, err = this.dspNet.Broadcast(msg.Addresses, msg.Data, msg.SessionId, msg.MsgId)
 			}
 			msg.Response <- &dspAct.BroadcastResp{Result: m, Error: err}
 		}()
@@ -151,9 +151,20 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 		}()
 	case *dspAct.SendAndWaitReplyReq:
 		go func() {
-			ret, err := this.dspNet.SendAndWaitReply(msg.Data, msg.MsgId, msg.Address, msg.SendTimeout)
+			ret, err := this.dspNet.SendAndWaitReply(msg.Data, msg.SessionId, msg.MsgId, msg.Address, msg.SendTimeout)
 			msg.Response <- &dspAct.RequestWithRetryResp{Data: ret, Error: err}
 		}()
+	case *dspAct.ClosePeerSessionReq:
+		go func() {
+			err := this.dspNet.ClosePeerSession(msg.Address, msg.SessionId)
+			msg.Response <- &dspAct.P2pResp{Error: err}
+		}()
+	case *dspAct.PeerSessionSpeedReq:
+		go func() {
+			tx, rx, err := this.dspNet.GetPeerSessionSpeed(msg.Address, msg.SessionId)
+			msg.Response <- &dspAct.P2pSpeedResp{Tx: tx, Rx: rx, Error: err}
+		}()
+
 	case *dspAct.ReconnectPeerReq:
 		go func() {
 			switch msg.NetType {

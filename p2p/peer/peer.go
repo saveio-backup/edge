@@ -33,6 +33,7 @@ type MsgReply struct {
 
 type MsgWrap struct {
 	id           string        // msg id
+	sessionId    string        // msg to session id
 	msg          proto.Message // msg
 	state        MsgState      // msg state
 	needReply    bool          // if msg need reply
@@ -70,8 +71,7 @@ type Peer struct {
 	failedCount *FailedCount        // peer QoS failed count
 	state       ConnectState        // connect state
 	receivedMsg *lru.ARCCache       // received msg cache
-	stream      *network.Stream     // network stream
-	streamLock  *sync.RWMutex       // stream lock
+	sessions    map[string]*Session // session map, session id <=> session struct
 }
 
 func New(addr string) *Peer {
@@ -83,7 +83,7 @@ func New(addr string) *Peer {
 		failedCount: new(FailedCount),
 		retry:       make(map[string]int),
 		receivedMsg: cache,
-		streamLock:  new(sync.RWMutex),
+		sessions:    make(map[string]*Session),
 	}
 	return p
 }
@@ -220,7 +220,7 @@ func (p *Peer) SendAndWaitReply(msgId string, msg proto.Message) (proto.Message,
 }
 
 // Send. send msg without wait it's reply
-func (p *Peer) StreamSend(msgId string, msg proto.Message, sendTimeout time.Duration) error {
+func (p *Peer) StreamSend(sessionId, msgId string, msg proto.Message, sendTimeout time.Duration) error {
 	defer func() {
 		if e := recover(); e != nil {
 			log.Errorf("send panic recover err %v", e)
@@ -232,7 +232,10 @@ func (p *Peer) StreamSend(msgId string, msg proto.Message, sendTimeout time.Dura
 	if len(msgId) == 0 {
 		msgId = utils.GenIdByTimestamp(rand.New(rand.NewSource(time.Now().UnixNano())))
 	}
-	if p.client == nil || p.stream == nil {
+	if len(sessionId) == 0 {
+		sessionId = utils.GenIdByTimestamp(rand.New(rand.NewSource(time.Now().UnixNano())))
+	}
+	if p.client == nil {
 		return fmt.Errorf("client is nil")
 	}
 	ch := make(chan MsgReply, 1)
@@ -240,6 +243,7 @@ func (p *Peer) StreamSend(msgId string, msg proto.Message, sendTimeout time.Dura
 	streamMsg := &MsgWrap{
 		msg:          msg,
 		id:           msgId,
+		sessionId:    sessionId,
 		reply:        ch,
 		writeTimeout: sendTimeout,
 	}
@@ -247,7 +251,7 @@ func (p *Peer) StreamSend(msgId string, msg proto.Message, sendTimeout time.Dura
 		return err
 	}
 	go p.retryMsg()
-	if _, err := p.streamAsyncSendAndWaitAck(msg, msgId, sendTimeout); err != nil {
+	if _, err := p.streamAsyncSendAndWaitAck(msg, sessionId, msgId, sendTimeout); err != nil {
 		log.Errorf("stream send msg %s err %s", msgId, err)
 	}
 	log.Debugf("wait for msg reply of %s", msgId)
@@ -260,7 +264,7 @@ func (p *Peer) StreamSend(msgId string, msg proto.Message, sendTimeout time.Dura
 }
 
 // SendAndWaitReply. send msg and wait the response reply msg
-func (p *Peer) StreamSendAndWaitReply(msgId string, msg proto.Message, sendTimeout time.Duration) (
+func (p *Peer) StreamSendAndWaitReply(sessionId, msgId string, msg proto.Message, sendTimeout time.Duration) (
 	proto.Message, error) {
 	defer func() {
 		if e := recover(); e != nil {
@@ -273,17 +277,27 @@ func (p *Peer) StreamSendAndWaitReply(msgId string, msg proto.Message, sendTimeo
 	if len(msgId) == 0 {
 		msgId = utils.GenIdByTimestamp(rand.New(rand.NewSource(time.Now().UnixNano())))
 	}
+	if len(sessionId) == 0 {
+		sessionId = utils.GenIdByTimestamp(rand.New(rand.NewSource(time.Now().UnixNano())))
+	}
 	if p.client == nil {
 		return nil, fmt.Errorf("client is nil")
 	}
 	ch := make(chan MsgReply, 1)
 	log.Debugf("send msg %s and wait for reply to %s", msgId, p.addr)
-	if err := p.addMsg(msgId, &MsgWrap{msg: msg, id: msgId, needReply: true, reply: ch,
-		writeTimeout: sendTimeout}); err != nil {
+	msgWrap := &MsgWrap{
+		msg:          msg,
+		id:           msgId,
+		sessionId:    sessionId,
+		needReply:    true,
+		reply:        ch,
+		writeTimeout: sendTimeout,
+	}
+	if err := p.addMsg(msgId, msgWrap); err != nil {
 		return nil, err
 	}
 	go p.retryMsg()
-	if _, err := p.streamAsyncSendAndWaitAck(msg, msgId, sendTimeout); err != nil {
+	if _, err := p.streamAsyncSendAndWaitAck(msg, sessionId, msgId, sendTimeout); err != nil {
 		log.Errorf("stream send msg %s err %s", msgId, err)
 	}
 	reply := <-ch
@@ -321,6 +335,32 @@ func (p *Peer) Receive(origId string, replyMsg proto.Message) {
 	log.Debugf("after remove msg %s-%s len %d", origId, msgWrap.id, p.mq.Len())
 }
 
+// CloseSession. close session and its stream
+func (p *Peer) CloseSession(sessionId string) error {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	s, ok := p.sessions[sessionId]
+	if !ok {
+		return fmt.Errorf("session %s not exist", sessionId)
+	}
+	if err := s.Close(); err != nil {
+		return err
+	}
+	delete(p.sessions, sessionId)
+	return nil
+}
+
+// GetSessionTxSpeed. get session send data speed
+func (p *Peer) GetSessionSpeed(sessionId string) (uint64, uint64, error) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	ses, ok := p.sessions[sessionId]
+	if !ok {
+		return 0, 0, fmt.Errorf("session %s not found", sessionId)
+	}
+	return ses.GetTxAvgSpeed(), ses.GetRxAvgSpeed(), nil
+}
+
 func (p *Peer) retryMsg() {
 	defer func() {
 		if e := recover(); e != nil {
@@ -356,7 +396,7 @@ func (p *Peer) retryMsg() {
 			}
 			log.Debugf("get msg to retry %s timeout %d", msgWrap.id, msgWrap.writeTimeout)
 			if msgWrap.writeTimeout > 0 {
-				if _, err := p.streamAsyncSendAndWaitAck(msgWrap.msg, msgWrap.id,
+				if _, err := p.streamAsyncSendAndWaitAck(msgWrap.msg, msgWrap.sessionId, msgWrap.id,
 					calcTimeout(msgWrap.retry, msgWrap.writeTimeout)); err != nil {
 					log.Errorf("send msg to %s err in retry service %s", p.addr, err)
 				}
@@ -390,7 +430,9 @@ func (p *Peer) acceptAckNotify() {
 			log.Debugf("exit accept ack notify service, because client %s is closed", p.addr)
 			p.resetAllMsgs()
 			p.client = nil
-			p.closeStream()
+			if err := p.closeAllSession(); err != nil {
+				log.Errorf("close all session failed %s", err)
+			}
 			p.closeTime = time.Now()
 			p.failedCount.Disconnect++
 			return
@@ -511,54 +553,64 @@ func (p *Peer) setRetrying(r bool) {
 	p.retrying = r
 }
 
-func (p *Peer) openStream() {
-	p.streamLock.Lock()
-	defer p.streamLock.Unlock()
-	if p.stream != nil {
-		return
+// openSession. open a session for send msgs on a stream.
+// return stream id or error
+func (p *Peer) openSession(sessionId string) error {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	if _, ok := p.sessions[sessionId]; ok {
+		return nil
 	}
-	p.stream = p.client.OpenStream()
-	log.Debugf("open stream for peer %s, streamId %s", p.addr, p.stream.ID)
+	ses := NewSession(sessionId)
+	ses.SetClient(p.client)
+	if err := ses.Open(); err != nil {
+		return err
+	}
+	p.sessions[sessionId] = ses
+	return nil
 }
 
-func (p *Peer) closeStream() {
-	p.streamLock.Lock()
-	defer p.streamLock.Unlock()
-	if p.stream == nil {
-		return
+// closeSession. close session and its stream
+func (p *Peer) closeAllSession() error {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	for id, s := range p.sessions {
+		if err := s.Close(); err != nil {
+			log.Debugf("close session %s failed", id)
+			return err
+		}
+		delete(p.sessions, id)
 	}
-	streamId := p.stream.ID
-	p.client.CloseStream(streamId)
-	p.stream = nil
-	log.Debugf("close stream for peer %s, streamId %s", p.addr, streamId)
+	return nil
 }
 
-func (p *Peer) streamId() string {
-	p.streamLock.RLock()
-	defer p.streamLock.RUnlock()
-	if p.stream != nil {
-		return p.stream.ID
+func (p *Peer) streamAsyncSendAndWaitAck(msg proto.Message, sessionId, msgId string, sendTimeout time.Duration) (int32, error) {
+	if err := p.openSession(sessionId); err != nil {
+		return 0, err
 	}
-	return ""
-}
-
-func (p *Peer) streamAsyncSendAndWaitAck(msg proto.Message, msgId string, sendTimeout time.Duration) (int32, error) {
-	p.openStream()
-	p.streamLock.Lock()
-	defer p.streamLock.Unlock()
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	ses, ok := p.sessions[sessionId]
+	if !ok {
+		log.Errorf("get session %s to send msg %s failed, no session", sessionId, msgId)
+		return 0, fmt.Errorf("get session %s to send msg %s failed, no session", sessionId, msgId)
+	}
+	streamId := ses.GetStreamId()
 	if p == nil {
 		return 0, fmt.Errorf("peer is nil")
 	}
-	if p.client == nil || p.stream == nil {
+	if p.client == nil {
 		return 0, fmt.Errorf("client is nil")
 	}
-	streamId := p.stream.ID
+	if len(streamId) == 0 {
+		log.Debugf("stream id is empty when send msg %s", msgId)
+	}
 	sentCh := make(chan struct{}, 1)
 	go func() {
 		select {
 		case <-time.After(sendTimeout):
 			log.Errorf("stream %s send msg %s timeout %d", streamId, msgId, sendTimeout)
-			p.client.CloseStream(streamId)
+			p.CloseSession(sessionId)
 			return
 		case <-p.client.CloseSignal:
 			return
