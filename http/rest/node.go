@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	dspActorClient "github.com/saveio/dsp-go-sdk/actor/client"
+	dUtils "github.com/saveio/dsp-go-sdk/utils"
 	"github.com/saveio/edge/dsp"
 	"github.com/saveio/edge/utils"
 	"github.com/saveio/themis/common/log"
@@ -190,6 +191,83 @@ func QueryLink(cmd map[string]interface{}) map[string]interface{} {
 	}
 	m := make(map[string]interface{}, 0)
 	m["Link"] = link
+	resp["Result"] = m
+	return resp
+}
+
+func UpdateFileUrlVersion(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+
+	url, ok := cmd["Url"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	version, ok := cmd["Version"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	pt, _ := cmd["Platform"].(string)
+	platformType := dsp.DspFileUrlPatformType(0)
+	if len(pt) > 0 {
+		platformTypeInt, err := strconv.ParseUint(pt, 10, 64)
+		if err != nil {
+			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, err.Error())
+		}
+		platformType = dsp.DspFileUrlPatformType(platformTypeInt)
+	}
+	fileHash, ok := cmd["FileHash"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	changeLogCN, ok := cmd["ChangeLogCN"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	changeLogEN, ok := cmd["ChangeLogEN"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	changeLog := dUtils.URLVERSION_CHANGELOG_PREFIX + "CN:" + changeLogCN + dUtils.URLVERSION_CHANGELOG_PREFIX + "EN:" + changeLogEN
+
+	tx, err := dsp.DspService.UpdateUrlVersion(url, version, fileHash, changeLog, platformType)
+	if err != nil {
+		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
+	}
+
+	m := make(map[string]interface{}, 0)
+	m["Tx"] = tx
+	resp["Result"] = m
+	return resp
+}
+
+func QueryFileUrlLatestVersion(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+
+	url, ok := cmd["Url"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	pt, _ := cmd["Platform"].(string)
+	platformType := dsp.DspFileUrlPatformType(0)
+	if len(pt) > 0 {
+		platformTypeInt, err := strconv.ParseUint(pt, 10, 64)
+		if err != nil {
+			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, err.Error())
+		}
+		platformType = dsp.DspFileUrlPatformType(platformTypeInt)
+	}
+
+	log.Debugf("pt: %s, Platform %d", pt, platformType)
+	urlVersion, err := dsp.DspService.QueryUrlVersion(url, int(platformType))
+	if err != nil {
+		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
+	}
+
+	m := make(map[string]interface{}, 0)
+	m["Platform"] = urlVersion.Platform
+	m["Version"] = urlVersion.Version
+	m["FileHash"] = urlVersion.FileHashStr
+	m["ChangeLog"] = urlVersion.ChangeLog
 	resp["Result"] = m
 	return resp
 }

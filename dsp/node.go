@@ -1,11 +1,17 @@
 package dsp
 
 import (
+	"encoding/json"
+	"strings"
+
+	"github.com/saveio/dsp-go-sdk/utils"
 	"github.com/saveio/themis/common"
 	"github.com/saveio/themis/common/log"
 	"github.com/saveio/themis/smartcontract/service/native/dns"
 	fs "github.com/saveio/themis/smartcontract/service/native/savefs"
 )
+
+type DspFileUrlPatformType int
 
 //Dsp api
 func (this *Endpoint) RegisterNode(addr string, volume, serviceTime uint64) (string, *DspErr) {
@@ -117,6 +123,55 @@ func (this *Endpoint) QueryLink(url string) (string, *DspErr) {
 	}
 	link := dsp.GetLinkFromUrl(url)
 	return link, nil
+}
+
+func (this *Endpoint) UpdateUrlVersion(url, version, fileHash, changeLog string, platformType DspFileUrlPatformType) (string, *DspErr) {
+	dsp := this.getDsp()
+	if dsp == nil {
+		return "", &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+	urlVersion := utils.URLVERSION{
+		Platform:    int(platformType),
+		Version:     version,
+		FileHashStr: fileHash,
+		ChangeLog:   changeLog,
+	}
+	log.Debugf("update url %s version %v", url, urlVersion)
+	tx, err := dsp.UpdateFileUrlVersion(url, urlVersion)
+	if err != nil {
+		return "", &DspErr{Code: DSP_DNS_UPDATE_FAILED, Error: err}
+	}
+	return tx, nil
+}
+
+func (this *Endpoint) QueryUrlVersion(url string, platformType int) (*utils.URLVERSION, *DspErr) {
+	dsp := this.getDsp()
+	if dsp == nil {
+		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+	urlVersion := dsp.GetVersionFromUrl(url)
+	urlVersionArr := strings.Split(urlVersion, utils.URLVERSION_SPLIT_STRING)
+	var urlVersionRet utils.URLVERSION
+	var versionStr string
+
+	for _, uvItem := range urlVersionArr {
+		var uv utils.URLVERSION
+		err := json.Unmarshal([]byte(uvItem), &uv)
+		if err != nil {
+			return nil, &DspErr{Code: DSP_DNS_QUERY_INFO_FAILED, Error: err}
+		}
+		if platformType == 0 || uv.Platform == 0 || platformType == uv.Platform {
+			if uv.Version >= versionStr {
+				versionStr = uv.Version
+				urlVersionRet = uv
+			}
+		}
+	}
+
+	if len(versionStr) == 0 {
+		return nil, &DspErr{Code: DSP_DNS_QUERY_INFO_FAILED, Error: ErrMaps[DSP_DNS_QUERY_INFO_FAILED]}
+	}
+	return &urlVersionRet, nil
 }
 
 func (this *Endpoint) RegisterDns(ip, port string, amount uint64) (string, *DspErr) {

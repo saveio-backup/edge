@@ -144,6 +144,8 @@ const (
 	DNS_REGISTER         = "/api/v1/dns/register"
 	DNS_BIND             = "/api/v1/dns/bind"
 	DNS_QUERYLINK        = "/api/v1/dns/query/link"
+	DNS_UPDATEVERSION    = "/api/v1/dns/update/version"
+	DNS_QUERYVERSION     = "/api/v1/dns/query/version"
 	DNS_REGISTER_DNS     = "/api/v1/dns/registerdns/:ip/:port/:deposit"
 	DNS_UNREGISTER_DNS   = "/api/v1/dns/unregisterdns"
 	DNS_QUIT             = "/api/v1/dns/quit"
@@ -336,9 +338,11 @@ func (this *restServer) registryMethod() {
 		CLOSE_ALL_CHANNEL: {name: "closechannel", handler: CloseAllChannel},
 		SWITCH_CHANNEL:    {name: "switchchannel", handler: SwitchChannel},
 
-		DNS_REGISTER:  {name: "registerurl", handler: RegisterUrl},
-		DNS_BIND:      {name: "bindurl", handler: BindUrl},
-		DNS_QUERYLINK: {name: "querylink", handler: QueryLink},
+		DNS_REGISTER:      {name: "registerurl", handler: RegisterUrl},
+		DNS_BIND:          {name: "bindurl", handler: BindUrl},
+		DNS_QUERYLINK:     {name: "querylink", handler: QueryLink},
+		DNS_UPDATEVERSION: {name: "updateurlversion", handler: UpdateFileUrlVersion},
+		DNS_QUERYVERSION:  {name: "queryurlversion", handler: QueryFileUrlLatestVersion},
 
 		SET_CONFIG: {name: "setconfig", handler: SetConfig},
 
