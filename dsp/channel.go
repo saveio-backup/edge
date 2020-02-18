@@ -2,6 +2,7 @@ package dsp
 
 import (
 	"container/list"
+	"math"
 	"strconv"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	chanCom "github.com/saveio/pylons/common"
 	pylons_transfer "github.com/saveio/pylons/transfer"
 	chainCom "github.com/saveio/themis/common"
+	"github.com/saveio/themis/common/constants"
 	"github.com/saveio/themis/common/log"
 )
 
@@ -288,7 +290,7 @@ func (this *Endpoint) OpenPaymentChannel(partnerAddr string, amount uint64) (cha
 	if dsp == nil {
 		return 0, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
-	log.Debugf("OpenPaymentChannel %s", partnerAddr)
+
 	channelExist := dsp.ChannelExist(partnerAddr)
 	if !channelExist {
 		return 0, &DspErr{Code: DSP_CHANNEL_EXIST, Error: ErrMaps[DSP_CHANNEL_EXIST]}
@@ -297,7 +299,12 @@ func (this *Endpoint) OpenPaymentChannel(partnerAddr string, amount uint64) (cha
 	if err != nil {
 		return 0, &DspErr{Code: INTERNAL_ERROR, Error: err}
 	}
+	log.Debugf("OpenPaymentChannel %s, balance %d amount %d",
+		partnerAddr, balance, amount+uint64(0.02*math.Pow10(constants.USDT_DECIMALS)))
 	if balance == 0 || amount > balance {
+		return 0, &DspErr{Code: INSUFFICIENT_BALANCE, Error: ErrMaps[INSUFFICIENT_BALANCE]}
+	}
+	if amount+uint64(0.02*math.Pow10(constants.USDT_DECIMALS)) > balance {
 		return 0, &DspErr{Code: INSUFFICIENT_BALANCE, Error: ErrMaps[INSUFFICIENT_BALANCE]}
 	}
 	partnerAddress, err := chainCom.AddressFromBase58(partnerAddr)
