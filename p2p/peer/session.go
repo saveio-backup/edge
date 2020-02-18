@@ -113,7 +113,7 @@ func (this *Session) startRecordSpeed() {
 			if len(this.txSpeeds) < common.MAX_SESSION_RECORD_SPEED_LEN {
 				continue
 			}
-			this.txSpeeds = this.txSpeeds[1 : 1+common.MAX_SESSION_RECORD_SPEED_LEN]
+			this.txSpeeds = this.txSpeeds[1:]
 		case <-this.closeCh:
 			log.Debugf("stop record speed when stream is closed")
 			return
