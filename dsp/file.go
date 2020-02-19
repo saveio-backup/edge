@@ -1549,13 +1549,17 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uin
 			continue
 		}
 		fileHashStr := info.FileHash
+		if len(fileHashStr) == 0 {
+			log.Warnf("task %s file hash is empty ", info.Id)
+			continue
+		}
 		log.Debugf("get file of %s", fileHashStr)
 		downloadedCount, _ := dsp.CountRecordByFileHash(fileHashStr)
 		profit, _ := dsp.SumRecordsProfitByFileHash(fileHashStr)
 		// rpc request
 		proveDetail, err := dsp.GetFileProveDetails(fileHashStr)
 		if err != nil {
-			log.Errorf("get prove detail failed")
+			log.Errorf("get prove detail failed err %s", err)
 			continue
 		}
 		nodesDetail := make([]NodeProveDetail, 0, proveDetail.ProveDetailNum)

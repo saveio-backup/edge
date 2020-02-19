@@ -537,6 +537,7 @@ func (this *Endpoint) initLog() {
 		extra = strconv.FormatUint(utils.GetMilliSecTimestamp(), 10)
 	}
 	logFullPath = filepath.Join(baseDir, logPath) + extra + "/"
+	log.Debugf("log new path %s", logFullPath)
 	log.InitLog(int(config.Parameters.BaseConfig.LogLevel), logFullPath, log.Stdout)
 	log.SetProcName("saveio")
 }

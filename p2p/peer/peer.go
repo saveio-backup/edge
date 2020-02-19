@@ -414,6 +414,10 @@ func (p *Peer) retryMsg() {
 
 func (p *Peer) acceptAckNotify() {
 	log.Debugf("acceptAckNotify %v", p.client.Address)
+	var closeSignal chan struct{}
+	if p.client != nil {
+		closeSignal = p.client.CloseSignal
+	}
 	for {
 		select {
 		case notify, ok := <-p.client.AckStatusNotify:
@@ -426,7 +430,7 @@ func (p *Peer) acceptAckNotify() {
 				continue
 			}
 			p.receiveMsgNotify(notify)
-		case <-p.client.CloseSignal:
+		case <-closeSignal:
 			log.Debugf("exit accept ack notify service, because client %s is closed", p.addr)
 			p.resetAllMsgs()
 			p.client = nil
@@ -602,6 +606,10 @@ func (p *Peer) streamAsyncSendAndWaitAck(msg proto.Message, sessionId, msgId str
 	if p.client == nil {
 		return 0, fmt.Errorf("client is nil")
 	}
+	var closeSignal chan struct{}
+	if p.client != nil {
+		closeSignal = p.client.CloseSignal
+	}
 	if len(streamId) == 0 {
 		log.Debugf("stream id is empty when send msg %s", msgId)
 	}
@@ -612,7 +620,7 @@ func (p *Peer) streamAsyncSendAndWaitAck(msg proto.Message, sessionId, msgId str
 			log.Errorf("stream %s send msg %s timeout %d", streamId, msgId, sendTimeout)
 			p.CloseSession(sessionId)
 			return
-		case <-p.client.CloseSignal:
+		case <-closeSignal:
 			return
 		case <-sentCh:
 			return
