@@ -1570,10 +1570,12 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uin
 				Index: index,
 			}
 		}
+		fileHasUploaded := false
 		for _, detail := range proveDetail.ProveDetails {
 			nodeState := 2
 			if detail.ProveTimes > 0 {
 				nodeState = 3
+				fileHasUploaded = true
 			}
 			uploadSize, _ := dsp.GetFileUploadSize(fileHashStr, string(detail.NodeAddr))
 			if uploadSize > 0 {
@@ -1633,11 +1635,15 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uin
 		}
 		offsetCnt++
 		sort.Sort(NodeProveDetails(nodesDetail))
+		fileUrl := ""
+		if fileHasUploaded {
+			fileUrl = info.Url
+		}
 		fr := &FileResp{
 			Hash:          fileHashStr,
 			Name:          info.FileName,
 			Encrypt:       info.Encrypt,
-			Url:           info.Url,
+			Url:           fileUrl,
 			Size:          info.FileSize,
 			DownloadCount: downloadedCount,
 			ExpiredAt:     blockHeightToTimestamp(uint64(curBlockHeight), info.ExpiredHeight),
