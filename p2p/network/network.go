@@ -740,10 +740,10 @@ func (this *Network) Broadcast(addrs []string, msg proto.Message, sessionId, msg
 	for {
 		select {
 		case result := <-done:
+			m[result.addr] = result.err
 			if atomic.LoadInt32(&stop) > 0 {
 				return m, nil
 			}
-			m[result.addr] = result.err
 			if len(m) != len(addrs) {
 				continue
 			}

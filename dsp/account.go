@@ -87,6 +87,21 @@ func (this *Endpoint) GetCurrentAccount() (*AccountResp, *DspErr) {
 }
 
 func (this *Endpoint) Login(password string) (*AccountResp, *DspErr) {
+	if this.dspExist() {
+		if this.password != password {
+			return nil, &DspErr{Code: ACCOUNT_PASSWORD_WRONG, Error: ErrMaps[ACCOUNT_PASSWORD_WRONG]}
+		}
+		account := this.GetDspAccount()
+		if account == nil {
+			return nil, &DspErr{Code: ACCOUNT_NOT_LOGIN, Error: ErrMaps[ACCOUNT_NOT_LOGIN]}
+		}
+		return &AccountResp{
+			PublicKey: hex.EncodeToString(keypair.SerializePublicKey(account.PublicKey)),
+			Address:   account.Address.ToBase58(),
+			SigScheme: account.SigScheme,
+			Label:     this.getDspAccountLabel(),
+		}, nil
+	}
 	service, err := Init(config.WalletDatFilePath(), password)
 	if err != nil {
 		if WrongWalletPasswordError(err) {
@@ -202,6 +217,16 @@ func (this *Endpoint) ImportWithPrivateKey(wif, label, password string) (*Accoun
 	if err != nil {
 		return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
 	}
+	if this.dspExist() {
+		account := this.GetDspAccount()
+		if account == nil {
+			return nil, &DspErr{Code: ACCOUNT_NOT_LOGIN, Error: ErrMaps[ACCOUNT_NOT_LOGIN]}
+		}
+		if account.Address.ToBase58() != acc.Address.ToBase58() {
+			return nil, &DspErr{Code: ACCOUNT_EXIST, Error: ErrMaps[ACCOUNT_EXIST]}
+		}
+		return acc2, nil
+	}
 	service, err := Init(config.WalletDatFilePath(), password)
 	if err != nil {
 		return nil, &DspErr{Code: DSP_INIT_FAILED, Error: err}
@@ -244,6 +269,16 @@ func (this *Endpoint) ImportWithWalletData(walletStr, password, walletPath strin
 		if err != nil {
 			return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
 		}
+	}
+	if this.dspExist() {
+		account := this.GetDspAccount()
+		if account == nil {
+			return nil, &DspErr{Code: ACCOUNT_NOT_LOGIN, Error: ErrMaps[ACCOUNT_NOT_LOGIN]}
+		}
+		if account.Address.ToBase58() != acc.Address.ToBase58() {
+			return nil, &DspErr{Code: ACCOUNT_EXIST, Error: ErrMaps[ACCOUNT_EXIST]}
+		}
+		return acc2, nil
 	}
 	service, err := Init(config.WalletDatFilePath(), password)
 	if err != nil {
