@@ -400,11 +400,13 @@ func (this *Network) HealthCheckPeer(addr string) error {
 		err = this.P2p.ReconnectProxyServer(this.proxyAddr)
 		if err != nil {
 			log.Errorf("proxy reconnect failed, err %s", err)
+			this.WaitForConnected(addr, time.Duration(common.MAX_WAIT_FOR_CONNECTED_TIMEOUT)*time.Second)
 			return err
 		}
 	} else {
 		err = this.reconnectPeer(addr)
 		if err != nil {
+			this.WaitForConnected(addr, time.Duration(common.MAX_WAIT_FOR_CONNECTED_TIMEOUT)*time.Second)
 			return err
 		}
 	}
