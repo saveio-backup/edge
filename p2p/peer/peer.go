@@ -487,6 +487,7 @@ func (p *Peer) getMsgToRetry() *MsgWrap {
 			continue
 		}
 		msgWrap.retry++
+		log.Debugf("msg id %s retry %d times", msgWrap.id, msgWrap.retry)
 		// msg is waiting
 		return msgWrap
 	}
