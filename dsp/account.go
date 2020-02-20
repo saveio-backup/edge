@@ -130,8 +130,18 @@ func (this *Endpoint) NewAccount(label string, typeCode keypair.KeyType, curveCo
 	if err != nil {
 		return nil, &DspErr{Code: WALLET_FILE_NOT_EXIST, Error: err}
 	}
+	if wallet.GetAccountNum() > 0 {
+		existMeta := wallet.GetAccountMetadataByLabel(label)
+		if existMeta != nil {
+			log.Debugf("exist same label for addr %v, label %s", existMeta.Address, label)
+			if err := wallet.SetLabel(existMeta.Address, existMeta.Address); err != nil {
+				return nil, &DspErr{Code: CREATE_ACCOUNT_FAILED, Error: err}
+			}
+		}
+	}
 	acc, err := wallet.NewAccount(label, typeCode, curveCode, sigScheme, []byte(pwd))
 	if err != nil {
+		log.Debugf("err %v", err)
 		return nil, &DspErr{Code: CREATE_ACCOUNT_FAILED, Error: err}
 	}
 	key, err := keypair.Key2WIF(acc.PrivateKey)
