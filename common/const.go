@@ -23,21 +23,22 @@ const (
 
 // network common
 const (
-	MAX_WAIT_FOR_CONNECTED_TIMEOUT = 15      // wait for connected timeout
-	COMPRESS_DATA_SIZE             = 1048576 // > 1MB data need to be compressed
-	START_PROXY_TIMEOUT            = 20      // timeout for start proxy
-	START_P2P_TIMEOUT              = 25      // timeout for start p2p
-	BACKOFF_INIT_DELAY             = 2       // backoff initial delay
-	BACKOFF_MAX_ATTEMPTS           = 50      // backoff max attempts
-	KEEPALIVE_TIMEOUT              = 15      // keepalive timeout
-	EVENT_ACTOR_TIMEOUT            = 15      // event actor timeout
-	NETWORK_DIAL_TIMEOUT           = 5       // network dial timeout
-	MAX_MSG_RETRY                  = 3       // max msg retry count
-	ACK_MSG_CHECK_INTERVAL         = 20      // ack msg check interval
-	MAX_ACK_MSG_TIMEOUT            = 60      // max timeout for ack msg
-	MAX_RECEIVED_MSG_CACHE         = 500     // max received msg cache
-	SESSION_SPEED_RECORD_INTERVAL  = 3       // speed record interval
-	MAX_SESSION_RECORD_SPEED_LEN   = 3       // max record speed array length
+	MAX_WAIT_FOR_CONNECTED_TIMEOUT = 15               // wait for connected timeout
+	COMPRESS_DATA_SIZE             = 1048576          // > 1MB data need to be compressed
+	START_PROXY_TIMEOUT            = 20               // timeout for start proxy
+	START_P2P_TIMEOUT              = 25               // timeout for start p2p
+	BACKOFF_INIT_DELAY             = 2                // backoff initial delay
+	BACKOFF_MAX_ATTEMPTS           = 50               // backoff max attempts
+	KEEPALIVE_TIMEOUT              = 15               // keepalive timeout
+	EVENT_ACTOR_TIMEOUT            = 15               // event actor timeout
+	NETWORK_DIAL_TIMEOUT           = 5                // network dial timeout
+	MAX_MSG_RETRY                  = 3                // max msg retry count
+	ACK_MSG_CHECK_INTERVAL         = 20               // ack msg check interval
+	MAX_ACK_MSG_TIMEOUT            = 60               // max timeout for ack msg
+	MAX_RECEIVED_MSG_CACHE         = 500              // max received msg cache
+	SESSION_SPEED_RECORD_INTERVAL  = 3                // speed record interval
+	MAX_SESSION_RECORD_SPEED_LEN   = 3                // max record speed array length
+	MAX_WRITE_BUFFER_SIZE          = 24 * 1024 * 1024 // max write buffer size 24MB
 )
 
 // asset

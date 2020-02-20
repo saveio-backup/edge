@@ -99,6 +99,7 @@ func (this *Network) Start(protocol, addr, port string, opts ...NetworkOption) e
 	builderOpt := []network.BuilderOption{
 		network.WriteFlushLatency(1 * time.Millisecond),
 		network.WriteTimeout(dspCom.NETWORK_STREAM_WRITE_TIMEOUT),
+		network.WriteBufferSize(common.MAX_WRITE_BUFFER_SIZE),
 	}
 	builder := network.NewBuilderWithOptions(builderOpt...)
 	this.builder = builder
