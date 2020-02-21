@@ -32,13 +32,14 @@ const (
 	KEEPALIVE_TIMEOUT              = 15               // keepalive timeout
 	EVENT_ACTOR_TIMEOUT            = 15               // event actor timeout
 	NETWORK_DIAL_TIMEOUT           = 5                // network dial timeout
-	MAX_MSG_RETRY                  = 3                // max msg retry count
+	MAX_MSG_RETRY                  = 1                // max msg retry count
 	ACK_MSG_CHECK_INTERVAL         = 20               // ack msg check interval
 	MAX_ACK_MSG_TIMEOUT            = 60               // max timeout for ack msg
 	MAX_RECEIVED_MSG_CACHE         = 500              // max received msg cache
 	SESSION_SPEED_RECORD_INTERVAL  = 3                // speed record interval
 	MAX_SESSION_RECORD_SPEED_LEN   = 3                // max record speed array length
 	MAX_WRITE_BUFFER_SIZE          = 24 * 1024 * 1024 // max write buffer size 24MB
+	MAX_MSG_RETRY_FAILED           = 3                // max msg retry failed count
 )
 
 // asset

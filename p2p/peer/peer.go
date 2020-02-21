@@ -35,12 +35,12 @@ type MsgWrap struct {
 	id           string        // msg id
 	sessionId    string        // msg to session id
 	msg          proto.Message // msg
-	state        MsgState      // msg state
 	needReply    bool          // if msg need reply
 	reply        chan MsgReply // msg reply channel
 	createdAt    uint64        // msg created time
 	writeTimeout time.Duration // timeout for msg to sent
 	retry        uint32        // msg retry times
+	retryAt      uint64        // retry msg time stamp
 }
 
 type FailedCount struct {
@@ -432,7 +432,6 @@ func (p *Peer) acceptAckNotify() {
 			p.receiveMsgNotify(notify)
 		case <-closeSignal:
 			log.Debugf("exit accept ack notify service, because client %s is closed", p.addr)
-			p.resetAllMsgs()
 			p.client = nil
 			if err := p.closeAllSession(); err != nil {
 				log.Errorf("close all session failed %s", err)
@@ -465,16 +464,19 @@ func (p *Peer) getMsgLen() int {
 }
 
 func (p *Peer) getMsgToRetry() *MsgWrap {
-	p.lock.RLock()
-	defer p.lock.RUnlock()
+	p.lock.Lock()
+	defer p.lock.Unlock()
 	if p.client == nil {
 		log.Warnf("get msg to retry but client is nil %s", p.addr)
 		return nil
 	}
+	var retryMsgWrap *MsgWrap
+	fails := make([]*list.Element, 0)
 	for e := p.mq.Front(); e != nil; e = e.Next() {
 		msgWrap := e.Value.(*MsgWrap)
-		if msgWrap.state == MsgStateSended {
-			log.Debugf("msg %s has sended, ignore retring", msgWrap.id)
+		if msgWrap.retry > common.MAX_MSG_RETRY {
+			log.Debugf("msg %s retry too many, append to remove list", msgWrap.id)
+			fails = append(fails, e)
 			continue
 		}
 		// msg is sending
@@ -482,16 +484,29 @@ func (p *Peer) getMsgToRetry() *MsgWrap {
 			log.Debugf("msg %s already in component retry queue", msgWrap.id)
 			continue
 		}
-		if utils.GetMilliSecTimestamp() < msgWrap.createdAt+(common.ACK_MSG_CHECK_INTERVAL*1000) {
-			log.Debugf("msg %s just send, delay retry it after %ds", msgWrap.id, common.ACK_MSG_CHECK_INTERVAL)
+		nowTimestamp := utils.GetMilliSecTimestamp()
+		if nowTimestamp < msgWrap.createdAt+(common.ACK_MSG_CHECK_INTERVAL*1000) {
+			log.Debugf("msg %s just send, delay retry it", msgWrap.id)
 			continue
 		}
+		if nowTimestamp < msgWrap.retryAt+(common.MAX_ACK_MSG_TIMEOUT*1000) {
+			log.Debugf("msg %s is in sync wait retry service", msgWrap.id)
+			continue
+		}
+		msgWrap.retryAt = nowTimestamp
 		msgWrap.retry++
 		log.Debugf("msg id %s retry %d times", msgWrap.id, msgWrap.retry)
 		// msg is waiting
-		return msgWrap
+		retryMsgWrap = msgWrap
+		break
 	}
-	return nil
+	for _, e := range fails {
+		failMsgWrap := e.Value.(*MsgWrap)
+		failMsgWrap.reply <- MsgReply{err: errors.New("retry too many")}
+		p.mq.Remove(e)
+		delete(p.retry, failMsgWrap.id)
+	}
+	return retryMsgWrap
 }
 
 // receive msg ack notify
@@ -513,7 +528,7 @@ func (p *Peer) receiveMsgNotify(notify network.AckStatus) {
 	log.Debugf("receive msg ack notify %s, result %d, need reply %t", msgWrap.id, notify.Status, msgWrap.needReply)
 	// receive ack msg, remove it from list
 	if notify.Status == network.ACK_SUCCESS {
-		msgWrap.state = MsgStateSended
+		// msgWrap.state = MsgStateSended
 		if !msgWrap.needReply {
 			msgWrap.reply <- MsgReply{}
 			p.mq.Remove(e)
@@ -522,7 +537,7 @@ func (p *Peer) receiveMsgNotify(notify network.AckStatus) {
 		}
 		return
 	}
-	if p.retry[notify.MessageID] >= common.MAX_MSG_RETRY {
+	if p.retry[notify.MessageID] >= common.MAX_MSG_RETRY_FAILED {
 		msgWrap.reply <- MsgReply{err: errors.New("retry too many")}
 		p.mq.Remove(e)
 		delete(p.retry, msgWrap.id)
@@ -531,19 +546,6 @@ func (p *Peer) receiveMsgNotify(notify network.AckStatus) {
 		return
 	}
 	p.retry[msgWrap.id]++
-}
-
-// resetAllMsgs. reset all msg state to none
-func (p *Peer) resetAllMsgs() {
-	p.lock.Lock()
-	defer p.lock.Unlock()
-	for e := p.mq.Front(); e != nil; e = e.Next() {
-		msgWrap := e.Value.(*MsgWrap)
-		if msgWrap == nil {
-			continue
-		}
-		msgWrap.state = MsgStateNone
-	}
 }
 
 func (p *Peer) serviceRetrying() bool {
