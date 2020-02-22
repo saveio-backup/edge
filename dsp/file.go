@@ -12,7 +12,6 @@ import (
 	"time"
 
 	dspCom "github.com/saveio/dsp-go-sdk/common"
-	sdkErr "github.com/saveio/dsp-go-sdk/error"
 	"github.com/saveio/dsp-go-sdk/store"
 	"github.com/saveio/dsp-go-sdk/task"
 	dspUtils "github.com/saveio/dsp-go-sdk/utils"
@@ -541,20 +540,6 @@ func (this *Endpoint) CancelUploadFile(taskIds []string, gasLimit uint64) (*File
 		Tasks: make([]*FileTask, 0, len(taskIds)),
 	}
 
-	// send delete files tx
-	fileHashes := make([]string, 0, len(taskIds))
-	for _, id := range taskIds {
-		fileHash := dsp.GetTaskFileHash(id)
-		if len(fileHash) == 0 {
-			continue
-		}
-		fileHashes = append(fileHashes, fileHash)
-	}
-	var deleteTxErr error
-	if len(fileHashes) > 0 {
-		_, _, deleteTxErr = dsp.DeleteUploadFilesFromChain(fileHashes, gasLimit)
-	}
-
 	args := make([][]interface{}, 0, len(taskIds))
 	for _, id := range taskIds {
 		args = append(args, []interface{}{id})
@@ -580,15 +565,6 @@ func (this *Endpoint) CancelUploadFile(taskIds []string, gasLimit uint64) (*File
 		}
 		taskResp.Id = id
 		taskResp.FileName = dsp.GetTaskFileName(id)
-		deleteTxErrObj, ok := deleteTxErr.(*sdkErr.Error)
-		if deleteTxErr != nil && ok && deleteTxErrObj.Code != sdkErr.NO_FILE_NEED_DELETED {
-			taskResp.Code = DSP_CANCEL_TASK_FAILED
-			taskResp.Error = deleteTxErr.Error()
-			respCh <- &dspUtils.RequestResponse{
-				Result: taskResp,
-			}
-			return
-		}
 		exist := dsp.IsTaskExist(id)
 		if !exist {
 			err := dsp.DeleteTaskIds([]string{id})
@@ -596,13 +572,12 @@ func (this *Endpoint) CancelUploadFile(taskIds []string, gasLimit uint64) (*File
 				taskResp.Code = DSP_CANCEL_TASK_FAILED
 				taskResp.Error = err.Error()
 			}
-			log.Debugf("cancel upload file, id :%s, resp :%v", id, taskResp)
+			log.Debugf("cancel no exist in memory task, upload file, id %s, resp %v", id, taskResp)
 			respCh <- &dspUtils.RequestResponse{
 				Result: taskResp,
 			}
 			return
 		}
-
 		deleteResp, err := dsp.CancelUpload(id, gasLimit)
 		if err != nil {
 			taskResp.Code = DSP_CANCEL_TASK_FAILED
@@ -1640,9 +1615,10 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uin
 		offsetCnt++
 		sort.Sort(NodeProveDetails(nodesDetail))
 		fileUrl := ""
-		if fileHasUploaded {
+		if fileHasUploaded && info.TaskState == store.TaskStateDone {
 			fileUrl = info.Url
 		}
+		log.Debugf("fileHasUploaded %t, state %d", fileHasUploaded, info.TaskState)
 		fr := &FileResp{
 			Hash:          fileHashStr,
 			Name:          info.FileName,

@@ -70,9 +70,9 @@ func Init(walletDir, pwd string) (*Endpoint, error) {
 	if len(walletDir) == 0 {
 		return e, nil
 	}
-	_, err := os.Open(walletDir)
-	if err != nil {
-		return e, nil
+	if _, err := os.Open(walletDir); err != nil {
+		log.Errorf("open wallet err %s", err)
+		return nil, err
 	}
 	wallet, err := wallet.OpenWallet(walletDir)
 	if err != nil {
@@ -158,6 +158,9 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 	log.Debugf("new dsp svr %v", dspSrv)
 	if dspSrv == nil {
 		return errors.New("dsp server init failed")
+	}
+	if endpoint.GetDspAccount() == nil {
+		return fmt.Errorf("dsp service account is nil")
 	}
 	endpoint.setDsp(dspSrv)
 	version, _ := endpoint.GetNodeVersion()
