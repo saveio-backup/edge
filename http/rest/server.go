@@ -140,23 +140,24 @@ const (
 	CURRENT_CHANNEL           = "/api/v1/channel/current"
 	SWITCH_CHANNEL            = "/api/v1/channel/switch"
 
-	ALL_DNS              = "/api/v1/dns"
-	DNS_REGISTER         = "/api/v1/dns/register"
-	DNS_BIND             = "/api/v1/dns/bind"
-	DNS_QUERYLINK        = "/api/v1/dns/query/link"
-	DNS_UPDATEVERSION    = "/api/v1/dns/update/version"
-	DNS_QUERYVERSION     = "/api/v1/dns/query/version"
-	DNS_REGISTER_DNS     = "/api/v1/dns/registerdns/:ip/:port/:deposit"
-	DNS_UNREGISTER_DNS   = "/api/v1/dns/unregisterdns"
-	DNS_QUIT             = "/api/v1/dns/quit"
-	DNS_ADD_DEPOSIT      = "/api/v1/dns/addpos/:amount"
-	DNS_REDUCE_DEPOSIT   = "/api/v1/dns/reducepos/:amount"
-	DNS_QUERY_REG_INFOS  = "/api/v1/dns/reginfos"
-	DNS_QUERY_HOST_INFOS = "/api/v1/dns/hostinfos"
-	DNS_QUERY_REG_INFO   = "/api/v1/dns/reginfo/:pubkey"
-	DNS_QUERY_HOST_INFO  = "/api/v1/dns/hostinfo/:addr"
-	DNS_QUERY_HASH       = "/api/v1/dns/hash/:url"
-	DNS_UPDATE_URL       = "/api/v1/dns/url/link"
+	ALL_DNS                   = "/api/v1/dns"
+	DNS_REGISTER              = "/api/v1/dns/register"
+	DNS_BIND                  = "/api/v1/dns/bind"
+	DNS_QUERYLINK             = "/api/v1/dns/query/link"
+	DNS_UPDATE_PLUGIN_VERSION = "/api/v1/dns/plugin/update"
+	DNS_QUERY_PLUGIN_VERSION  = "/api/v1/dns/plugin/query"
+	DNS_PLUGINS_INFO          = "/api/v1/dns/plugininfos"
+	DNS_REGISTER_DNS          = "/api/v1/dns/registerdns/:ip/:port/:deposit"
+	DNS_UNREGISTER_DNS        = "/api/v1/dns/unregisterdns"
+	DNS_QUIT                  = "/api/v1/dns/quit"
+	DNS_ADD_DEPOSIT           = "/api/v1/dns/addpos/:amount"
+	DNS_REDUCE_DEPOSIT        = "/api/v1/dns/reducepos/:amount"
+	DNS_QUERY_REG_INFOS       = "/api/v1/dns/reginfos"
+	DNS_QUERY_HOST_INFOS      = "/api/v1/dns/hostinfos"
+	DNS_QUERY_REG_INFO        = "/api/v1/dns/reginfo/:pubkey"
+	DNS_QUERY_HOST_INFO       = "/api/v1/dns/hostinfo/:addr"
+	DNS_QUERY_HASH            = "/api/v1/dns/hash/:url"
+	DNS_UPDATE_URL            = "/api/v1/dns/url/link"
 
 	NETWORK_STATE           = "/api/v1/network/state"
 	RECONNECT_CHANNEL_PEERS = "/api/v1/network/channel/reconnect"
@@ -289,6 +290,7 @@ func (this *restServer) registryMethod() {
 		DNS_QUERY_HOST_INFOS: {name: "queryhostinfos", handler: QueryHostInfos},
 		DNS_QUERY_REG_INFO:   {name: "queryreginfo", handler: QueryRegInfo},
 		DNS_QUERY_HOST_INFO:  {name: "queryhostinfo", handler: QueryHostInfo},
+		DNS_PLUGINS_INFO:     {name: "querypluginsinfo", handler: QueryPluginsInfo},
 		NETWORK_STATE:        {name: "networkstate", handler: GetNetworkState},
 		GET_CONFIG:           {name: "getconfig", handler: GetConfig},
 		GOROUTINE_LIST:       {name: "getgoroutine", handler: nil},
@@ -338,11 +340,11 @@ func (this *restServer) registryMethod() {
 		CLOSE_ALL_CHANNEL: {name: "closechannel", handler: CloseAllChannel},
 		SWITCH_CHANNEL:    {name: "switchchannel", handler: SwitchChannel},
 
-		DNS_REGISTER:      {name: "registerurl", handler: RegisterUrl},
-		DNS_BIND:          {name: "bindurl", handler: BindUrl},
-		DNS_QUERYLINK:     {name: "querylink", handler: QueryLink},
-		DNS_UPDATEVERSION: {name: "updateurlversion", handler: UpdateFileUrlVersion},
-		DNS_QUERYVERSION:  {name: "queryurlversion", handler: QueryFileUrlLatestVersion},
+		DNS_REGISTER:              {name: "registerurl", handler: RegisterUrl},
+		DNS_BIND:                  {name: "bindurl", handler: BindUrl},
+		DNS_QUERYLINK:             {name: "querylink", handler: QueryLink},
+		DNS_UPDATE_PLUGIN_VERSION: {name: "updatepluginversion", handler: UpdatePluginVersion},
+		DNS_QUERY_PLUGIN_VERSION:  {name: "querypluginversion", handler: QueryPluginVersion},
 
 		SET_CONFIG: {name: "setconfig", handler: SetConfig},
 
@@ -474,6 +476,8 @@ func (this *restServer) getPath(url string) string {
 		return DNS_QUERY_HOST_INFO
 	} else if strings.Contains(url, strings.TrimSuffix(DNS_QUERY_HASH, ":url")) {
 		return DNS_QUERY_HASH
+	} else if strings.Contains(url, DNS_PLUGINS_INFO) {
+		return DNS_PLUGINS_INFO
 	} else if strings.Contains(url, ALL_DNS) {
 		return ALL_DNS
 	}

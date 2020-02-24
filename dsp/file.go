@@ -1659,6 +1659,7 @@ type fileInfoResp struct {
 	Size          uint64
 	RealFileSize  uint64
 	StoreType     uint64
+	BlocksRoot    string
 }
 
 func (this *Endpoint) GetFileInfo(fileHashStr string) (*fileInfoResp, *DspErr) {
@@ -1693,6 +1694,7 @@ func (this *Endpoint) GetFileInfo(fileHashStr string) (*fileInfoResp, *DspErr) {
 		Size:          info.FileBlockNum * info.FileBlockSize,
 		RealFileSize:  info.RealFileSize,
 		StoreType:     info.StorageType,
+		BlocksRoot:    string(info.BlocksRoot),
 	}
 	block, _ := dsp.GetBlockByHeight(uint32(info.BlockHeight))
 	if block == nil {
