@@ -50,6 +50,7 @@ func (this *Session) Open() error {
 		return fmt.Errorf("session %s, stream is nil", this.id)
 	}
 	this.streamId = s.ID
+	log.Debugf("open stream %s for session %s", this.streamId, this.id)
 	this.closeCh = make(chan struct{})
 	go this.startRecordSpeed()
 	return nil
@@ -64,6 +65,7 @@ func (this *Session) Close() error {
 	if this.client == nil {
 		return fmt.Errorf("session %s, client is nil", this.id)
 	}
+	log.Debugf("close stream %s for session %s", this.streamId, this.id)
 	this.client.CloseStream(this.streamId)
 	close(this.closeCh)
 	return nil

@@ -239,7 +239,6 @@ func (p *Peer) StreamSend(sessionId, msgId string, msg proto.Message, sendTimeou
 		return fmt.Errorf("client is nil")
 	}
 	ch := make(chan MsgReply, 1)
-	log.Debugf("send msg %s to %s", msgId, p.addr)
 	streamMsg := &MsgWrap{
 		msg:          msg,
 		id:           msgId,
@@ -251,6 +250,7 @@ func (p *Peer) StreamSend(sessionId, msgId string, msg proto.Message, sendTimeou
 		return err
 	}
 	go p.retryMsg()
+	log.Debugf("send msg %s to %s, sessionId %s", msgId, p.addr, sessionId)
 	if _, err := p.streamAsyncSendAndWaitAck(msg, sessionId, msgId, sendTimeout); err != nil {
 		log.Errorf("stream send msg %s err %s", msgId, err)
 	}
@@ -344,6 +344,7 @@ func (p *Peer) CloseSession(sessionId string) error {
 		return fmt.Errorf("session %s not exist", sessionId)
 	}
 	if err := s.Close(); err != nil {
+		log.Errorf("close session %s failed", sessionId)
 		return err
 	}
 	delete(p.sessions, sessionId)
@@ -479,23 +480,29 @@ func (p *Peer) getMsgToRetry() *MsgWrap {
 			fails = append(fails, e)
 			continue
 		}
-		// msg is sending
-		if _, ok := p.client.SyncWaitAck.Load(msgWrap.id); ok {
-			log.Debugf("msg %s already in component retry queue", msgWrap.id)
-			continue
-		}
 		nowTimestamp := utils.GetMilliSecTimestamp()
+		// just created, delay it
 		if nowTimestamp < msgWrap.createdAt+(common.ACK_MSG_CHECK_INTERVAL*1000) {
 			log.Debugf("msg %s just send, delay retry it", msgWrap.id)
 			continue
 		}
-		if nowTimestamp < msgWrap.retryAt+(common.MAX_ACK_MSG_TIMEOUT*1000) {
+		// in retry service
+		retrying := msgWrap.retryAt > 0 && (nowTimestamp < msgWrap.retryAt+(common.MAX_ACK_MSG_TIMEOUT*1000))
+		// msg is sending
+		if _, ok := p.client.SyncWaitAck.Load(msgWrap.id); ok && (msgWrap.retryAt == 0 || retrying) {
+			log.Debugf("msg %s already in component retry queue", msgWrap.id)
+			if msgWrap.retryAt == 0 {
+				msgWrap.retryAt = nowTimestamp
+			}
+			continue
+		}
+		if retrying {
 			log.Debugf("msg %s is in sync wait retry service", msgWrap.id)
 			continue
 		}
+		log.Debugf("msg id %s retry %d times, last retry at %d", msgWrap.id, msgWrap.retry, msgWrap.retryAt)
 		msgWrap.retryAt = nowTimestamp
 		msgWrap.retry++
-		log.Debugf("msg id %s retry %d times", msgWrap.id, msgWrap.retry)
 		// msg is waiting
 		retryMsgWrap = msgWrap
 		break
@@ -571,6 +578,7 @@ func (p *Peer) openSession(sessionId string) error {
 	ses := NewSession(sessionId)
 	ses.SetClient(p.client)
 	if err := ses.Open(); err != nil {
+		log.Errorf("open session %s failed, err %s", sessionId, err)
 		return err
 	}
 	p.sessions[sessionId] = ses
