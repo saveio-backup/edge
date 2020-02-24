@@ -1401,18 +1401,10 @@ func (this *Endpoint) EncryptFile(path, password string) *DspErr {
 }
 
 func (this *Endpoint) DecryptFile(path, fileName, password string) *DspErr {
-	sourceFile, err := os.Open(path)
-	if err != nil {
-		return &DspErr{Code: DSP_FILE_NOT_EXISTS, Error: err}
-	}
-	defer sourceFile.Close()
-	prefix := make([]byte, dspUtils.PREFIX_LEN)
-	_, err = sourceFile.Read(prefix)
+	filePrefix, prefix, err := dspUtils.GetPrefixFromFile(path)
 	if err != nil {
 		return &DspErr{Code: DSP_DECRYPTED_FILE_FAILED, Error: err}
 	}
-	filePrefix := &dspUtils.FilePrefix{}
-	filePrefix.Deserialize([]byte(prefix))
 	if !dspUtils.VerifyEncryptPassword(password, filePrefix.EncryptSalt, filePrefix.EncryptHash) {
 		return &DspErr{Code: DSP_FILE_DECRYPTED_WRONG_PWD, Error: ErrMaps[DSP_FILE_DECRYPTED_WRONG_PWD]}
 	}
@@ -1421,7 +1413,7 @@ func (this *Endpoint) DecryptFile(path, fileName, password string) *DspErr {
 		return &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
 	if len(fileName) == 0 {
-		fileName = dsp.GetFileNameWithPath(path)
+		fileName = filePrefix.FileName
 	}
 	err = dsp.AESDecryptFile(path, string(prefix), password, dspUtils.GetDecryptedFilePath(path, fileName))
 	log.Debugf("decrypted file output %s", dspUtils.GetDecryptedFilePath(path, fileName))
