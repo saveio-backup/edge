@@ -23,18 +23,18 @@ type FilterBlockProgress struct {
 }
 
 type ChannelInfo struct {
-	ChannelId         uint32
-	Balance           uint64
-	BalanceFormat     string
-	Address           string
-	HostAddr          string
-	TokenAddr         string
-	Participant1State int
-	ParticiPant2State int
-	IsDNS             bool
-	IsOnline          bool
-	Selected          bool
-	CreatedAt         uint64
+	ChannelId            uint32
+	Balance              uint64
+	BalanceFormat        string
+	Address              string
+	HostAddr             string
+	TokenAddr            string
+	IsParticipant1Closer bool
+	IsParticipant2Closer bool
+	IsDNS                bool
+	IsOnline             bool
+	Selected             bool
+	CreatedAt            uint64
 }
 
 type ChannelInfosResp struct {
@@ -154,23 +154,17 @@ func (this *Endpoint) GetAllChannels() (*ChannelInfosResp, *DspErr) {
 		if err != nil {
 			log.Errorf("get channel info err %s", err)
 		}
-		state1 := 1
-		if chInfo != nil && chInfo.Participant1.IsCloser {
-			state1 = 0
-		}
-		state2 := 1
-		if chInfo != nil && chInfo.Participant2.IsCloser {
-			state2 = 0
-		}
 		newCh := &ChannelInfo{
-			ChannelId:         ch.ChannelId,
-			Balance:           ch.Balance,
-			BalanceFormat:     ch.BalanceFormat,
-			Address:           ch.Address,
-			HostAddr:          hostAddr,
-			TokenAddr:         ch.TokenAddr,
-			Participant1State: state1,
-			ParticiPant2State: state2,
+			ChannelId:     ch.ChannelId,
+			Balance:       ch.Balance,
+			BalanceFormat: ch.BalanceFormat,
+			Address:       ch.Address,
+			HostAddr:      hostAddr,
+			TokenAddr:     ch.TokenAddr,
+		}
+		if chInfo != nil {
+			newCh.IsParticipant1Closer = chInfo.Participant1.IsCloser
+			newCh.IsParticipant2Closer = chInfo.Participant2.IsCloser
 		}
 		infoFromDB, _ := dsp.GetChannelInfoFromDB(ch.Address)
 		if infoFromDB != nil {
@@ -212,7 +206,7 @@ func (this *Endpoint) CurrentPaymentChannel() (*ChannelInfo, *DspErr) {
 	if !dsp.HasDNS() {
 		return nil, &DspErr{Code: DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST, Error: ErrMaps[DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST]}
 	}
-	resp := &ChannelInfo{}
+
 	curChannel, err := dsp.GetChannelInfo(dsp.CurrentDNSWallet())
 	if err != nil {
 		return nil, &DspErr{Code: DSP_CHANNEL_GET_ALL_FAILED, Error: ErrMaps[DSP_CHANNEL_GET_ALL_FAILED]}
@@ -222,26 +216,22 @@ func (this *Endpoint) CurrentPaymentChannel() (*ChannelInfo, *DspErr) {
 	if err != nil {
 		log.Errorf("get channel info err %s", err)
 	}
-	state1 := 1
-	if chInfo != nil && chInfo.Participant1.IsCloser {
-		state1 = 0
-	}
-	state2 := 1
-	if chInfo != nil && chInfo.Participant2.IsCloser {
-		state2 = 0
-	}
 	hostAddr, _ := dsp.GetExternalIP(curChannel.Address)
-	resp.Address = curChannel.Address
-	resp.Balance = curChannel.Balance
-	resp.BalanceFormat = curChannel.BalanceFormat
-	resp.ChannelId = curChannel.ChannelId
-	resp.HostAddr = hostAddr
-	resp.TokenAddr = curChannel.TokenAddr
-	resp.IsDNS = true
-	resp.Participant1State = state1
-	resp.ParticiPant2State = state2
-	resp.Selected = true
-	resp.IsOnline = this.channelNet.IsConnectionReachable(hostAddr)
+	resp := &ChannelInfo{
+		ChannelId:     curChannel.ChannelId,
+		Balance:       curChannel.Balance,
+		BalanceFormat: curChannel.BalanceFormat,
+		Address:       curChannel.Address,
+		HostAddr:      hostAddr,
+		TokenAddr:     curChannel.TokenAddr,
+		IsDNS:         true,
+		Selected:      true,
+		IsOnline:      this.channelNet.IsConnectionReachable(hostAddr),
+	}
+	if chInfo != nil {
+		resp.IsParticipant1Closer = chInfo.Participant1.IsCloser
+		resp.IsParticipant2Closer = chInfo.Participant2.IsCloser
+	}
 	return resp, nil
 }
 

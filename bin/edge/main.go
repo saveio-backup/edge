@@ -68,6 +68,9 @@ func main() {
 }
 
 func dspInit(ctx *cli.Context) {
+	if ctx.Bool(flags.GetFlagName(flags.ProfileFlag)) {
+		go dumpMemory()
+	}
 	launchManual := ctx.Bool(flags.GetFlagName(flags.LaunchManualFlag))
 
 	var walletPwd string
@@ -236,4 +239,19 @@ func initLocalRpc() error {
 
 	log.Infof("Local rpc init success")
 	return nil
+}
+
+func dumpMemory() {
+	os.MkdirAll(filepath.Join(filepath.Base("."), "profile"), 0755)
+	for {
+		filename := fmt.Sprintf("./profile/Heap.prof.%d", time.Now().Unix())
+		f, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0666)
+		if err != nil {
+			os.Exit(1)
+		}
+		log.Info("Heap Profile %s generated", filename)
+		time.Sleep(3 * time.Second)
+		pprof.WriteHeapProfile(f)
+		f.Close()
+	}
 }
