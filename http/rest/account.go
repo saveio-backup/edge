@@ -130,6 +130,9 @@ func ExportWIFPrivateKey(cmd map[string]interface{}) map[string]interface{} {
 	if endpoint == nil {
 		endpoint = &dsp.Endpoint{}
 	}
+	if endpoint.GetDspAccount() == nil {
+		return ResponsePackWithErrMsg(dsp.ACCOUNT_NOT_LOGIN, dsp.ErrMaps[dsp.ACCOUNT_NOT_LOGIN].Error())
+	}
 	if checkErr := dsp.DspService.CheckPassword(password); checkErr != nil {
 		return ResponsePackWithErrMsg(checkErr.Code, checkErr.Error.Error())
 	}

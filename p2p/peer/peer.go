@@ -3,7 +3,6 @@ package peer
 import (
 	"container/list"
 	"context"
-	"errors"
 	"fmt"
 	"math/rand"
 	"sync"
@@ -509,7 +508,7 @@ func (p *Peer) getMsgToRetry() *MsgWrap {
 	}
 	for _, e := range fails {
 		failMsgWrap := e.Value.(*MsgWrap)
-		failMsgWrap.reply <- MsgReply{err: errors.New("retry too many")}
+		failMsgWrap.reply <- MsgReply{err: fmt.Errorf("bad network quality with %s", p.addr)}
 		p.mq.Remove(e)
 		delete(p.retry, failMsgWrap.id)
 	}
@@ -545,7 +544,7 @@ func (p *Peer) receiveMsgNotify(notify network.AckStatus) {
 		return
 	}
 	if p.retry[notify.MessageID] >= common.MAX_MSG_RETRY_FAILED {
-		msgWrap.reply <- MsgReply{err: errors.New("retry too many")}
+		msgWrap.reply <- MsgReply{err: fmt.Errorf("bad network quality with %s", p.addr)}
 		p.mq.Remove(e)
 		delete(p.retry, msgWrap.id)
 		log.Debugf("remove %s msg which retry too much, left %d msg", msgWrap.id, p.mq.Len())
@@ -617,10 +616,6 @@ func (p *Peer) streamAsyncSendAndWaitAck(msg proto.Message, sessionId, msgId str
 	if p.client == nil {
 		return 0, fmt.Errorf("client is nil")
 	}
-	var closeSignal chan struct{}
-	if p.client != nil {
-		closeSignal = p.client.CloseSignal
-	}
 	if len(streamId) == 0 {
 		log.Debugf("stream id is empty when send msg %s", msgId)
 	}
@@ -630,8 +625,6 @@ func (p *Peer) streamAsyncSendAndWaitAck(msg proto.Message, sessionId, msgId str
 		case <-time.After(sendTimeout):
 			log.Errorf("stream %s send msg %s timeout %d", streamId, msgId, sendTimeout)
 			p.CloseSession(sessionId)
-			return
-		case <-closeSignal:
 			return
 		case <-sentCh:
 			return
