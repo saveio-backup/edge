@@ -202,6 +202,15 @@ func UpdatePluginVersion(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
+	urlTypeStr, ok := cmd["Type"].(string)
+	urlType := uint64(0)
+	if len(urlTypeStr) > 0 {
+		urlTypeInt, err := strconv.ParseUint(urlTypeStr, 10, 64)
+		if err != nil {
+			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, err.Error())
+		}
+		urlType = uint64(urlTypeInt)
+	}
 	version, ok := cmd["Version"].(string)
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
@@ -219,7 +228,7 @@ func UpdatePluginVersion(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
-	fileInfo, err := dsp.DspService.GetFileInfo(fileHash)
+	_, err := dsp.DspService.GetFileInfo(fileHash)
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
@@ -242,7 +251,7 @@ func UpdatePluginVersion(cmd map[string]interface{}) map[string]interface{} {
 	changeLog := dUtils.PLUGIN_URLVERSION_CHANGELOG_PREFIX + "CN:" + changeLogCN +
 		dUtils.PLUGIN_URLVERSION_CHANGELOG_PREFIX + "EN:" + changeLogEN
 
-	tx, err := dsp.DspService.UpdatePluginVersion(url, version, img, title, changeLog, fileInfo, platformType)
+	tx, err := dsp.DspService.UpdatePluginVersion(urlType, url, fileHash, version, img, title, changeLog, platformType)
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
@@ -283,8 +292,10 @@ func QueryPluginVersion(cmd map[string]interface{}) map[string]interface{} {
 	}
 
 	m := make(map[string]interface{}, 0)
+	m["Url"] = pluginVersion.Url
+	m["Type"] = pluginVersion.Type
 	m["Version"] = pluginVersion.Version
-	m["FileHash"] = pluginVersion.FileHashStr
+	m["FileHash"] = pluginVersion.FileHash
 	m["Img"] = pluginVersion.Img
 	m["Title"] = pluginVersion.Title
 	m["ChangeLog"] = pluginVersion.ChangeLog
