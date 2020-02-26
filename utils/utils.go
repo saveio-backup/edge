@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/urfave/cli"
@@ -52,4 +53,16 @@ func Sha256HexStr(str string) string {
 	pwdBuf := sha256.Sum256([]byte(str))
 	pwdHash := hex.EncodeToString(pwdBuf[:])
 	return pwdHash
+}
+
+func StringToUint64(value interface{}) uint64 {
+	str, _ := value.(string)
+	if len(str) == 0 {
+		return 0
+	}
+	intVal, err := strconv.ParseUint(str, 10, 64)
+	if err != nil {
+		return 0
+	}
+	return intVal
 }

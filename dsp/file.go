@@ -125,6 +125,7 @@ type FileResp struct {
 	Size          uint64
 	DownloadCount uint64
 	ExpiredAt     uint64
+	CreatedAt     uint64
 	UpdatedAt     uint64
 	Profit        uint64
 	Privilege     uint64
@@ -1143,7 +1144,8 @@ func (this *Endpoint) DeleteTransferRecord(taskIds []string) (*FileTaskResp, *Ds
 }
 
 // GetTransferList. get transfer progress list
-func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint32) (*TransferlistResp, *DspErr) {
+func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint32, createdAt, updatedAt uint64) (
+	*TransferlistResp, *DspErr) {
 	dsp := this.getDsp()
 	if dsp == nil {
 		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
@@ -1165,7 +1167,7 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint32) 
 		reverse = true
 		includeFailed = false
 	}
-	ids := dsp.GetTaskIdList(offset, limit, infoType, allType, reverse, includeFailed)
+	ids := dsp.GetTaskIdList(offset, limit, createdAt*1000, updatedAt*1000, infoType, allType, reverse, includeFailed)
 	infos := make([]*Transfer, 0, len(ids))
 	for idx, key := range ids {
 		info := dsp.GetProgressInfo(key)
@@ -1487,7 +1489,7 @@ func (this *Endpoint) RegisterShareNotificationCh() {
 	}
 }
 
-func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uint64,
+func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit, createdAt, updatedAt uint64,
 	filterType UploadFileFilterType) ([]*FileResp, *DspErr) {
 	dsp := this.getDsp()
 	if dsp == nil {
@@ -1509,6 +1511,9 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uin
 			continue
 		}
 		if info.ExpiredHeight < uint64(curBlockHeight) {
+			continue
+		}
+		if info.CreatedAt < createdAt*1000 || info.UpdatedAt < updatedAt*1000 {
 			continue
 		}
 		// 0: all, 1. image, 2. document. 3. video, 4. music
@@ -1619,6 +1624,7 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit uin
 			Size:          info.FileSize,
 			DownloadCount: downloadedCount,
 			ExpiredAt:     blockHeightToTimestamp(uint64(curBlockHeight), info.ExpiredHeight),
+			CreatedAt:     info.CreatedAt / 1000,
 			UpdatedAt:     info.UpdatedAt / 1000,
 			Profit:        profit,
 			Privilege:     info.Privilege,

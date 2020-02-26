@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/saveio/edge/dsp"
+	edgeUtils "github.com/saveio/edge/utils"
 	"github.com/saveio/themis/cmd/utils"
 	"github.com/saveio/themis/common/log"
 )
@@ -222,48 +223,19 @@ func DeleteDownloadFile(cmd map[string]interface{}) map[string]interface{} {
 
 func GetUploadFiles(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
-	ft, _ := cmd["Type"].(string)
-	fileType := dsp.DspFileListType(0)
-	if len(ft) > 0 {
-		fileTypeInt, err := strconv.ParseUint(ft, 10, 64)
-		if err != nil {
-			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, err.Error())
-		}
-		fileType = dsp.DspFileListType(fileTypeInt)
-	}
-	of, _ := cmd["Offset"].(string)
-	offset := uint64(0)
-	if len(of) > 0 {
-		var err error
-		offset, err = strconv.ParseUint(of, 10, 64)
-		if err != nil {
-			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, err.Error())
-		}
-	}
+	fileType := edgeUtils.StringToUint64(cmd["Type"])
+	offset := edgeUtils.StringToUint64(cmd["Offset"])
+	limit := edgeUtils.StringToUint64(cmd["Limit"])
+	filter := edgeUtils.StringToUint64(cmd["Filter"])
+	createdAt := edgeUtils.StringToUint64(cmd["CreatedAt"])
+	updatedAt := edgeUtils.StringToUint64(cmd["UpdatedAt"])
 
-	li, _ := cmd["Limit"].(string)
-	limit := uint64(0)
-	if len(li) > 0 {
-		var err error
-		limit, err = strconv.ParseUint(li, 10, 64)
-		if err != nil {
-			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, err.Error())
-		}
-	}
-	fl, _ := cmd["Filter"].(string)
-	filter := uint64(0)
-	if len(fl) > 0 {
-		var err error
-		filter, err = strconv.ParseUint(fl, 10, 64)
-		if err != nil {
-			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, err.Error())
-		}
-	}
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
 	log.Debugf("cmd :%v, type %d, offset %d limit %d", cmd, fileType, offset, limit)
-	files, err := dsp.DspService.GetUploadFiles(fileType, offset, limit, dsp.UploadFileFilterType(filter))
+	files, err := dsp.DspService.GetUploadFiles(dsp.DspFileListType(fileType),
+		offset, limit, createdAt, updatedAt, dsp.UploadFileFilterType(filter))
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
@@ -324,28 +296,15 @@ func GetTransferList(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, err.Error())
 	}
 	transferType := dsp.TransferType(transferTypeInt)
-	of, _ := cmd["Offset"].(string)
-	offset := uint64(0)
-	if len(of) > 0 {
-		var err error
-		offset, err = strconv.ParseUint(of, 10, 64)
-		if err != nil {
-			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, err.Error())
-		}
-	}
-	li, _ := cmd["Limit"].(string)
-	limit := uint64(0)
-	if len(li) > 0 {
-		var err error
-		limit, err = strconv.ParseUint(li, 10, 64)
-		if err != nil {
-			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, err.Error())
-		}
-	}
+	offset := edgeUtils.StringToUint64(cmd["Offset"])
+	limit := edgeUtils.StringToUint64(cmd["Limit"])
+	createdAt := edgeUtils.StringToUint64(cmd["CreatedAt"])
+	updatedAt := edgeUtils.StringToUint64(cmd["UpdatedAt"])
+
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
-	list, derr := dsp.DspService.GetTransferList(transferType, uint32(offset), uint32(limit))
+	list, derr := dsp.DspService.GetTransferList(transferType, uint32(offset), uint32(limit), createdAt, updatedAt)
 	if derr != nil {
 		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
 	}
