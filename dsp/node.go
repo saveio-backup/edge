@@ -92,11 +92,12 @@ func (this *Endpoint) NodeWithdrawProfit() (string, *DspErr) {
 }
 
 //Handle for DNS
-func (this *Endpoint) RegisterUrl(url, link string) (string, *DspErr) {
+func (this *Endpoint) RegisterUrl(url, fileHashStr, fileName, blocksRoot, fileOwner string, fileSize, totalCount uint64) (string, *DspErr) {
 	dsp := this.getDsp()
 	if dsp == nil {
 		return "", &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
+	link := dsp.GenLink(fileHashStr, fileName, blocksRoot, fileOwner, fileSize, totalCount)
 	log.Debugf("register url %v link %v", url, link)
 	tx, err := dsp.RegisterFileUrl(url, link)
 	if err != nil {

@@ -141,12 +141,17 @@ func RegisterUrl(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 
-	link, ok := cmd["Link"].(string)
+	fileHash, ok := cmd["FileHash"].(string)
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
+	fileName, _ := cmd["FileName"].(string)
+	blocksRoot, _ := cmd["BlocksRoot"].(string)
+	fileOwner, _ := cmd["FileOwner"].(string)
+	fileSize := utils.StringToUint64(cmd["FileSize"])
+	totalCount := utils.StringToUint64(cmd["TotalCount"])
 
-	tx, err := dsp.DspService.RegisterUrl(url, link)
+	tx, err := dsp.DspService.RegisterUrl(url, fileHash, fileName, blocksRoot, fileOwner, fileSize, totalCount)
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
