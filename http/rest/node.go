@@ -256,7 +256,13 @@ func UpdatePluginVersion(cmd map[string]interface{}) map[string]interface{} {
 	changeLog := dUtils.PLUGIN_URLVERSION_CHANGELOG_PREFIX + "CN:" + changeLogCN +
 		dUtils.PLUGIN_URLVERSION_CHANGELOG_PREFIX + "EN:" + changeLogEN
 
-	tx, err := dsp.DspService.UpdatePluginVersion(urlType, url, fileHash, version, img, title, changeLog, platformType)
+	fileName, _ := cmd["FileName"].(string)
+	blocksRoot, _ := cmd["BlocksRoot"].(string)
+	fileOwner, _ := cmd["FileOwner"].(string)
+	fileSize := utils.StringToUint64(cmd["FileSize"])
+	totalCount := utils.StringToUint64(cmd["TotalCount"])
+
+	tx, err := dsp.DspService.UpdatePluginVersion(url, fileHash, fileName, blocksRoot, fileOwner, version, img, title, changeLog, urlType, fileSize, totalCount, platformType)
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}

@@ -127,7 +127,7 @@ func (this *Endpoint) QueryLink(url string) (string, *DspErr) {
 	return link, nil
 }
 
-func (this *Endpoint) UpdatePluginVersion(urlType uint64, url, fileHash, version, img, title, changeLog string, platformType DspFileUrlPatformType) (string, *DspErr) {
+func (this *Endpoint) UpdatePluginVersion(url, fileHash, fileName, blocksRoot, fileOwner, version, img, title, changeLog string, urlType, fileSize, totalCount uint64, platformType DspFileUrlPatformType) (string, *DspErr) {
 	dsp := this.getDsp()
 	if dsp == nil {
 		return "", &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
@@ -142,15 +142,8 @@ func (this *Endpoint) UpdatePluginVersion(urlType uint64, url, fileHash, version
 		ChangeLog: changeLog,
 		Platform:  int(platformType),
 	}
-	fileLink := dsp.GetLinkFromUrl(url)
-	if len(fileLink) == 0 {
-		return "", &DspErr{Code: DSP_GET_FILE_LINK_FAILED, Error: ErrMaps[DSP_GET_FILE_LINK_FAILED]}
-	}
-	_, err := dsp.GetLinkValues(fileLink)
-	if err != nil {
-		return "", &DspErr{Code: DSP_GET_FILE_LINK_FAILED, Error: ErrMaps[DSP_GET_FILE_LINK_FAILED]}
-	}
-
+	fileLink := dsp.GenLink(fileHash, fileName, blocksRoot, fileOwner, fileSize, totalCount)
+	log.Debugf("update url %v link %v", url, fileLink)
 	tx, err := dsp.UpdatePluginVersion(urlType, url, fileLink, urlVersion)
 	if err != nil {
 		return "", &DspErr{Code: DSP_DNS_UPDATE_PLUGIN_INFO_FAILED, Error: err}
