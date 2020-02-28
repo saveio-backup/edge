@@ -183,11 +183,23 @@ func (this *Endpoint) GetAllChannels() (*ChannelInfosResp, *DspErr) {
 		if dsp.IsDNS(newCh.Address) {
 			newCh.Selected = true
 		}
-		newCh.IsOnline = this.channelNet.IsConnectionReachable(newCh.HostAddr)
+		newCh.IsOnline = this.channelNet.IsConnReachable(newCh.Address)
 		resp.Channels = append(resp.Channels, newCh)
 	}
 	log.Debugf("GetAllChannels done: %v", resp)
 	return resp, nil
+}
+
+func (this *Endpoint) GetDNSHostAddr(walletAddr string) (string, *DspErr) {
+	dsp := this.getDsp()
+	if dsp == nil {
+		return "", &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+	hostAddr, err := dsp.GetExternalIP(walletAddr)
+	if err != nil {
+		return "", &DspErr{Code: DSP_CHANNEL_GET_HOSTADDR_ERROR, Error: err}
+	}
+	return hostAddr, nil
 }
 
 func (this *Endpoint) CurrentPaymentChannel() (*ChannelInfo, *DspErr) {
@@ -226,7 +238,7 @@ func (this *Endpoint) CurrentPaymentChannel() (*ChannelInfo, *DspErr) {
 		TokenAddr:     curChannel.TokenAddr,
 		IsDNS:         true,
 		Selected:      true,
-		IsOnline:      this.channelNet.IsConnectionReachable(hostAddr),
+		IsOnline:      this.channelNet.IsConnReachable(curChannel.Address),
 	}
 	if chInfo != nil {
 		resp.IsParticipant1Closer = chInfo.Participant1.IsCloser

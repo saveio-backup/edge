@@ -21,12 +21,13 @@ import (
 type MessageHandler func(msgData interface{}, pid *actor.PID)
 
 type P2PActor struct {
-	channelNet  *network.Network
-	dspNet      *network.Network
-	tkActSvr    *tkActServer.TrackerActorServer
-	props       *actor.Props
-	msgHandlers map[string]MessageHandler
-	localPID    *actor.PID
+	channelNet          *network.Network
+	dspNet              *network.Network
+	tkActSvr            *tkActServer.TrackerActorServer
+	props               *actor.Props
+	msgHandlers         map[string]MessageHandler
+	localPID            *actor.PID
+	dnsHostAddrCallBack func(string) string
 }
 
 func NewP2PActor() (*P2PActor, error) {
@@ -51,6 +52,10 @@ func (this *P2PActor) SetDspNetwork(net *network.Network) {
 
 func (this *P2PActor) SetTrackerNet(tk *tkActServer.TrackerActorServer) {
 	this.tkActSvr = tk
+}
+
+func (this *P2PActor) SetDNSHostAddrCallback(cb func(string) string) {
+	this.dnsHostAddrCallBack = cb
 }
 
 func (this *P2PActor) Start() (*actor.PID, error) {
@@ -94,17 +99,19 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 		log.Warn("[P2PActor] actor restart")
 	case *chAct.ConnectReq:
 		go func() {
-			msg.Ret.Err = this.channelNet.Connect(msg.Address)
+			hostAddr := this.dnsHostAddrCallBack(msg.Address)
+			msg.Ret.Err = this.channelNet.Connect(hostAddr)
 			msg.Ret.Done <- true
 		}()
 	case *chAct.SendReq:
 		go func() {
+			log.Debugf("msg.address:[%s]", msg.Address)
 			msg.Ret.Err = this.channelNet.SendOnce(msg.Data, msg.Address)
 			msg.Ret.Done <- true
 		}()
 	case *dspAct.ConnectReq:
 		go func() {
-			err := this.dspNet.ConnectAndWait(msg.Address)
+			err := this.dspNet.Connect(msg.Address)
 			msg.Response <- &dspAct.P2pResp{Error: err}
 		}()
 	case *dspAct.WaitForConnectedReq:
@@ -114,7 +121,7 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 		}()
 	case *chAct.GetNodeNetworkStateReq:
 		go func() {
-			state, err := this.channelNet.GetPeerStateByAddress(msg.Address)
+			state, err := this.channelNet.GetConnStateByWallet(msg.Address)
 			msg.Ret.State = int(state)
 			msg.Ret.Err = err
 			msg.Ret.Done <- true
@@ -144,11 +151,7 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 			addr := this.dspNet.PublicAddr()
 			msg.Response <- &dspAct.PublicAddrResp{Addr: addr}
 		}()
-	case *dspAct.RequestWithRetryReq:
-		go func() {
-			ret, err := this.dspNet.RequestWithRetry(msg.Data, msg.Address, msg.Retry, msg.Timeout)
-			msg.Response <- &dspAct.RequestWithRetryResp{Data: ret, Error: err}
-		}()
+
 	case *dspAct.SendAndWaitReplyReq:
 		go func() {
 			ret, err := this.dspNet.SendAndWaitReply(msg.Data, msg.SessionId, msg.MsgId, msg.Address, msg.SendTimeout)
@@ -169,7 +172,7 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 		go func() {
 			switch msg.NetType {
 			case dspAct.P2pNetTypeDsp:
-				state, err := this.dspNet.GetPeerStateByAddress(msg.Address)
+				state, err := this.dspNet.GetConnStateByWallet(msg.Address)
 				if state == p2pNet.PEER_REACHABLE && err == nil {
 					msg.Response <- &dspAct.P2pResp{Error: nil}
 					return
@@ -177,7 +180,7 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 				err = this.dspNet.HealthCheckPeer(msg.Address)
 				msg.Response <- &dspAct.P2pResp{Error: err}
 			case dspAct.P2pNetTypeChannel:
-				state, err := this.channelNet.GetPeerStateByAddress(msg.Address)
+				state, err := this.channelNet.GetConnStateByWallet(msg.Address)
 				if state == p2pNet.PEER_REACHABLE && err == nil {
 					msg.Response <- &dspAct.P2pResp{Error: nil}
 					return
@@ -190,14 +193,14 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 		go func() {
 			switch msg.NetType {
 			case dspAct.P2pNetTypeDsp:
-				state, err := this.dspNet.GetPeerStateByAddress(msg.Address)
+				state, err := this.dspNet.GetConnStateByWallet(msg.Address)
 				if state == p2pNet.PEER_REACHABLE && err == nil {
 					msg.Response <- &dspAct.P2pBoolResp{Value: true, Error: nil}
 					return
 				}
 				msg.Response <- &dspAct.P2pBoolResp{Value: false, Error: fmt.Errorf("get peer state failed, err %s", err)}
 			case dspAct.P2pNetTypeChannel:
-				state, err := this.channelNet.GetPeerStateByAddress(msg.Address)
+				state, err := this.channelNet.GetConnStateByWallet(msg.Address)
 				if state == p2pNet.PEER_REACHABLE && err == nil {
 					msg.Response <- &dspAct.P2pBoolResp{Value: true, Error: nil}
 					return
@@ -207,7 +210,7 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 		}()
 	case *dspAct.CompleteTorrentReq:
 		go func() {
-			err := tkActClient.P2pConnect(msg.Address)
+			walletAddr, err := tkActClient.P2pConnect(msg.Address)
 			if err != nil {
 				msg.Response <- &dspAct.P2pResp{Error: err}
 				return
@@ -217,13 +220,13 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 				InfoHash: msg.Hash,
 				Ip:       net.ParseIP(msg.IP),
 				Port:     msg.Port,
-			}, msg.Address)
+			}, walletAddr)
 			log.Debugf("CompleteTorrentReq announce response: %v, err %v\n", annResp, err)
 			msg.Response <- &dspAct.P2pResp{Error: err}
 		}()
 	case *dspAct.TorrentPeersReq:
 		go func() {
-			err := tkActClient.P2pConnect(msg.Address)
+			walletAddr, err := tkActClient.P2pConnect(msg.Address)
 			if err != nil {
 				msg.Response <- &dspAct.P2pStringSliceResp{Value: nil, Error: err}
 				return
@@ -231,7 +234,7 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 			annResp, err := this.tkActSvr.AnnounceRequestTorrentPeers(&pm.GetTorrentPeersReq{
 				InfoHash: msg.Hash,
 				NumWant:  100,
-			}, msg.Address)
+			}, walletAddr)
 			log.Debugf("TorrentPeersReq announce response: %v, err %v\n", annResp, err)
 			if err != nil {
 				msg.Response <- &dspAct.P2pStringSliceResp{Value: nil, Error: err}
@@ -241,31 +244,32 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 		}()
 	case *dspAct.EndpointRegistryReq:
 		go func() {
-			err := tkActClient.P2pConnect(msg.Address)
-			log.Debugf("connect result %v", err)
+			walletAddr, err := tkActClient.P2pConnect(msg.Address)
 			if err != nil {
+				log.Errorf("connect err %v", err)
 				msg.Response <- &dspAct.P2pResp{Error: err}
 				return
 			}
-			log.Debugf("AnnounceRequestEndpointRegistry")
+			log.Debugf("AnnounceRequestEndpointRegistry %s", walletAddr)
 			annResp, err := this.tkActSvr.AnnounceRequestEndpointRegistry(&pm.EndpointRegistryReq{
 				Wallet: msg.WalletAddr[:],
 				Ip:     net.ParseIP(msg.IP),
 				Port:   msg.Port,
-			}, msg.Address)
+			}, walletAddr)
 			log.Debugf("EndpointRegistryReq announce response: %v, err %v\n", annResp, err)
 			msg.Response <- &dspAct.P2pResp{Error: err}
 		}()
 	case *dspAct.GetEndpointReq:
 		go func() {
-			err := tkActClient.P2pConnect(msg.Address)
+			walletAddr, err := tkActClient.P2pConnect(msg.Address)
 			if err != nil {
 				msg.Response <- &dspAct.P2pStringResp{Value: "", Error: err}
 				return
 			}
+			log.Debugf("AnnounceRequestGetEndpointAddr wallet %v, %s", msg.WalletAddr, msg.WalletAddr.ToBase58())
 			annResp, err := this.tkActSvr.AnnounceRequestGetEndpointAddr(&pm.QueryEndpointReq{
 				Wallet: msg.WalletAddr[:],
-			}, msg.Address)
+			}, walletAddr)
 			log.Debugf("GetEndpointReq announce response: %v, err %v\n", annResp, err)
 			if err != nil {
 				msg.Response <- &dspAct.P2pStringResp{Value: "", Error: err}
@@ -304,8 +308,25 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 			}
 			msg.Response <- &dspAct.P2pResp{Error: nil}
 		}()
+	case *dspAct.GetHostAddrReq:
+		go func() {
+			hostAddr := ""
+			switch msg.NetType {
+			case dspAct.P2pNetTypeDsp:
+				pr := this.dspNet.GetPeerFromWalletAddr(msg.Address)
+				if pr != nil {
+					hostAddr = pr.GetHostAddr()
+				}
+			case dspAct.P2pNetTypeChannel:
+				pr := this.channelNet.GetPeerFromWalletAddr(msg.Address)
+				if pr != nil {
+					hostAddr = pr.GetHostAddr()
+				}
+			}
+			msg.Response <- &dspAct.P2pStringResp{Value: hostAddr, Error: nil}
+		}()
 	default:
-		log.Error("[P2PActor] receive unknown message type!")
+		log.Error("[P2PActor] receive unknown message type! %T", msg)
 	}
 }
 

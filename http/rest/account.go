@@ -70,11 +70,14 @@ func ImportWithPrivateKey(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
-	password, ok := cmd["Password"].(string)
-	if !ok {
+	password, _ := cmd["Password"].(string)
+	if len(password) == 0 {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
-	label, ok := cmd["Label"].(string)
+	label, _ := cmd["Label"].(string)
+	if len(label) == 0 {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
 	acc, err := dsp.DspService.ImportWithPrivateKey(privKeyStr, label, password)
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())

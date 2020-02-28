@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -21,73 +23,84 @@ import (
 	"github.com/saveio/carrier/types/opcode"
 	dspCom "github.com/saveio/dsp-go-sdk/common"
 	dspNetCom "github.com/saveio/dsp-go-sdk/network/common"
-	"github.com/saveio/dsp-go-sdk/network/message/pb"
 	dspMsg "github.com/saveio/dsp-go-sdk/network/message/pb"
 	"github.com/saveio/edge/common"
-	"github.com/saveio/edge/common/config"
 	"github.com/saveio/edge/p2p/peer"
-	"github.com/saveio/pylons/actor/msg_opcode"
 	act "github.com/saveio/pylons/actor/server"
 	"github.com/saveio/pylons/network/transport/messages"
 	"github.com/saveio/themis/common/log"
 )
 
-var once sync.Once
-
 type Network struct {
-	P2p                *network.Network                // underlay network p2p instance
-	builder            *network.Builder                // network builder
-	intranetIP         string                          // intranet ip
-	proxyAddr          string                          // proxy address
-	pid                *actor.PID                      // actor pid
-	keys               *crypto.KeyPair                 // crypto network keys
-	kill               chan struct{}                   // network stop signal
-	handler            func(*network.ComponentContext) // network msg handler
-	peers              *sync.Map                       // peer clients
-	lock               *sync.RWMutex                   // lock for sync control
-	addrForHealthCheck *sync.Map                       // address for keep health check
-	asyncRecvDisabled  bool                            // disabled async receive msg
+	P2p                  *network.Network                        // underlay network p2p instance
+	builder              *network.Builder                        // network builder
+	networkId            uint32                                  // network id
+	intranetIP           string                                  // intranet ip
+	proxyAddrs           []string                                // proxy address
+	opCodes              map[opcode.Opcode]proto.Message         // opcodes
+	pid                  *actor.PID                              // actor pid
+	keys                 *crypto.KeyPair                         // crypto network keys
+	kill                 chan struct{}                           // network stop signal
+	handler              func(*network.ComponentContext, string) // network msg handler
+	walletAddrFromPeerId func(string) string                     // peer key from id delegate
+	peers                *sync.Map                               // peer clients
+	lock                 *sync.RWMutex                           // lock for sync control
+	peerForHealthCheck   *sync.Map                               // peerId for keep health check
+	asyncRecvDisabled    bool                                    // disabled async receive msg
 }
 
-func NewP2P() *Network {
+func NewP2P(opts ...NetworkOption) *Network {
 	n := &Network{
 		P2p: new(network.Network),
 	}
-
 	n.kill = make(chan struct{})
 	n.peers = new(sync.Map)
-	n.addrForHealthCheck = new(sync.Map)
+	n.peerForHealthCheck = new(sync.Map)
 	n.lock = new(sync.RWMutex)
+	// update by options
+	n.walletAddrFromPeerId = func(id string) string {
+		return id
+	}
+	for _, opt := range opts {
+		opt.apply(n)
+	}
 	return n
 }
 
-func (this *Network) GetProxyServer() string {
-	return this.proxyAddr
+func (this *Network) WalletAddrFromPeerId(peerId string) string {
+	return this.walletAddrFromPeerId(peerId)
+}
+
+// GetProxyServer. get working proxy server
+func (this *Network) GetProxyServer() *network.ProxyServer {
+	if this.P2p == nil {
+		return &network.ProxyServer{}
+	}
+	addr, peerId := this.P2p.GetWorkingProxyServer()
+	return &network.ProxyServer{
+		IP:     addr,
+		PeerID: peerId,
+	}
 }
 
 // IsProxyAddr. check if the address is a proxy address
 func (this *Network) IsProxyAddr(addr string) bool {
-	if len(this.proxyAddr) > 0 && addr == this.proxyAddr {
-		return true
-	}
-	if len(config.Parameters.BaseConfig.NATProxyServerAddrs) > 0 &&
-		strings.Contains(config.Parameters.BaseConfig.NATProxyServerAddrs, addr) {
-		return true
+	for _, a := range this.proxyAddrs {
+		if a == addr {
+			return true
+		}
 	}
 	return false
 }
 
+// Protocol. get network protocol
 func (this *Network) Protocol() string {
 	return getProtocolFromAddr(this.PublicAddr())
 }
 
+// PublicAddr. get network public host address
 func (this *Network) PublicAddr() string {
 	return this.P2p.ID.Address
-}
-
-// SetPID sets p2p actor
-func (this *Network) SetPID(pid *actor.PID) {
-	this.pid = pid
 }
 
 // GetPID returns p2p actor
@@ -95,7 +108,8 @@ func (this *Network) GetPID() *actor.PID {
 	return this.pid
 }
 
-func (this *Network) Start(protocol, addr, port string, opts ...NetworkOption) error {
+// Start. start network
+func (this *Network) Start(protocol, addr, port string) error {
 	builderOpt := []network.BuilderOption{
 		network.WriteFlushLatency(1 * time.Millisecond),
 		network.WriteTimeout(dspCom.NETWORK_STREAM_WRITE_TIMEOUT),
@@ -103,9 +117,7 @@ func (this *Network) Start(protocol, addr, port string, opts ...NetworkOption) e
 	}
 	builder := network.NewBuilderWithOptions(builderOpt...)
 	this.builder = builder
-	for _, opt := range opts {
-		opt.apply(this)
-	}
+
 	// set keys
 	if this.keys != nil {
 		log.Debugf("Network use account key")
@@ -150,9 +162,7 @@ func (this *Network) Start(protocol, addr, port string, opts ...NetworkOption) e
 		ackreply.WithAckMessageTimeout(time.Second * common.MAX_ACK_MSG_TIMEOUT),
 	}
 	builder.AddComponent(ackreply.New(ackOption...))
-
 	this.addProxyComponents(builder)
-
 	var err error
 	this.P2p, err = builder.Build()
 	if err != nil {
@@ -163,25 +173,29 @@ func (this *Network) Start(protocol, addr, port string, opts ...NetworkOption) e
 	if this.asyncRecvDisabled {
 		this.P2p.DisableMsgGoroutine()
 	}
-	once.Do(func() {
-		for k, v := range msg_opcode.OpCodes {
-			err := opcode.RegisterMessageType(k, v)
-			if err != nil {
-				log.Errorf("register messages failed %v", k)
-			}
+	for k, v := range this.opCodes {
+		err := opcode.RegisterMessageType(k, v)
+		if err != nil {
+			log.Errorf("register messages failed %v, %s", k, err)
+		} else {
+			log.Debugf("register msg %v success", k)
 		}
-		opcode.RegisterMessageType(opcode.Opcode(dspNetCom.MSG_OP_CODE), &pb.Message{})
-	})
+	}
 	this.P2p.SetDialTimeout(time.Duration(common.NETWORK_DIAL_TIMEOUT) * time.Second)
 	this.P2p.SetCompressFileSize(common.COMPRESS_DATA_SIZE)
-	if len(config.Parameters.BaseConfig.NATProxyServerAddrs) > 0 {
+	if len(this.proxyAddrs) > 0 {
+		log.Debugf("set proxy mode %v", this.proxyAddrs)
 		this.P2p.EnableProxyMode(true)
-		this.P2p.SetProxyServer(config.Parameters.BaseConfig.NATProxyServerAddrs)
+		this.P2p.SetProxyServer([]network.ProxyServer{
+			network.ProxyServer{
+				IP: this.proxyAddrs[0],
+			},
+		})
 	}
-	this.P2p.SetNetworkID(config.Parameters.BaseConfig.NetworkId)
+	this.P2p.SetNetworkID(this.networkId)
 	go this.P2p.Listen()
 	this.P2p.BlockUntilListening()
-	err = this.StartProxy(builder)
+	err = this.startProxy(builder)
 	if err != nil {
 		log.Errorf("start proxy failed, err: %s", err)
 	}
@@ -192,137 +206,117 @@ func (this *Network) Start(protocol, addr, port string, opts ...NetworkOption) e
 	return nil
 }
 
-func (this *Network) StartProxy(builder *network.Builder) error {
-	var err error
-	log.Debugf("NATProxyServerAddrs :%v", config.Parameters.BaseConfig.NATProxyServerAddrs)
-	servers := strings.Split(config.Parameters.BaseConfig.NATProxyServerAddrs, ",")
-	if len(config.Parameters.BaseConfig.NATProxyServerAddrs) > 0 && len(servers) == 0 {
-		return fmt.Errorf("invalid proxy config: %s", config.Parameters.BaseConfig.NATProxyServerAddrs)
-	}
-	for _, proxyAddr := range servers {
-		if len(proxyAddr) == 0 {
-			continue
-		}
-		this.P2p.EnableProxyMode(true)
-		this.P2p.SetProxyServer(proxyAddr)
-		protocol := getProtocolFromAddr(proxyAddr)
-		log.Debugf("start proxy will blocking...%s %s, networkId: %d",
-			protocol, proxyAddr, config.Parameters.BaseConfig.NetworkId)
-		done := make(chan struct{}, 1)
-		go func() {
-			switch protocol {
-			case "udp":
-				this.P2p.BlockUntilUDPProxyFinish()
-			case "kcp":
-				this.P2p.BlockUntilKCPProxyFinish()
-			case "quic":
-				this.P2p.BlockUntilQuicProxyFinish()
-			case "tcp":
-				this.P2p.BlockUntilTcpProxyFinish()
-			}
-			done <- struct{}{}
-		}()
-		select {
-		case <-done:
-			this.proxyAddr = proxyAddr
-			this.addrForHealthCheck.Store(proxyAddr, struct{}{})
-			log.Debugf("start proxy finish, publicAddr: %s", this.P2p.ID.Address)
-			return nil
-		case <-time.After(time.Duration(common.START_PROXY_TIMEOUT) * time.Second):
-			err = fmt.Errorf("proxy: %s timeout", proxyAddr)
-			log.Debugf("start proxy err :%s", err)
-			break
-		}
-	}
-	return err
-}
-
+// Stop. stop network
 func (this *Network) Stop() {
 	close(this.kill)
 	this.P2p.Close()
 }
 
-func (this *Network) Connect(tAddr string) error {
-	log.Debugf("Connect %s", tAddr)
+// GetPeerFromWalletAddr. get peer from wallet addr
+func (this *Network) GetPeerFromWalletAddr(walletAddr string) *peer.Peer {
+	if !isValidWalletAddr(walletAddr) {
+		log.Errorf("wallet addr is wrong %s", walletAddr)
+		panic("wallet addr is wrong ")
+		os.Exit(1)
+	}
+	p, ok := this.peers.Load(walletAddr)
+	if !ok {
+		return nil
+	}
+	pr, ok := p.(*peer.Peer)
+	if pr == nil || !ok {
+		return nil
+	}
+	return pr
+}
+
+func (this *Network) GetWalletFromHostAddr(hostAddr string) string {
+	walletAddr := ""
+	this.peers.Range(func(key, value interface{}) bool {
+		pr, ok := value.(*peer.Peer)
+		if pr == nil || !ok {
+			return true
+		}
+		if pr.GetHostAddr() == hostAddr {
+			walletAddr = key.(string)
+			return false
+		}
+		return true
+	})
+	return walletAddr
+}
+
+// Connect. connect to peer with host address, store its peer id after success
+func (this *Network) Connect(hostAddr string) error {
+	log.Debugf("connect to host addr %s", hostAddr)
 	if this == nil {
 		return fmt.Errorf("network is nil")
 	}
-	peerState, _ := this.GetPeerStateByAddress(tAddr)
-	if peerState == network.PEER_REACHABLE {
+	_, ok := this.peers.Load(hostAddr)
+	if ok {
+		return fmt.Errorf("peer %s is connecting", hostAddr)
+	}
+	walletAddr := this.GetWalletFromHostAddr(hostAddr)
+	log.Debugf("check wallet addr is reachable %s", walletAddr)
+	if len(walletAddr) > 0 && this.IsConnReachable(walletAddr) {
+		log.Debugf("connection exist %s", hostAddr)
 		return nil
 	}
-	p, ok := this.peers.Load(tAddr)
-	if ok && p.(*peer.Peer).State() == peer.ConnectStateConnecting {
-		log.Debugf("already try to connect %s", tAddr)
-		return nil
+	pr := peer.New(hostAddr)
+	log.Debugf("new pr %p", pr)
+	pr.SetState(peer.ConnectStateConnecting)
+	this.peers.Store(hostAddr, pr)
+	log.Debugf("bootstrap to %v....", hostAddr)
+	peerIds := this.P2p.Bootstrap([]string{hostAddr})
+	log.Debugf("bootstrap to %v, %v", hostAddr, peerIds)
+	if len(peerIds) == 0 {
+		return fmt.Errorf("peer id is emptry from bootstraping to %s", hostAddr)
 	}
-	var pr *peer.Peer
-	if !ok {
-		pr = peer.New(tAddr)
-		pr.SetState(peer.ConnectStateConnecting)
-		this.peers.Store(tAddr, pr)
-	} else {
-		pr = p.(*peer.Peer)
-	}
-	this.P2p.Bootstrap(tAddr)
+	walletAddr = this.walletAddrFromPeerId(peerIds[0])
+	pr.SetPeerId(peerIds[0])
+	log.Debugf("set pr %p", pr)
 	pr.SetState(peer.ConnectStateConnected)
+	this.peers.Delete(hostAddr)
+	this.peers.Store(walletAddr, pr)
 	return nil
 }
 
-func (this *Network) ConnectAndWait(addr string) error {
-	p, ok := this.peers.Load(addr)
-	var pr *peer.Peer
-	if ok {
-		pr = p.(*peer.Peer)
-		if pr.State() == peer.ConnectStateConnecting {
-			// already try to connect, don't retry before we get a result
-			log.Info("already try to connect")
-			err := this.WaitForConnected(addr, time.Duration(common.MAX_WAIT_FOR_CONNECTED_TIMEOUT)*time.Second)
-			if err != nil {
-				pr.SetState(peer.ConnectStateFailed)
-			} else {
-				pr.SetState(peer.ConnectStateConnected)
-			}
-			return err
-		}
+// GetPeerStateByAddress. get peer state by peerId
+func (this *Network) GetConnStateByWallet(walletAddr string) (network.PeerState, error) {
+	if !isValidWalletAddr(walletAddr) {
+		log.Errorf("wallet addr is wrong %s", walletAddr)
+		panic("wallet addr is wrong ")
+		os.Exit(1)
 	}
-	if !ok {
-		pr = peer.New(addr)
-		pr.SetState(peer.ConnectStateConnecting)
-		this.peers.Store(addr, pr)
+	pr := this.GetPeerFromWalletAddr(walletAddr)
+	if pr == nil {
+		return 0, fmt.Errorf("peer not found %s", walletAddr)
 	}
-	if this.IsConnectionExists(addr) {
-		log.Debugf("connection exist %s", addr)
-		pr.SetState(peer.ConnectStateConnected)
-		return nil
-	}
-	log.Debugf("bootstrap to %v", addr)
-	this.P2p.Bootstrap(addr)
-	err := this.WaitForConnected(addr, time.Duration(common.MAX_WAIT_FOR_CONNECTED_TIMEOUT)*time.Second)
-	if err != nil {
-		pr.SetState(peer.ConnectStateFailed)
-	} else {
-		pr.SetState(peer.ConnectStateConnected)
-	}
-	return err
-}
-
-func (this *Network) GetPeerStateByAddress(addr string) (network.PeerState, error) {
-	s, err := this.P2p.GetRealConnState(addr)
+	peerId := pr.GetPeerId()
+	log.Debugf("get peer id of wallet %s, %s, pr %p", walletAddr, peerId, pr)
+	s, err := this.P2p.GetRealConnState(peerId)
 	if err != nil {
 		return s, err
 	}
-	client := this.P2p.GetPeerClient(addr)
+	client := this.P2p.GetPeerClient(peerId)
 	if client == nil {
-		return s, fmt.Errorf("get peer client failed %s", addr)
+		return s, fmt.Errorf("get peer %s client is nil", peerId)
 	}
 	return s, err
 }
 
-// IsConnectionReachable. check if peer state reachable
-func (this *Network) IsConnectionReachable(addr string) bool {
-	state, err := this.GetPeerStateByAddress(addr)
-	log.Debugf("get peer state by addr: %s %v %s", addr, state, err)
+// IsConnReachable. check if peer state reachable
+func (this *Network) IsConnReachable(walletAddr string) bool {
+	if !isValidWalletAddr(walletAddr) {
+		log.Errorf("wallet addr is wrong %s", walletAddr)
+		panic("wallet addr is wrong ")
+		os.Exit(1)
+	}
+	if this.P2p == nil || len(walletAddr) == 0 {
+		return false
+	}
+	state, err := this.GetConnStateByWallet(walletAddr)
+	log.Debugf("get peer state by addr: %s %v %s", walletAddr, state, err)
 	if err != nil {
 		return false
 	}
@@ -332,180 +326,204 @@ func (this *Network) IsConnectionReachable(addr string) bool {
 	return true
 }
 
-func (this *Network) WaitForConnected(addr string, timeout time.Duration) error {
+// WaitForConnected. poll to wait for connected
+func (this *Network) WaitForConnected(walletAddr string, timeout time.Duration) error {
+	if !isValidWalletAddr(walletAddr) {
+		log.Errorf("wallet addr is wrong %s", walletAddr)
+		panic("wallet addr is wrong ")
+		os.Exit(1)
+	}
+	pr := this.GetPeerFromWalletAddr(walletAddr)
+	if pr == nil {
+		return fmt.Errorf("peer %s not found", walletAddr)
+	}
+	peerId := pr.GetPeerId()
 	interval := time.Duration(1) * time.Second
 	secs := int(timeout / interval)
 	if secs <= 0 {
 		secs = 1
 	}
 	for i := 0; i < secs; i++ {
-		state, err := this.GetPeerStateByAddress(addr)
-		log.Debugf("GetPeerStateByAddress state addr:%s, :%d, err %v", addr, state, err)
-		if state == network.PEER_REACHABLE {
+		state, err := this.GetConnStateByWallet(walletAddr)
+		client := this.P2p.GetPeerClient(peerId)
+		if client != nil {
+			log.Debugf("peer id %s", client.ClientID())
+		}
+		log.Debugf("GetPeerStateByAddress state addr:%s, :%d, err %v", peerId, state, err)
+		if state == network.PEER_REACHABLE && client != nil && len(client.ClientID()) > 0 {
 			return nil
 		}
 		<-time.After(interval)
 	}
-	return fmt.Errorf("wait for connecting %s timeout", addr)
+	return fmt.Errorf("wait for connecting %s timeout", peerId)
 }
 
-func (this *Network) IsConnectionExists(addr string) bool {
-	if this.P2p == nil {
-		return false
+func (this *Network) HealthCheckPeer(walletAddr string) error {
+	if !isValidWalletAddr(walletAddr) {
+		log.Errorf("wallet addr is wrong %s", walletAddr)
+		panic("wallet addr is wrong ")
+		os.Exit(1)
 	}
-	return this.P2p.ConnectionStateExists(addr)
-}
-
-// IsStateReachable. check if state is reachable
-func (this *Network) IsStateReachable(addr string) bool {
-	if this.P2p == nil {
-		return false
-	}
-	state, err := this.P2p.GetRealConnState(addr)
-	if state == network.PEER_REACHABLE && err == nil {
-		return true
-	}
-	return false
-}
-
-func (this *Network) IsProxyConnectionExists() (bool, error) {
-	if this.P2p == nil {
-		return false, nil
-	}
-	return this.P2p.ProxyConnectionStateExists()
-}
-
-func (this *Network) HealthCheckPeer(addr string) error {
 	if !this.P2p.ProxyModeEnable() {
-		if _, ok := this.addrForHealthCheck.Load(addr); !ok {
-			log.Debugf("ignore check health of peer %s, because proxy mode is disabled", addr)
+		if _, ok := this.peerForHealthCheck.Load(walletAddr); !ok {
+			log.Debugf("ignore check health of peer %s, because proxy mode is disabled", walletAddr)
 			return nil
 		}
-		log.Debugf("proxy mode is disabled, but %s exist in health check list", addr)
+		log.Debugf("proxy mode is disabled, but %s exist in health check list", walletAddr)
 	}
-	if len(addr) == 0 {
+	if len(walletAddr) == 0 {
+		log.Debugf("health check empty peer id")
 		return nil
 	}
-	peerState, err := this.GetPeerStateByAddress(addr)
-	log.Debugf("get peer state of %s, state %d, err %s", addr, peerState, err)
+	peerState, err := this.GetConnStateByWallet(walletAddr)
+	log.Debugf("get peer state of %s, state %d, err %s", walletAddr, peerState, err)
 	if peerState != network.PEER_REACHABLE {
-		log.Debugf("health check peer: %s unreachable, err: %s ", addr, err)
+		log.Debugf("health check peer: %s unreachable, err: %s ", walletAddr, err)
 	}
 	if err == nil && peerState == network.PEER_REACHABLE {
 		return nil
 	}
 	time.Sleep(time.Duration(common.BACKOFF_INIT_DELAY) * time.Second)
-	if addr == this.proxyAddr {
+	proxy := this.GetProxyServer()
+	pr := this.GetPeerFromWalletAddr(walletAddr)
+	if pr == nil {
+		return fmt.Errorf("peer not found %s", walletAddr)
+	}
+	peerId := pr.GetPeerId()
+	if len(proxy.IP) > 0 && peerId == proxy.PeerID {
 		log.Debugf("reconnect proxy server ....")
-		err = this.P2p.ReconnectProxyServer(this.proxyAddr)
+		err = this.P2p.ReconnectProxyServer(proxy.IP, proxy.PeerID)
 		if err != nil {
 			log.Errorf("proxy reconnect failed, err %s", err)
-			this.WaitForConnected(addr, time.Duration(common.MAX_WAIT_FOR_CONNECTED_TIMEOUT)*time.Second)
+			this.WaitForConnected(walletAddr, time.Duration(common.MAX_WAIT_FOR_CONNECTED_TIMEOUT)*time.Second)
 			return err
 		}
 	} else {
-		err = this.reconnectPeer(addr)
+		log.Debugf("reconnect %s", walletAddr)
+		err = this.reconnect(walletAddr)
 		if err != nil {
-			this.WaitForConnected(addr, time.Duration(common.MAX_WAIT_FOR_CONNECTED_TIMEOUT)*time.Second)
+			this.WaitForConnected(walletAddr, time.Duration(common.MAX_WAIT_FOR_CONNECTED_TIMEOUT)*time.Second)
 			return err
 		}
 	}
-	err = this.WaitForConnected(addr, time.Duration(common.MAX_WAIT_FOR_CONNECTED_TIMEOUT)*time.Second)
+	err = this.WaitForConnected(walletAddr, time.Duration(common.MAX_WAIT_FOR_CONNECTED_TIMEOUT)*time.Second)
 	if err != nil {
 		log.Errorf("reconnect peer failed , err: %s", err)
 		return err
 	}
-	log.Debugf("reconnect peer success: %s", addr)
+	log.Debugf("reconnect peer success: %s", walletAddr)
 	return nil
 }
 
 // SendOnce send msg to peer asynchronous
 // peer can be addr(string) or client(*network.peerClient)
-func (this *Network) SendOnce(msg proto.Message, toAddr string) error {
-	err := this.HealthCheckPeer(this.proxyAddr)
-	if err != nil {
+func (this *Network) SendOnce(msg proto.Message, walletAddr string) error {
+	if !isValidWalletAddr(walletAddr) {
+		log.Errorf("wallet addr is wrong %s", walletAddr)
+		panic("wallet addr is wrong ")
+		os.Exit(1)
+	}
+	if this.P2p.ProxyModeEnable() && len(this.GetProxyServer().PeerID) > 0 {
+		if err := this.HealthCheckPeer(this.walletAddrFromPeerId(this.GetProxyServer().PeerID)); err != nil {
+			return err
+		}
+	}
+	if err := this.HealthCheckPeer(walletAddr); err != nil {
 		return err
 	}
-	err = this.HealthCheckPeer(toAddr)
-	if err != nil {
-		return err
+	pr := this.GetPeerFromWalletAddr(walletAddr)
+	if pr == nil {
+		return fmt.Errorf("peer not found %s", walletAddr)
 	}
-	state, _ := this.GetPeerStateByAddress(toAddr)
+	peerId := pr.GetPeerId()
+	state, _ := this.GetConnStateByWallet(walletAddr)
 	if state != network.PEER_REACHABLE {
-		return fmt.Errorf("can not send to inactive peer %s", toAddr)
+		return fmt.Errorf("can not send to inactive peer %s", walletAddr)
 	}
 	signed, err := this.P2p.PrepareMessage(context.Background(), msg)
 	if err != nil {
-		return fmt.Errorf("failed to sign message")
+		return fmt.Errorf("prepare message failed, err %s", err)
 	}
-	err = this.P2p.Write(toAddr, signed)
-	log.Debugf("write msg done sender:%s, to %s, nonce: %d", signed.GetSender().Address, toAddr, signed.GetMessageNonce())
+	err = this.P2p.Write(peerId, signed)
+	log.Debugf("write msg done sender:%s, to %s, nonce: %d", signed.GetSender().Address, peerId, signed.GetMessageNonce())
 	if err != nil {
-		return fmt.Errorf("failed to send message to %s", toAddr)
+		return fmt.Errorf("send message to %s failed ", walletAddr)
 	}
 	return nil
 }
 
 // Send send msg to peer asynchronous
 // peer can be addr(string) or client(*network.peerClient)
-func (this *Network) Send(msg proto.Message, sessionId, msgId, toAddr string, sendTimeout time.Duration) error {
-	if err := this.HealthCheckPeer(this.proxyAddr); err != nil {
-		return err
+func (this *Network) Send(msg proto.Message, sessionId, msgId, walletAddr string, sendTimeout time.Duration) error {
+	if !isValidWalletAddr(walletAddr) {
+		log.Errorf("wallet addr is wrong %s", walletAddr)
+		panic("wallet addr is wrong ")
+		os.Exit(1)
 	}
-	log.Debugf("before send, health check it")
-	if err := this.HealthCheckPeer(toAddr); err != nil {
-		return err
-	}
-	state, _ := this.GetPeerStateByAddress(toAddr)
-	if state != network.PEER_REACHABLE {
-		if err := this.HealthCheckPeer(toAddr); err != nil {
-			return fmt.Errorf("can not send to inactive peer %s", toAddr)
+	if this.P2p.ProxyModeEnable() && len(this.GetProxyServer().PeerID) > 0 {
+		log.Debugf("check proxy %v", this.GetProxyServer())
+		if err := this.HealthCheckPeer(this.walletAddrFromPeerId(this.GetProxyServer().PeerID)); err != nil {
+			return err
 		}
 	}
-	p, ok := this.peers.Load(toAddr)
-	log.Debugf("load peer success %t from %v", ok, toAddr)
-	if !ok {
-		return fmt.Errorf("peer not exist %s", toAddr)
+	log.Debugf("before send, health check it")
+	if err := this.HealthCheckPeer(walletAddr); err != nil {
+		return err
+	}
+	pr := this.GetPeerFromWalletAddr(walletAddr)
+	if pr == nil {
+		return fmt.Errorf("peer not found %s", walletAddr)
+	}
+	state, _ := this.GetConnStateByWallet(walletAddr)
+	if state != network.PEER_REACHABLE {
+		if err := this.HealthCheckPeer(walletAddr); err != nil {
+			return fmt.Errorf("can not send to inactive peer %s", walletAddr)
+		}
 	}
 	this.stopKeepAlive()
-	pr := p.(*peer.Peer)
-	log.Debugf("send msg %s to %s", msgId, toAddr)
+	log.Debugf("send msg %s to %s", msgId, walletAddr)
 	var err error
 	if sendTimeout > 0 {
 		err = pr.StreamSend(sessionId, msgId, msg, sendTimeout)
 	} else {
 		err = pr.Send(msgId, msg)
 	}
-	log.Debugf("send msg %s to %s done", msgId, toAddr)
+	log.Debugf("send msg %s to %s done", msgId, walletAddr)
 	this.restartKeepAlive()
 	return err
 }
 
 // Request. send msg to peer and wait for response synchronously with timeout
-func (this *Network) SendAndWaitReply(msg proto.Message, sessionId, msgId, toAddr string, sendTimeout time.Duration) (
+func (this *Network) SendAndWaitReply(msg proto.Message, sessionId, msgId, walletAddr string, sendTimeout time.Duration) (
 	proto.Message, error) {
+	if !isValidWalletAddr(walletAddr) {
+		log.Errorf("wallet addr is wrong %s", walletAddr)
+		panic("wallet addr is wrong ")
+		os.Exit(1)
+	}
 	if this == nil {
 		return nil, errors.New("no network")
 	}
-	if err := this.HealthCheckPeer(this.proxyAddr); err != nil {
-		return nil, err
-	}
-	if err := this.HealthCheckPeer(toAddr); err != nil {
-		return nil, err
-	}
-	state, _ := this.GetPeerStateByAddress(toAddr)
-	if state != network.PEER_REACHABLE {
-		if err := this.HealthCheckPeer(toAddr); err != nil {
-			return nil, fmt.Errorf("can not send to inactive peer %s", toAddr)
+	if this.P2p.ProxyModeEnable() && len(this.GetProxyServer().PeerID) > 0 {
+		if err := this.HealthCheckPeer(this.walletAddrFromPeerId(this.GetProxyServer().PeerID)); err != nil {
+			return nil, err
 		}
 	}
-	p, ok := this.peers.Load(toAddr)
-	if !ok {
-		return nil, fmt.Errorf("peer not exist %s", toAddr)
+	if err := this.HealthCheckPeer(walletAddr); err != nil {
+		return nil, err
+	}
+	state, _ := this.GetConnStateByWallet(walletAddr)
+	if state != network.PEER_REACHABLE {
+		if err := this.HealthCheckPeer(walletAddr); err != nil {
+			return nil, fmt.Errorf("can not send to inactive peer %s", walletAddr)
+		}
+	}
+	pr := this.GetPeerFromWalletAddr(walletAddr)
+	if pr == nil {
+		return nil, fmt.Errorf("peer %s not found", walletAddr)
 	}
 	this.stopKeepAlive()
-	pr := p.(*peer.Peer)
-	log.Debugf("send msg %s to %s", msgId, toAddr)
+	log.Debugf("send msg %s to %s", msgId, walletAddr)
 	var err error
 	var resp proto.Message
 	if sendTimeout > 0 {
@@ -518,135 +536,57 @@ func (this *Network) SendAndWaitReply(msg proto.Message, sessionId, msgId, toAdd
 	return resp, err
 }
 
-func (this *Network) AppendAddrToHealthCheck(addr string) {
-	this.addrForHealthCheck.Store(addr, struct{}{})
+func (this *Network) AppendAddrToHealthCheck(walletAddr string) {
+	if !isValidWalletAddr(walletAddr) {
+		log.Errorf("wallet addr is wrong %s", walletAddr)
+		panic("wallet addr is wrong ")
+		os.Exit(1)
+	}
+	pr := this.GetPeerFromWalletAddr(walletAddr)
+	if pr == nil {
+		return
+	}
+	peerId := pr.GetPeerId()
+	this.peerForHealthCheck.Store(walletAddr, peerId)
 }
 
-func (this *Network) RemoveAddrFromHealthCheck(addr string) {
-	this.addrForHealthCheck.Delete(addr)
+func (this *Network) RemoveAddrFromHealthCheck(walletAddr string) {
+	if !isValidWalletAddr(walletAddr) {
+		log.Errorf("wallet addr is wrong %s", walletAddr)
+		panic("wallet addr is wrong ")
+		os.Exit(1)
+	}
+	this.peerForHealthCheck.Delete(walletAddr)
 }
 
 // ClosePeerSession
-func (this *Network) ClosePeerSession(addr, sessionId string) error {
-	p, ok := this.peers.Load(addr)
+func (this *Network) ClosePeerSession(walletAddr, sessionId string) error {
+	if !isValidWalletAddr(walletAddr) {
+		log.Errorf("wallet addr is wrong %s", walletAddr)
+		panic("wallet addr is wrong ")
+		os.Exit(1)
+	}
+	p, ok := this.peers.Load(walletAddr)
 	if !ok {
-		return fmt.Errorf("peer %s not found", addr)
+		return fmt.Errorf("peer %s not found", walletAddr)
 	}
 	pr := p.(*peer.Peer)
 	return pr.CloseSession(sessionId)
 }
 
 // GetPeerSendSpeed. return send speed for peer
-func (this *Network) GetPeerSessionSpeed(addr, sessionId string) (uint64, uint64, error) {
-	p, ok := this.peers.Load(addr)
+func (this *Network) GetPeerSessionSpeed(walletAddr, sessionId string) (uint64, uint64, error) {
+	if !isValidWalletAddr(walletAddr) {
+		log.Errorf("wallet addr is wrong %s", walletAddr)
+		panic("wallet addr is wrong ")
+		os.Exit(1)
+	}
+	p, ok := this.peers.Load(walletAddr)
 	if !ok {
-		return 0, 0, fmt.Errorf("peer %s not found", addr)
+		return 0, 0, fmt.Errorf("peer %s not found", walletAddr)
 	}
 	pr := p.(*peer.Peer)
 	return pr.GetSessionSpeed(sessionId)
-}
-
-// [Deprecated] Request. send msg to peer and wait for response synchronously with timeout
-func (this *Network) Request(msg proto.Message, peer string) (proto.Message, error) {
-	err := this.HealthCheckPeer(this.proxyAddr)
-	if err != nil {
-		return nil, err
-	}
-	err = this.HealthCheckPeer(peer)
-	if err != nil {
-		return nil, err
-	}
-	client := this.P2p.GetPeerClient(peer)
-	if client == nil {
-		return nil, fmt.Errorf("get peer client is nil %s", peer)
-	}
-	// init context for timeout handling
-	ctx, cancel := context.WithTimeout(context.Background(),
-		time.Duration(dspCom.ACTOR_MAX_P2P_REQ_TIMEOUT)*time.Second)
-	defer cancel()
-	log.Debugf("send request msg to %s", peer)
-	resp, err := client.Request(ctx, msg, time.Duration(dspNetCom.REQUEST_MSG_TIMEOUT)*time.Second)
-	if err != nil {
-		return nil, err
-	}
-	return resp, nil
-}
-
-// [Deprecated] RequestWithRetry. send msg to peer and wait for response synchronously
-func (this *Network) RequestWithRetry(msg proto.Message, peer string, retry, replyTimeout int) (proto.Message, error) {
-	result := make(chan proto.Message, 1)
-	done := false
-	requestLock := &sync.Mutex{}
-	client := this.P2p.GetPeerClient(peer)
-	if client != nil {
-		log.Debugf("disable backoff of peer %s", peer)
-		client.DisableBackoff()
-	}
-	var response proto.Message
-	var err error
-	go func() {
-		for i := 0; i < retry; i++ {
-			// check proxy state
-			err = this.HealthCheckPeer(this.proxyAddr)
-			if err != nil {
-				continue
-			}
-			// check receiver state
-			err = this.HealthCheckPeer(peer)
-			if err != nil {
-				continue
-			}
-			log.Debugf("send request msg to %s with retry %d", peer, i)
-			defer log.Debugf("send request msg to %s with retry %d done", peer, i)
-			// get peer client to send msg
-			client := this.P2p.GetPeerClient(peer)
-			if client == nil {
-				log.Errorf("get peer client is nil %s", peer)
-				this.WaitForConnected(peer, time.Duration(replyTimeout)*time.Second)
-				continue
-			}
-			go func(msg proto.Message) {
-				// init context for timeout handling
-				ctx, cancel := context.WithTimeout(context.Background(),
-					time.Duration(dspCom.ACTOR_MAX_P2P_REQ_TIMEOUT)*time.Second)
-				defer cancel()
-				// send msg by request api and wait for the response
-				res, reqErr := client.Request(ctx, msg, time.Duration(dspCom.ACTOR_MAX_P2P_REQ_TIMEOUT)*time.Second)
-				if reqErr != nil {
-					return
-				}
-				requestLock.Lock()
-				defer requestLock.Unlock()
-				if done {
-					return
-				}
-				done = true
-				result <- res
-			}(msg)
-			<-time.After(time.Duration(dspNetCom.REQUEST_MSG_TIMEOUT) * time.Second)
-			requestLock.Lock()
-			if done {
-				requestLock.Unlock()
-				break
-			}
-			requestLock.Unlock()
-		}
-	}()
-	select {
-	case res := <-result:
-		response = res
-		err = nil
-	case <-time.After(time.Duration(dspCom.ACTOR_MAX_P2P_REQ_TIMEOUT) * time.Second):
-		response = nil
-		err = errors.New("retry all request and failed")
-	}
-	client = this.P2p.GetPeerClient(peer)
-	if client != nil {
-		log.Debugf("enable backoff of peer %s", peer)
-		client.EnableBackoff()
-	}
-
-	return response, err
 }
 
 // Broadcast. broadcast same msg to peers. Handle action if send msg success.
@@ -654,10 +594,13 @@ func (this *Network) RequestWithRetry(msg proto.Message, peer string, retry, rep
 // callback(responseMsg, responseToAddr).
 func (this *Network) Broadcast(addrs []string, msg proto.Message, sessionId, msgId string,
 	callbacks ...func(proto.Message, string) bool) (map[string]error, error) {
-	err := this.HealthCheckPeer(this.proxyAddr)
-	if err != nil {
-		return nil, err
+	if this.P2p.ProxyModeEnable() && len(this.GetProxyServer().PeerID) > 0 {
+		err := this.HealthCheckPeer(this.walletAddrFromPeerId(this.GetProxyServer().PeerID))
+		if err != nil {
+			return nil, err
+		}
 	}
+
 	maxRoutines := dspNetCom.MAX_GOROUTINES_IN_LOOP
 	if len(addrs) <= dspNetCom.MAX_GOROUTINES_IN_LOOP {
 		maxRoutines = len(addrs)
@@ -679,33 +622,37 @@ func (this *Network) Broadcast(addrs []string, msg proto.Message, sessionId, msg
 				if !ok || req == nil {
 					break
 				}
-				if !this.IsConnectionExists(req.addr) {
+				walletAddr := this.GetWalletFromHostAddr(req.addr)
+				log.Debugf("broadcast msg to %s, %s", req.addr, walletAddr)
+				if len(walletAddr) == 0 || !this.IsConnReachable(walletAddr) {
 					log.Debugf("broadcast msg check %v not exist, connecting...", req.addr)
-					err := this.ConnectAndWait(req.addr)
-					if err != nil {
+					if err := this.Connect(req.addr); err != nil {
+						log.Errorf("broadcast msg connect err %s", err)
 						done <- &broadcastResp{
 							addr: req.addr,
 							err:  err,
 						}
 						continue
 					}
+					walletAddr = this.GetWalletFromHostAddr(req.addr)
 				}
 				var res proto.Message
 				var err error
+				log.Debugf("send msg to %s", walletAddr)
 				if callbacks == nil || len(callbacks) == 0 {
-					err = this.Send(msg, sessionId, msgId, req.addr, 0)
+					err = this.Send(msg, sessionId, msgId, walletAddr, 0)
 				} else {
-					res, err = this.SendAndWaitReply(msg, sessionId, msgId, req.addr, 0)
+					res, err = this.SendAndWaitReply(msg, sessionId, msgId, walletAddr, 0)
 				}
 				if err != nil {
-					log.Errorf("broadcast msg to %s err %s", req.addr, err)
+					log.Errorf("broadcast msg to %s err %s", walletAddr, err)
 					done <- &broadcastResp{
-						addr: req.addr,
+						addr: walletAddr,
 						err:  err,
 					}
 					continue
 				} else {
-					log.Debugf("receive reply msg from %s", req.addr)
+					log.Debugf("receive reply msg from %s", walletAddr)
 				}
 				var finished bool
 				for _, callback := range callbacks {
@@ -758,82 +705,54 @@ func (this *Network) Broadcast(addrs []string, msg proto.Message, sessionId, msg
 	}
 }
 
-func (this *Network) reconnectPeer(addr string) error {
-	p, ok := this.peers.Load(addr)
-	var pr *peer.Peer
-	if !ok {
-		log.Warnf("peer no exist %s", addr)
-		pr = peer.New(addr)
-		this.peers.Store(addr, pr)
-	} else {
-		pr = p.(*peer.Peer)
-	}
-	if pr.State() == peer.ConnectStateConnecting {
-		err := this.WaitForConnected(addr, time.Duration(common.MAX_WAIT_FOR_CONNECTED_TIMEOUT)*time.Second)
-		if err != nil {
-			pr.SetState(peer.ConnectStateFailed)
-		} else {
-			pr.SetState(peer.ConnectStateConnected)
-		}
-		return err
-	}
-	pr.SetState(peer.ConnectStateConnecting)
-	state, err := this.GetPeerStateByAddress(addr)
-	if state == network.PEER_REACHABLE && err == nil {
-		pr.SetState(peer.ConnectStateConnected)
+//P2P network msg receive. transfer to actor_channel
+func (this *Network) Receive(ctx *network.ComponentContext, message proto.Message, hostAddr, peerId string) error {
+	// TODO check message is nil
+	walletAddr := this.walletAddrFromPeerId(peerId)
+	if strings.Contains(walletAddr, this.Protocol()) || len(walletAddr) == 0 {
+		log.Debugf("receive %T msg from peer %s", message, peerId)
 		return nil
 	}
-	err = this.P2p.ReconnectPeer(addr)
-	if err != nil {
-		pr.SetState(peer.ConnectStateFailed)
-	} else {
-		pr.SetState(peer.ConnectStateConnected)
-	}
-	return err
-}
-
-//P2P network msg receive. transfer to actor_channel
-func (this *Network) Receive(ctx *network.ComponentContext, message proto.Message, from string) error {
-	// TODO check message is nil
-	state, err := this.GetPeerStateByAddress(from)
+	log.Debugf("peerId %s wallet %s, message %T", peerId, walletAddr, message)
+	state, err := this.GetConnStateByWallet(walletAddr)
 	switch message.(type) {
 	case *messages.Processed:
-		act.OnBusinessMessage(message, from)
+		act.OnBusinessMessage(message, walletAddr)
 	case *messages.Delivered:
-		act.OnBusinessMessage(message, from)
+		act.OnBusinessMessage(message, walletAddr)
 	case *messages.SecretRequest:
-		act.OnBusinessMessage(message, from)
+		act.OnBusinessMessage(message, walletAddr)
 	case *messages.RevealSecret:
-		act.OnBusinessMessage(message, from)
+		act.OnBusinessMessage(message, walletAddr)
 	case *messages.BalanceProof:
-		act.OnBusinessMessage(message, from)
+		act.OnBusinessMessage(message, walletAddr)
 	case *messages.DirectTransfer:
-		act.OnBusinessMessage(message, from)
+		act.OnBusinessMessage(message, walletAddr)
 	case *messages.LockedTransfer:
-		act.OnBusinessMessage(message, from)
+		act.OnBusinessMessage(message, walletAddr)
 	case *messages.RefundTransfer:
-		act.OnBusinessMessage(message, from)
+		act.OnBusinessMessage(message, walletAddr)
 	case *messages.LockExpired:
-		act.OnBusinessMessage(message, from)
+		act.OnBusinessMessage(message, walletAddr)
 	case *messages.WithdrawRequest:
-		act.OnBusinessMessage(message, from)
+		act.OnBusinessMessage(message, walletAddr)
 	case *messages.Withdraw:
-		act.OnBusinessMessage(message, from)
+		act.OnBusinessMessage(message, walletAddr)
 	case *messages.CooperativeSettleRequest:
-		act.OnBusinessMessage(message, from)
+		act.OnBusinessMessage(message, walletAddr)
 	case *messages.CooperativeSettle:
-		act.OnBusinessMessage(message, from)
+		act.OnBusinessMessage(message, walletAddr)
 	case *dspMsg.Message:
-		log.Debugf("Network.Receive %T Msg %s, state: %d, err: %s", message, from, state, err)
+		log.Debugf("Network.Receive %T Msg %s, state: %d, err: %s", message, hostAddr, state, err)
 		msg := message.(*dspMsg.Message)
-		p, ok := this.peers.Load(from)
+		p, ok := this.peers.Load(walletAddr)
 		if !ok {
-			log.Warnf("receive a msg, but peer not found %s", from)
+			log.Warnf("receive a msg, but peer not found %s", walletAddr)
 			return nil
 		}
 		pr, ok := p.(*peer.Peer)
 		if !ok {
-			log.Warnf("convert p to peer failed %s", from)
+			log.Warnf("convert p to peer failed %s", walletAddr)
 			return nil
 		}
 		if pr.IsMsgReceived(msg.MsgId) {
@@ -843,17 +762,17 @@ func (this *Network) Receive(ctx *network.ComponentContext, message proto.Messag
 		pr.AddReceivedMsg(msg.MsgId)
 		if len(msg.Syn) > 0 {
 			// reply to origin request msg, no need to enter handle router
-			pr, ok := this.peers.Load(from)
-			log.Debugf("receive reply msg from %s, sync id %s", from, msg.Syn)
+			pr, ok := this.peers.Load(walletAddr)
+			log.Debugf("receive reply msg from %s, sync id %s", walletAddr, msg.Syn)
 			if !ok {
-				log.Warnf("receive a unknown msg from %s", from)
+				log.Warnf("receive a unknown msg from %s", walletAddr)
 				return nil
 			}
 			pr.(*peer.Peer).Receive(msg.Syn, msg)
 			return nil
 		}
 		if this.handler != nil {
-			this.handler(ctx)
+			this.handler(ctx, walletAddr)
 		}
 	default:
 		// if len(msg.String()) == 0 {
@@ -866,19 +785,98 @@ func (this *Network) Receive(ctx *network.ComponentContext, message proto.Messag
 	return nil
 }
 
-func (this *Network) GetClientTime(addr string) (uint64, error) {
-	p, ok := this.peers.Load(addr)
+func (this *Network) GetClientTime(walletAddr string) (uint64, error) {
+	if !isValidWalletAddr(walletAddr) {
+		log.Errorf("wallet addr is wrong %s", walletAddr)
+		panic("wallet addr is wrong ")
+		os.Exit(1)
+	}
+	p, ok := this.peers.Load(walletAddr)
 	if !ok {
-		return 0, fmt.Errorf("[network GetClientTime] client is nil: %s", addr)
+		return 0, fmt.Errorf("[network GetClientTime] client is nil: %s", walletAddr)
 	}
 	t := p.(*peer.Peer).ActiveTime()
-	return uint64(t.Unix()), nil
+	ms := t.UnixNano() / int64(time.Millisecond)
+	return uint64(ms), nil
+}
+
+func (this *Network) IsPeerNetQualityBad(walletAddr string) bool {
+	if !isValidWalletAddr(walletAddr) {
+		log.Errorf("wallet addr is wrong %s", walletAddr)
+		panic("wallet addr is wrong ")
+		os.Exit(1)
+	}
+	totalFailed := &peer.FailedCount{}
+	peerCnt := 0
+	var peerFailed *peer.FailedCount
+	this.peers.Range(func(key, value interface{}) bool {
+		peerCnt++
+		peerWalletAddr, _ := key.(string)
+		pr, _ := value.(*peer.Peer)
+		cnt := pr.GetFailedCnt()
+		totalFailed.Dial += cnt.Dial
+		totalFailed.Send += cnt.Send
+		totalFailed.Recv += cnt.Recv
+		totalFailed.Disconnect += cnt.Disconnect
+		if peerWalletAddr == walletAddr {
+			peerFailed = cnt
+		}
+		return false
+	})
+	if peerFailed == nil {
+		return false
+	}
+	log.Debugf("peer failed %v, totalFailed %v, peer cnt %v", peerFailed, totalFailed, peerCnt)
+	if (peerFailed.Dial > 0 && peerFailed.Dial >= totalFailed.Dial/peerCnt) ||
+		(peerFailed.Send > 0 && peerFailed.Send >= totalFailed.Send/peerCnt) ||
+		(peerFailed.Disconnect > 0 && peerFailed.Disconnect >= totalFailed.Disconnect/peerCnt) ||
+		(peerFailed.Recv > 0 && peerFailed.Recv >= totalFailed.Recv/peerCnt) {
+		return true
+	}
+	return false
+}
+
+func (this *Network) reconnect(walletAddr string) error {
+	p, ok := this.peers.Load(walletAddr)
+	var pr *peer.Peer
+	if !ok {
+		return fmt.Errorf("peer not found %s", walletAddr)
+	}
+	pr = p.(*peer.Peer)
+	if len(walletAddr) > 0 && pr.State() == peer.ConnectStateConnecting {
+		if err := this.WaitForConnected(walletAddr, time.Duration(common.MAX_WAIT_FOR_CONNECTED_TIMEOUT)*time.Second); err != nil {
+			pr.SetState(peer.ConnectStateFailed)
+			return err
+		}
+		pr.SetState(peer.ConnectStateConnected)
+		return nil
+	}
+	pr.SetState(peer.ConnectStateConnecting)
+	if len(walletAddr) > 0 {
+		state, err := this.GetConnStateByWallet(walletAddr)
+		if state == network.PEER_REACHABLE && err == nil {
+			pr.SetState(peer.ConnectStateConnected)
+			return nil
+		}
+	}
+	err, peerId := this.P2p.ReconnectPeer(pr.GetHostAddr())
+	if err != nil {
+		pr.SetState(peer.ConnectStateFailed)
+	} else {
+		pr.SetState(peer.ConnectStateConnected)
+	}
+	pr.SetPeerId(peerId)
+	this.peers.Store(walletAddr, pr)
+	return err
 }
 
 func (this *Network) addProxyComponents(builder *network.Builder) {
-	servers := strings.Split(config.Parameters.BaseConfig.NATProxyServerAddrs, ",")
+	if len(this.proxyAddrs) == 0 {
+		return
+	}
+	log.Debugf("enable %t", this.P2p.ProxyModeEnable())
 	hasAdd := make(map[string]struct{})
-	for _, proxyAddr := range servers {
+	for _, proxyAddr := range this.proxyAddrs {
 		if len(proxyAddr) == 0 {
 			continue
 		}
@@ -908,13 +906,16 @@ func (this *Network) healthCheckService() {
 		select {
 		case <-ti.C:
 			shouldLog := ((time.Now().Unix()-startedAt)%60 == 0)
-			this.addrForHealthCheck.Range(func(key, value interface{}) bool {
+			if this.P2p.ProxyModeEnable() && len(this.GetProxyServer().PeerID) > 0 {
+				this.HealthCheckPeer(this.walletAddrFromPeerId(this.GetProxyServer().PeerID))
+			}
+			this.peerForHealthCheck.Range(func(key, value interface{}) bool {
 				addr, _ := key.(string)
 				if len(addr) == 0 {
 					return true
 				}
 				if shouldLog {
-					addrState, err := this.GetPeerStateByAddress(addr)
+					addrState, err := this.GetConnStateByWallet(addr)
 					if err != nil {
 						log.Errorf("publicAddr: %s, addr %s state: %d, err: %s",
 							this.PublicAddr(), addr, addrState, err)
@@ -944,89 +945,122 @@ func (this *Network) getKeepAliveComponent() *keepalive.Component {
 	return nil
 }
 
-func (this *Network) updatePeerTime(addr string) {
-	client := this.P2p.GetPeerClient(addr)
+func (this *Network) updatePeerTime(walletAddr string) {
+	pr := this.GetPeerFromWalletAddr(walletAddr)
+	if pr == nil {
+		return
+	}
+	peerId := pr.GetPeerId()
+	client := this.P2p.GetPeerClient(peerId)
 	if client == nil {
 		return
 	}
 	client.Time = time.Now()
 }
 
-func (this *Network) IsPeerNetQualityBad(addr string) bool {
-	totalFailed := &peer.FailedCount{}
-	peerCnt := 0
-	var peerFailed *peer.FailedCount
-	this.peers.Range(func(key, value interface{}) bool {
-		peerCnt++
-		peerAddr, _ := key.(string)
-		pr, _ := value.(*peer.Peer)
-		cnt := pr.GetFailedCnt()
-		totalFailed.Dial += cnt.Dial
-		totalFailed.Send += cnt.Send
-		totalFailed.Recv += cnt.Recv
-		totalFailed.Disconnect += cnt.Disconnect
-		if peerAddr == addr {
-			peerFailed = cnt
-		}
-		return false
-	})
-	if peerFailed == nil {
-		return false
-	}
-	log.Debugf("peer failed %v, totalFailed %v, peer cnt %v", peerFailed, totalFailed, peerCnt)
-	if (peerFailed.Dial > 0 && peerFailed.Dial >= totalFailed.Dial/peerCnt) ||
-		(peerFailed.Send > 0 && peerFailed.Send >= totalFailed.Send/peerCnt) ||
-		(peerFailed.Disconnect > 0 && peerFailed.Disconnect >= totalFailed.Disconnect/peerCnt) ||
-		(peerFailed.Recv > 0 && peerFailed.Recv >= totalFailed.Recv/peerCnt) {
-		return true
-	}
-	return false
-}
-
 func (this *Network) stopKeepAlive() {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-	var ka *keepalive.Component
-	var ok bool
-	for _, info := range this.P2p.Components.GetInstallComponents() {
-		ka, ok = info.Component.(*keepalive.Component)
-		if ok {
-			break
-		}
-	}
-	if ka == nil {
-		return
-	}
-	// stop keepalive for temporary
-	ka.Cleanup(this.P2p)
-	deleted := this.P2p.Components.Delete(ka)
-	log.Debugf("stop keep alive %t", deleted)
+	// this.lock.Lock()
+	// defer this.lock.Unlock()
+	// var ka *keepalive.Component
+	// var ok bool
+	// for _, info := range this.P2p.Components.GetInstallComponents() {
+	// 	ka, ok = info.Component.(*keepalive.Component)
+	// 	if ok {
+	// 		break
+	// 	}
+	// }
+	// if ka == nil {
+	// 	return
+	// }
+	// // stop keepalive for temporary
+	// ka.Cleanup(this.P2p)
+	// deleted := this.P2p.Components.Delete(ka)
+	// log.Debugf("stop keep alive %t", deleted)
 }
 
 func (this *Network) restartKeepAlive() {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-	var ka *keepalive.Component
-	var ok bool
-	for _, info := range this.P2p.Components.GetInstallComponents() {
-		ka, ok = info.Component.(*keepalive.Component)
-		if ok {
+	// this.lock.Lock()
+	// defer this.lock.Unlock()
+	// var ka *keepalive.Component
+	// var ok bool
+	// for _, info := range this.P2p.Components.GetInstallComponents() {
+	// 	ka, ok = info.Component.(*keepalive.Component)
+	// 	if ok {
+	// 		break
+	// 	}
+	// }
+	// if ka != nil {
+	// 	return
+	// }
+	// options := []keepalive.ComponentOption{
+	// 	keepalive.WithKeepaliveInterval(keepalive.DefaultKeepaliveInterval),
+	// 	keepalive.WithKeepaliveTimeout(keepalive.DefaultKeepaliveTimeout),
+	// }
+	// ka = keepalive.New(options...)
+	// err := this.builder.AddComponent(ka)
+	// if err != nil {
+	// 	return
+	// }
+	// ka.Startup(this.P2p)
+}
+
+// startProxy. start proxy service
+func (this *Network) startProxy(builder *network.Builder) error {
+	var err error
+	log.Debugf("NATProxyServerAddrs :%v", this.proxyAddrs)
+	for _, proxyAddr := range this.proxyAddrs {
+		if len(proxyAddr) == 0 {
+			continue
+		}
+		log.Debugf("set proxy mode")
+		this.P2p.EnableProxyMode(true)
+		this.P2p.SetProxyServer([]network.ProxyServer{
+			network.ProxyServer{
+				IP: proxyAddr,
+			},
+		})
+		protocol := getProtocolFromAddr(proxyAddr)
+		log.Debugf("start proxy will blocking...%s %s, networkId: %d",
+			protocol, proxyAddr, this.networkId)
+		done := make(chan struct{}, 1)
+		go func() {
+			switch protocol {
+			case "udp":
+				this.P2p.BlockUntilUDPProxyFinish()
+			case "kcp":
+				this.P2p.BlockUntilKCPProxyFinish()
+			case "quic":
+				this.P2p.BlockUntilQuicProxyFinish()
+			case "tcp":
+				this.P2p.BlockUntilTcpProxyFinish()
+			}
+			done <- struct{}{}
+		}()
+		select {
+		case <-done:
+			proxyHostAddr, proxyPeerId := this.P2p.GetWorkingProxyServer()
+			pr := peer.New(proxyHostAddr)
+			pr.SetPeerId(proxyPeerId)
+			this.peers.Store(proxyPeerId, pr)
+			log.Debugf("start proxy finish, publicAddr: %s, proxy peer id %s", this.P2p.ID.Address, proxyPeerId)
+			return nil
+		case <-time.After(time.Duration(common.START_PROXY_TIMEOUT) * time.Second):
+			err = fmt.Errorf("proxy: %s timeout", proxyAddr)
+			log.Debugf("start proxy err :%s", err)
 			break
 		}
 	}
-	if ka != nil {
-		return
+	return err
+}
+
+func isValidWalletAddr(walletAddr string) bool {
+	// proxy wallet
+	if walletAddr == "0a0d2ab32271f41f454f56263e21226fad41d4634c8a9002b1c2df82b27fe2f9" {
+		return true
 	}
-	options := []keepalive.ComponentOption{
-		keepalive.WithKeepaliveInterval(keepalive.DefaultKeepaliveInterval),
-		keepalive.WithKeepaliveTimeout(keepalive.DefaultKeepaliveTimeout),
-	}
-	ka = keepalive.New(options...)
-	err := this.builder.AddComponent(ka)
-	if err != nil {
-		return
-	}
-	ka.Startup(this.P2p)
+	valid, _ := regexp.MatchString("^A[1-9A-HJ-NP-Za-km-z]{33}$", walletAddr)
+	return valid
+
 }
 
 func getProtocolFromAddr(addr string) string {

@@ -60,7 +60,8 @@ const (
 )
 
 type Peer struct {
-	addr        string              // peer address
+	id          string              // peer id
+	addr        string              // peer host address
 	client      *network.PeerClient // network overlay peer client instance
 	mq          *list.List          // message queue list
 	lock        *sync.RWMutex       // lock for sync operation
@@ -85,6 +86,28 @@ func New(addr string) *Peer {
 		sessions:    make(map[string]*Session),
 	}
 	return p
+}
+
+// GetHostAddr.
+func (p *Peer) GetHostAddr() string {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+	return p.addr
+}
+
+func (p *Peer) SetPeerId(peerId string) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	log.Debugf("set peer id %s for wallet %s, p %p", peerId, p.addr, p)
+	p.id = peerId
+}
+
+// GetPeerId.
+func (p *Peer) GetPeerId() string {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+	log.Debugf("get peer id %s for wallet %s, p %p", p.id, p.addr, p)
+	return p.id
 }
 
 // SetClient. set peer client.

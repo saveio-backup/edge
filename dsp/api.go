@@ -7,36 +7,39 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
-	"github.com/saveio/max/max"
-	"github.com/saveio/pylons"
-
+	"github.com/gogo/protobuf/proto"
 	carNet "github.com/saveio/carrier/network"
+	"github.com/saveio/carrier/types/opcode"
 	dspActorClient "github.com/saveio/dsp-go-sdk/actor/client"
 	dspCom "github.com/saveio/dsp-go-sdk/common"
 	dspCfg "github.com/saveio/dsp-go-sdk/config"
 	"github.com/saveio/dsp-go-sdk/dsp"
 	dspSdk "github.com/saveio/dsp-go-sdk/dsp"
+	dspNetCom "github.com/saveio/dsp-go-sdk/network/common"
+	"github.com/saveio/dsp-go-sdk/network/message/pb"
+	"github.com/saveio/dsp-go-sdk/utils"
 	"github.com/saveio/edge/common"
 	"github.com/saveio/edge/common/config"
 	"github.com/saveio/edge/p2p/actor/req"
 	p2p_actor "github.com/saveio/edge/p2p/actor/server"
 	"github.com/saveio/edge/p2p/network"
+	"github.com/saveio/max/max"
+	"github.com/saveio/pylons"
+	"github.com/saveio/pylons/actor/msg_opcode"
+	tkActClient "github.com/saveio/scan/p2p/actor/tracker/client"
+	tkActServer "github.com/saveio/scan/p2p/actor/tracker/server"
+	tk_net "github.com/saveio/scan/p2p/network"
+	"github.com/saveio/scan/service/tk"
+	chainSdk "github.com/saveio/themis-go-sdk/utils"
 	"github.com/saveio/themis-go-sdk/wallet"
 	"github.com/saveio/themis/account"
 	chainCom "github.com/saveio/themis/common"
 	chainCfg "github.com/saveio/themis/common/config"
 	"github.com/saveio/themis/common/log"
-	"github.com/saveio/themis/crypto/keypair"
-
-	"github.com/saveio/dsp-go-sdk/utils"
-	tkActClient "github.com/saveio/scan/p2p/actor/tracker/client"
-	tkActServer "github.com/saveio/scan/p2p/actor/tracker/server"
-	tk_net "github.com/saveio/scan/p2p/networks/tracker"
-	"github.com/saveio/scan/service/tk"
-	chainSdk "github.com/saveio/themis-go-sdk/utils"
 )
 
 var DspService *Endpoint
@@ -153,6 +156,13 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 	if err != nil {
 		return err
 	}
+	p2pActor.SetDNSHostAddrCallback(func(walletAddr string) string {
+		hostAddr, err := endpoint.GetDNSHostAddr(walletAddr)
+		if err != nil {
+			log.Errorf("get dns host addr err %s", err)
+		}
+		return hostAddr
+	})
 	endpoint.p2pActor = p2pActor
 	dspSrv := dsp.NewDsp(dspConfig, endpoint.GetDspAccount(), p2pActor.GetLocalPID())
 	log.Debugf("new dsp svr %v", dspSrv)
@@ -163,8 +173,6 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		return fmt.Errorf("dsp service account is nil")
 	}
 	endpoint.setDsp(dspSrv)
-	version, _ := endpoint.GetNodeVersion()
-
 	// start dsp service
 	if startListen {
 		go func() {
@@ -173,12 +181,10 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 			}
 		}()
 	}
-
 	// start share service
 	if startListen && startShare {
 		go endpoint.startShareService()
 	}
-
 	// start channel only
 	if !startListen && startChannel {
 		go func() {
@@ -194,6 +200,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		go endpoint.RegisterShareNotificationCh()
 	}
 	go endpoint.stateChangeService()
+	version, _ := endpoint.GetNodeVersion()
 	log.Infof("edge start success. version: %s, block time: %d", version, config.BlockTime())
 	log.Infof("dsp-go-sdk version: %s", dsp.Version)
 	log.Infof("edge version: %s", Version)
@@ -259,9 +266,6 @@ func (this *Endpoint) startDspService(listenHost string) error {
 	}
 	log.Debugf("start channel at %s", this.channelPublicAddr)
 	this.updateStorageNodeHost()
-	if err := this.registerChannelEndpoint(); err != nil {
-		log.Warnf("register endpoint failed err %s", err)
-	}
 	log.Debugf("update node finished")
 	if this.GetDspAccount() == nil {
 		return errors.New("account is nil")
@@ -285,16 +289,26 @@ func (this *Endpoint) startDspService(listenHost string) error {
 }
 
 func (this *Endpoint) startDspP2P(hostAddr *common.HostAddr, acc *account.Account) error {
-	bPub := keypair.SerializePublicKey(acc.PubKey())
-	networkKey := utils.NewNetworkEd25519KeyPair(bPub, []byte("dsp"))
-	dspNetwork := network.NewP2P()
+	networkKey := utils.NewNetworkKeyPairWithAccount(acc)
+
+	codes := make(map[opcode.Opcode]proto.Message)
+	codes[dspNetCom.MSG_OP_CODE] = &pb.Message{}
+	opts := []network.NetworkOption{
+		network.WithKeys(networkKey),
+		network.WithMsgHandler(this.getDsp().Receive),
+		network.WithNetworkId(config.Parameters.BaseConfig.NetworkId),
+		network.WithWalletAddrFromPeerId(utils.AddressFromPubkeyHex),
+		network.WithOpcodes(codes),
+	}
+	if len(config.Parameters.BaseConfig.IntranetIP) > 0 {
+		opts = append(opts, network.WithIntranetIP(config.Parameters.BaseConfig.IntranetIP))
+	}
+	if len(config.Parameters.BaseConfig.NATProxyServerAddrs) > 0 {
+		opts = append(opts, network.WithProxyAddrs(strings.Split(config.Parameters.BaseConfig.NATProxyServerAddrs, ",")))
+	}
+	dspNetwork := network.NewP2P(opts...)
 	f := utils.TimeoutFunc(func() error {
-		opts := []network.NetworkOption{network.WithKeys(networkKey),
-			network.WithMsgHandler(this.getDsp().Receive)}
-		if len(config.Parameters.BaseConfig.IntranetIP) > 0 {
-			opts = append(opts, network.WithIntranetIP(config.Parameters.BaseConfig.IntranetIP))
-		}
-		return dspNetwork.Start(hostAddr.Protocol, hostAddr.Address, hostAddr.Port, opts...)
+		return dspNetwork.Start(hostAddr.Protocol, hostAddr.Address, hostAddr.Port)
 	})
 	err := utils.DoWithTimeout(f, time.Duration(common.START_P2P_TIMEOUT)*time.Second)
 	if err != nil {
@@ -307,22 +321,25 @@ func (this *Endpoint) startDspP2P(hostAddr *common.HostAddr, acc *account.Accoun
 }
 
 func (this *Endpoint) startChannelP2P(hostAddr *common.HostAddr, acc *account.Account) error {
-	channelNetwork := network.NewP2P()
-	bPub := keypair.SerializePublicKey(acc.PubKey())
+	networkKey := utils.NewNetworkKeyPairWithAccount(acc)
+	opts := []network.NetworkOption{
+		network.WithKeys(networkKey),
+		network.WithAsyncRecvMsgDisabled(true),
+		network.WithNetworkId(config.Parameters.BaseConfig.NetworkId),
+		network.WithWalletAddrFromPeerId(utils.AddressFromPubkeyHex),
+		network.WithOpcodes(msg_opcode.OpCodes),
+	}
 	dsp := this.getDsp()
 	log.Debugf("channel p2p dsp %v", dsp)
 	if dsp.GetChannelPid() != nil {
 		req.SetChannelPid(dsp.GetChannelPid())
 	}
+	if len(config.Parameters.BaseConfig.IntranetIP) > 0 {
+		opts = append(opts, network.WithIntranetIP(config.Parameters.BaseConfig.IntranetIP))
+	}
+	channelNetwork := network.NewP2P(opts...)
 	f := utils.TimeoutFunc(func() error {
-		opts := []network.NetworkOption{
-			network.WithKeys(utils.NewNetworkEd25519KeyPair(bPub, []byte("channel"))),
-			network.WithAsyncRecvMsgDisabled(true),
-		}
-		if len(config.Parameters.BaseConfig.IntranetIP) > 0 {
-			opts = append(opts, network.WithIntranetIP(config.Parameters.BaseConfig.IntranetIP))
-		}
-		return channelNetwork.Start(hostAddr.Protocol, hostAddr.Address, hostAddr.Port, opts...)
+		return channelNetwork.Start(hostAddr.Protocol, hostAddr.Address, hostAddr.Port)
 	})
 	err := utils.DoWithTimeout(f, time.Duration(common.START_P2P_TIMEOUT)*time.Second)
 	if err != nil {
@@ -342,20 +359,20 @@ func (this *Endpoint) startTrackerP2P(hostAddr *common.HostAddr, acc *account.Ac
 	if err != nil {
 		return err
 	}
-	dPub := keypair.SerializePublicKey(acc.PubKey())
-	tkNetworkKey := utils.NewNetworkEd25519KeyPair(dPub, []byte("tk"))
-	tkNet := tk_net.NewP2P()
-	tkNet.SetNetworkKey(tkNetworkKey)
-	tkNet.SetPID(tkActServer.GetLocalPID())
-	tkNet.SetProxyServer(config.Parameters.BaseConfig.NATProxyServerAddrs)
+	opts := []tk_net.NetworkOption{
+		tk_net.WithKeys(utils.NewNetworkKeyPairWithAccount(acc)),
+		tk_net.WithPid(tkActServer.GetLocalPID()),
+		tk_net.WithWalletAddrFromPeerId(utils.AddressFromPubkeyHex),
+		tk_net.WithNetworkId(config.Parameters.BaseConfig.TrackerNetworkId),
+		tk_net.WithOpcodes(tk_net.TrackerOpCodes),
+	}
+	tkNet := tk_net.NewP2P(opts...)
 	tk_net.TkP2p = tkNet
 	tkActServer.SetNetwork(tkNet)
 	tkActClient.SetTrackerServerPid(tkActServer.GetLocalPID())
 	this.p2pActor.SetTrackerNet(tkActServer)
-
 	f := utils.TimeoutFunc(func() error {
-		err := tkNet.Start(hostAddr.Protocol, hostAddr.Address, hostAddr.Port,
-			config.Parameters.BaseConfig.TrackerNetworkId)
+		err := tkNet.Start(hostAddr.Protocol, hostAddr.Address, hostAddr.Port)
 		if err != nil {
 			return err
 		}
@@ -363,27 +380,7 @@ func (this *Endpoint) startTrackerP2P(hostAddr *common.HostAddr, acc *account.Ac
 		return nil
 	})
 	return utils.DoWithTimeout(f, time.Duration(common.START_P2P_TIMEOUT)*time.Second)
-}
-
-func (this *Endpoint) registerChannelEndpoint() error {
-	walletAddr := this.getDsp().Address()
-	publicAddr := this.channelNet.PublicAddr()
-	for i := 0; i < common.MAX_REG_CHANNEL_TIMES; i++ {
-		err := this.getDsp().RegNodeEndpoint(walletAddr, publicAddr)
-		log.Debugf("register endpoint for channel %s, err %s", publicAddr, err)
-		if err == nil {
-			return nil
-		}
-		log.Errorf("register endpoint failed %s", err)
-		select {
-		case <-time.After(time.Duration(common.MAX_REG_CHANNEL_BACKOFF) * time.Second):
-			continue
-		case <-this.closeCh:
-			return errors.New("stop register endpoint because edge is closed")
-		}
-	}
-	log.Errorf("register channel endpoint timeout")
-	return fmt.Errorf("register channel endpoint timeout")
+	return nil
 }
 
 func (this *Endpoint) updateStorageNodeHost() {
@@ -498,12 +495,6 @@ func (this *Endpoint) stateChangeService() {
 					this.dspPublicAddr, this.dspNet.PublicAddr())
 				this.dspPublicAddr = this.dspNet.PublicAddr()
 				go this.updateStorageNodeHost()
-			}
-			if this.channelNet != nil && this.channelPublicAddr != this.channelNet.PublicAddr() {
-				log.Debugf("channel public address has change, old addr: %s, new addr:%s",
-					this.channelPublicAddr, this.channelNet.PublicAddr())
-				this.channelPublicAddr = this.channelNet.PublicAddr()
-				go this.registerChannelEndpoint()
 			}
 			go this.checkOnlineDNS()
 			go this.notifyChannelProgress()

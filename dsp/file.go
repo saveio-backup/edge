@@ -255,7 +255,8 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, pr
 		return nil, &DspErr{Code: FS_UPLOAD_FILEPATH_ERROR,
 			Error: fmt.Errorf("uploadFile error: %s is a directory", path)}
 	}
-	if len(this.dspNet.GetProxyServer()) > 0 && !this.dspNet.IsConnectionReachable(this.dspNet.GetProxyServer()) {
+	if len(this.dspNet.GetProxyServer().PeerID) > 0 &&
+		!this.dspNet.IsConnReachable(this.dspNet.WalletAddrFromPeerId(this.dspNet.GetProxyServer().PeerID)) {
 		return nil, &DspErr{Code: NET_PROXY_DISCONNECTED,
 			Error: fmt.Errorf("proxy %s is unreachable", this.dspNet.GetProxyServer())}
 	}
@@ -754,23 +755,17 @@ func (this *Endpoint) DownloadFile(fileHash, url, linkStr, password string, max 
 	if !dsp.HasDNS() {
 		return &DspErr{Code: DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST, Error: ErrMaps[DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST]}
 	}
-	if !this.channelNet.IsConnectionReachable(dsp.CurrentDNSHostAddr()) {
+	if !this.channelNet.IsConnReachable(dsp.CurrentDNSWallet()) {
 		return &DspErr{Code: DSP_CHANNEL_DNS_OFFLINE, Error: ErrMaps[DSP_CHANNEL_DNS_OFFLINE]}
 	}
-
 	fileInfo, err := this.GetDownloadFileInfo(url)
 	if err != nil {
 		return err
 	}
-	if len(this.dspNet.GetProxyServer()) > 0 &&
-		!this.dspNet.IsConnectionReachable(this.dspNet.GetProxyServer()) {
+	if len(this.dspNet.GetProxyServer().PeerID) > 0 &&
+		!this.dspNet.IsConnReachable(this.dspNet.WalletAddrFromPeerId(this.dspNet.GetProxyServer().PeerID)) {
 		return &DspErr{Code: NET_PROXY_DISCONNECTED,
 			Error: fmt.Errorf("proxy %s is unreachable", this.dspNet.GetProxyServer())}
-	}
-	if len(this.channelNet.GetProxyServer()) > 0 &&
-		!this.channelNet.IsConnectionReachable(this.channelNet.GetProxyServer()) {
-		return &DspErr{Code: NET_PROXY_DISCONNECTED,
-			Error: fmt.Errorf("proxy %s is unreachable", this.channelNet.GetProxyServer())}
 	}
 
 	canDownload := false
@@ -2148,10 +2143,11 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 	}
 	sum := uint64(0)
 	nPros := make([]*NodeProgress, 0)
-	for hAddr, cnt := range info.Progress {
+	log.Debugf("getTransferDetail info %v", info)
+	for walletAddr, cnt := range info.Progress {
 		sum += uint64(cnt.Progress)
 		pros := &NodeProgress{
-			HostAddr: hAddr,
+			HostAddr: info.NodeHostAddrs[walletAddr],
 			Speed:    cnt.AvgSpeed(),
 		}
 		if info.Type == store.TaskTypeUpload {
