@@ -18,7 +18,16 @@ const (
 
 // default config
 const (
-	MAX_UNPAID_PAYMENT = 5 // max unpaid payment
+	DEFAULT_MAX_UNPAID_PAYMENT    = 5               // max unpaid payment
+	DEFAULT_MAX_LOG_SIZE          = 5 * 1024 * 1024 // max log size
+	DEFAULT_MAX_DNS_NODE_NUM      = 100             // max dns node num
+	DEFAULT_MAX_UPLOAD_TASK_NUM   = 10000           // max upload task num
+	DEFAULT_MAX_DOWNLOAD_TASK_NUM = 10000           // max share task num
+	DEFAULT_MAX_SHARE_TASK_NUM    = 10000           // max download task num
+	DEFAULT_SEED_INTERVAL         = 600             // max seed service interval
+	DEFAULT_TRACKER_PROTOCOL      = "tcp"           // default tracker protocol
+	DEFAULT_TRACKER_PORT_OFFSET   = 337             // tracker port offset
+	DEFAULT_WS_PORT_OFFSET        = 339             // tracker port offset
 )
 
 // network common

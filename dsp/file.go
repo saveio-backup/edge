@@ -1150,7 +1150,7 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint32, 
 		Type:          pType,
 		Transfers:     []*Transfer{},
 	}
-	allType, reverse, includeFailed := false, false, true
+	complete, reverse, includeFailed := false, false, true
 	var infoType store.TaskType
 	switch pType {
 	case transferTypeUploading:
@@ -1158,11 +1158,11 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint32, 
 	case transferTypeDownloading:
 		infoType = store.TaskTypeDownload
 	case transferTypeComplete:
-		allType = true
+		complete = true
 		reverse = true
 		includeFailed = false
 	}
-	ids := dsp.GetTaskIdList(offset, limit, createdAt*1000, updatedAt*1000, infoType, allType, reverse, includeFailed)
+	ids := dsp.GetTaskIdList(offset, limit, createdAt, updatedAt, infoType, complete, reverse, includeFailed)
 	infos := make([]*Transfer, 0, len(ids))
 	for idx, key := range ids {
 		info := dsp.GetProgressInfo(key)
@@ -1508,7 +1508,7 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit, cr
 		if info.ExpiredHeight < uint64(curBlockHeight) {
 			continue
 		}
-		if info.CreatedAt < createdAt*1000 || info.UpdatedAt < updatedAt*1000 {
+		if info.CreatedAt < createdAt || info.UpdatedAt < updatedAt {
 			continue
 		}
 		// 0: all, 1. image, 2. document. 3. video, 4. music
@@ -2143,12 +2143,15 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 	}
 	sum := uint64(0)
 	nPros := make([]*NodeProgress, 0)
-	log.Debugf("getTransferDetail info %v", info)
 	for walletAddr, cnt := range info.Progress {
 		sum += uint64(cnt.Progress)
+		avgSpeed := cnt.AvgSpeed()
+		if info.TaskState == store.TaskStateFailed || info.TaskState == store.TaskStatePause {
+			avgSpeed = 0
+		}
 		pros := &NodeProgress{
 			HostAddr: info.NodeHostAddrs[walletAddr],
-			Speed:    cnt.AvgSpeed(),
+			Speed:    avgSpeed,
 		}
 		if info.Type == store.TaskTypeUpload {
 			pros.UploadSize = uint64(cnt.Progress) * dspCom.CHUNK_SIZE / 1024

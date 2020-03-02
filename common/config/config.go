@@ -46,13 +46,8 @@ type BaseConfig struct {
 	WsKeyPath          string `json:"WsKeyPath"`
 	BlockConfirm       uint32 `json:"BlockConfirm"`
 
-	ChannelPortOffset    int    `json:"ChannelPortOffset"`
-	ChannelProtocol      string `json:"ChannelProtocol"`
-	ChannelClientType    string `json:"ChannelClientType"`
-	ChannelRevealTimeout string `json:"ChannelRevealTimeout"`
-	ChannelSettleTimeout string `json:"ChannelSettleTimeout"`
-	BlockDelay           string `json:"BlockDelay"`
-	MaxUnpaidPayment     int32  `json:"MaxUnpaidPayment"`
+	ChannelPortOffset int    `json:"ChannelPortOffset"`
+	ChannelProtocol   string `json:"ChannelProtocol"`
 
 	DBPath         string   `json:"DBPath"`
 	ChainRestAddrs []string `json:"ChainRestAddrs"`
@@ -62,17 +57,9 @@ type BaseConfig struct {
 	DspProtocol         string `json:"DspProtocol"`
 	DspPortOffset       int    `json:"DspPortOffset"`
 
-	AutoSetupDNSEnable bool     `json:"AutoSetupDNSEnable"`
-	DnsNodeMaxNum      int      `json:"DnsNodeMaxNum"`
-	DnsChannelDeposit  uint64   `json:"DnsChannelDeposit"`
-	DNSWalletAddrs     []string `json:"DNSWalletAddrs"`
-	HealthCheckDNS     bool     `json:"HealthCheckDNS"`
-
-	TrackerNetworkId  uint32   `json:"TrackerNetworkId"`
-	TrackerProtocol   string   `json:"TrackerProtocol"`
-	TrackerPortOffset int      `json:"TrackerPortOffset"`
-	SeedInterval      int      `json:"SeedInterval"`
-	Trackers          []string `json:"Trackers"`
+	TrackerNetworkId  uint32 `json:"TrackerNetworkId"`
+	TrackerProtocol   string `json:"TrackerProtocol"`
+	TrackerPortOffset int    `json:"TrackerPortOffset"`
 
 	WalletDir string `json:"WalletDir"`
 }
@@ -86,6 +73,26 @@ type FsConfig struct {
 	EnableBackup bool   `json:"EnableBackup"`
 }
 
+type DspConfig struct {
+	ChannelClientType    string `json:"ChannelClientType"`
+	ChannelRevealTimeout string `json:"ChannelRevealTimeout"`
+	ChannelSettleTimeout string `json:"ChannelSettleTimeout"`
+	BlockDelay           string `json:"BlockDelay"`
+	MaxUnpaidPayment     int32  `json:"MaxUnpaidPayment"`
+
+	AutoSetupDNSEnable bool     `json:"AutoSetupDNSEnable"`
+	DnsNodeMaxNum      int      `json:"DnsNodeMaxNum"`
+	DnsChannelDeposit  uint64   `json:"DnsChannelDeposit"`
+	DNSWalletAddrs     []string `json:"DNSWalletAddrs"`
+	HealthCheckDNS     bool     `json:"HealthCheckDNS"`
+	SeedInterval       int      `json:"SeedInterval"`
+	Trackers           []string `json:"Trackers"`
+
+	MaxUploadTask   uint32 `json:"MaxUploadTask"`
+	MaxDownloadTask uint32 `json:"MaxDownloadTask"`
+	MaxShareTask    uint32 `json:"MaxShareTask"`
+}
+
 type BootstrapConfig struct {
 	Url                 string `json:"Url"`
 	MasterChainSupport  bool   `json:"MasterChainSupport"`
@@ -95,13 +102,14 @@ type BootstrapConfig struct {
 	ChannelPort         uint32 `json:"ChannelPort"`
 }
 
-type DspConfig struct {
+type EdgeConfig struct {
 	BaseConfig       BaseConfig        `json:"Base"`
 	FsConfig         FsConfig          `json:"Fs"`
+	DspConfig        DspConfig         `json:"Dsp"`
 	BootstrapsConfig []BootstrapConfig `json:"Bootstraps"`
 }
 
-func DefaultConfig() *DspConfig {
+func DefaultConfig() *EdgeConfig {
 	configDir = "./" + DEFAULT_CONFIG_FILENAME
 	existed := common.FileExisted(configDir)
 	if !existed {
@@ -111,54 +119,62 @@ func DefaultConfig() *DspConfig {
 	return cfg
 }
 
-func TestConfig() *DspConfig {
-	return &DspConfig{
+func TestConfig() *EdgeConfig {
+	return &EdgeConfig{
 		BaseConfig: BaseConfig{
-			BaseDir:              ".",
-			LogPath:              "./Log",
-			ChainId:              "0",
-			BlockTime:            5,
-			NetworkId:            1567481543,
-			PublicIP:             "",
-			PortBase:             10000,
-			LogLevel:             1,
-			LocalRpcPortOffset:   338,
-			EnableLocalRpc:       false,
-			JsonRpcPortOffset:    336,
-			EnableJsonRpc:        true,
-			HttpRestPortOffset:   335,
-			HttpCertPath:         "",
-			HttpKeyPath:          "",
-			RestEnable:           true,
-			BlockConfirm:         0,
-			ChannelPortOffset:    3005,
-			ChannelProtocol:      "tcp",
+			BaseDir:             ".",
+			LogPath:             "./Log",
+			ChainId:             "0",
+			BlockTime:           5,
+			NetworkId:           1567481543,
+			PublicIP:            "",
+			PortBase:            10000,
+			LogLevel:            1,
+			LocalRpcPortOffset:  338,
+			EnableLocalRpc:      false,
+			JsonRpcPortOffset:   336,
+			EnableJsonRpc:       true,
+			HttpRestPortOffset:  335,
+			HttpCertPath:        "",
+			HttpKeyPath:         "",
+			RestEnable:          true,
+			BlockConfirm:        2,
+			ChannelPortOffset:   3001,
+			ChannelProtocol:     "tcp",
+			DBPath:              "./DB",
+			ChainRestAddrs:      []string{"http://127.0.0.1:20334"},
+			ChainRpcAddrs:       []string{"http://127.0.0.1:20336"},
+			NATProxyServerAddrs: "",
+			DspProtocol:         "tcp",
+			DspPortOffset:       4001,
+			TrackerNetworkId:    1567481543,
+			TrackerProtocol:     "tcp",
+			TrackerPortOffset:   337,
+			WalletDir:           "./wallet.dat",
+		},
+		DspConfig: DspConfig{
 			ChannelClientType:    "rpc",
 			ChannelRevealTimeout: "20",
 			ChannelSettleTimeout: "50",
-			BlockDelay:           "5",
-			DBPath:               "./DB",
-			ChainRestAddrs:       []string{"http://127.0.0.1:20334"},
-			ChainRpcAddrs:        []string{"http://127.0.0.1:20336"},
-			NATProxyServerAddrs:  "tcp://127.0.0.1:6007",
-			DspProtocol:          "tcp",
-			DspPortOffset:        4024,
+			MaxUnpaidPayment:     5,
 			AutoSetupDNSEnable:   false,
 			DnsNodeMaxNum:        100,
-			DnsChannelDeposit:    1000000000,
+			DnsChannelDeposit:    0,
 			DNSWalletAddrs:       nil,
-			TrackerNetworkId:     1567481543,
-			TrackerProtocol:      "tcp",
-			TrackerPortOffset:    337,
-			SeedInterval:         3600,
+			HealthCheckDNS:       true,
+			SeedInterval:         600,
 			Trackers:             nil,
-			WalletDir:            "./wallet.dat",
+			MaxUploadTask:        1000,
+			MaxDownloadTask:      1000,
+			MaxShareTask:         1000,
 		},
 		FsConfig: FsConfig{
 			FsRepoRoot:   "./FS",
 			FsFileRoot:   "./Downloads",
 			FsType:       0,
 			EnableBackup: true,
+			FsGCPeriod:   "24h",
+			FsMaxStorage: "1T",
 		},
 	}
 }
@@ -168,7 +184,7 @@ var Parameters = DefaultConfig()
 var configDir string
 var curUsrWalAddr string
 
-func setConfigByCommandParams(dspConfig *DspConfig, ctx *cli.Context) {
+func setConfigByCommandParams(dspConfig *EdgeConfig, ctx *cli.Context) {
 	///////////////////// protocol setting ///////////////////////////
 	if ctx.GlobalIsSet(flags.GetFlagName(flags.ProtocolFsRepoRootFlag)) {
 		dspConfig.FsConfig.FsRepoRoot = ctx.String(flags.GetFlagName(flags.ProtocolFsRepoRootFlag))
@@ -207,21 +223,21 @@ func Init(ctx *cli.Context) {
 }
 
 // ParseConfigFromFile. parse config from json file
-func ParseConfigFromFile(file string) *DspConfig {
-	cfg := &DspConfig{}
+func ParseConfigFromFile(file string) *EdgeConfig {
+	cfg := &EdgeConfig{}
 	common.GetJsonObjectFromFile(file, cfg)
 	SetDefaultFieldForConfig(cfg)
 	return cfg
 }
 
 // SetDefaultFieldForConfig. set up default value for some field if missing
-func SetDefaultFieldForConfig(cfg *DspConfig) {
+func SetDefaultFieldForConfig(cfg *EdgeConfig) {
 	if cfg == nil {
 		return
 	}
 
-	if len(cfg.BaseConfig.BlockDelay) == 0 {
-		cfg.BaseConfig.BlockDelay = fmt.Sprintf("%d", common.BLOCK_DELAY)
+	if len(cfg.DspConfig.BlockDelay) == 0 {
+		cfg.DspConfig.BlockDelay = fmt.Sprintf("%d", common.BLOCK_DELAY)
 	}
 
 	if cfg.BaseConfig.BlockConfirm == 0 {
@@ -229,29 +245,56 @@ func SetDefaultFieldForConfig(cfg *DspConfig) {
 	}
 
 	if len(cfg.BaseConfig.TrackerProtocol) == 0 {
-		cfg.BaseConfig.TrackerProtocol = "tcp"
+		cfg.BaseConfig.TrackerProtocol = common.DEFAULT_TRACKER_PROTOCOL
 	}
 	if cfg.BaseConfig.TrackerNetworkId == 0 {
 		cfg.BaseConfig.TrackerNetworkId = cfg.BaseConfig.NetworkId
 	}
 	if cfg.BaseConfig.TrackerPortOffset == 0 {
-		cfg.BaseConfig.TrackerPortOffset = 337
+		cfg.BaseConfig.TrackerPortOffset = common.DEFAULT_TRACKER_PORT_OFFSET
 	}
 
 	if cfg.BaseConfig.WsPortOffset == 0 {
-		cfg.BaseConfig.WsPortOffset = 339
+		cfg.BaseConfig.WsPortOffset = common.DEFAULT_WS_PORT_OFFSET
 	}
 
-	if cfg.BaseConfig.MaxUnpaidPayment == 0 {
-		cfg.BaseConfig.MaxUnpaidPayment = common.MAX_UNPAID_PAYMENT
+	if len(cfg.DspConfig.ChannelClientType) == 0 {
+		cfg.DspConfig.ChannelClientType = "rpc"
+	}
+	if len(cfg.DspConfig.ChannelRevealTimeout) == 0 {
+		cfg.DspConfig.ChannelRevealTimeout = "20"
+	}
+
+	if len(cfg.DspConfig.ChannelSettleTimeout) == 0 {
+		cfg.DspConfig.ChannelSettleTimeout = "50"
+	}
+	if cfg.DspConfig.MaxUnpaidPayment == 0 {
+		cfg.DspConfig.MaxUnpaidPayment = common.DEFAULT_MAX_UNPAID_PAYMENT
 	}
 
 	if cfg.BaseConfig.LogMaxSize == 0 {
-		cfg.BaseConfig.LogMaxSize = 5 * 1024 * 1024
+		cfg.BaseConfig.LogMaxSize = common.DEFAULT_MAX_LOG_SIZE
+	}
+
+	if cfg.DspConfig.DnsNodeMaxNum == 0 {
+		cfg.DspConfig.DnsNodeMaxNum = common.DEFAULT_MAX_DNS_NODE_NUM
+	}
+
+	if cfg.DspConfig.SeedInterval == 0 {
+		cfg.DspConfig.SeedInterval = common.DEFAULT_SEED_INTERVAL
+	}
+	if cfg.DspConfig.MaxUploadTask == 0 {
+		cfg.DspConfig.MaxUploadTask = common.DEFAULT_MAX_UPLOAD_TASK_NUM
+	}
+	if cfg.DspConfig.MaxDownloadTask == 0 {
+		cfg.DspConfig.MaxDownloadTask = common.DEFAULT_MAX_DOWNLOAD_TASK_NUM
+	}
+	if cfg.DspConfig.MaxShareTask == 0 {
+		cfg.DspConfig.MaxShareTask = common.DEFAULT_MAX_SHARE_TASK_NUM
 	}
 }
 
-func GetConfigFromFile(cfgFileName string) *DspConfig {
+func GetConfigFromFile(cfgFileName string) *EdgeConfig {
 	dir, _ := filepath.Split(configDir)
 	path := filepath.Join(dir, cfgFileName)
 	exist := common.FileExisted(path)

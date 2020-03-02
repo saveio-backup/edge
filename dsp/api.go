@@ -120,22 +120,25 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		EnableBackup:         config.Parameters.FsConfig.EnableBackup,
 		ChainRpcAddrs:        config.Parameters.BaseConfig.ChainRpcAddrs,
 		BlockConfirm:         config.Parameters.BaseConfig.BlockConfirm,
-		ChannelClientType:    config.Parameters.BaseConfig.ChannelClientType,
+		ChannelClientType:    config.Parameters.DspConfig.ChannelClientType,
 		ChannelListenAddr:    channelListenAddr,
 		ChannelProtocol:      config.Parameters.BaseConfig.ChannelProtocol,
 		ChannelDBPath:        config.ChannelDBPath(),
-		ChannelRevealTimeout: config.Parameters.BaseConfig.ChannelRevealTimeout,
-		ChannelSettleTimeout: config.Parameters.BaseConfig.ChannelSettleTimeout,
-		MaxUnpaidPayment:     config.Parameters.BaseConfig.MaxUnpaidPayment,
-		BlockDelay:           config.Parameters.BaseConfig.BlockDelay,
-		AutoSetupDNSEnable:   config.Parameters.BaseConfig.AutoSetupDNSEnable,
-		DnsNodeMaxNum:        config.Parameters.BaseConfig.DnsNodeMaxNum,
-		SeedInterval:         config.Parameters.BaseConfig.SeedInterval,
-		DnsChannelDeposit:    config.Parameters.BaseConfig.DnsChannelDeposit,
-		Trackers:             config.Parameters.BaseConfig.Trackers,
+		ChannelRevealTimeout: config.Parameters.DspConfig.ChannelRevealTimeout,
+		ChannelSettleTimeout: config.Parameters.DspConfig.ChannelSettleTimeout,
+		MaxUnpaidPayment:     config.Parameters.DspConfig.MaxUnpaidPayment,
+		BlockDelay:           config.Parameters.DspConfig.BlockDelay,
+		AutoSetupDNSEnable:   config.Parameters.DspConfig.AutoSetupDNSEnable,
+		DnsNodeMaxNum:        config.Parameters.DspConfig.DnsNodeMaxNum,
+		SeedInterval:         config.Parameters.DspConfig.SeedInterval,
+		DnsChannelDeposit:    config.Parameters.DspConfig.DnsChannelDeposit,
+		Trackers:             config.Parameters.DspConfig.Trackers,
 		TrackerProtocol:      config.Parameters.BaseConfig.TrackerProtocol,
-		DNSWalletAddrs:       config.Parameters.BaseConfig.DNSWalletAddrs,
-		HealthCheckDNS:       config.Parameters.BaseConfig.HealthCheckDNS,
+		DNSWalletAddrs:       config.Parameters.DspConfig.DNSWalletAddrs,
+		HealthCheckDNS:       config.Parameters.DspConfig.HealthCheckDNS,
+		MaxUploadTask:        config.Parameters.DspConfig.MaxUploadTask,
+		MaxDownloadTask:      config.Parameters.DspConfig.MaxDownloadTask,
+		MaxShareTask:         config.Parameters.DspConfig.MaxShareTask,
 	}
 	log.Debugf("dspConfig.dbPath %v, repo: %s, channelDB: %s, wallet: %s, enable backup: %t",
 		dspConfig.DBPath, dspConfig.FsRepoRoot, dspConfig.ChannelDBPath, config.WalletDatFilePath(),
@@ -417,7 +420,7 @@ func (this *Endpoint) startShareService() {
 
 // SetupDNSNodeBackground. setup a dns node background when received first payments.
 func (this *Endpoint) setupDNSNodeBackground() {
-	if !config.Parameters.BaseConfig.AutoSetupDNSEnable {
+	if !config.Parameters.DspConfig.AutoSetupDNSEnable {
 		return
 	}
 	allChannels := this.getDsp().GetAllPartners()

@@ -380,9 +380,22 @@ func (this *Endpoint) ClosePaymentChannel(partnerAddr string) *DspErr {
 	if dsp == nil {
 		return &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
+	closeCurDNS := dsp.CurrentDNSWallet() == partnerAddr
 	err := dsp.ChannelClose(partnerAddr)
 	if err != nil {
 		return &DspErr{Code: DSP_CHANNEL_CLOSE_FAILED, Error: err}
+	}
+	if !closeCurDNS {
+		return nil
+	}
+	channels, _ := this.GetAllChannels()
+	for _, ch := range channels.Channels {
+		if ch.Address == partnerAddr {
+			continue
+		}
+		if derr := this.SwitchPaymentChannel(ch.Address); derr != nil {
+			return nil
+		}
 	}
 	return nil
 }

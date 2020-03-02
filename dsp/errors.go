@@ -150,7 +150,7 @@ var ErrMaps = map[int64]error{
 	ACCOUNT_EXIST:          errors.New("account exist"),
 	NO_DNS:                 errors.New("no dns"),
 	INVALID_WALLET_ADDRESS: errors.New("no invalid wallet addr"),
-	NO_CHANNEL:             errors.New("no channel"),
+	NO_CHANNEL:             errors.New("no channel service"),
 
 	CHAIN_INTERNAL_ERROR:              errors.New("chain internal error"),
 	CHAIN_GET_HEIGHT_FAILED:           errors.New("chain get height failed"),

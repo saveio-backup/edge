@@ -25,7 +25,7 @@ func (this *Endpoint) GetConfigs() *ConfigResponse {
 		LogLevel:     config.Parameters.BaseConfig.LogLevel,
 		LogMaxSize:   int(config.Parameters.BaseConfig.LogMaxSize),
 		BlockConfirm: int(config.Parameters.BaseConfig.BlockConfirm),
-		SeedInterval: config.Parameters.BaseConfig.SeedInterval,
+		SeedInterval: config.Parameters.DspConfig.SeedInterval,
 	}
 	return newResp
 }
@@ -38,7 +38,7 @@ func (this *Endpoint) SetConfigs(fields map[string]interface{}) (*ConfigResponse
 		LogLevel:     config.Parameters.BaseConfig.LogLevel,
 		LogMaxSize:   int(config.Parameters.BaseConfig.LogMaxSize),
 		BlockConfirm: int(config.Parameters.BaseConfig.BlockConfirm),
-		SeedInterval: config.Parameters.BaseConfig.SeedInterval,
+		SeedInterval: config.Parameters.DspConfig.SeedInterval,
 	}
 	for key, value := range fields {
 		switch key {
@@ -81,7 +81,7 @@ func (this *Endpoint) SetConfigs(fields map[string]interface{}) (*ConfigResponse
 				log.Debugf("unsupport type %s %T", key, value)
 				continue
 			}
-			config.Parameters.BaseConfig.SeedInterval = int(newInterval)
+			config.Parameters.DspConfig.SeedInterval = int(newInterval)
 			newResp.SeedInterval = int(newInterval)
 		case "DownloadPath":
 			newPath, ok := value.(string)
