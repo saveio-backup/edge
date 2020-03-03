@@ -33,6 +33,10 @@ func (this *PeerComponent) PeerConnect(client *network.PeerClient) {
 	}
 	peerId := client.ClientID()
 	walletAddr := this.Net.walletAddrFromPeerId(peerId)
+	if !this.Net.isValidWalletAddr(walletAddr) {
+		log.Warnf("connect to a wrong wallet addr %s", walletAddr)
+		return
+	}
 	p, ok := this.Net.peers.LoadOrStore(walletAddr, peer.New(hostAddr))
 	pr, ok := p.(*peer.Peer)
 	if !ok {
@@ -52,6 +56,9 @@ func (this *PeerComponent) PeerDisconnect(client *network.PeerClient) {
 	}
 	peerId := client.ClientID()
 	walletAddr := this.Net.walletAddrFromPeerId(peerId)
-	log.Debugf("peer has disconnected, health check peer %s", walletAddr)
+	log.Debugf("peer has disconnected, health check peer %s, peerId %s", walletAddr, peerId)
+	if !this.Net.isValidWalletAddr(walletAddr) {
+		return
+	}
 	this.Net.HealthCheckPeer(walletAddr)
 }

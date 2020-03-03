@@ -266,7 +266,7 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 				msg.Response <- &dspAct.P2pStringResp{Value: "", Error: err}
 				return
 			}
-			log.Debugf("AnnounceRequestGetEndpointAddr wallet %v, %s", msg.WalletAddr, msg.WalletAddr.ToBase58())
+			log.Debugf("AnnounceRequestGetEndpointAddr dns %v wallet %s", walletAddr, msg.WalletAddr.ToBase58())
 			annResp, err := this.tkActSvr.AnnounceRequestGetEndpointAddr(&pm.QueryEndpointReq{
 				Wallet: msg.WalletAddr[:],
 			}, walletAddr)

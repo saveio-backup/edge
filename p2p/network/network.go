@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"regexp"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -27,6 +27,7 @@ import (
 	"github.com/saveio/edge/p2p/peer"
 	act "github.com/saveio/pylons/actor/server"
 	"github.com/saveio/pylons/network/transport/messages"
+	chainCom "github.com/saveio/themis/common"
 	"github.com/saveio/themis/common/log"
 )
 
@@ -213,7 +214,9 @@ func (this *Network) Stop() {
 
 // GetPeerFromWalletAddr. get peer from wallet addr
 func (this *Network) GetPeerFromWalletAddr(walletAddr string) *peer.Peer {
-
+	if !this.isValidWalletAddr(walletAddr) {
+		log.Errorf("wrong wallet address [%s]", debug.Stack())
+	}
 	p, ok := this.peers.Load(walletAddr)
 	if !ok {
 		return nil
@@ -275,7 +278,9 @@ func (this *Network) Connect(hostAddr string) error {
 
 // GetPeerStateByAddress. get peer state by peerId
 func (this *Network) GetConnStateByWallet(walletAddr string) (network.PeerState, error) {
-
+	if !this.isValidWalletAddr(walletAddr) {
+		log.Errorf("wrong wallet address [%s]", debug.Stack())
+	}
 	pr := this.GetPeerFromWalletAddr(walletAddr)
 	if pr == nil {
 		return 0, fmt.Errorf("peer not found %s", walletAddr)
@@ -295,7 +300,9 @@ func (this *Network) GetConnStateByWallet(walletAddr string) (network.PeerState,
 
 // IsConnReachable. check if peer state reachable
 func (this *Network) IsConnReachable(walletAddr string) bool {
-
+	if !this.isValidWalletAddr(walletAddr) {
+		log.Errorf("wrong wallet address [%s]", debug.Stack())
+	}
 	if this.P2p == nil || len(walletAddr) == 0 {
 		return false
 	}
@@ -312,6 +319,9 @@ func (this *Network) IsConnReachable(walletAddr string) bool {
 
 // WaitForConnected. poll to wait for connected
 func (this *Network) WaitForConnected(walletAddr string, timeout time.Duration) error {
+	if !this.isValidWalletAddr(walletAddr) {
+		log.Errorf("wrong wallet address [%s]", debug.Stack())
+	}
 	pr := this.GetPeerFromWalletAddr(walletAddr)
 	if pr == nil {
 		return fmt.Errorf("peer %s not found", walletAddr)
@@ -338,7 +348,9 @@ func (this *Network) WaitForConnected(walletAddr string, timeout time.Duration) 
 }
 
 func (this *Network) HealthCheckPeer(walletAddr string) error {
-
+	if !this.isValidWalletAddr(walletAddr) {
+		log.Errorf("wrong wallet address [%s]", debug.Stack())
+	}
 	if !this.P2p.ProxyModeEnable() {
 		if _, ok := this.peerForHealthCheck.Load(walletAddr); !ok {
 			log.Debugf("ignore check health of peer %s, because proxy mode is disabled", walletAddr)
@@ -393,7 +405,9 @@ func (this *Network) HealthCheckPeer(walletAddr string) error {
 // SendOnce send msg to peer asynchronous
 // peer can be addr(string) or client(*network.peerClient)
 func (this *Network) SendOnce(msg proto.Message, walletAddr string) error {
-
+	if !this.isValidWalletAddr(walletAddr) {
+		log.Errorf("wrong wallet address [%s]", debug.Stack())
+	}
 	if this.P2p.ProxyModeEnable() && len(this.GetProxyServer().PeerID) > 0 {
 		if err := this.HealthCheckPeer(this.walletAddrFromPeerId(this.GetProxyServer().PeerID)); err != nil {
 			return err
@@ -463,9 +477,11 @@ func (this *Network) Send(msg proto.Message, sessionId, msgId, walletAddr string
 // Request. send msg to peer and wait for response synchronously with timeout
 func (this *Network) SendAndWaitReply(msg proto.Message, sessionId, msgId, walletAddr string, sendTimeout time.Duration) (
 	proto.Message, error) {
-
 	if this == nil {
 		return nil, errors.New("no network")
+	}
+	if !this.isValidWalletAddr(walletAddr) {
+		log.Errorf("wrong wallet address [%s]", debug.Stack())
 	}
 	if this.P2p.ProxyModeEnable() && len(this.GetProxyServer().PeerID) > 0 {
 		if err := this.HealthCheckPeer(this.walletAddrFromPeerId(this.GetProxyServer().PeerID)); err != nil {
@@ -500,7 +516,9 @@ func (this *Network) SendAndWaitReply(msg proto.Message, sessionId, msgId, walle
 }
 
 func (this *Network) AppendAddrToHealthCheck(walletAddr string) {
-
+	if !this.isValidWalletAddr(walletAddr) {
+		log.Errorf("wrong wallet address [%s]", debug.Stack())
+	}
 	pr := this.GetPeerFromWalletAddr(walletAddr)
 	if pr == nil {
 		return
@@ -510,13 +528,17 @@ func (this *Network) AppendAddrToHealthCheck(walletAddr string) {
 }
 
 func (this *Network) RemoveAddrFromHealthCheck(walletAddr string) {
-
+	if !this.isValidWalletAddr(walletAddr) {
+		log.Errorf("wrong wallet address [%s]", debug.Stack())
+	}
 	this.peerForHealthCheck.Delete(walletAddr)
 }
 
 // ClosePeerSession
 func (this *Network) ClosePeerSession(walletAddr, sessionId string) error {
-
+	if !this.isValidWalletAddr(walletAddr) {
+		log.Errorf("wrong wallet address [%s]", debug.Stack())
+	}
 	p, ok := this.peers.Load(walletAddr)
 	if !ok {
 		return fmt.Errorf("peer %s not found", walletAddr)
@@ -527,7 +549,9 @@ func (this *Network) ClosePeerSession(walletAddr, sessionId string) error {
 
 // GetPeerSendSpeed. return send speed for peer
 func (this *Network) GetPeerSessionSpeed(walletAddr, sessionId string) (uint64, uint64, error) {
-
+	if !this.isValidWalletAddr(walletAddr) {
+		log.Errorf("wrong wallet address [%s]", debug.Stack())
+	}
 	p, ok := this.peers.Load(walletAddr)
 	if !ok {
 		return 0, 0, fmt.Errorf("peer %s not found", walletAddr)
@@ -732,7 +756,9 @@ func (this *Network) Receive(ctx *network.ComponentContext, message proto.Messag
 }
 
 func (this *Network) GetClientTime(walletAddr string) (uint64, error) {
-
+	if !this.isValidWalletAddr(walletAddr) {
+		log.Errorf("wrong wallet address [%s]", debug.Stack())
+	}
 	p, ok := this.peers.Load(walletAddr)
 	if !ok {
 		return 0, fmt.Errorf("[network GetClientTime] client is nil: %s", walletAddr)
@@ -743,7 +769,9 @@ func (this *Network) GetClientTime(walletAddr string) (uint64, error) {
 }
 
 func (this *Network) IsPeerNetQualityBad(walletAddr string) bool {
-
+	if !this.isValidWalletAddr(walletAddr) {
+		log.Errorf("wrong wallet address [%s]", debug.Stack())
+	}
 	totalFailed := &peer.FailedCount{}
 	peerCnt := 0
 	var peerFailed *peer.FailedCount
@@ -775,6 +803,9 @@ func (this *Network) IsPeerNetQualityBad(walletAddr string) bool {
 }
 
 func (this *Network) reconnect(walletAddr string) error {
+	if !this.isValidWalletAddr(walletAddr) {
+		log.Errorf("wrong wallet address [%s]", debug.Stack())
+	}
 	p, ok := this.peers.Load(walletAddr)
 	var pr *peer.Peer
 	if !ok {
@@ -884,6 +915,9 @@ func (this *Network) getKeepAliveComponent() *keepalive.Component {
 }
 
 func (this *Network) updatePeerTime(walletAddr string) {
+	if !this.isValidWalletAddr(walletAddr) {
+		log.Errorf("wrong wallet address [%s]", debug.Stack())
+	}
 	pr := this.GetPeerFromWalletAddr(walletAddr)
 	if pr == nil {
 		return
@@ -1013,10 +1047,13 @@ func (this *Network) waitForConnectedByHost(hostAddr string, timeout time.Durati
 	return fmt.Errorf("wait for connecting %s timeout", hostAddr)
 }
 
-func isValidWalletAddr(walletAddr string) bool {
+func (this *Network) isValidWalletAddr(walletAddr string) bool {
+	if this.GetProxyServer().PeerID == walletAddr {
+		return true
+	}
 	// proxy wallet
-	valid, _ := regexp.MatchString("^A[1-9A-HJ-NP-Za-km-z]{33}$", walletAddr)
-	return valid
+	_, err := chainCom.AddressFromBase58(walletAddr)
+	return err == nil
 
 }
 

@@ -97,6 +97,14 @@ func (this *Endpoint) RegisterUrl(url, fileHashStr, fileName, blocksRoot, fileOw
 	if dsp == nil {
 		return "", &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
+	if len(blocksRoot) == 0 || totalCount == 0 {
+		fileInfo, _ := dsp.GetFileInfo(fileHashStr)
+		if fileInfo != nil {
+			blocksRoot = string(fileInfo.BlocksRoot)
+			totalCount = fileInfo.FileBlockNum
+			fileSize = fileInfo.FileBlockNum * fileInfo.FileBlockSize / 1024
+		}
+	}
 	link := dsp.GenLink(fileHashStr, fileName, blocksRoot, fileOwner, fileSize, totalCount)
 	log.Debugf("register url %v link %v", url, link)
 	tx, err := dsp.RegisterFileUrl(url, link)
@@ -141,6 +149,14 @@ func (this *Endpoint) UpdatePluginVersion(url, fileHash, fileName, blocksRoot, f
 		Title:     title,
 		ChangeLog: changeLog,
 		Platform:  int(platformType),
+	}
+	if len(blocksRoot) == 0 || totalCount == 0 {
+		fileInfo, _ := dsp.GetFileInfo(fileHash)
+		if fileInfo != nil {
+			blocksRoot = string(fileInfo.BlocksRoot)
+			totalCount = fileInfo.FileBlockNum
+			fileSize = fileInfo.FileBlockNum * fileInfo.FileBlockSize
+		}
 	}
 	fileLink := dsp.GenLink(fileHash, fileName, blocksRoot, fileOwner, fileSize, totalCount)
 	log.Debugf("update url %v link %v", url, fileLink)

@@ -282,7 +282,12 @@ func (this *Endpoint) startDspService(listenHost string) error {
 				log.Debugf("return channel progress after runing")
 				return
 			}
-			<-time.After(time.Duration(2) * time.Second)
+			select {
+			case <-time.After(time.Duration(2) * time.Second):
+				continue
+			case <-this.closeCh:
+				return
+			}
 		}
 	}()
 	if err := this.getDsp().Start(); err != nil {

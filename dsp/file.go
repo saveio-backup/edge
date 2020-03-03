@@ -677,6 +677,7 @@ func (this *Endpoint) DeleteUploadFiles(fileHashes []string, gasLimit uint64) ([
 	if len(taskIds) == 0 {
 		tx, _, serr := dsp.DeleteUploadFilesFromChain(fileHashes, gasLimit)
 		if serr != nil {
+			log.Errorf("delete upload files from chain err %s", serr)
 			return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: ErrMaps[DSP_DELETE_FILE_FAILED]}
 		}
 		resps := make([]*DeleteFileResp, 0, len(fileHashes))
@@ -690,9 +691,11 @@ func (this *Endpoint) DeleteUploadFiles(fileHashes []string, gasLimit uint64) ([
 	}
 	result, err := dsp.DeleteUploadedFileByIds(taskIds, gasLimit)
 	if err != nil {
+		log.Errorf("delete upload files from ids err %s", err)
 		return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: err}
 	}
 	if len(result) == 0 {
+		log.Errorf("delete upload files from ids no result")
 		return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: ErrMaps[DSP_DELETE_FILE_FAILED]}
 	}
 	resps := make([]*DeleteFileResp, 0, len(result))
@@ -1723,14 +1726,17 @@ func (this *Endpoint) GetDownloadFiles(fileType DspFileListType, offset, limit u
 		return nil, &DspErr{Code: DB_GET_FILEINFO_FAILED, Error: ErrMaps[DB_GET_FILEINFO_FAILED]}
 	}
 	offsetCnt := uint64(0)
+	isClient := dsp.IsClient()
 	for _, info := range infos {
 		if info == nil {
 			continue
 		}
-		exist := chainCom.FileExisted(info.FilePath)
-		if !exist {
-			log.Debugf("file not exist %s", info.FilePath)
-			continue
+		if isClient {
+			exist := chainCom.FileExisted(info.FilePath)
+			if !exist {
+				log.Debugf("file not exist %s", info.FilePath)
+				continue
+			}
 		}
 		file := info.FileHash
 		url := info.Url
@@ -1753,17 +1759,8 @@ func (this *Endpoint) GetDownloadFiles(fileType DspFileListType, offset, limit u
 		downloadedCount, _ := dsp.CountRecordByFileHash(file)
 		profit, _ := dsp.SumRecordsProfitByFileHash(file)
 		lastSharedAt, _ := dsp.FindLastShareTime(file)
-		// TODO: get owner and privilege from DB
-		fileInfo, _ := dsp.GetFileInfo(file)
-		owner := ""
-		privilege := uint64(fs.PUBLIC)
-		if fileInfo != nil {
-			owner = fileInfo.FileOwner.ToBase58()
-			privilege = fileInfo.Privilege
-		}
-		if owner == "" && len(info.FileOwner) > 0 {
-			owner = info.FileOwner
-		}
+		owner := info.FileOwner
+		privilege := uint64(info.Privilege)
 		filePrefix := &dspUtils.FilePrefix{}
 		filePrefix.Deserialize(info.Prefix)
 		fileInfos = append(fileInfos, &DownloadFilesInfo{
