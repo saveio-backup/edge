@@ -253,9 +253,10 @@ func UpdatePluginVersion(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
-	changeLog := dUtils.PLUGIN_URLVERSION_CHANGELOG_PREFIX + "CN:" + changeLogCN +
-		dUtils.PLUGIN_URLVERSION_CHANGELOG_PREFIX + "EN:" + changeLogEN
-
+	changeLog := dUtils.ChangeLog{
+		ZH: changeLogCN,
+		EN: changeLogEN,
+	}
 	fileName, _ := cmd["FileName"].(string)
 	blocksRoot, _ := cmd["BlocksRoot"].(string)
 	fileOwner, _ := cmd["FileOwner"].(string)
