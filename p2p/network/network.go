@@ -255,11 +255,21 @@ func (this *Network) Connect(hostAddr string) error {
 		return this.waitForConnectedByHost(hostAddr, time.Duration(15)*time.Second)
 	}
 	walletAddr := this.GetWalletFromHostAddr(hostAddr)
-	if len(walletAddr) > 0 && this.IsConnReachable(walletAddr) {
-		log.Debugf("connection exist %s", hostAddr)
-		return nil
+	var pr *peer.Peer
+	if len(walletAddr) > 0 {
+		if this.IsConnReachable(walletAddr) {
+			log.Debugf("connection exist %s", hostAddr)
+			return nil
+		}
+		p, ok := this.peers.Load(walletAddr)
+		if ok {
+			pr = p.(*peer.Peer)
+		} else {
+			pr = peer.New(hostAddr)
+		}
+	} else {
+		pr = peer.New(hostAddr)
 	}
-	pr := peer.New(hostAddr)
 	pr.SetState(peer.ConnectStateConnecting)
 	this.peers.Store(hostAddr, pr)
 	log.Debugf("bootstrap to %v....", hostAddr)
