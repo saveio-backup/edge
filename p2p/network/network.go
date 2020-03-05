@@ -268,9 +268,11 @@ func (this *Network) Connect(hostAddr string) error {
 	if len(peerIds) == 0 {
 		return fmt.Errorf("peer id is emptry from bootstraping to %s", hostAddr)
 	}
-	walletAddr = this.walletAddrFromPeerId(peerIds[0])
-	pr.SetPeerId(peerIds[0])
+	peerId := peerIds[0]
+	walletAddr = this.walletAddrFromPeerId(peerId)
+	pr.SetPeerId(peerId)
 	pr.SetState(peer.ConnectStateConnected)
+	pr.SetClient(this.P2p.GetPeerClient(peerId))
 	this.peers.Delete(hostAddr)
 	this.peers.Store(walletAddr, pr)
 	return nil
