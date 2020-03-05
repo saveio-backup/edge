@@ -65,7 +65,7 @@ func (this *EventActorServer) Receive(ctx actor.Context) {
 		}()
 	case *edgeCli.NotifyInvolvedSmartContract:
 		go func() {
-			websocket.Server().PushInvolvedSmartContractEvent(nil)
+			websocket.Server().PushInvolvedSmartContractEvent(msg.Events)
 			msg.Response <- &edgeCli.NotifyResp{}
 		}()
 	case *edgeCli.NotifyRevenue:

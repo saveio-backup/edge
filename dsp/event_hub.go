@@ -89,7 +89,7 @@ func (this *Endpoint) notifyNewSmartContractEvent() {
 		return
 	}
 	log.Debugf("notifyNewSmartContractEvent from %d-%d", this.eventHub.lastNotifyHeight, currentHeight)
-	client.EventNotifyInvolvedSmartContract(nil)
+	client.EventNotifyInvolvedSmartContract(events)
 }
 
 func (this *Endpoint) notifyIfSwitchChannel() {

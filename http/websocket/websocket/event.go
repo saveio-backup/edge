@@ -2,7 +2,8 @@ package websocket
 
 import (
 	"github.com/saveio/edge/http/rest"
-	"github.com/saveio/themis/common/log"
+	sdkCom "github.com/saveio/themis-go-sdk/common"
+	"github.com/saveio/themis/smartcontract/service/native/utils"
 )
 
 // PushToNewSubscriber. push events for new subscriber
@@ -22,7 +23,7 @@ func (self *WsServer) PushToNewSubscriber() {
 }
 
 // PushInvolvedSmartContractEvent. push events which involved in smart contract
-func (self *WsServer) PushInvolvedSmartContractEvent(events []interface{}) {
+func (self *WsServer) PushInvolvedSmartContractEvent(events []*sdkCom.SmartContactEvent) {
 	self.PushAllChannels()
 	self.PushBalance()
 	self.PushCurrentChannel()
@@ -34,11 +35,22 @@ func (self *WsServer) PushInvolvedSmartContractEvent(events []interface{}) {
 }
 
 // PushEvents. push events
-func (self *WsServer) PushSmartContractEvents(events []interface{}) {
+func (self *WsServer) PushSmartContractEvents(events []*sdkCom.SmartContactEvent) {
+	var state interface{}
+	for _, e := range events {
+		for _, n := range e.Notify {
+			if n.ContractAddress == utils.OntFSContractAddress.ToHexString() {
+				state = n.States
+				break
+			}
+		}
+	}
+	if state == nil {
+		return
+	}
 	resp := rest.GetCurrentAccount(nil)
 	resp["Action"] = "smartcontractevents"
-	resp["Result"] = events
-	log.Infof("events %v", resp)
+	resp["Result"] = state
 	self.Broadcast(WS_TOPIC_EVENT, resp)
 }
 
