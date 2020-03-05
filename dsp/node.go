@@ -135,6 +135,18 @@ func (this *Endpoint) QueryLink(url string) (string, *DspErr) {
 	return link, nil
 }
 
+func (this *Endpoint) DeleteFileUrl(url string) (string, *DspErr) {
+	dsp := this.getDsp()
+	if dsp == nil {
+		return "", &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+	tx, err := dsp.DeleteFileUrl(url)
+	if err != nil {
+		return "", &DspErr{Code: DSP_URL_DELETE_FAILED, Error: err}
+	}
+	return tx, nil
+}
+
 func (this *Endpoint) UpdatePluginVersion(url, fileHash, fileName, blocksRoot, fileOwner, version, img, title string, changeLog utils.ChangeLog, urlType, fileSize, totalCount uint64, platformType DspFileUrlPatformType) (string, *DspErr) {
 	dsp := this.getDsp()
 	if dsp == nil {

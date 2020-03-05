@@ -521,8 +521,8 @@ func (this *Endpoint) checkGoRoutineNum() {
 }
 
 func (this *Endpoint) checkLogFileSize() {
-	isNeedNewFile := log.CheckIfNeedNewFile()
-	if !isNeedNewFile {
+	logSize, _ := log.GetLogFileSize()
+	if logSize < 50*1024*1024 {
 		return
 	}
 	this.initLog()

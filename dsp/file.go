@@ -112,6 +112,7 @@ type FileShareIncome struct {
 }
 
 type FileShareIncomeResp struct {
+	TotalFile         int
 	TotalIncome       uint64
 	TotalIncomeFormat string
 	Incomes           []*FileShareIncome
@@ -1441,7 +1442,7 @@ func (this *Endpoint) GetFileShareIncome(start, end, offset, limit uint64) (*Fil
 		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
 	resp := &FileShareIncomeResp{}
-	records, err := dsp.FineShareRecordsByCreatedAt(int64(start), int64(end), int64(offset), int64(limit))
+	records, totalFile, err := dsp.FindShareRecordsByCreatedAt(int64(start), int64(end), int64(offset), int64(limit))
 	if err != nil {
 		return nil, &DspErr{Code: DB_FIND_SHARE_RECORDS_FAILED, Error: err}
 	}
@@ -1460,6 +1461,7 @@ func (this *Endpoint) GetFileShareIncome(start, end, offset, limit uint64) (*Fil
 		})
 	}
 	resp.TotalIncomeFormat = utils.FormatUsdt(resp.TotalIncome)
+	resp.TotalFile = totalFile
 	return resp, nil
 }
 
@@ -1488,20 +1490,21 @@ func (this *Endpoint) RegisterShareNotificationCh() {
 }
 
 func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit, createdAt, updatedAt uint64,
-	filterType UploadFileFilterType) ([]*FileResp, *DspErr) {
+	filterType UploadFileFilterType) ([]*FileResp, int, *DspErr) {
 	dsp := this.getDsp()
 	if dsp == nil {
-		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+		return nil, 0, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
 	// rpc request
 	curBlockHeight, err := dsp.GetCurrentBlockHeight()
 	if err != nil {
-		return nil, &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
+		return nil, 0, &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
 	}
 	taskInfos, err := dsp.GetUploadTaskInfos()
 	if err != nil {
-		return nil, &DspErr{Code: DSP_FILE_INFO_NOT_FOUND, Error: err}
+		return nil, 0, &DspErr{Code: DSP_FILE_INFO_NOT_FOUND, Error: err}
 	}
+	totalCount := len(taskInfos)
 	files := make([]*FileResp, 0, limit)
 	offsetCnt := uint64(0)
 	for _, info := range taskInfos {
@@ -1523,7 +1526,6 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit, cr
 			log.Warnf("task %s file hash is empty ", info.Id)
 			continue
 		}
-		log.Debugf("get file of %s", fileHashStr)
 		downloadedCount, _ := dsp.CountRecordByFileHash(fileHashStr)
 		profit, _ := dsp.SumRecordsProfitByFileHash(fileHashStr)
 		// rpc request
@@ -1634,10 +1636,10 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit, cr
 		}
 		files = append(files, fr)
 		if limit > 0 && uint64(len(files)) >= limit {
-			return files, nil
+			return files, totalCount, nil
 		}
 	}
-	return files, nil
+	return files, totalCount, nil
 }
 
 type fileInfoResp struct {
@@ -1715,16 +1717,17 @@ func (this *Endpoint) GetFileInfo(fileHashStr string) (*fileInfoResp, *DspErr) {
 }
 
 func (this *Endpoint) GetDownloadFiles(fileType DspFileListType, offset, limit uint64) (
-	[]*DownloadFilesInfo, *DspErr) {
+	[]*DownloadFilesInfo, int, *DspErr) {
 	fileInfos := make([]*DownloadFilesInfo, 0)
 	dsp := this.getDsp()
 	if dsp == nil {
-		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+		return nil, 0, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
-	infos, _, err := dsp.AllDownloadFiles()
+	infos, allHashes, err := dsp.AllDownloadFiles()
 	if err != nil {
-		return nil, &DspErr{Code: DB_GET_FILEINFO_FAILED, Error: ErrMaps[DB_GET_FILEINFO_FAILED]}
+		return nil, 0, &DspErr{Code: DB_GET_FILEINFO_FAILED, Error: ErrMaps[DB_GET_FILEINFO_FAILED]}
 	}
+	totalCount := len(allHashes)
 	offsetCnt := uint64(0)
 	isClient := dsp.IsClient()
 	for _, info := range infos {
@@ -1782,7 +1785,7 @@ func (this *Endpoint) GetDownloadFiles(fileType DspFileListType, offset, limit u
 			break
 		}
 	}
-	return fileInfos, nil
+	return fileInfos, totalCount, nil
 }
 
 func (this *Endpoint) WhiteListOperation(fileHash string, op uint64, list []*WhiteListRule) (string, *DspErr) {

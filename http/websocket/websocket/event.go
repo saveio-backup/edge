@@ -2,6 +2,7 @@ package websocket
 
 import (
 	"github.com/saveio/edge/http/rest"
+	"github.com/saveio/themis/common/log"
 )
 
 // PushToNewSubscriber. push events for new subscriber
@@ -21,11 +22,24 @@ func (self *WsServer) PushToNewSubscriber() {
 }
 
 // PushInvolvedSmartContractEvent. push events which involved in smart contract
-func (self *WsServer) PushInvolvedSmartContractEvent() {
+func (self *WsServer) PushInvolvedSmartContractEvent(events []interface{}) {
 	self.PushAllChannels()
 	self.PushBalance()
 	self.PushCurrentChannel()
 	self.PushCurrentUserSpace()
+	if len(events) == 0 {
+		return
+	}
+	self.PushSmartContractEvents(events)
+}
+
+// PushEvents. push events
+func (self *WsServer) PushSmartContractEvents(events []interface{}) {
+	resp := rest.GetCurrentAccount(nil)
+	resp["Action"] = "smartcontractevents"
+	resp["Result"] = events
+	log.Infof("events %v", resp)
+	self.Broadcast(WS_TOPIC_EVENT, resp)
 }
 
 // PushCurrentAccount. push current account when login in new account

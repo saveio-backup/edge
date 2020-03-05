@@ -282,6 +282,7 @@ func (this *Network) Connect(hostAddr string) error {
 	walletAddr = this.walletAddrFromPeerId(peerId)
 	pr.SetPeerId(peerId)
 	pr.SetState(peer.ConnectStateConnected)
+	log.Debugf("client %v, peerId %v", this.P2p.GetPeerClient(peerId), peerId)
 	pr.SetClient(this.P2p.GetPeerClient(peerId))
 	this.peers.Delete(hostAddr)
 	this.peers.Store(walletAddr, pr)

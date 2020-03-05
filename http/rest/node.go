@@ -200,6 +200,22 @@ func QueryLink(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
+func DeleteUrl(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	url, ok := cmd["Url"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	tx, err := dsp.DspService.DeleteFileUrl(url)
+	if err != nil {
+		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
+	}
+	m := make(map[string]interface{}, 0)
+	m["Tx"] = tx
+	resp["Result"] = m
+	return resp
+}
+
 func UpdatePluginVersion(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 

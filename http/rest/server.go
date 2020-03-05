@@ -157,6 +157,7 @@ const (
 	DNS_QUERY_HOST_INFO       = "/api/v1/dns/hostinfo/:addr"
 	DNS_QUERY_HASH            = "/api/v1/dns/hash/:url"
 	DNS_UPDATE_URL            = "/api/v1/dns/url/link"
+	DNS_DELETE_URL            = "/api/v1/dns/url/delete"
 
 	NETWORK_STATE           = "/api/v1/network/state"
 	RECONNECT_CHANNEL_PEERS = "/api/v1/network/channel/reconnect"
@@ -350,6 +351,7 @@ func (this *restServer) registryMethod() {
 		RECONNECT_CHANNEL_PEERS: {name: "channelreconnectpeers", handler: ReconnectChannelPeers},
 
 		DNS_UPDATE_URL: {name: "updatefileurllink", handler: UpdateFileUrlLink},
+		DNS_DELETE_URL: {name: "deletefileurl", handler: DeleteUrl},
 	}
 	this.postMap = postMethodMap
 }
@@ -480,6 +482,8 @@ func (this *restServer) getPath(url string) string {
 		return DNS_PLUGINS_INFO
 	} else if strings.Contains(url, ALL_DNS) {
 		return ALL_DNS
+	} else if strings.Contains(url, DNS_DELETE_URL) {
+		return DNS_DELETE_URL
 	}
 	return url
 }

@@ -84,6 +84,7 @@ const (
 	DSP_NODE_QUERY_FAILED               = 55034
 	DSP_URL_REGISTER_FAILED             = 55040
 	DSP_URL_BIND_FAILED                 = 55041
+	DSP_URL_DELETE_FAILED               = 55042
 	DSP_DNS_REGISTER_FAILED             = 55050
 	DSP_DNS_UNREGISTER_FAILED           = 55051
 	DSP_DNS_UPDATE_FAILED               = 55052
@@ -208,6 +209,7 @@ var ErrMaps = map[int64]error{
 	DSP_NODE_QUERY_FAILED:                errors.New("dsp node query failed"),
 	DSP_URL_REGISTER_FAILED:              errors.New("dsp url register failed"),
 	DSP_URL_BIND_FAILED:                  errors.New("dsp url bind failed"),
+	DSP_URL_DELETE_FAILED:                errors.New("dns url delete failed"),
 	DSP_DNS_REGISTER_FAILED:              errors.New("dsp dns register failed"),
 	DSP_DNS_UNREGISTER_FAILED:            errors.New("dsp dns unregister failed"),
 	DSP_DNS_UPDATE_FAILED:                errors.New("dsp dns update failed"),

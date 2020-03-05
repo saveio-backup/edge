@@ -234,12 +234,15 @@ func GetUploadFiles(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
 	log.Debugf("cmd :%v, type %d, offset %d limit %d", cmd, fileType, offset, limit)
-	files, err := dsp.DspService.GetUploadFiles(dsp.DspFileListType(fileType),
+	files, totalCount, err := dsp.DspService.GetUploadFiles(dsp.DspFileListType(fileType),
 		offset, limit, createdAt, updatedAt, dsp.UploadFileFilterType(filter))
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
-	resp["Result"] = files
+	m := make(map[string]interface{})
+	m["TotalCount"] = totalCount
+	m["List"] = files
+	resp["Result"] = m
 	return resp
 }
 
@@ -277,11 +280,14 @@ func GetDownloadFiles(cmd map[string]interface{}) map[string]interface{} {
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
-	fileinfos, err := dsp.DspService.GetDownloadFiles(fileType, offset, limit)
+	fileinfos, totalCount, err := dsp.DspService.GetDownloadFiles(fileType, offset, limit)
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
-	resp["Result"] = fileinfos
+	m := make(map[string]interface{}, 0)
+	m["TotalCount"] = totalCount
+	m["List"] = fileinfos
+	resp["Result"] = m
 	return resp
 }
 

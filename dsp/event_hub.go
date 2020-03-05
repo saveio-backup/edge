@@ -74,7 +74,7 @@ func (this *Endpoint) notifyNewSmartContractEvent() {
 	}
 	if currentHeight-this.eventHub.lastNotifyHeight > 100 {
 		this.eventHub.lastNotifyHeight = currentHeight
-		client.EventNotifyInvolvedSmartContract()
+		client.EventNotifyInvolvedSmartContract(nil)
 		return
 	}
 
@@ -89,7 +89,7 @@ func (this *Endpoint) notifyNewSmartContractEvent() {
 		return
 	}
 	log.Debugf("notifyNewSmartContractEvent from %d-%d", this.eventHub.lastNotifyHeight, currentHeight)
-	client.EventNotifyInvolvedSmartContract()
+	client.EventNotifyInvolvedSmartContract(nil)
 }
 
 func (this *Endpoint) notifyIfSwitchChannel() {

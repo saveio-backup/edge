@@ -6,6 +6,7 @@ import (
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/saveio/dsp-go-sdk/utils"
 	"github.com/saveio/edge/common"
+	sdkCom "github.com/saveio/themis-go-sdk/common"
 )
 
 var EventServerPid *actor.PID
@@ -23,6 +24,7 @@ type NotifyAll struct {
 }
 
 type NotifyInvolvedSmartContract struct {
+	Events   []*sdkCom.SmartContactEvent
 	Response chan *NotifyResp
 }
 
@@ -96,9 +98,10 @@ func EventNotifyChannels() error {
 	return utils.DoWithTimeout(f, time.Duration(common.EVENT_ACTOR_TIMEOUT)*time.Second)
 }
 
-func EventNotifyInvolvedSmartContract() error {
+func EventNotifyInvolvedSmartContract(events []*sdkCom.SmartContactEvent) error {
 	req := &NotifyInvolvedSmartContract{
 		Response: make(chan *NotifyResp, 1),
+		Events:   events,
 	}
 	f := utils.TimeoutFunc(func() error {
 		EventServerPid.Tell(req)
