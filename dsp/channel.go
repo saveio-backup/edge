@@ -269,11 +269,6 @@ func (this *Endpoint) SwitchPaymentChannel(partnerAddr string) *DspErr {
 		return &DspErr{Code: DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST, Error: ErrMaps[DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST]}
 	}
 
-	err := dsp.RegNodeEndpoint(this.getDspWalletAddr(), this.channelPublicAddr)
-	if err != nil {
-		return &DspErr{Code: DSP_NODE_REGISTER_FAILED, Error: ErrMaps[DSP_NODE_REGISTER_FAILED]}
-	}
-
 	dsp.UpdateDNS(partnerAddr, dsp.GetOnlineDNSHostAddr(partnerAddr), true)
 	this.notifyIfSwitchChannel()
 	return nil
