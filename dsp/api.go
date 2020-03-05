@@ -119,7 +119,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		FsMaxStorage:         config.Parameters.FsConfig.FsMaxStorage,
 		EnableBackup:         config.Parameters.FsConfig.EnableBackup,
 		ChainRpcAddrs:        config.Parameters.BaseConfig.ChainRpcAddrs,
-		BlockConfirm:         config.Parameters.BaseConfig.BlockConfirm,
+		BlockConfirm:         config.Parameters.DspConfig.BlockConfirm,
 		ChannelClientType:    config.Parameters.DspConfig.ChannelClientType,
 		ChannelListenAddr:    channelListenAddr,
 		ChannelProtocol:      config.Parameters.BaseConfig.ChannelProtocol,

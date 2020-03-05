@@ -44,7 +44,6 @@ type BaseConfig struct {
 	WsPortOffset       int    `json:"WsPortOffset"`
 	WsCertPath         string `json:"WsCertPath"`
 	WsKeyPath          string `json:"WsKeyPath"`
-	BlockConfirm       uint32 `json:"BlockConfirm"`
 
 	ChannelPortOffset int    `json:"ChannelPortOffset"`
 	ChannelProtocol   string `json:"ChannelProtocol"`
@@ -74,6 +73,8 @@ type FsConfig struct {
 }
 
 type DspConfig struct {
+	BlockConfirm uint32 `json:"BlockConfirm"`
+
 	ChannelClientType    string `json:"ChannelClientType"`
 	ChannelRevealTimeout string `json:"ChannelRevealTimeout"`
 	ChannelSettleTimeout string `json:"ChannelSettleTimeout"`
@@ -138,7 +139,6 @@ func TestConfig() *EdgeConfig {
 			HttpCertPath:        "",
 			HttpKeyPath:         "",
 			RestEnable:          true,
-			BlockConfirm:        2,
 			ChannelPortOffset:   3001,
 			ChannelProtocol:     "tcp",
 			DBPath:              "./DB",
@@ -153,6 +153,7 @@ func TestConfig() *EdgeConfig {
 			WalletDir:           "./wallet.dat",
 		},
 		DspConfig: DspConfig{
+			BlockConfirm:         2,
 			ChannelClientType:    "rpc",
 			ChannelRevealTimeout: "20",
 			ChannelSettleTimeout: "50",
@@ -240,8 +241,8 @@ func SetDefaultFieldForConfig(cfg *EdgeConfig) {
 		cfg.DspConfig.BlockDelay = fmt.Sprintf("%d", common.BLOCK_DELAY)
 	}
 
-	if cfg.BaseConfig.BlockConfirm == 0 {
-		cfg.BaseConfig.BlockConfirm = common.BLOCK_CONFIRM
+	if cfg.DspConfig.BlockConfirm == 0 {
+		cfg.DspConfig.BlockConfirm = common.BLOCK_CONFIRM
 	}
 
 	if len(cfg.BaseConfig.TrackerProtocol) == 0 {

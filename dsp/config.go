@@ -24,7 +24,7 @@ func (this *Endpoint) GetConfigs() *ConfigResponse {
 		LogDirName:   config.Parameters.BaseConfig.LogPath,
 		LogLevel:     config.Parameters.BaseConfig.LogLevel,
 		LogMaxSize:   int(config.Parameters.BaseConfig.LogMaxSize),
-		BlockConfirm: int(config.Parameters.BaseConfig.BlockConfirm),
+		BlockConfirm: int(config.Parameters.DspConfig.BlockConfirm),
 		SeedInterval: config.Parameters.DspConfig.SeedInterval,
 	}
 	return newResp
@@ -37,7 +37,7 @@ func (this *Endpoint) SetConfigs(fields map[string]interface{}) (*ConfigResponse
 		LogDirName:   config.Parameters.BaseConfig.LogPath,
 		LogLevel:     config.Parameters.BaseConfig.LogLevel,
 		LogMaxSize:   int(config.Parameters.BaseConfig.LogMaxSize),
-		BlockConfirm: int(config.Parameters.BaseConfig.BlockConfirm),
+		BlockConfirm: int(config.Parameters.DspConfig.BlockConfirm),
 		SeedInterval: config.Parameters.DspConfig.SeedInterval,
 	}
 	for key, value := range fields {
@@ -73,7 +73,7 @@ func (this *Endpoint) SetConfigs(fields map[string]interface{}) (*ConfigResponse
 				log.Debugf("unsupport type %s %T", key, value)
 				continue
 			}
-			config.Parameters.BaseConfig.BlockConfirm = uint32(newConfirm)
+			config.Parameters.DspConfig.BlockConfirm = uint32(newConfirm)
 			newResp.BlockConfirm = int(newConfirm)
 		case "SeedInterval":
 			newInterval, ok := value.(float64)
