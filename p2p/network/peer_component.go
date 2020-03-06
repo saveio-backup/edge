@@ -45,8 +45,6 @@ func (this *PeerComponent) PeerConnect(client *network.PeerClient) {
 			log.Errorf("convert peer to peer.Peer failed")
 			return
 		}
-	} else {
-		pr = peer.New(hostAddr)
 	}
 	log.Infof("peer %s has connected, peer id is %s, peer %p", hostAddr, peerId, pr)
 	log.Debugf("stack %s", debug.Stack())

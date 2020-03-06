@@ -119,6 +119,7 @@ func (p *Peer) SetClient(client *network.PeerClient) {
 	}
 	p.receivedMsg.Purge()
 	p.client = client
+	log.Debugf("set peer client %p", client)
 	go p.acceptAckNotify()
 	if p.mq.Len() == 0 {
 		return

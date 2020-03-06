@@ -12,6 +12,7 @@ type networkState int
 const (
 	networkStateUnReachable networkState = iota
 	networkStateReachable
+	networkStateDisable
 )
 
 type PeerState struct {
@@ -68,6 +69,9 @@ func (this *Endpoint) GetNetworkState() (*NetworkStateResp, *DspErr) {
 		now := uint64(time.Now().Unix())
 		state.Chain.State = networkStateReachable
 		state.Chain.UpdatedAt = now
+	}
+	if !dsp.HasChannelInstance() {
+		state.DNS.State = networkStateDisable
 	}
 	if dsp.HasDNS() {
 		state.DNS.HostAddr = dsp.CurrentDNSHostAddr()
