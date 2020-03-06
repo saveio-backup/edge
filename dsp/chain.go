@@ -775,6 +775,7 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64,
 		}
 		for _, txItem := range toAppend {
 			txItem.Timestamp = timestamp
+			tx.BlockHeight = blockHeight
 		}
 		txs = append(txs, toAppend...)
 		if limit > 0 && uint32(len(txs)) >= limit {

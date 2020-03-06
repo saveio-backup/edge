@@ -47,6 +47,7 @@ type Network struct {
 	lock                 *sync.RWMutex                           // lock for sync control
 	peerForHealthCheck   *sync.Map                               // peerId for keep health check
 	asyncRecvDisabled    bool                                    // disabled async receive msg
+	connectLock          *sync.Map                               // connection lock for address
 }
 
 func NewP2P(opts ...NetworkOption) *Network {
@@ -57,6 +58,7 @@ func NewP2P(opts ...NetworkOption) *Network {
 	n.peers = new(sync.Map)
 	n.peerForHealthCheck = new(sync.Map)
 	n.lock = new(sync.RWMutex)
+	n.connectLock = new(sync.Map)
 	// update by options
 	n.walletAddrFromPeerId = func(id string) string {
 		return id
@@ -250,6 +252,11 @@ func (this *Network) Connect(hostAddr string) error {
 	if this == nil {
 		return fmt.Errorf("network is nil")
 	}
+	connLockValue, _ := this.connectLock.LoadOrStore(hostAddr, new(sync.RWMutex))
+	connLock := connLockValue.(*sync.RWMutex)
+	connLock.Lock()
+	defer connLock.Unlock()
+
 	_, ok := this.peers.Load(hostAddr)
 	if ok {
 		return this.waitForConnectedByHost(hostAddr, time.Duration(15)*time.Second)
@@ -841,15 +848,19 @@ func (this *Network) reconnect(walletAddr string) error {
 			return nil
 		}
 	}
-	err, peerId := this.P2p.ReconnectPeer(pr.GetHostAddr())
-	if err != nil {
+	peerIds := this.P2p.Bootstrap([]string{pr.GetHostAddr()})
+	if len(peerIds) == 0 {
 		pr.SetState(peer.ConnectStateFailed)
-	} else {
-		pr.SetState(peer.ConnectStateConnected)
+		return fmt.Errorf("reconnect %s failed, no peer ids", walletAddr)
 	}
+	peerId := peerIds[0]
+	if len(peerId) == 0 {
+		return fmt.Errorf("reconnect %s failed, no peer id return", walletAddr)
+	}
+	pr.SetState(peer.ConnectStateConnected)
 	pr.SetPeerId(peerId)
 	this.peers.Store(walletAddr, pr)
-	return err
+	return nil
 }
 
 func (this *Network) addProxyComponents(builder *network.Builder) {
