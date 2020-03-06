@@ -187,7 +187,7 @@ func (p *Peer) Send(msgId string, msg proto.Message) error {
 		msgId = utils.GenIdByTimestamp(rand.New(rand.NewSource(time.Now().UnixNano())))
 	}
 	if p.client == nil {
-		return fmt.Errorf("client is nil")
+		return fmt.Errorf("client is nil, peer %p", p)
 	}
 	ch := make(chan MsgReply, 1)
 	log.Debugf("send msg %s to %s", msgId, p.addr)
@@ -222,7 +222,7 @@ func (p *Peer) SendAndWaitReply(msgId string, msg proto.Message) (proto.Message,
 		msgId = utils.GenIdByTimestamp(rand.New(rand.NewSource(time.Now().UnixNano())))
 	}
 	if p.client == nil {
-		return nil, fmt.Errorf("client is nil")
+		return nil, fmt.Errorf("client is nil, peer %p", p)
 	}
 	ch := make(chan MsgReply, 1)
 	log.Debugf("send msg %s and wait for reply to %s", msgId, p.addr)
@@ -259,7 +259,7 @@ func (p *Peer) StreamSend(sessionId, msgId string, msg proto.Message, sendTimeou
 		sessionId = utils.GenIdByTimestamp(rand.New(rand.NewSource(time.Now().UnixNano())))
 	}
 	if p.client == nil {
-		return fmt.Errorf("client is nil")
+		return fmt.Errorf("client is nil, peer %p", p)
 	}
 	ch := make(chan MsgReply, 1)
 	streamMsg := &MsgWrap{
@@ -304,7 +304,7 @@ func (p *Peer) StreamSendAndWaitReply(sessionId, msgId string, msg proto.Message
 		sessionId = utils.GenIdByTimestamp(rand.New(rand.NewSource(time.Now().UnixNano())))
 	}
 	if p.client == nil {
-		return nil, fmt.Errorf("client is nil")
+		return nil, fmt.Errorf("client is nil, peer %p", p)
 	}
 	ch := make(chan MsgReply, 1)
 	log.Debugf("send msg %s and wait for reply to %s", msgId, p.addr)
@@ -638,7 +638,7 @@ func (p *Peer) streamAsyncSendAndWaitAck(msg proto.Message, sessionId, msgId str
 		return 0, fmt.Errorf("peer is nil")
 	}
 	if p.client == nil {
-		return 0, fmt.Errorf("client is nil")
+		return 0, fmt.Errorf("client is nil, peer %p", p)
 	}
 	if len(streamId) == 0 {
 		log.Debugf("stream id is empty when send msg %s", msgId)

@@ -37,14 +37,11 @@ func (this *PeerComponent) PeerConnect(client *network.PeerClient) {
 		log.Warnf("connect to a wrong wallet addr %s", walletAddr)
 		return
 	}
-	p, ok := this.Net.peers.LoadOrStore(walletAddr, peer.New(hostAddr))
-	var pr *peer.Peer
-	if ok {
-		pr, ok = p.(*peer.Peer)
-		if !ok {
-			log.Errorf("convert peer to peer.Peer failed")
-			return
-		}
+	p, _ := this.Net.peers.LoadOrStore(walletAddr, peer.New(hostAddr))
+	pr, ok := p.(*peer.Peer)
+	if !ok {
+		log.Errorf("convert peer to peer.Peer failed")
+		return
 	}
 	log.Infof("peer %s has connected, peer id is %s, peer %p", hostAddr, peerId, pr)
 	log.Debugf("stack %s", debug.Stack())

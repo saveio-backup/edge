@@ -1639,6 +1639,7 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit, cr
 			return files, totalCount, nil
 		}
 	}
+	log.Debugf("files num %d %d", len(files), totalCount)
 	return files, totalCount, nil
 }
 
