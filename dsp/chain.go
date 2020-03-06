@@ -622,7 +622,6 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64,
 			return nil, &DspErr{Code: INVALID_PARAMS, Error: err}
 		}
 	}
-
 	txs := make([]*TxResp, 0)
 	events, err := dsp.GetSmartContractEventByEventIdAndHeights(usdt.USDT_CONTRACT_ADDRESS.ToBase58(),
 		addr, cUsdt.EVENT_USDT_STATE_CHANGE, 1, height)
@@ -633,24 +632,11 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64,
 	hasSkip := uint64(0)
 	for i := len(events) - 1; i >= 0; i-- {
 		event := events[i]
-		blockHeight, err := dsp.GetBlockHeightByTxHash(event.TxHash)
-		if err != nil {
-			continue
-		}
-		if blockHeight > height {
-			continue
-		}
-		blk, err := dsp.GetBlockByHeight(blockHeight)
-		if err != nil {
-			continue
-		}
-		// flag if find the fee consumed event
-		// findFeeEvent := false
 		tx := &TxResp{
-			Txid:         event.TxHash,
-			BlockHeight:  uint32(blockHeight),
-			FeeFormat:    "0",
-			Timestamp:    blk.Header.Timestamp,
+			Txid: event.TxHash,
+			// BlockHeight:  uint32(blockHeight),
+			FeeFormat: "0",
+			// Timestamp:    blk.Header.Timestamp,
 			Amount:       0,
 			AmountFormat: "0",
 			Asset:        edgeCom.SAVE_ASSET,
@@ -732,7 +718,6 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64,
 		if !sendToSelf && txType != TxTypeAll &&
 			((txType == TxTypeSend && tx.Type != TxTypeSend) ||
 				(txType == TxTypeReceive && tx.Type != TxTypeReceive)) {
-			log.Debugf("type wrong %d", txType)
 			continue
 		}
 		if ignoreOtherCont && (tx.To == sUtils.GovernanceContractAddress.ToBase58() ||
@@ -767,6 +752,29 @@ func (this *Endpoint) GetTxByHeightAndLimit(addr, asset string, txType uint64,
 				hasSkip++
 				toAppend = toAppend[1:]
 			}
+		}
+		blockHeight := this.cache.ChainCache.HeightFromTxHash(event.TxHash)
+		if blockHeight == 0 {
+			blockHeight, err = dsp.GetBlockHeightByTxHash(event.TxHash)
+			if err != nil {
+				continue
+			}
+			this.cache.ChainCache.SetTxHashToHeight(event.TxHash, blockHeight)
+		}
+		if blockHeight > height {
+			continue
+		}
+		timestamp := this.cache.ChainCache.TimestampFromHeight(blockHeight)
+		if timestamp == 0 {
+			blk, err := dsp.GetBlockByHeight(blockHeight)
+			if err != nil {
+				continue
+			}
+			timestamp = blk.Header.Timestamp
+			this.cache.ChainCache.SetTimestampToHeight(blockHeight, timestamp)
+		}
+		for _, txItem := range toAppend {
+			txItem.Timestamp = timestamp
 		}
 		txs = append(txs, toAppend...)
 		if limit > 0 && uint32(len(txs)) >= limit {

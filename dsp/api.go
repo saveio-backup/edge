@@ -24,6 +24,7 @@ import (
 	"github.com/saveio/dsp-go-sdk/utils"
 	"github.com/saveio/edge/common"
 	"github.com/saveio/edge/common/config"
+	"github.com/saveio/edge/dsp/cache"
 	"github.com/saveio/edge/p2p/actor/req"
 	p2p_actor "github.com/saveio/edge/p2p/actor/server"
 	"github.com/saveio/edge/p2p/network"
@@ -59,6 +60,7 @@ type Endpoint struct {
 	channelPublicAddr string
 	eventHub          *EventHub
 	state             *LifeCycle
+	cache             *cache.EdgeCache
 }
 
 func Init(walletDir, pwd string) (*Endpoint, error) {
@@ -67,6 +69,7 @@ func Init(walletDir, pwd string) (*Endpoint, error) {
 		eventHub:   NewEventHub(),
 		state:      NewLifeCycle(),
 		dspAccLock: new(sync.Mutex),
+		cache:      cache.NewEdgeCache(),
 	}
 	DspService = e
 	log.Debugf("walletDir: %s, %d", walletDir, len(walletDir))

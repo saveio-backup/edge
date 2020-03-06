@@ -5,3 +5,11 @@ type HostAddr struct {
 	Address  string
 	Port     string
 }
+
+type UserspaceTransferType uint
+
+const (
+	TransferTypeNone UserspaceTransferType = iota
+	TransferTypeIn
+	TransferTypeOut
+)

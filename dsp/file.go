@@ -18,7 +18,6 @@ import (
 	"github.com/saveio/edge/common"
 	"github.com/saveio/edge/common/config"
 	"github.com/saveio/edge/dsp/actor/client"
-	"github.com/saveio/edge/dsp/storage"
 	sdkcom "github.com/saveio/themis-go-sdk/common"
 	chainSdkFs "github.com/saveio/themis-go-sdk/fs"
 	"github.com/saveio/themis/cmd/utils"
@@ -211,7 +210,7 @@ type UserspaceCostResp struct {
 	FeeFormat    string
 	Refund       uint64
 	RefundFormat string
-	TransferType storage.UserspaceTransferType
+	TransferType common.UserspaceTransferType
 }
 
 type FsContractSettingResp struct {
@@ -1944,13 +1943,13 @@ func (this *Endpoint) GetUserSpaceCost(walletAddr string, size, sizeOpType, bloc
 		return &UserspaceCostResp{
 			Fee:          cost.Value,
 			FeeFormat:    utils.FormatUsdt(cost.Value),
-			TransferType: storage.TransferTypeIn,
+			TransferType: common.TransferTypeIn,
 		}, nil
 	} else if cost.To.ToBase58() == dsp.WalletAddress() {
 		return &UserspaceCostResp{
 			Refund:       cost.Value,
 			RefundFormat: utils.FormatUsdt(cost.Value),
-			TransferType: storage.TransferTypeOut,
+			TransferType: common.TransferTypeOut,
 		}, nil
 	}
 	return nil, &DspErr{Code: INTERNAL_ERROR, Error: ErrMaps[INTERNAL_ERROR]}
