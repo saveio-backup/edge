@@ -850,19 +850,22 @@ func (this *Network) reconnect(walletAddr string) error {
 			return nil
 		}
 	}
-	// err, peerId := this.P2p.ReconnectPeer(hostAddr)
-	// if err != nil {
-	// 	return fmt.Errorf("reconnect %s failed, err %s", walletAddr, err)
+	log.Debugf("reconnect host +++ %s", hostAddr)
+	err, peerId := this.P2p.ReconnectPeer(hostAddr)
+	if err != nil {
+		log.Debugf("reconnect host +++ %s, err", hostAddr, err)
+		return fmt.Errorf("reconnect %s failed, err %s", walletAddr, err)
+	}
+	log.Debugf("reconnect success %s", hostAddr)
+	// peerIds := this.P2p.Bootstrap([]string{hostAddr})
+	// if len(peerIds) == 0 {
+	// 	pr.SetState(peer.ConnectStateFailed)
+	// 	return fmt.Errorf("reconnect %s failed, no peer ids", walletAddr)
 	// }
-	peerIds := this.P2p.Bootstrap([]string{hostAddr})
-	if len(peerIds) == 0 {
-		pr.SetState(peer.ConnectStateFailed)
-		return fmt.Errorf("reconnect %s failed, no peer ids", walletAddr)
-	}
-	peerId := peerIds[0]
-	if len(peerId) == 0 {
-		return fmt.Errorf("reconnect %s failed, no peer id return", walletAddr)
-	}
+	// peerId := peerIds[0]
+	// if len(peerId) == 0 {
+	// 	return fmt.Errorf("reconnect %s failed, no peer id return", walletAddr)
+	// }
 	this.newPeerConnected(peerId, pr)
 	return nil
 }
