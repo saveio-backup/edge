@@ -1057,10 +1057,6 @@ func (this *Network) waitForConnectedByHost(hostAddr string, timeout time.Durati
 		secs = 1
 	}
 	for i := 0; i < secs; i++ {
-		_, ok := this.peers.Load(hostAddr)
-		if ok {
-			continue
-		}
 		walletAddr := this.GetWalletFromHostAddr(hostAddr)
 		if len(walletAddr) > 0 && this.IsConnReachable(walletAddr) {
 			log.Debugf("connection exist %s", hostAddr)
