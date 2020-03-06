@@ -110,6 +110,12 @@ func (p *Peer) GetPeerId() string {
 	return p.id
 }
 
+func (p *Peer) ClientIsEmpty() bool {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	return p.client == nil
+}
+
 // SetClient. set peer client.
 func (p *Peer) SetClient(client *network.PeerClient) {
 	p.lock.Lock()

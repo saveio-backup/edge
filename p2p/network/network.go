@@ -256,7 +256,6 @@ func (this *Network) Connect(hostAddr string) error {
 	connLock := connLockValue.(*sync.RWMutex)
 	connLock.Lock()
 	defer connLock.Unlock()
-
 	_, ok := this.peers.Load(hostAddr)
 	if ok {
 		return this.waitForConnectedByHost(hostAddr, time.Duration(15)*time.Second)
@@ -285,14 +284,8 @@ func (this *Network) Connect(hostAddr string) error {
 	if len(peerIds) == 0 {
 		return fmt.Errorf("peer id is emptry from bootstraping to %s", hostAddr)
 	}
-	peerId := peerIds[0]
-	walletAddr = this.walletAddrFromPeerId(peerId)
-	pr.SetPeerId(peerId)
-	pr.SetState(peer.ConnectStateConnected)
-	log.Debugf("client %p, peerId %v, peer %p", this.P2p.GetPeerClient(peerId), peerId, pr)
-	pr.SetClient(this.P2p.GetPeerClient(peerId))
 	this.peers.Delete(hostAddr)
-	this.peers.Store(walletAddr, pr)
+	this.newPeerConnected(peerIds[0], pr)
 	return nil
 }
 
@@ -832,6 +825,15 @@ func (this *Network) reconnect(walletAddr string) error {
 		return fmt.Errorf("peer not found %s", walletAddr)
 	}
 	pr = p.(*peer.Peer)
+	hostAddr := pr.GetHostAddr()
+	if len(hostAddr) == 0 {
+		return fmt.Errorf("hostAddr is empty %s", walletAddr)
+	}
+	connLockValue, _ := this.connectLock.LoadOrStore(hostAddr, new(sync.RWMutex))
+	connLock := connLockValue.(*sync.RWMutex)
+	connLock.Lock()
+	defer connLock.Unlock()
+
 	if len(walletAddr) > 0 && pr.State() == peer.ConnectStateConnecting {
 		if err := this.WaitForConnected(walletAddr, time.Duration(common.MAX_WAIT_FOR_CONNECTED_TIMEOUT)*time.Second); err != nil {
 			pr.SetState(peer.ConnectStateFailed)
@@ -848,7 +850,11 @@ func (this *Network) reconnect(walletAddr string) error {
 			return nil
 		}
 	}
-	peerIds := this.P2p.Bootstrap([]string{pr.GetHostAddr()})
+	// err, peerId := this.P2p.ReconnectPeer(hostAddr)
+	// if err != nil {
+	// 	return fmt.Errorf("reconnect %s failed, err %s", walletAddr, err)
+	// }
+	peerIds := this.P2p.Bootstrap([]string{hostAddr})
 	if len(peerIds) == 0 {
 		pr.SetState(peer.ConnectStateFailed)
 		return fmt.Errorf("reconnect %s failed, no peer ids", walletAddr)
@@ -857,9 +863,7 @@ func (this *Network) reconnect(walletAddr string) error {
 	if len(peerId) == 0 {
 		return fmt.Errorf("reconnect %s failed, no peer id return", walletAddr)
 	}
-	pr.SetState(peer.ConnectStateConnected)
-	pr.SetPeerId(peerId)
-	this.peers.Store(walletAddr, pr)
+	this.newPeerConnected(peerId, pr)
 	return nil
 }
 
@@ -1051,6 +1055,7 @@ func (this *Network) startProxy(builder *network.Builder) error {
 
 // WaitForConnected. poll to wait for connected
 func (this *Network) waitForConnectedByHost(hostAddr string, timeout time.Duration) error {
+	log.Debugf("waitForConnectedByHost %s", hostAddr)
 	interval := time.Duration(1) * time.Second
 	secs := int(timeout / interval)
 	if secs <= 0 {
@@ -1074,7 +1079,16 @@ func (this *Network) isValidWalletAddr(walletAddr string) bool {
 	// proxy wallet
 	_, err := chainCom.AddressFromBase58(walletAddr)
 	return err == nil
+}
 
+func (this *Network) newPeerConnected(peerId string, pr *peer.Peer) {
+	walletAddr := this.walletAddrFromPeerId(peerId)
+	pr.SetPeerId(peerId)
+	pr.SetState(peer.ConnectStateConnected)
+	peerClient := this.P2p.GetPeerClient(peerId)
+	log.Debugf("client %p, wallet %s, peerId %v, peer %p", peerClient, walletAddr, peerId, pr)
+	pr.SetClient(peerClient)
+	this.peers.Store(walletAddr, pr)
 }
 
 func getProtocolFromAddr(addr string) string {
