@@ -1519,7 +1519,7 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit, cr
 			continue
 		}
 		if info.ExpiredHeight < uint64(curBlockHeight) {
-			log.Debugf("expried++++")
+			totalCount--
 			continue
 		}
 		if info.CreatedAt < createdAt || info.UpdatedAt < updatedAt {
@@ -1648,6 +1648,9 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit, cr
 		}
 	}
 	log.Debugf("files num %d %d", len(files), totalCount)
+	if totalCount < 0 {
+		totalCount = 0
+	}
 	return files, totalCount, nil
 }
 
