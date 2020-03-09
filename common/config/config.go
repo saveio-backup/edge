@@ -121,9 +121,10 @@ func DefaultConfig() *EdgeConfig {
 }
 
 func TestConfig() *EdgeConfig {
+	curPath, _ := filepath.Abs(".")
 	return &EdgeConfig{
 		BaseConfig: BaseConfig{
-			BaseDir:             ".",
+			BaseDir:             curPath,
 			LogPath:             "./Log",
 			ChainId:             "0",
 			BlockTime:           5,
@@ -139,20 +140,21 @@ func TestConfig() *EdgeConfig {
 			HttpCertPath:        "",
 			HttpKeyPath:         "",
 			RestEnable:          true,
-			ChannelPortOffset:   3001,
+			ChannelPortOffset:   3100,
 			ChannelProtocol:     "tcp",
 			DBPath:              "./DB",
-			ChainRestAddrs:      []string{"http://127.0.0.1:20334"},
-			ChainRpcAddrs:       []string{"http://127.0.0.1:20336"},
-			NATProxyServerAddrs: "",
+			ChainRestAddrs:      []string{"http://139.219.136.38:20334"},
+			ChainRpcAddrs:       []string{"http://139.219.136.38:20336"},
+			NATProxyServerAddrs: "tcp://40.73.100.114:6007",
 			DspProtocol:         "tcp",
-			DspPortOffset:       4001,
+			DspPortOffset:       4100,
 			TrackerNetworkId:    1567481543,
 			TrackerProtocol:     "tcp",
 			TrackerPortOffset:   337,
 			WalletDir:           "./wallet.dat",
 		},
 		DspConfig: DspConfig{
+			BlockDelay:           "3",
 			BlockConfirm:         2,
 			ChannelClientType:    "rpc",
 			ChannelRevealTimeout: "20",

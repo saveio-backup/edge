@@ -242,9 +242,10 @@ const (
 	UploadFileFilterTypeDone
 )
 
-func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, privilegeVal, copyNumVal,
+func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, intervalVal, privilegeVal, copyNumVal,
 	storageTypeVal, realFileSizeVal interface{}, encryptPwd, url string,
 	whitelist []string, share bool) (*fs.UploadOption, *DspErr) {
+	log.Debugf("upload task id %s", taskId)
 	f, err := os.Stat(path)
 	if err != nil {
 		return nil, &DspErr{Code: FS_UPLOAD_FILEPATH_ERROR,
@@ -397,7 +398,7 @@ func (this *Endpoint) UploadFile(path, desc string, durationVal, intervalVal, pr
 			}
 		}()
 		log.Debugf("upload file path %s, this.Dsp: %t", path, dsp == nil)
-		ret, err := dsp.UploadFile("", path, opt)
+		ret, err := dsp.UploadFile(true, taskId, path, opt)
 		if err != nil {
 			log.Errorf("upload failed err %s", err)
 			return
@@ -748,12 +749,13 @@ func (this *Endpoint) GetFsConfig() (*FsContractSettingResp, *DspErr) {
 	}, nil
 }
 
-func (this *Endpoint) DownloadFile(fileHash, url, linkStr, password string, max uint64,
+func (this *Endpoint) DownloadFile(taskId, fileHash, url, linkStr, password string, max uint64,
 	setFileName, inOrder bool) *DspErr {
 	dsp := this.getDsp()
 	if dsp == nil {
 		return &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
+	log.Debugf("downlaod task id %s", taskId)
 	// if balance of current channel is not enough, reject
 	if !dsp.HasDNS() {
 		return &DspErr{Code: DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST, Error: ErrMaps[DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST]}
@@ -816,7 +818,7 @@ func (this *Endpoint) DownloadFile(fileHash, url, linkStr, password string, max 
 					log.Errorf("panic recover err %v", e)
 				}
 			}()
-			err := dsp.DownloadFileByUrl(url, dspCom.ASSET_USDT, inOrder, password, false, setFileName, int(max))
+			err := dsp.DownloadFileByUrl(taskId, url, dspCom.ASSET_USDT, inOrder, password, false, setFileName, int(max))
 			if err != nil {
 				log.Errorf("Downloadfile from url failed %s", err)
 			}
@@ -836,7 +838,7 @@ func (this *Endpoint) DownloadFile(fileHash, url, linkStr, password string, max 
 					log.Errorf("panic recover err %v", e)
 				}
 			}()
-			err := dsp.DownloadFileByHash(fileHash, dspCom.ASSET_USDT, inOrder, password, false, setFileName, int(max))
+			err := dsp.DownloadFileByHash(taskId, fileHash, dspCom.ASSET_USDT, inOrder, password, false, setFileName, int(max))
 			if err != nil {
 				log.Errorf("Downloadfile from url failed %s", err)
 			}
@@ -864,7 +866,7 @@ func (this *Endpoint) DownloadFile(fileHash, url, linkStr, password string, max 
 					log.Errorf("panic recover err %v", e)
 				}
 			}()
-			err := dsp.DownloadFileByLink(linkStr, dspCom.ASSET_USDT, inOrder, password, false, setFileName, int(max))
+			err := dsp.DownloadFileByLink(taskId, linkStr, dspCom.ASSET_USDT, inOrder, password, false, setFileName, int(max))
 			if err != nil {
 				log.Errorf("Downloadfile from url failed %s", err)
 			}
@@ -1517,6 +1519,7 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit, cr
 			continue
 		}
 		if info.ExpiredHeight < uint64(curBlockHeight) {
+			log.Debugf("expried++++")
 			continue
 		}
 		if info.CreatedAt < createdAt || info.UpdatedAt < updatedAt {
@@ -1664,6 +1667,7 @@ type fileInfoResp struct {
 	RealFileSize  uint64
 	StoreType     uint64
 	BlocksRoot    string
+	Encrypt       bool
 }
 
 func (this *Endpoint) GetFileInfo(fileHashStr string) (*fileInfoResp, *DspErr) {
@@ -1684,6 +1688,11 @@ func (this *Endpoint) GetFileInfo(fileHashStr string) (*fileInfoResp, *DspErr) {
 		return nil, &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
 	}
 	expiredAt := blockHeightToTimestamp(uint64(now), info.ExpiredHeight)
+	tsk := dsp.GetUploadTaskInfoByHash(fileHashStr)
+	encrypt := false
+	if tsk != nil {
+		encrypt = tsk.Encrypt
+	}
 	result := &fileInfoResp{
 		FileHash:      string(info.FileHash),
 		CopyNum:       info.CopyNum,
@@ -1699,6 +1708,7 @@ func (this *Endpoint) GetFileInfo(fileHashStr string) (*fileInfoResp, *DspErr) {
 		RealFileSize:  info.RealFileSize,
 		StoreType:     info.StorageType,
 		BlocksRoot:    string(info.BlocksRoot),
+		Encrypt:       encrypt,
 	}
 	block, _ := dsp.GetBlockByHeight(uint32(info.BlockHeight))
 	if block == nil {

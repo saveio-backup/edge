@@ -13,6 +13,8 @@ import (
 
 func UploadFile(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
+	taskId, _ := cmd["Id"].(string)
+
 	path, ok := cmd["Path"].(string)
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
@@ -43,7 +45,7 @@ func UploadFile(cmd map[string]interface{}) map[string]interface{} {
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
-	opt, err := dsp.DspService.UploadFile(path, desc, cmd["Duration"], cmd["Interval"],
+	opt, err := dsp.DspService.UploadFile(taskId, path, desc, cmd["Duration"], cmd["Interval"],
 		cmd["Privilege"], cmd["CopyNum"], cmd["StoreType"], cmd["RealFileSize"], pwd, url, whitelist, share)
 	if err != nil {
 		log.Errorf("upload file failed, err %v", err)
@@ -169,6 +171,7 @@ func CalculateDeleteFilesFee(cmd map[string]interface{}) map[string]interface{} 
 
 func DownloadFile(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
+	taskId, _ := cmd["Id"].(string)
 	fileHash, _ := cmd["Hash"].(string)
 	url, _ := cmd["Url"].(string)
 	link, _ := cmd["Link"].(string)
@@ -189,7 +192,7 @@ func DownloadFile(cmd map[string]interface{}) map[string]interface{} {
 	// if checkErr := dsp.DspService.CheckPassword(password); checkErr != nil {
 	// 	return ResponsePackWithErrMsg(checkErr.Code, checkErr.Error.Error())
 	// }
-	err := dsp.DspService.DownloadFile(fileHash, url, link, decryptedPassword, uint64(max), setFileName, inOrder)
+	err := dsp.DspService.DownloadFile(taskId, fileHash, url, link, decryptedPassword, uint64(max), setFileName, inOrder)
 	if err != nil {
 		log.Errorf("download file failed, err %v", err)
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())

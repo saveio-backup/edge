@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/ontio/ontology-eventbus/actor"
@@ -75,6 +76,9 @@ type NotifyResp struct {
 }
 
 func EventNotifyAll() error {
+	if EventServerPid == nil {
+		return fmt.Errorf("event server has not instance")
+	}
 	req := &NotifyAll{
 		Response: make(chan *NotifyResp, 1),
 	}
@@ -90,6 +94,9 @@ func EventNotifyAll() error {
 }
 
 func EventNotifyChannels() error {
+	if EventServerPid == nil {
+		return fmt.Errorf("event server has not instance")
+	}
 	req := &NotifyChannels{
 		Response: make(chan *NotifyResp, 1),
 	}
@@ -105,6 +112,9 @@ func EventNotifyChannels() error {
 }
 
 func EventNotifyInvolvedSmartContract(events []*sdkCom.SmartContactEvent) error {
+	if EventServerPid == nil {
+		return fmt.Errorf("event server has not instance")
+	}
 	req := &NotifyInvolvedSmartContract{
 		Response: make(chan *NotifyResp, 1),
 		Events:   events,
@@ -121,6 +131,9 @@ func EventNotifyInvolvedSmartContract(events []*sdkCom.SmartContactEvent) error 
 }
 
 func EventNotifyRevenue() error {
+	if EventServerPid == nil {
+		return fmt.Errorf("event server has not instance")
+	}
 	req := &NotifyRevenue{
 		Response: make(chan *NotifyResp, 1),
 	}
@@ -136,6 +149,9 @@ func EventNotifyRevenue() error {
 }
 
 func EventNotifyAccount() error {
+	if EventServerPid == nil {
+		return fmt.Errorf("event server has not instance")
+	}
 	req := &NotifyAccount{
 		Response: make(chan *NotifyResp, 1),
 	}
@@ -151,6 +167,9 @@ func EventNotifyAccount() error {
 }
 
 func EventNotifySwitchChannel() error {
+	if EventServerPid == nil {
+		return fmt.Errorf("event server has not instance")
+	}
 	req := &NotifySwitchChannel{
 		Response: make(chan *NotifyResp, 1),
 	}
@@ -166,6 +185,9 @@ func EventNotifySwitchChannel() error {
 }
 
 func EventNotifyChannelSyncing() error {
+	if EventServerPid == nil {
+		return fmt.Errorf("event server has not instance")
+	}
 	req := &NotifyChannelSyncing{
 		Response: make(chan *NotifyResp, 1),
 	}
@@ -181,6 +203,9 @@ func EventNotifyChannelSyncing() error {
 }
 
 func EventNotifyChannelProgress() error {
+	if EventServerPid == nil {
+		return fmt.Errorf("event server has not instance")
+	}
 	req := &NotifyChannelProgress{
 		Response: make(chan *NotifyResp, 1),
 	}
@@ -196,6 +221,9 @@ func EventNotifyChannelProgress() error {
 }
 
 func EventNotifyUploadTransferList() error {
+	if EventServerPid == nil {
+		return fmt.Errorf("event server has not instance")
+	}
 	req := &NotifyUploadTransferList{
 		Response: make(chan *NotifyResp, 1),
 	}
@@ -211,6 +239,9 @@ func EventNotifyUploadTransferList() error {
 }
 
 func EventNotifyDownloadTransferList() error {
+	if EventServerPid == nil {
+		return fmt.Errorf("event server has not instance")
+	}
 	req := &NotifyDownloadTransferList{
 		Response: make(chan *NotifyResp, 1),
 	}
@@ -226,6 +257,9 @@ func EventNotifyDownloadTransferList() error {
 }
 
 func EventNotifyCompleteTransferList() error {
+	if EventServerPid == nil {
+		return fmt.Errorf("event server has not instance")
+	}
 	req := &NotifyCompleteTransferList{
 		Response: make(chan *NotifyResp, 1),
 	}
@@ -241,6 +275,9 @@ func EventNotifyCompleteTransferList() error {
 }
 
 func EventNotifyNetworkState() error {
+	if EventServerPid == nil {
+		return fmt.Errorf("event server has not instance")
+	}
 	req := &NotifyNetworkState{
 		Response: make(chan *NotifyResp, 1),
 	}
@@ -256,6 +293,9 @@ func EventNotifyNetworkState() error {
 }
 
 func EventNotifyNewTask(taskType int, id string) error {
+	if EventServerPid == nil {
+		return fmt.Errorf("event server has not instance")
+	}
 	req := &NotifyNewTask{
 		Type:     taskType,
 		Id:       id,
