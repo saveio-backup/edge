@@ -110,6 +110,11 @@ func (this *EventActorServer) Receive(ctx actor.Context) {
 			websocket.Server().PushCompleteTransferList()
 			msg.Response <- &edgeCli.NotifyResp{}
 		}()
+	case *edgeCli.NotifyNewTask:
+		go func() {
+			websocket.Server().NotifyNewTask(msg.Type, msg.Id)
+			msg.Response <- &edgeCli.NotifyResp{}
+		}()
 	case *edgeCli.NotifyNetworkState:
 		go func() {
 			websocket.Server().PushNetworkState()

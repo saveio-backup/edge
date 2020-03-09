@@ -1,6 +1,9 @@
 package websocket
 
 import (
+	"encoding/hex"
+	"fmt"
+
 	"github.com/saveio/edge/http/rest"
 	sdkCom "github.com/saveio/themis-go-sdk/common"
 	"github.com/saveio/themis/smartcontract/service/native/utils"
@@ -152,5 +155,15 @@ func (self *WsServer) PushCompleteTransferList() {
 	}
 	resp := rest.GetTransferList(cmd)
 	resp["Action"] = "gettransferlist"
+	self.Broadcast(WS_TOPIC_EVENT, resp)
+}
+
+func (self *WsServer) NotifyNewTask(transferType int, id string) {
+	cmd := map[string]interface{}{
+		"Type": fmt.Sprintf("%v", transferType),
+		"Id":   hex.EncodeToString([]byte(id)),
+	}
+	resp := rest.GetTransferDetail(cmd)
+	resp["Action"] = "newtask"
 	self.Broadcast(WS_TOPIC_EVENT, resp)
 }

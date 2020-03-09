@@ -60,6 +60,12 @@ type NotifyCompleteTransferList struct {
 	Response chan *NotifyResp
 }
 
+type NotifyNewTask struct {
+	Type     int
+	Id       string
+	Response chan *NotifyResp
+}
+
 type NotifyNetworkState struct {
 	Response chan *NotifyResp
 }
@@ -236,6 +242,23 @@ func EventNotifyCompleteTransferList() error {
 
 func EventNotifyNetworkState() error {
 	req := &NotifyNetworkState{
+		Response: make(chan *NotifyResp, 1),
+	}
+	f := utils.TimeoutFunc(func() error {
+		EventServerPid.Tell(req)
+		resp := <-req.Response
+		if resp != nil {
+			return resp.Error
+		}
+		return nil
+	})
+	return utils.DoWithTimeout(f, time.Duration(common.EVENT_ACTOR_TIMEOUT)*time.Second)
+}
+
+func EventNotifyNewTask(taskType int, id string) error {
+	req := &NotifyNewTask{
+		Type:     taskType,
+		Id:       id,
 		Response: make(chan *NotifyResp, 1),
 	}
 	f := utils.TimeoutFunc(func() error {

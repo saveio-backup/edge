@@ -230,3 +230,4 @@
 | 29     | TaskDownloadCheckingFileDone          | 检查文件完成 |
 | 30     | TaskWaitForBlockConfirmed          | 等待区块确认 |
 | 31     | TaskWaitForBlockConfirmedDone          | 等待区块确认完成 |
+| 32     | TaskCreate          | 创建新任务 |

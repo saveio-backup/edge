@@ -169,3 +169,10 @@ func (this *Endpoint) notifyNewNetworkState() {
 	client.EventNotifyNetworkState()
 	client.EventNotifyChannels()
 }
+
+func (this *Endpoint) notifyNewTransferTask(transferType TransferType, id string) {
+	if !config.WsEnabled() {
+		return
+	}
+	client.EventNotifyNewTask(int(transferType), id)
+}

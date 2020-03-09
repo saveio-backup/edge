@@ -1074,6 +1074,12 @@ func (this *Endpoint) RegisterProgressCh() {
 		select {
 		case v, ok := <-dsp.ProgressChannel():
 			// TODO: replace with list
+			if v.ProgressState == task.TaskCreate && v.Type == store.TaskTypeUpload {
+				go this.notifyNewTransferTask(transferTypeUploading, v.TaskId)
+			}
+			if v.ProgressState == task.TaskCreate && v.Type == store.TaskTypeDownload {
+				go this.notifyNewTransferTask(transferTypeDownloading, v.TaskId)
+			}
 			if !ok {
 				log.Warnf("progress channel is closed")
 				return

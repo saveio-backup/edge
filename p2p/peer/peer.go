@@ -38,6 +38,7 @@ type MsgWrap struct {
 	reply        chan MsgReply // msg reply channel
 	createdAt    uint64        // msg created time
 	writeTimeout time.Duration // timeout for msg to sent
+	timeout      uint64        // msg send timeout
 	retry        uint32        // msg retry times
 	retryAt      uint64        // retry msg time stamp
 }
@@ -274,13 +275,14 @@ func (p *Peer) StreamSend(sessionId, msgId string, msg proto.Message, sendTimeou
 		sessionId:    sessionId,
 		reply:        ch,
 		writeTimeout: sendTimeout,
+		timeout:      calcTimeout(0, sendTimeout),
 	}
 	if err := p.addMsg(msgId, streamMsg); err != nil {
 		return err
 	}
 	go p.retryMsg()
-	log.Debugf("send msg %s to %s, sessionId %s", msgId, p.addr, sessionId)
-	if _, err := p.streamAsyncSendAndWaitAck(msg, sessionId, msgId, sendTimeout); err != nil {
+	log.Debugf("send msg %s to %s, sessionId %s sendTimeout %d", msgId, p.addr, sessionId, sendTimeout)
+	if _, err := p.streamAsyncSendAndWaitAck(msg, sessionId, msgId); err != nil {
 		log.Errorf("stream send msg %s err %s", msgId, err)
 	}
 	log.Debugf("wait for msg reply of %s", msgId)
@@ -321,12 +323,13 @@ func (p *Peer) StreamSendAndWaitReply(sessionId, msgId string, msg proto.Message
 		needReply:    true,
 		reply:        ch,
 		writeTimeout: sendTimeout,
+		timeout:      calcTimeout(0, sendTimeout),
 	}
 	if err := p.addMsg(msgId, msgWrap); err != nil {
 		return nil, err
 	}
 	go p.retryMsg()
-	if _, err := p.streamAsyncSendAndWaitAck(msg, sessionId, msgId, sendTimeout); err != nil {
+	if _, err := p.streamAsyncSendAndWaitAck(msg, sessionId, msgId); err != nil {
 		log.Errorf("stream send msg %s err %s", msgId, err)
 	}
 	reply := <-ch
@@ -368,6 +371,10 @@ func (p *Peer) Receive(origId string, replyMsg proto.Message) {
 func (p *Peer) CloseSession(sessionId string) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
+	return p.closeSession(sessionId)
+}
+
+func (p *Peer) closeSession(sessionId string) error {
 	s, ok := p.sessions[sessionId]
 	if !ok {
 		return fmt.Errorf("session %s not exist", sessionId)
@@ -424,10 +431,9 @@ func (p *Peer) retryMsg() {
 				log.Debugf("retry msg %s, but client is disconnect", msgWrap.id)
 				continue
 			}
-			log.Debugf("get msg to retry %s timeout %d", msgWrap.id, msgWrap.writeTimeout)
+			log.Debugf("get msg to retry %s timeout %d", msgWrap.id, msgWrap.writeTimeout/time.Second)
 			if msgWrap.writeTimeout > 0 {
-				if _, err := p.streamAsyncSendAndWaitAck(msgWrap.msg, msgWrap.sessionId, msgWrap.id,
-					calcTimeout(msgWrap.retry, msgWrap.writeTimeout)); err != nil {
+				if _, err := p.streamAsyncSendAndWaitAck(msgWrap.msg, msgWrap.sessionId, msgWrap.id); err != nil {
 					log.Errorf("send msg to %s err in retry service %s", p.addr, err)
 				}
 				continue
@@ -515,6 +521,12 @@ func (p *Peer) getMsgToRetry() *MsgWrap {
 			log.Debugf("msg %s just send, delay retry it", msgWrap.id)
 			continue
 		}
+		if msgWrap.writeTimeout > 0 && msgWrap.timeout <= nowTimestamp {
+			log.Errorf("sessionId %s send msg %s timeout++++ %d", msgWrap.sessionId, msgWrap.id, msgWrap.timeout)
+			p.closeSession(msgWrap.sessionId)
+			log.Errorf("sessionId %s send msg %s timeout++++ close session success %d", msgWrap.sessionId, msgWrap.id, msgWrap.timeout)
+			msgWrap.timeout = calcTimeout(msgWrap.retry, msgWrap.writeTimeout)
+		}
 		// in retry service
 		retrying := msgWrap.retryAt > 0 && (nowTimestamp < msgWrap.retryAt+(common.MAX_ACK_MSG_TIMEOUT*1000))
 		// msg is sending
@@ -523,6 +535,11 @@ func (p *Peer) getMsgToRetry() *MsgWrap {
 			if msgWrap.retryAt == 0 {
 				msgWrap.retryAt = nowTimestamp
 			}
+			continue
+		}
+		if msgWrap.retryAt == 0 {
+			msgWrap.retryAt = msgWrap.createdAt
+			log.Debugf("msg %s has send success in 20s, wait for next round", msgWrap.id)
 			continue
 		}
 		if retrying {
@@ -628,7 +645,7 @@ func (p *Peer) closeAllSession() error {
 	return nil
 }
 
-func (p *Peer) streamAsyncSendAndWaitAck(msg proto.Message, sessionId, msgId string, sendTimeout time.Duration) (int32, error) {
+func (p *Peer) streamAsyncSendAndWaitAck(msg proto.Message, sessionId, msgId string) (int32, error) {
 	if err := p.openSession(sessionId); err != nil {
 		return 0, err
 	}
@@ -649,28 +666,18 @@ func (p *Peer) streamAsyncSendAndWaitAck(msg proto.Message, sessionId, msgId str
 	if len(streamId) == 0 {
 		log.Debugf("stream id is empty when send msg %s", msgId)
 	}
-	sentCh := make(chan struct{}, 1)
-	go func() {
-		select {
-		case <-time.After(sendTimeout):
-			log.Errorf("stream %s send msg %s timeout %d", streamId, msgId, sendTimeout)
-			p.CloseSession(sessionId)
-			return
-		case <-sentCh:
-			return
-		}
-	}()
 	var wrote int32
 	var err error
+	log.Debugf("stream send mgs %s", msgId)
 	if err, wrote = p.client.StreamAsyncSendAndWaitAck(streamId, context.Background(), msg, msgId); err != nil {
 		p.failedCount.Send++
 		log.Errorf("stream %s send msg %s failed %s", streamId, msgId, err)
 	}
-	close(sentCh)
+	log.Debugf("msg %s has sent", msgId)
 	return wrote, err
 }
 
-func calcTimeout(ratio uint32, timeout time.Duration) time.Duration {
+func calcTimeout(ratio uint32, timeout time.Duration) uint64 {
 	result := float64(1+float64(ratio)*0.2) * float64(timeout)
-	return time.Duration(result)
+	return utils.GetMilliSecTimestamp() + uint64(time.Duration(result)/time.Second)*1000
 }
