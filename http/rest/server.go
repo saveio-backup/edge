@@ -93,9 +93,9 @@ const (
 	DSP_CLIENT_GET_USER_SPACE      = "/api/v1/dsp/client/userspace/:addr"
 	DSP_USERSPACE_RECORDS          = "/api/v1/dsp/client/userspacerecords/:addr/:offset/:limit"
 
-	DSP_GET_UPLOAD_FILELIST      = "/api/v1/dsp/file/uploadlist/:type/:offset/:limit/:filter/:createdAt/:updatedAt"
+	DSP_GET_UPLOAD_FILELIST      = "/api/v1/dsp/file/uploadlist/:type/:offset/:limit/:filter/:createdAt/:createdAtEnd/:updatedAt/:updatedAtEnd"
 	DSP_GET_DOWNLOAD_FILELIST    = "/api/v1/dsp/file/downloadlist/:type/:offset/:limit"
-	DSP_GET_FILE_TRANSFERLIST    = "/api/v1/dsp/file/transferlist/:type/:offset/:limit/:createdAt/:updatedAt"
+	DSP_GET_FILE_TRANSFERLIST    = "/api/v1/dsp/file/transferlist/:type/:offset/:limit/:createdAt/:createdAtEnd/:updatedAt/:updatedAtEnd"
 	DSP_DELETE_TRANSFER_RECORD   = "/api/v1/dsp/file/transferlist/delete"
 	DSP_GET_FILE_TRANSFER_DETAIL = "/api/v1/dsp/file/transfer/detail/:type/:id"
 	DSP_FILE_UPLOAD              = "/api/v1/dsp/file/upload"
@@ -413,12 +413,12 @@ func (this *restServer) getPath(url string) string {
 	} else if strings.Contains(url, strings.TrimSuffix(DSP_CLIENT_GET_USER_SPACE, ":addr")) {
 		return DSP_CLIENT_GET_USER_SPACE
 	} else if strings.Contains(url, strings.TrimSuffix(DSP_GET_UPLOAD_FILELIST,
-		":type/:offset/:limit/:filter/:createdAt/:updatedAt")) {
+		":type/:offset/:limit/:filter/:createdAt/:createdAtEnd/:updatedAt/:updatedAtEnd")) {
 		return DSP_GET_UPLOAD_FILELIST
 	} else if strings.Contains(url, strings.TrimSuffix(DSP_GET_DOWNLOAD_FILELIST, ":type/:offset/:limit")) {
 		return DSP_GET_DOWNLOAD_FILELIST
 	} else if strings.Contains(url,
-		strings.TrimSuffix(DSP_GET_FILE_TRANSFERLIST, ":type/:offset/:limit/:createdAt/:updatedAt")) {
+		strings.TrimSuffix(DSP_GET_FILE_TRANSFERLIST, ":type/:offset/:limit/:createdAt/:createdAtEnd/:updatedAt/:updatedAtEnd")) {
 		return DSP_GET_FILE_TRANSFERLIST
 	} else if strings.Contains(url, strings.TrimSuffix(DSP_FILE_UPLOAD_FEE, ":file")) {
 		return DSP_FILE_UPLOAD_FEE
@@ -555,15 +555,15 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 	case DSP_CLIENT_GET_USER_SPACE:
 		req["Addr"] = getParam(r, "addr")
 	case DSP_GET_UPLOAD_FILELIST:
-		req["Type"], req["Offset"], req["Limit"], req["Filter"], req["CreatedAt"], req["UpdatedAt"] =
+		req["Type"], req["Offset"], req["Limit"], req["Filter"], req["CreatedAt"], req["CreatedAtEnd"], req["UpdatedAt"], req["UpdatedAtEnd"] =
 			getParam(r, "type"), getParam(r, "offset"), getParam(r, "limit"), getParam(r, "filter"),
-			getParam(r, "createdAt"), getParam(r, "updatedAt")
+			getParam(r, "createdAt"), getParam(r, "createdAtEnd"), getParam(r, "updatedAt"), getParam(r, "updatedAtEnd")
 	case DSP_GET_DOWNLOAD_FILELIST:
 		req["Type"], req["Offset"], req["Limit"] = getParam(r, "type"), getParam(r, "offset"), getParam(r, "limit")
 	case DSP_GET_FILE_TRANSFERLIST:
-		req["Type"], req["Offset"], req["Limit"], req["CreatedAt"], req["UpdatedAt"] =
+		req["Type"], req["Offset"], req["Limit"], req["CreatedAt"], req["CreatedAtEnd"], req["UpdatedAt"], req["UpdatedAtEnd"] =
 			getParam(r, "type"), getParam(r, "offset"), getParam(r, "limit"),
-			getParam(r, "createdAt"), getParam(r, "updatedAt")
+			getParam(r, "createdAt"), getParam(r, "createdAtEnd"), getParam(r, "updatedAt"), getParam(r, "updatedAtEnd")
 	case DSP_FILE_UPLOAD_FEE:
 		req["Path"], req["Duration"], req["Interval"], req["CopyNum"], req["WhiteList"] =
 			getParam(r, "file"), r.FormValue("duration"), r.FormValue("interval"),

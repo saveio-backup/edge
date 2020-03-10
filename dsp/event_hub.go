@@ -121,7 +121,7 @@ func (this *Endpoint) notifyUploadingTransferList() {
 
 	client.EventNotifyUploadTransferList()
 
-	resp, err := this.GetTransferList(transferTypeComplete, 0, 0, 0, 0)
+	resp, err := this.GetTransferList(transferTypeComplete, 0, 0, 0, 0, 0, 0)
 	if err != nil {
 		log.Errorf("get transfer list err %v", err)
 		return
@@ -142,7 +142,7 @@ func (this *Endpoint) notifyDownloadingTransferList() {
 	}
 
 	client.EventNotifyDownloadTransferList()
-	resp, err := this.GetTransferList(transferTypeComplete, 0, 0, 0, 0)
+	resp, err := this.GetTransferList(transferTypeComplete, 0, 0, 0, 0, 0, 0)
 	if err != nil {
 		log.Errorf("get transfer list err %v", err)
 		return

@@ -231,14 +231,16 @@ func GetUploadFiles(cmd map[string]interface{}) map[string]interface{} {
 	limit := edgeUtils.StringToUint64(cmd["Limit"])
 	filter := edgeUtils.StringToUint64(cmd["Filter"])
 	createdAt := edgeUtils.StringToUint64(cmd["CreatedAt"])
+	createdAtEnd := edgeUtils.StringToUint64(cmd["CreatedAtEnd"])
 	updatedAt := edgeUtils.StringToUint64(cmd["UpdatedAt"])
+	updatedAtEnd := edgeUtils.StringToUint64(cmd["UpdatedAtEnd"])
 
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
 	log.Debugf("cmd :%v, type %d, offset %d limit %d", cmd, fileType, offset, limit)
 	files, totalCount, err := dsp.DspService.GetUploadFiles(dsp.DspFileListType(fileType),
-		offset, limit, createdAt, updatedAt, dsp.UploadFileFilterType(filter))
+		offset, limit, createdAt, createdAtEnd, updatedAt, updatedAtEnd, dsp.UploadFileFilterType(filter))
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
@@ -308,12 +310,14 @@ func GetTransferList(cmd map[string]interface{}) map[string]interface{} {
 	offset := edgeUtils.StringToUint64(cmd["Offset"])
 	limit := edgeUtils.StringToUint64(cmd["Limit"])
 	createdAt := edgeUtils.StringToUint64(cmd["CreatedAt"])
+	createdAtEnd := edgeUtils.StringToUint64(cmd["CreatedAtEnd"])
 	updatedAt := edgeUtils.StringToUint64(cmd["UpdatedAt"])
+	updatedAtEnd := edgeUtils.StringToUint64(cmd["UpdatedAtEnd"])
 
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
-	list, derr := dsp.DspService.GetTransferList(transferType, uint32(offset), uint32(limit), createdAt, updatedAt)
+	list, derr := dsp.DspService.GetTransferList(transferType, uint32(offset), uint32(limit), createdAt, createdAtEnd, updatedAt, updatedAtEnd)
 	if derr != nil {
 		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
 	}

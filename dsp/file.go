@@ -1150,7 +1150,7 @@ func (this *Endpoint) DeleteTransferRecord(taskIds []string) (*FileTaskResp, *Ds
 }
 
 // GetTransferList. get transfer progress list
-func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint32, createdAt, updatedAt uint64) (
+func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint32, createdAt, createdAtEnd, updatedAt, updatedAtEnd uint64) (
 	*TransferlistResp, *DspErr) {
 	dsp := this.getDsp()
 	if dsp == nil {
@@ -1161,6 +1161,7 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint32, 
 		Type:          pType,
 		Transfers:     []*Transfer{},
 	}
+	log.Debugf("pType %v", pType)
 	complete, reverse, includeFailed := false, false, true
 	var infoType store.TaskType
 	switch pType {
@@ -1173,7 +1174,9 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint32, 
 		reverse = true
 		includeFailed = false
 	}
-	ids := dsp.GetTaskIdList(offset, limit, createdAt, updatedAt, infoType, complete, reverse, includeFailed)
+	ids := dsp.GetTaskIdList(offset, limit, createdAt, createdAtEnd, updatedAt, updatedAtEnd, infoType, complete, reverse, includeFailed)
+	log.Debugf("ts %v %v %v %v, len %d", createdAt, createdAtEnd, updatedAt, updatedAtEnd, len(ids))
+	// os.Exit(1)
 	infos := make([]*Transfer, 0, len(ids))
 	for idx, key := range ids {
 		info := dsp.GetProgressInfo(key)
@@ -1496,7 +1499,7 @@ func (this *Endpoint) RegisterShareNotificationCh() {
 	}
 }
 
-func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit, createdAt, updatedAt uint64,
+func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit, createdAt, createdAtEnd, updatedAt, updatedAtEnd uint64,
 	filterType UploadFileFilterType) ([]*FileResp, int, *DspErr) {
 	dsp := this.getDsp()
 	if dsp == nil {
@@ -1522,7 +1525,10 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit, cr
 			totalCount--
 			continue
 		}
-		if info.CreatedAt < createdAt || info.UpdatedAt < updatedAt {
+		if createdAt != 0 && createdAtEnd != 0 && (info.CreatedAt <= createdAt || info.CreatedAt > createdAtEnd) {
+			continue
+		}
+		if updatedAt != 0 && updatedAtEnd != 0 && (info.UpdatedAt <= updatedAt || info.UpdatedAt > updatedAtEnd) {
 			continue
 		}
 		// 0: all, 1. image, 2. document. 3. video, 4. music
