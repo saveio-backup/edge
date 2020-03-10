@@ -484,7 +484,9 @@ func (this *Network) Send(msg proto.Message, sessionId, msgId, walletAddr string
 	} else {
 		err = pr.Send(msgId, msg)
 	}
-	log.Debugf("send msg %s to %s done", msgId, walletAddr)
+	if err == nil {
+		log.Debugf("send msg %s to %s done", msgId, walletAddr)
+	}
 	this.restartKeepAlive()
 	return err
 }

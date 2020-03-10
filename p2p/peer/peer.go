@@ -198,19 +198,21 @@ func (p *Peer) Send(msgId string, msg proto.Message) error {
 	if len(msgId) == 0 {
 		msgId = utils.GenIdByTimestamp(rand.New(rand.NewSource(time.Now().UnixNano())))
 	}
-	if p.client == nil {
-		return fmt.Errorf("client is nil, peer %p", p)
-	}
 	ch := make(chan MsgReply, 1)
 	log.Debugf("send msg %s to %s", msgId, p.addr)
 	if err := p.addMsg(msgId, &MsgWrap{msg: msg, id: msgId, reply: ch}); err != nil {
 		return err
 	}
 	go p.retryMsg()
-	if err := p.client.AsyncSendAndWaitAck(context.Background(), msg, msgId); err != nil {
-		p.failedCount.Send++
-		log.Errorf("async send msg %s err %s", msgId, err)
+	if p.client != nil {
+		if err := p.client.AsyncSendAndWaitAck(context.Background(), msg, msgId); err != nil {
+			p.failedCount.Send++
+			log.Errorf("async send msg %s err %s", msgId, err)
+		}
+	} else {
+		log.Warnf("msg %s can't be sent, because %s is closed, wait for retry", msgId, p.id)
 	}
+
 	log.Debugf("wait for msg reply of %s", msgId)
 	reply := <-ch
 	log.Debugf("receive msg ack of %s from %s", msgId, p.addr)
@@ -233,19 +235,21 @@ func (p *Peer) SendAndWaitReply(msgId string, msg proto.Message) (proto.Message,
 	if len(msgId) == 0 {
 		msgId = utils.GenIdByTimestamp(rand.New(rand.NewSource(time.Now().UnixNano())))
 	}
-	if p.client == nil {
-		return nil, fmt.Errorf("client is nil, peer %p", p)
-	}
 	ch := make(chan MsgReply, 1)
 	log.Debugf("send msg %s and wait for reply to %s", msgId, p.addr)
 	if err := p.addMsg(msgId, &MsgWrap{msg: msg, id: msgId, needReply: true, reply: ch}); err != nil {
 		return nil, err
 	}
 	go p.retryMsg()
-	if err := p.client.AsyncSendAndWaitAck(context.Background(), msg, msgId); err != nil {
-		p.failedCount.Send++
-		log.Errorf("async send msg %s err %s", msgId, err)
+	if p.client != nil {
+		if err := p.client.AsyncSendAndWaitAck(context.Background(), msg, msgId); err != nil {
+			p.failedCount.Send++
+			log.Errorf("async send msg %s err %s", msgId, err)
+		}
+	} else {
+		log.Warnf("msg %s can't be sent, because %s is closed, wait for retry", msgId, p.id)
 	}
+
 	reply := <-ch
 	log.Debugf("receive msg reply of %d from %s", msgId, p.addr)
 	if reply.err != nil {
@@ -269,9 +273,6 @@ func (p *Peer) StreamSend(sessionId, msgId string, msg proto.Message, sendTimeou
 	}
 	if len(sessionId) == 0 {
 		sessionId = utils.GenIdByTimestamp(rand.New(rand.NewSource(time.Now().UnixNano())))
-	}
-	if p.client == nil {
-		return fmt.Errorf("client is nil, peer %p", p)
 	}
 	ch := make(chan MsgReply, 1)
 	streamMsg := &MsgWrap{
@@ -315,9 +316,6 @@ func (p *Peer) StreamSendAndWaitReply(sessionId, msgId string, msg proto.Message
 	}
 	if len(sessionId) == 0 {
 		sessionId = utils.GenIdByTimestamp(rand.New(rand.NewSource(time.Now().UnixNano())))
-	}
-	if p.client == nil {
-		return nil, fmt.Errorf("client is nil, peer %p", p)
 	}
 	ch := make(chan MsgReply, 1)
 	log.Debugf("send msg %s and wait for reply to %s", msgId, p.addr)
@@ -724,19 +722,21 @@ func (p *Peer) streamAsyncSendAndWaitAck(msg proto.Message, sessionId, msgId str
 	if p == nil {
 		return 0, fmt.Errorf("peer is nil")
 	}
-	if p.client == nil {
-		return 0, fmt.Errorf("client is nil, peer %p", p)
-	}
 	if len(streamId) == 0 {
 		log.Debugf("stream id is empty when send msg %s", msgId)
 	}
 	var wrote int32
 	var err error
 	log.Debugf("stream send mgs %s", msgId)
-	if err, wrote = p.client.StreamAsyncSendAndWaitAck(streamId, context.Background(), msg, msgId); err != nil {
-		p.failedCount.Send++
-		log.Errorf("stream %s send msg %s failed %s", streamId, msgId, err)
+	if p.client != nil {
+		if err, wrote = p.client.StreamAsyncSendAndWaitAck(streamId, context.Background(), msg, msgId); err != nil {
+			p.failedCount.Send++
+			log.Errorf("stream %s send msg %s failed %s", streamId, msgId, err)
+		}
+	} else {
+		log.Warnf("msg %s can't be sent, because %s is closed, wait for retry", msgId, p.id)
 	}
+
 	log.Debugf("msg %s has sent", msgId)
 	return wrote, err
 }
