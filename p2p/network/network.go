@@ -184,6 +184,7 @@ func (this *Network) Start(protocol, addr, port string) error {
 		}
 	}
 	this.P2p.SetDialTimeout(time.Duration(common.NETWORK_DIAL_TIMEOUT) * time.Second)
+	this.P2p.SetBootstrapWaitSecond(time.Duration(common.MAX_WAIT_FOR_CONNECTED_TIMEOUT) * time.Second)
 	this.P2p.SetCompressFileSize(common.COMPRESS_DATA_SIZE)
 	if len(this.proxyAddrs) > 0 {
 		log.Debugf("set proxy mode %v", this.proxyAddrs)
@@ -284,6 +285,7 @@ func (this *Network) Connect(hostAddr string) error {
 	if len(peerIds) == 0 {
 		return fmt.Errorf("peer id is emptry from bootstraping to %s", hostAddr)
 	}
+	log.Debugf("connect success %s, peer id %s", hostAddr, peerIds[0])
 	this.peers.Delete(hostAddr)
 	this.newPeerConnected(peerIds[0], pr)
 	return nil
@@ -607,6 +609,8 @@ func (this *Network) Broadcast(addrs []string, msg proto.Message, sessionId, msg
 					break
 				}
 				walletAddr := this.GetWalletFromHostAddr(req.addr)
+				//  1. broadcast的时候 获取到了 key = hostaddr value = hostaddr的peer， 但是会等待connect完成，进而获取到正确的peer
+				//  2. 如果连接发生重连，没有设置新的client
 				log.Debugf("broadcast msg %s to host %s wallet %s", msgId, req.addr, walletAddr)
 				if len(walletAddr) == 0 || !this.IsConnReachable(walletAddr) {
 					log.Debugf("%s not exist, connecting...", req.addr)
@@ -857,15 +861,6 @@ func (this *Network) reconnect(walletAddr string) error {
 		return fmt.Errorf("reconnect %s failed, err %s", walletAddr, err)
 	}
 	log.Debugf("reconnect success %s", hostAddr)
-	// peerIds := this.P2p.Bootstrap([]string{hostAddr})
-	// if len(peerIds) == 0 {
-	// 	pr.SetState(peer.ConnectStateFailed)
-	// 	return fmt.Errorf("reconnect %s failed, no peer ids", walletAddr)
-	// }
-	// peerId := peerIds[0]
-	// if len(peerId) == 0 {
-	// 	return fmt.Errorf("reconnect %s failed, no peer id return", walletAddr)
-	// }
 	this.newPeerConnected(peerId, pr)
 	return nil
 }

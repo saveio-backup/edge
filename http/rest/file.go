@@ -206,16 +206,16 @@ func DeleteDownloadFile(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
-	password, ok := cmd["Password"].(string)
-	if !ok {
-		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	}
+	// password, ok := cmd["Password"].(string)
+	// if !ok {
+	// 	return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	// }
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
-	if checkErr := dsp.DspService.CheckPassword(password); checkErr != nil {
-		return ResponsePackWithErrMsg(checkErr.Code, checkErr.Error.Error())
-	}
+	// if checkErr := dsp.DspService.CheckPassword(password); checkErr != nil {
+	// 	return ResponsePackWithErrMsg(checkErr.Code, checkErr.Error.Error())
+	// }
 	ret, err := dsp.DspService.DeleteDownloadFile(fileHash)
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())

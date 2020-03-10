@@ -50,6 +50,7 @@ const (
 	MAX_SESSION_RECORD_SPEED_LEN   = 3                // max record speed array length
 	MAX_WRITE_BUFFER_SIZE          = 24 * 1024 * 1024 // max write buffer size 24MB
 	MAX_MSG_RETRY_FAILED           = 3                // max msg retry failed count
+	MAX_PEER_RECONNECT_TIMEOUT     = 60               // peer reconnect timeout
 )
 
 // asset

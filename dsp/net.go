@@ -83,6 +83,9 @@ func (this *Endpoint) GetNetworkState() (*NetworkStateResp, *DspErr) {
 			state.DNS.State = networkStateUnReachable
 		}
 	}
+	if this.dspNet != nil {
+		log.Debugf("this.dspNet.GetProxyServer().PeerID +++ %s", this.dspNet.GetProxyServer().PeerID)
+	}
 	if this.dspNet != nil && len(this.dspNet.GetProxyServer().PeerID) > 0 {
 		state.DspProxy.HostAddr = this.dspNet.GetProxyServer().IP
 		log.Debugf("peer id %s", this.dspNet.GetProxyServer().PeerID)

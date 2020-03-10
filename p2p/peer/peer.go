@@ -73,6 +73,7 @@ type Peer struct {
 	state       ConnectState        // connect state
 	receivedMsg *lru.ARCCache       // received msg cache
 	sessions    map[string]*Session // session map, session id <=> session struct
+	waiting     bool                // waiting peer reconnect
 }
 
 func New(addr string) *Peer {
@@ -99,7 +100,6 @@ func (p *Peer) GetHostAddr() string {
 func (p *Peer) SetPeerId(peerId string) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
-	log.Debugf("set peer id %s for wallet %s, p %p", peerId, p.addr, p)
 	p.id = peerId
 }
 
@@ -107,7 +107,6 @@ func (p *Peer) SetPeerId(peerId string) {
 func (p *Peer) GetPeerId() string {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
-	log.Debugf("get peer id %s for wallet %s, p %p", p.id, p.addr, p)
 	return p.id
 }
 
@@ -126,13 +125,19 @@ func (p *Peer) SetClient(client *network.PeerClient) {
 	}
 	p.receivedMsg.Purge()
 	p.client = client
-	log.Debugf("set peer client %p", client)
+	log.Debugf("set peer client %p for %s", client, p.addr)
 	go p.acceptAckNotify()
 	if p.mq.Len() == 0 {
 		return
 	}
 	// retrying the msg in the queue after client is set up
 	go p.retryMsg()
+}
+
+func (p *Peer) GetClient() *network.PeerClient {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+	return p.client
 }
 
 // ActiveTime. get the active time when peer receive msg
@@ -361,9 +366,7 @@ func (p *Peer) Receive(origId string, replyMsg proto.Message) {
 	if !msgWrap.needReply {
 		return
 	}
-	msgWrap.reply <- MsgReply{msg: replyMsg}
-	p.mq.Remove(e)
-	delete(p.retry, msgWrap.id)
+	p.replyMsgs([]*list.Element{e}, MsgReply{msg: replyMsg})
 	log.Debugf("after remove msg %s-%s len %d", origId, msgWrap.id, p.mq.Len())
 }
 
@@ -423,7 +426,12 @@ func (p *Peer) retryMsg() {
 			if p.getMsgLen() == 0 {
 				return
 			}
-			msgWrap := p.getMsgToRetry()
+			msgWrap, fails := p.getMsgToRetry()
+			if fails != nil {
+				p.lock.Lock()
+				p.replyMsgs(fails, MsgReply{err: fmt.Errorf("bad network quality with %s", p.addr)})
+				p.lock.Unlock()
+			}
 			if msgWrap == nil {
 				continue
 			}
@@ -443,6 +451,7 @@ func (p *Peer) retryMsg() {
 			}
 		case <-closeSignal:
 			log.Debugf("exit retry msg service, because client %s is closed", p.addr)
+			go p.lostConn()
 			return
 		}
 	}
@@ -479,6 +488,60 @@ func (p *Peer) acceptAckNotify() {
 	}
 }
 
+// lostConn. connection is lost, wait for 1 minute in reconnecting. if failed. remove all pending msgs
+func (p *Peer) lostConn() {
+	if p.getMsgLen() == 0 {
+		return
+	}
+	if p.IsWaitingReconnect() {
+		return
+	}
+	p.SetPeerWaiting(true)
+	defer p.SetPeerWaiting(false)
+	ti := time.NewTicker(time.Second)
+	defer ti.Stop()
+	timeout := 0
+	for {
+		<-ti.C
+		timeout++
+		if timeout > common.MAX_PEER_RECONNECT_TIMEOUT {
+			break
+		}
+		// check client is connected or not
+		if p.ClientIsEmpty() {
+			continue
+		}
+		break
+	}
+	if timeout < common.MAX_PEER_RECONNECT_TIMEOUT {
+		return
+	}
+	// connection is lost
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	msgs := make([]*list.Element, 0, p.mq.Len())
+	for e := p.mq.Front(); e != nil; e = e.Next() {
+		msgWrap, ok := e.Value.(*MsgWrap)
+		if ok {
+			log.Debugf("peer %s is lost, remove msg %s", p.id, msgWrap.id)
+		}
+		msgs = append(msgs, e)
+	}
+	p.replyMsgs(msgs, MsgReply{err: fmt.Errorf("bad network quality with %s", p.addr)})
+}
+
+func (p *Peer) SetPeerWaiting(w bool) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	p.waiting = w
+}
+
+func (p *Peer) IsWaitingReconnect() bool {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+	return p.waiting
+}
+
 // addMsg. add msg to list
 func (p *Peer) addMsg(msgId string, msg *MsgWrap) error {
 	p.lock.Lock()
@@ -499,12 +562,12 @@ func (p *Peer) getMsgLen() int {
 	return p.mq.Len()
 }
 
-func (p *Peer) getMsgToRetry() *MsgWrap {
-	p.lock.Lock()
-	defer p.lock.Unlock()
+func (p *Peer) getMsgToRetry() (*MsgWrap, []*list.Element) {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
 	if p.client == nil {
 		log.Warnf("get msg to retry but client is nil %s", p.addr)
-		return nil
+		return nil, nil
 	}
 	var retryMsgWrap *MsgWrap
 	fails := make([]*list.Element, 0)
@@ -553,13 +616,18 @@ func (p *Peer) getMsgToRetry() *MsgWrap {
 		retryMsgWrap = msgWrap
 		break
 	}
-	for _, e := range fails {
-		failMsgWrap := e.Value.(*MsgWrap)
-		failMsgWrap.reply <- MsgReply{err: fmt.Errorf("bad network quality with %s", p.addr)}
+	return retryMsgWrap, fails
+}
+
+func (p *Peer) replyMsgs(msgs []*list.Element, reply MsgReply) {
+	for _, e := range msgs {
+		msg, ok := e.Value.(*MsgWrap)
+		if ok {
+			msg.reply <- reply
+		}
 		p.mq.Remove(e)
-		delete(p.retry, failMsgWrap.id)
+		delete(p.retry, msg.id)
 	}
-	return retryMsgWrap
 }
 
 // receive msg ack notify
@@ -583,17 +651,13 @@ func (p *Peer) receiveMsgNotify(notify network.AckStatus) {
 	if notify.Status == network.ACK_SUCCESS {
 		// msgWrap.state = MsgStateSended
 		if !msgWrap.needReply {
-			msgWrap.reply <- MsgReply{}
-			p.mq.Remove(e)
-			delete(p.retry, msgWrap.id)
+			p.replyMsgs([]*list.Element{e}, MsgReply{})
 			log.Debugf("remove no-reply msg %s from queue, left %d msg", msgWrap.id, p.mq.Len())
 		}
 		return
 	}
 	if p.retry[notify.MessageID] >= common.MAX_MSG_RETRY_FAILED {
-		msgWrap.reply <- MsgReply{err: fmt.Errorf("bad network quality with %s", p.addr)}
-		p.mq.Remove(e)
-		delete(p.retry, msgWrap.id)
+		p.replyMsgs([]*list.Element{e}, MsgReply{err: fmt.Errorf("bad network quality with %s", p.addr)})
 		log.Debugf("remove %s msg which retry too much, left %d msg", msgWrap.id, p.mq.Len())
 		p.failedCount.Recv++
 		return

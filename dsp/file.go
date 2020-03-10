@@ -1536,15 +1536,9 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit, cr
 		}
 		downloadedCount, _ := dsp.CountRecordByFileHash(fileHashStr)
 		profit, _ := dsp.SumRecordsProfitByFileHash(fileHashStr)
-		// rpc request
-		proveDetail, err := dsp.GetFileProveDetails(fileHashStr)
-		if err != nil {
-			log.Errorf("get prove detail failed err %s", err)
-			continue
-		}
-		nodesDetail := make([]NodeProveDetail, 0, proveDetail.ProveDetailNum)
-		primaryNodeM := make(map[chainCom.Address]NodeProveDetail, 0)
 
+		// init primary node map
+		primaryNodeM := make(map[chainCom.Address]NodeProveDetail, 0)
 		for index, addr := range info.PrimaryNodes {
 			walletAddr, err := chainCom.AddressFromBase58(addr)
 			if err != nil {
@@ -1554,29 +1548,37 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit, cr
 				Index: index,
 			}
 		}
+		// rpc request
+		proveDetail, err := dsp.GetFileProveDetails(fileHashStr)
+		nodesDetail := make([]NodeProveDetail, 0, info.CopyNum+1)
 		fileHasUploaded := false
-		for _, detail := range proveDetail.ProveDetails {
-			nodeState := 2
-			if detail.ProveTimes > 0 {
-				nodeState = 3
-				fileHasUploaded = true
+		if proveDetail != nil && err == nil {
+			log.Debugf("proveDetail %v, proveDetail.details %v", proveDetail, len(proveDetail.ProveDetails))
+			for _, detail := range proveDetail.ProveDetails {
+				nodeState := 2
+				if detail.ProveTimes > 0 {
+					nodeState = 3
+					fileHasUploaded = true
+				}
+				uploadSize, _ := dsp.GetFileUploadSize(fileHashStr, string(detail.NodeAddr))
+				if uploadSize > 0 {
+					uploadSize /= 1024 // convert to KB
+				}
+				if detail.ProveTimes > 0 {
+					uploadSize = info.FileSize
+				}
+				nodesDetail = append(nodesDetail, NodeProveDetail{
+					HostAddr:    string(detail.NodeAddr),
+					WalletAddr:  detail.WalletAddr.ToBase58(),
+					PdpProveNum: detail.ProveTimes,
+					State:       nodeState,
+					Index:       primaryNodeM[detail.WalletAddr].Index,
+					UploadSize:  uploadSize,
+				})
+				delete(primaryNodeM, detail.WalletAddr)
 			}
-			uploadSize, _ := dsp.GetFileUploadSize(fileHashStr, string(detail.NodeAddr))
-			if uploadSize > 0 {
-				uploadSize /= 1024 // convert to KB
-			}
-			if detail.ProveTimes > 0 {
-				uploadSize = info.FileSize
-			}
-			nodesDetail = append(nodesDetail, NodeProveDetail{
-				HostAddr:    string(detail.NodeAddr),
-				WalletAddr:  detail.WalletAddr.ToBase58(),
-				PdpProveNum: detail.ProveTimes,
-				State:       nodeState,
-				Index:       primaryNodeM[detail.WalletAddr].Index,
-				UploadSize:  uploadSize,
-			})
-			delete(primaryNodeM, detail.WalletAddr)
+		} else {
+			log.Errorf("get prove %s detail failed err %s", fileHashStr, err)
 		}
 		if filterType == UploadFileFilterTypeDoing && len(primaryNodeM) == 0 {
 			continue
@@ -1584,7 +1586,7 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit, cr
 		if filterType == UploadFileFilterTypeDone && len(primaryNodeM) > 0 {
 			continue
 		}
-		if len(primaryNodeM) > 0 {
+		if proveDetail != nil && len(primaryNodeM) > 0 {
 			unprovedNodeWallets := make([]chainCom.Address, 0)
 			for addr, _ := range primaryNodeM {
 				unprovedNodeWallets = append(unprovedNodeWallets, addr)

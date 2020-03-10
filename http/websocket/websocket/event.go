@@ -4,8 +4,10 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"github.com/saveio/edge/dsp"
 	"github.com/saveio/edge/http/rest"
 	sdkCom "github.com/saveio/themis-go-sdk/common"
+	"github.com/saveio/themis/common/log"
 	"github.com/saveio/themis/smartcontract/service/native/utils"
 )
 
@@ -155,6 +157,12 @@ func (self *WsServer) PushCompleteTransferList() {
 	}
 	resp := rest.GetTransferList(cmd)
 	resp["Action"] = "gettransferlist"
+	list, ok := resp["Result"].(*dsp.TransferlistResp)
+	if ok {
+		for _, t := range list.Transfers {
+			log.Debugf("ws notify complete task id %s, file %s,created at %d, updated %d, result %t", t.Id, t.FileHash, t.CreatedAt, t.UpdatedAt, t.Result == nil)
+		}
+	}
 	self.Broadcast(WS_TOPIC_EVENT, resp)
 }
 
