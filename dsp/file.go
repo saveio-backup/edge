@@ -1459,6 +1459,7 @@ func (this *Endpoint) GetFileShareIncome(start, end, offset, limit uint64) (*Fil
 	resp.Incomes = make([]*FileShareIncome, 0, len(records))
 	for _, record := range records {
 		if record.Profit == 0 {
+			totalFile--
 			continue
 		}
 		resp.TotalIncome += record.Profit
@@ -1469,6 +1470,9 @@ func (this *Endpoint) GetFileShareIncome(start, end, offset, limit uint64) (*Fil
 			ProfitFormat: utils.FormatUsdt(record.Profit),
 			SharedAt:     uint64(record.CreatedAt),
 		})
+	}
+	if totalFile < 0 {
+		totalFile = 0
 	}
 	resp.TotalIncomeFormat = utils.FormatUsdt(resp.TotalIncome)
 	resp.TotalFile = totalFile
@@ -1514,7 +1518,7 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit, cr
 	if err != nil {
 		return nil, 0, &DspErr{Code: DSP_FILE_INFO_NOT_FOUND, Error: err}
 	}
-	totalCount := len(taskInfos)
+	totalCount := 0
 	files := make([]*FileResp, 0, limit)
 	offsetCnt := uint64(0)
 	for _, info := range taskInfos {
@@ -1522,7 +1526,6 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit, cr
 			continue
 		}
 		if info.ExpiredHeight < uint64(curBlockHeight) {
-			totalCount--
 			continue
 		}
 		if createdAt != 0 && createdAtEnd != 0 && (info.CreatedAt <= createdAt || info.CreatedAt > createdAtEnd) {
@@ -1542,7 +1545,6 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit, cr
 		}
 		downloadedCount, _ := dsp.CountRecordByFileHash(fileHashStr)
 		profit, _ := dsp.SumRecordsProfitByFileHash(fileHashStr)
-
 		// init primary node map
 		primaryNodeM := make(map[chainCom.Address]NodeProveDetail, 0)
 		for index, addr := range info.PrimaryNodes {
@@ -1555,110 +1557,110 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit, cr
 			}
 		}
 		// rpc request
-		proveDetail, err := dsp.GetFileProveDetails(fileHashStr)
-		nodesDetail := make([]NodeProveDetail, 0, info.CopyNum+1)
-		fileHasUploaded := false
-		if proveDetail != nil && err == nil {
-			log.Debugf("proveDetail %v, proveDetail.details %v", proveDetail, len(proveDetail.ProveDetails))
-			for _, detail := range proveDetail.ProveDetails {
-				nodeState := 2
-				if detail.ProveTimes > 0 {
-					nodeState = 3
-					fileHasUploaded = true
+		if limit == 0 || uint64(len(files)) < limit {
+			proveDetail, err := dsp.GetFileProveDetails(fileHashStr)
+			nodesDetail := make([]NodeProveDetail, 0, info.CopyNum+1)
+			fileHasUploaded := false
+			if proveDetail != nil && err == nil {
+				log.Debugf("proveDetail %v, proveDetail.details %v", proveDetail, len(proveDetail.ProveDetails))
+				for _, detail := range proveDetail.ProveDetails {
+					nodeState := 2
+					if detail.ProveTimes > 0 {
+						nodeState = 3
+						fileHasUploaded = true
+					}
+					uploadSize, _ := dsp.GetFileUploadSize(fileHashStr, string(detail.NodeAddr))
+					if uploadSize > 0 {
+						uploadSize /= 1024 // convert to KB
+					}
+					if detail.ProveTimes > 0 {
+						uploadSize = info.FileSize
+					}
+					nodesDetail = append(nodesDetail, NodeProveDetail{
+						HostAddr:    string(detail.NodeAddr),
+						WalletAddr:  detail.WalletAddr.ToBase58(),
+						PdpProveNum: detail.ProveTimes,
+						State:       nodeState,
+						Index:       primaryNodeM[detail.WalletAddr].Index,
+						UploadSize:  uploadSize,
+					})
+					delete(primaryNodeM, detail.WalletAddr)
 				}
-				uploadSize, _ := dsp.GetFileUploadSize(fileHashStr, string(detail.NodeAddr))
-				if uploadSize > 0 {
-					uploadSize /= 1024 // convert to KB
-				}
-				if detail.ProveTimes > 0 {
-					uploadSize = info.FileSize
-				}
-				nodesDetail = append(nodesDetail, NodeProveDetail{
-					HostAddr:    string(detail.NodeAddr),
-					WalletAddr:  detail.WalletAddr.ToBase58(),
-					PdpProveNum: detail.ProveTimes,
-					State:       nodeState,
-					Index:       primaryNodeM[detail.WalletAddr].Index,
-					UploadSize:  uploadSize,
-				})
-				delete(primaryNodeM, detail.WalletAddr)
+			} else {
+				log.Errorf("get prove %s detail failed err %s", fileHashStr, err)
 			}
-		} else {
-			log.Errorf("get prove %s detail failed err %s", fileHashStr, err)
-		}
-		if filterType == UploadFileFilterTypeDoing && len(primaryNodeM) == 0 {
-			continue
-		}
-		if filterType == UploadFileFilterTypeDone && len(primaryNodeM) > 0 {
-			continue
-		}
-		if proveDetail != nil && len(primaryNodeM) > 0 {
-			unprovedNodeWallets := make([]chainCom.Address, 0)
-			for addr, _ := range primaryNodeM {
-				unprovedNodeWallets = append(unprovedNodeWallets, addr)
-			}
-			hostAddrs, err := dsp.GetNodeHostAddrListByWallets(unprovedNodeWallets)
-			if err != nil {
+			if filterType == UploadFileFilterTypeDoing && len(primaryNodeM) == 0 {
 				continue
 			}
-			for i, wallet := range unprovedNodeWallets {
-				nodeDetail := primaryNodeM[wallet]
-				nodeDetail.HostAddr = hostAddrs[i]
-				nodeDetail.WalletAddr = wallet.ToBase58()
-				uploadSize, _ := dsp.GetFileUploadSize(fileHashStr, string(nodeDetail.HostAddr))
-				log.Debugf("file: %s, wallet %v, uploadsize %d", fileHashStr, wallet, uploadSize)
-				if uploadSize > 0 {
-					uploadSize /= 1024 // convert to KB
-				}
-				if uploadSize > info.FileSize {
-					log.Warnf("update size is wrong %d, file size %d", uploadSize, info.FileSize)
-					uploadSize = info.FileSize
-				}
-				nodeDetail.UploadSize = uploadSize
-				primaryNodeM[wallet] = nodeDetail
+			if filterType == UploadFileFilterTypeDone && len(primaryNodeM) > 0 {
+				continue
 			}
-			for _, nodeDetail := range primaryNodeM {
-				nodesDetail = append(nodesDetail, nodeDetail)
+			if proveDetail != nil && len(primaryNodeM) > 0 {
+				unprovedNodeWallets := make([]chainCom.Address, 0)
+				for addr, _ := range primaryNodeM {
+					unprovedNodeWallets = append(unprovedNodeWallets, addr)
+				}
+				hostAddrs, err := dsp.GetNodeHostAddrListByWallets(unprovedNodeWallets)
+				if err != nil {
+					continue
+				}
+				for i, wallet := range unprovedNodeWallets {
+					nodeDetail := primaryNodeM[wallet]
+					nodeDetail.HostAddr = hostAddrs[i]
+					nodeDetail.WalletAddr = wallet.ToBase58()
+					uploadSize, _ := dsp.GetFileUploadSize(fileHashStr, string(nodeDetail.HostAddr))
+					log.Debugf("file: %s, wallet %v, uploadsize %d", fileHashStr, wallet, uploadSize)
+					if uploadSize > 0 {
+						uploadSize /= 1024 // convert to KB
+					}
+					if uploadSize > info.FileSize {
+						log.Warnf("update size is wrong %d, file size %d", uploadSize, info.FileSize)
+						uploadSize = info.FileSize
+					}
+					nodeDetail.UploadSize = uploadSize
+					primaryNodeM[wallet] = nodeDetail
+				}
+				for _, nodeDetail := range primaryNodeM {
+					nodesDetail = append(nodesDetail, nodeDetail)
+				}
 			}
-		}
-		if offsetCnt < offset {
+			if offsetCnt < offset {
+				offsetCnt++
+				totalCount++
+				continue
+			}
+
 			offsetCnt++
-			continue
+			sort.Sort(NodeProveDetails(nodesDetail))
+			fileUrl := ""
+			if fileHasUploaded && info.TaskState == store.TaskStateDone {
+				fileUrl = info.Url
+			}
+			log.Debugf("fileHasUploaded %t, state %d", fileHasUploaded, info.TaskState)
+			fr := &FileResp{
+				Hash:          fileHashStr,
+				Name:          info.FileName,
+				Encrypt:       info.Encrypt,
+				Url:           fileUrl,
+				Size:          info.FileSize,
+				DownloadCount: downloadedCount,
+				ExpiredAt:     blockHeightToTimestamp(uint64(curBlockHeight), info.ExpiredHeight),
+				CreatedAt:     info.CreatedAt / 1000,
+				UpdatedAt:     info.UpdatedAt / 1000,
+				Profit:        profit,
+				Privilege:     info.Privilege,
+				CurrentHeight: uint64(curBlockHeight),
+				ExpiredHeight: info.ExpiredHeight,
+				StoreType:     fs.FileStoreType(info.StoreType),
+				RealFileSize:  info.RealFileSize,
+				Nodes:         nodesDetail,
+			}
+			files = append(files, fr)
 		}
-		offsetCnt++
-		sort.Sort(NodeProveDetails(nodesDetail))
-		fileUrl := ""
-		if fileHasUploaded && info.TaskState == store.TaskStateDone {
-			fileUrl = info.Url
-		}
-		log.Debugf("fileHasUploaded %t, state %d", fileHasUploaded, info.TaskState)
-		fr := &FileResp{
-			Hash:          fileHashStr,
-			Name:          info.FileName,
-			Encrypt:       info.Encrypt,
-			Url:           fileUrl,
-			Size:          info.FileSize,
-			DownloadCount: downloadedCount,
-			ExpiredAt:     blockHeightToTimestamp(uint64(curBlockHeight), info.ExpiredHeight),
-			CreatedAt:     info.CreatedAt / 1000,
-			UpdatedAt:     info.UpdatedAt / 1000,
-			Profit:        profit,
-			Privilege:     info.Privilege,
-			CurrentHeight: uint64(curBlockHeight),
-			ExpiredHeight: info.ExpiredHeight,
-			StoreType:     fs.FileStoreType(info.StoreType),
-			RealFileSize:  info.RealFileSize,
-			Nodes:         nodesDetail,
-		}
-		files = append(files, fr)
-		if limit > 0 && uint64(len(files)) >= limit {
-			return files, totalCount, nil
-		}
+		totalCount++
 	}
 	log.Debugf("files num %d %d", len(files), totalCount)
-	if totalCount < 0 {
-		totalCount = 0
-	}
+
 	return files, totalCount, nil
 }
 
