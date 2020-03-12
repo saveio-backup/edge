@@ -282,11 +282,11 @@ func (this *Network) Connect(hostAddr string) error {
 	log.Debugf("bootstrap to %v....", hostAddr)
 	peerIds := this.P2p.Bootstrap([]string{hostAddr})
 	log.Debugf("bootstrap to %v, %v", hostAddr, peerIds)
+	this.peers.Delete(hostAddr)
 	if len(peerIds) == 0 {
 		return fmt.Errorf("peer id is emptry from bootstraping to %s", hostAddr)
 	}
 	log.Debugf("connect success %s, peer id %s", hostAddr, peerIds[0])
-	this.peers.Delete(hostAddr)
 	this.newPeerConnected(peerIds[0], pr)
 	return nil
 }
