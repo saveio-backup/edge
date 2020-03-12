@@ -73,7 +73,7 @@ func (this *Endpoint) GetNetworkState() (*NetworkStateResp, *DspErr) {
 	if !dsp.HasChannelInstance() {
 		state.DNS.State = networkStateDisable
 	}
-	if dsp.HasDNS() {
+	if dsp.HasDNS() && dsp.ChannelRunning() && dsp.Running() {
 		state.DNS.HostAddr = dsp.CurrentDNSHostAddr()
 		updatedAt, _ := this.channelNet.GetClientTime(dsp.CurrentDNSWallet())
 		state.DNS.UpdatedAt = updatedAt

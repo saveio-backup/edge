@@ -1,6 +1,8 @@
 package dsp
 
 import (
+	"time"
+
 	"github.com/saveio/edge/common/config"
 	"github.com/saveio/edge/dsp/actor/client"
 	"github.com/saveio/themis-go-sdk/usdt"
@@ -26,8 +28,16 @@ func (this *Endpoint) notifyWhenStartup() {
 	if !config.WsEnabled() {
 		return
 	}
-	log.Debugf("event notify all")
-	client.EventNotifyAll()
+	dsp := this.getDsp()
+	for {
+		<-time.After(time.Second)
+		if !dsp.Running() {
+			continue
+		}
+		log.Debugf("event notify all")
+		client.EventNotifyAll()
+		break
+	}
 }
 
 func (this *Endpoint) notifyAccountLogout() {

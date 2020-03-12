@@ -107,16 +107,27 @@ func (this *Endpoint) GetFilterBlockProgress() (*FilterBlockProgress, *DspErr) {
 	progress.Now = now
 	log.Debugf("endChannelHeight %d, start %d", endChannelHeight, startChannelHeight)
 	if endChannelHeight <= startChannelHeight {
-		progress.Progress = 1.0
+		if !dsp.ChannelRunning() {
+			progress.Progress = 0.99
+		} else {
+			progress.Progress = 1.0
+		}
 		return progress, nil
 	}
 	rangeHeight := endChannelHeight - startChannelHeight
 	if now >= rangeHeight+startChannelHeight {
-		progress.Progress = 1.0
+		if !dsp.ChannelRunning() {
+			progress.Progress = 0.99
+		} else {
+			progress.Progress = 1.0
+		}
 		return progress, nil
 	}
 	p := float32(now-startChannelHeight) / float32(rangeHeight)
 	progress.Progress = p
+	if !dsp.ChannelRunning() && p == 1.0 {
+		progress.Progress = 0.99
+	}
 	log.Debugf("GetFilterBlockProgress start %d, now %d, end %d, progress %v",
 		startChannelHeight, now, endChannelHeight, progress)
 	return progress, nil
@@ -260,9 +271,9 @@ func (this *Endpoint) SwitchPaymentChannel(partnerAddr string) *DspErr {
 	if dsp == nil {
 		return &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
-	chNotExist := dsp.ChannelExist(partnerAddr)
-	if chNotExist {
-		return &DspErr{Code: DSP_CHANNEL_EXIST, Error: ErrMaps[DSP_CHANNEL_EXIST]}
+	exist := dsp.ChannelExist(partnerAddr)
+	if !exist {
+		return &DspErr{Code: DSP_CHANNEL_NOT_EXIST, Error: ErrMaps[DSP_CHANNEL_NOT_EXIST]}
 	}
 
 	if !dsp.IsDnsOnline(partnerAddr) {
@@ -287,9 +298,8 @@ func (this *Endpoint) OpenPaymentChannel(partnerAddr string, amount uint64) (cha
 	if dsp == nil {
 		return 0, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
-
 	channelExist := dsp.ChannelExist(partnerAddr)
-	if !channelExist {
+	if channelExist {
 		return 0, &DspErr{Code: DSP_CHANNEL_EXIST, Error: ErrMaps[DSP_CHANNEL_EXIST]}
 	}
 	balance, err := dsp.BalanceOf(this.getDspWalletAddr())

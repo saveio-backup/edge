@@ -127,6 +127,7 @@ const (
 	DSP_CHANNEL_OPEN_TO_NO_DNS           = 56016
 	DSP_CHANNEL_DNS_OFFLINE              = 56017
 	DSP_CHANNEL_GET_HOSTADDR_ERROR       = 56018
+	DSP_CHANNEL_NOT_EXIST                = 56019
 
 	DSP_TASK_NOT_EXIST = 58000
 
@@ -247,6 +248,7 @@ var ErrMaps = map[int64]error{
 	DSP_CHANNEL_WITHDRAW_WRONG_AMOUNT:    errors.New("dsp channel withdraw wrong amount"),
 	DSP_CHANNEL_SYNCING:                  errors.New("dsp channel syncing"),
 	DSP_CHANNEL_DNS_OFFLINE:              errors.New("dsp channel dns offline"),
+	DSP_CHANNEL_NOT_EXIST:                errors.New("dsp channel not exist"),
 
 	DSP_TASK_NOT_EXIST: errors.New("dsp task not exist"),
 

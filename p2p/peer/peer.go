@@ -737,7 +737,6 @@ func (p *Peer) streamAsyncSendAndWaitAck(msg proto.Message, sessionId, msgId str
 		log.Warnf("msg %s can't be sent, because %s is closed, wait for retry", msgId, p.id)
 	}
 
-	log.Debugf("msg %s has sent", msgId)
 	return wrote, err
 }
 
