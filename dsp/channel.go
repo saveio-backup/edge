@@ -393,6 +393,7 @@ func (this *Endpoint) ClosePaymentChannel(partnerAddr string) *DspErr {
 	if !closeCurDNS {
 		return nil
 	}
+	dsp.ResetDNSNode()
 	channels, _ := this.GetAllChannels()
 	for _, ch := range channels.Channels {
 		if ch.Address == partnerAddr {

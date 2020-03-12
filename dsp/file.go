@@ -1161,7 +1161,6 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint32, 
 		Type:          pType,
 		Transfers:     []*Transfer{},
 	}
-	log.Debugf("pType %v", pType)
 	complete, reverse, includeFailed := false, false, true
 	var infoType store.TaskType
 	switch pType {
@@ -1175,8 +1174,6 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint32, 
 		includeFailed = false
 	}
 	ids := dsp.GetTaskIdList(offset, limit, createdAt, createdAtEnd, updatedAt, updatedAtEnd, infoType, complete, reverse, includeFailed)
-	log.Debugf("ts %v %v %v %v, len %d", createdAt, createdAtEnd, updatedAt, updatedAtEnd, len(ids))
-	// os.Exit(1)
 	infos := make([]*Transfer, 0, len(ids))
 	for idx, key := range ids {
 		info := dsp.GetProgressInfo(key)
