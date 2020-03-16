@@ -77,6 +77,9 @@ func (this *Endpoint) GetCurrentAccount() (*AccountResp, *DspErr) {
 			return nil, &DspErr{Code: WALLET_FILE_NOT_EXIST, Error: err}
 		}
 		data := wallet.GetDefaultAccountMetadata()
+		if data == nil {
+			return nil, &DspErr{Code: WALLET_FILE_NOT_EXIST, Error: err}
+		}
 		return &AccountResp{
 			PublicKey: data.PubKey,
 			Address:   data.Address,

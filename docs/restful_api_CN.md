@@ -13,6 +13,7 @@
 | 40008  | ACCOUNT_EXIST                        | 账号已存在                     |
 | 40009  | NO_DNS                               | 没有连接DNS节点                |
 | 40010  | INVALID_WALLET_ADDRESS               | 钱包地址非法                   |
+| 40011 |  NO_CHANNEL | Channel服务没有实例化 |
 | 50000  | CHAIN_INTERNAL_ERROR                 | 链上内部错误                   |
 | 50001  | CHAIN_GET_HEIGHT_FAILED              | 获取当前高度失败               |
 | 50002  | CHAIN_GET_BLK_BY_HEIGHT_FAILED       | 获取区块失败                   |
@@ -87,6 +88,9 @@
 | 55062  | DSP_USER_SPACE_PERIOD_NOT_ENOUGH     | 用户空间剩余时间不够           |
 | 55063  | DSP_CUSTOM_EXPIRED_NOT_ENOUGH        | 上传设置的存储时间不够         |
 | 55064  | DSP_NO_PRIVILEGE_TO_DOWNLOAD        | 没有权限下载         |
+| 55065  | DSP_DNS_UPDATE_PLUGIN_INFO_FAILED        | 更新插件信息失败         |
+| 55066  | DSP_DNS_QUERY_PLUGIN_INFO_FAILED        |  查询插件信息失败        |
+| 55067  | DSP_DNS_QUERY_ALLPLUGININFOS_FAILED        | 获取所有插件信息失败         |
 | 55100  | DSP_FILE_INFO_NOT_FOUND              | 链上查不到文件信息             |
 | 55101  | DSP_FILE_NOT_EXISTS                  | wenj                           |
 | 55102  | DSP_FILE_DECRYPTED_WRONG_PWD         | 解密密码错误                   |
@@ -107,6 +111,9 @@
 | 56014  | DSP_CHANNEL_WITHDRAW_WRONG_AMOUNT    | 通道提现金额有误               |
 | 56015  | DSP_CHANNEL_SYNCING                  | Channel正在同步区块            |
 | 56016  | DSP_CHANNEL_OPEN_TO_NO_DNS                  | 禁止向非DNS账号开通道            |
+| 56017  | DSP_CHANNEL_DNS_OFFLINE                  | DNS通道不在线            |
+| 56018  | DSP_CHANNEL_GET_HOSTADDR_ERROR                  | 获取通道网络地址失败            |
+| 56019  | DSP_CHANNEL_NOT_EXIST                  |  通道不存在 |
 | 58000  | DSP_TASK_NOT_EXIST                   | 操作的任务不存在               |
 | 59000  | DB_FIND_SHARE_RECORDS_FAILED         | 数据库查询分享收益失败         |
 | 59001  | DB_SUM_SHARE_PROFIT_FAILED           | 数据库统计分享收益失败         |
@@ -189,8 +196,49 @@
 | 50057  | TASK_NOT_EXIST           | 任务已存在                    |
 | 50058  | NO_PRIVILEGE_TO_DOWNLOAD           | 没有权限下载文件                    |
 | 50059  | CHECK_FILE_FAILED           | 检查文件失败                    |
-
-
+| 50060  |  CHECK_FILE_FAILED                                          |  验证文件内容失败 |
+| 50061  |  EXIST_UNPAID_BLOCKS                                        | 存在未支付的数据块 |
+| 50062  |  BLOCK_NOT_FOUND                                            | 文件块不存在 |
+| 50063  |  REFER_ID_NOT_FOUND                                         | 查询不到任务 |
+| 50064  |  GET_TASK_PROPERTY_ERROR                                    | 获取任务信息失败 |
+| 50065  |  ADD_FILE_UNPAID_ERROR                                      | 添加文件未支付信息失败 |
+| 50066  |  MISS_UPLOADED_FILE_TX                                      | 文件缺少链上交易Hash |
+| 50067  |  CHECK_UPLOADED_TX_ERROR                                    | 验证文件交易Hash失败 |
+| 50068  |  NO_PRIVILEGE_TO_UPLOAD                                     | 没有权限上传 |
+| 50069  |  SET_TASK_PROPERTY_ERROR                                    | 更新任务信息失败 |
+| 50070  |  DISPATCH_FILE_ERROR                                        | 分发文件失败 |
+| 50071  |  RECEIVE_ERROR_MSG                                          | 接收到错误的网络消息 |
+| 50072  |  MISSING_FILE_BLOCKS_ROOT                                   | 文件根信息缺少 |
+| 50073  |  GET_HOST_ADDR_ERROR                                        | 获取节点网络信息失败 |
+| 80000  | NETWORK_INTERNAL_ERROR  | 网络模块内部错误 |
+| 80001  | NETWORK_TIMEOUT                       | 网络超时 |
+| 80002  | NETWORK_BROADCAST_ERROR               | 消息广播失败 |
+| 80003  | NETWORK_CONNECT_ERROR                 | 节点连接失败 |
+| 80004  | NETWORK_CLOSE_ERROR                   | 网络关闭失败 |
+| 80005  | NETWORK_REQ_ERROR                     | 发送请求消息失败 |
+| 80006  | NETWORK_SEND_ERROR                    | 发送消息失败 |
+| 90000  | CHANNEL_INTERNAL_ERROR           | CHANNEL内部错误 |
+| 90001  | CHANNEL_START_SERVICE_ERROR                     | CHANNEL启动失败|
+| 90002  | CHANNEL_SYNC_BLOCK_ERROR                        | CHANNEL同步区块失败 |
+| 90003  | CHANNEL_START_INSTANCE_ERROR                    | CHANNEL启动实例失败 |
+| 90004  | CHANNEL_CREATE_DB_ERROR                         | CHANNEL创建数据库失败 |
+| 90005  | CHANNEL_CREATE_ACTOR_ERROR                      | CHANNEL创建Actor失败 |
+| 90006  | CHANNEL_SET_GET_IP_CALLBACK_ERROR               | CHANNEL设置回调函数失败 |
+| 90007  | CHANNEL_SET_DB_ERROR                            | CHANNEL更新数据库信息失败 |
+| 90008  | CHANNEL_GET_DB_ERROR                            | CHANNEL获取数据库信息失败 |
+| 90009  | CHANNEL_SERVICE_NOT_START                       | CHANNEL实例未启动 |
+| 90010  | CHANNEL_OPEN_FAILED                             | CHANNEL开通道失败 |
+| 90011  | CHANNEL_DEPOSIT_FAILED                          | CHANNEL通道充值失败 |
+| 90012  | CHANNEL_CHECK_TIMEOUT                           | CHANNEL检查超时 |
+| 90013  | CHANNEL_MEDIA_TRANSFER_TIMEOUT                  | CHANNEL路由支付失败 |
+| 90014  | CHANNEL_NOT_EXIST                               | CHANNEL不存在此通道 |
+| 100000  | DNS_INTERNAL_ERROR    | DNS模块内部错误 |
+| 100001  | DNS_NO_REGISTER_DNS                   | DNS未注册 |
+| 100002  | DNS_GET_HOSTADDR_ERROR                | 向DNS获取网络信息失败 |
+| 100003  | DNS_REG_ENDPOINT_ERROR                | 向DNS注册节点信息失败 |
+| 100004  | DNS_REQ_TRACKER_ERROR                 | 请求Tracker服务失败 |
+| 100005  | DNS_PUSH_TRACKER_ERROR                | 向DNS提交种子信息失败 |
+| 100006  | DNS_TRACKER_TIMEOUT                    | Tracker请求超时 |
 
 
 

@@ -570,7 +570,7 @@ func (this *Endpoint) CancelUploadFile(taskIds []string, gasLimit uint64) (*File
 		taskResp.FileName = dsp.GetTaskFileName(id)
 		exist := dsp.IsTaskExist(id)
 		if !exist {
-			err := dsp.DeleteTaskIds([]string{id})
+			err := dsp.CleanTasks([]string{id})
 			if err != nil {
 				taskResp.Code = DSP_CANCEL_TASK_FAILED
 				taskResp.Error = err.Error()
@@ -591,7 +591,7 @@ func (this *Endpoint) CancelUploadFile(taskIds []string, gasLimit uint64) (*File
 			return
 		}
 		taskResp.Result = deleteResp
-		err = dsp.DeleteTaskIds([]string{id})
+		err = dsp.CleanTasks([]string{id})
 		if err != nil {
 			taskResp.Code = DSP_CANCEL_TASK_FAILED
 			taskResp.Error = err.Error()
@@ -1038,7 +1038,7 @@ func (this *Endpoint) CancelDownloadFile(taskIds []string) (*FileTaskResp, *DspE
 		}
 		exist := dsp.IsTaskExist(id)
 		if !exist {
-			err := dsp.DeleteTaskIds([]string{id})
+			err := dsp.CleanTasks([]string{id})
 
 			if err != nil {
 				taskResp.Code = DSP_CANCEL_TASK_FAILED
@@ -1052,7 +1052,7 @@ func (this *Endpoint) CancelDownloadFile(taskIds []string) (*FileTaskResp, *DspE
 			taskResp.Code = DSP_CANCEL_TASK_FAILED
 			taskResp.Error = err.Error()
 		}
-		err = dsp.DeleteTaskIds([]string{id})
+		err = dsp.CleanTasks([]string{id})
 		if err != nil {
 			taskResp.Code = DSP_CANCEL_TASK_FAILED
 			taskResp.Error = err.Error()
@@ -1139,7 +1139,7 @@ func (this *Endpoint) DeleteTransferRecord(taskIds []string) (*FileTaskResp, *Ds
 			Id:    id,
 			State: int(store.TaskStateCancel),
 		}
-		err := dsp.DeleteTaskIds([]string{id})
+		err := dsp.HideTaskIds([]string{id})
 		if err != nil {
 			taskResp.Code = DSP_CANCEL_TASK_FAILED
 			taskResp.Error = err.Error()
@@ -1161,7 +1161,7 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint32, 
 		Type:          pType,
 		Transfers:     []*Transfer{},
 	}
-	complete, reverse, includeFailed := false, false, true
+	complete, reverse, includeFailed, ignoreHide := false, false, true, true
 	var infoType store.TaskType
 	switch pType {
 	case transferTypeUploading:
@@ -1173,7 +1173,8 @@ func (this *Endpoint) GetTransferList(pType TransferType, offset, limit uint32, 
 		reverse = true
 		includeFailed = false
 	}
-	ids := dsp.GetTaskIdList(offset, limit, createdAt, createdAtEnd, updatedAt, updatedAtEnd, infoType, complete, reverse, includeFailed)
+	ids := dsp.GetTaskIdList(offset, limit, createdAt, createdAtEnd, updatedAt, updatedAtEnd, infoType,
+		complete, reverse, includeFailed, ignoreHide)
 	infos := make([]*Transfer, 0, len(ids))
 	for idx, key := range ids {
 		info := dsp.GetProgressInfo(key)
