@@ -409,10 +409,13 @@ func DecryptFile(cmd map[string]interface{}) map[string]interface{} {
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
-	err := dsp.DspService.DecryptFile(path, fileName, password)
+	path, err := dsp.DspService.DecryptFile(path, fileName, password)
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
+	m := make(map[string]interface{})
+	m["Path"] = path
+	resp["Result"] = m
 	return resp
 }
 
