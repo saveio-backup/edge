@@ -654,6 +654,9 @@ func (this *Endpoint) DeleteDownloadFile(fileHash string) (*DeleteFileResp, *Dsp
 	if dsp == nil {
 		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
+	defer func() {
+		go this.notifyDownloadingTransferList()
+	}()
 	err := dsp.DeleteDownloadedLocalFile(fileHash)
 	if err != nil {
 		return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: err}
