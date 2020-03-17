@@ -1751,11 +1751,11 @@ func (this *Endpoint) GetDownloadFiles(fileType DspFileListType, offset, limit u
 	if dsp == nil {
 		return nil, 0, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
-	infos, allHashes, err := dsp.AllDownloadFiles()
+	infos, _, err := dsp.AllDownloadFiles()
 	if err != nil {
 		return nil, 0, &DspErr{Code: DB_GET_FILEINFO_FAILED, Error: ErrMaps[DB_GET_FILEINFO_FAILED]}
 	}
-	totalCount := len(allHashes)
+	totalCount := 0
 	offsetCnt := uint64(0)
 	isClient := dsp.IsClient()
 	for _, info := range infos {
@@ -1784,9 +1784,13 @@ func (this *Endpoint) GetDownloadFiles(fileType DspFileListType, offset, limit u
 		}
 		if offsetCnt < offset {
 			offsetCnt++
+			totalCount++
 			continue
 		}
-		offsetCnt++
+		totalCount++
+		if limit > 0 && uint64(len(fileInfos)) >= limit {
+			continue
+		}
 		downloadedCount, _ := dsp.CountRecordByFileHash(file)
 		profit, _ := dsp.SumRecordsProfitByFileHash(file)
 		lastSharedAt, _ := dsp.FindLastShareTime(file)
@@ -1809,9 +1813,6 @@ func (this *Endpoint) GetDownloadFiles(fileType DspFileListType, offset, limit u
 			Privilege:     privilege,
 			RealFileSize:  filePrefix.FileSize,
 		})
-		if uint64(len(fileInfos)) > limit {
-			break
-		}
 	}
 	return fileInfos, totalCount, nil
 }
