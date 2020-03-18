@@ -107,10 +107,12 @@ func (this *Endpoint) GetFilterBlockProgress() (*FilterBlockProgress, *DspErr) {
 	progress.Now = now
 	log.Debugf("endChannelHeight %d, start %d", endChannelHeight, startChannelHeight)
 	if endChannelHeight <= startChannelHeight {
+		progress.Progress = 1.0
 		return progress, nil
 	}
 	rangeHeight := endChannelHeight - startChannelHeight
 	if now >= rangeHeight+startChannelHeight {
+		progress.Progress = 1.0
 		return progress, nil
 	}
 	p := float32(now-startChannelHeight) / float32(rangeHeight)

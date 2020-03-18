@@ -101,6 +101,12 @@ func (this *Endpoint) GetNetworkState() (*NetworkStateResp, *DspErr) {
 	return state, nil
 }
 
+type EndpointState struct {
+	// Modules
+}
+
+// func (this *Endpoint) EndpointState()
+
 func (this *Endpoint) ReconnectChannelPeers(peers []string) []*ReconnectResp {
 	resp := make([]*ReconnectResp, 0, len(peers))
 	for _, p := range peers {
