@@ -98,7 +98,7 @@ func (this *Endpoint) GetFilterBlockProgress() (*FilterBlockProgress, *DspErr) {
 	if endChannelHeight == 0 {
 		return progress, nil
 	}
-	if !dsp.HasChannelInstance() || !dsp.ChannelRunning() {
+	if !dsp.HasChannelInstance() {
 		return nil, &DspErr{Code: NO_CHANNEL, Error: ErrMaps[NO_CHANNEL]}
 	}
 	progress.Start = startChannelHeight

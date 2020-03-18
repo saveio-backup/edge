@@ -73,11 +73,11 @@ func (this *Endpoint) GetNetworkState() (*NetworkStateResp, *DspErr) {
 	if !dsp.HasChannelInstance() {
 		state.DNS.State = networkStateDisable
 	}
-	if dsp.HasDNS() && dsp.ChannelRunning() && dsp.Running() {
+	if dsp.HasDNS() {
 		state.DNS.HostAddr = dsp.CurrentDNSHostAddr()
 		updatedAt, _ := this.channelNet.GetClientTime(dsp.CurrentDNSWallet())
 		state.DNS.UpdatedAt = updatedAt
-		if this.channelNet.IsConnReachable(dsp.CurrentDNSWallet()) {
+		if this.channelNet.IsConnReachable(dsp.CurrentDNSWallet()) && dsp.ChannelRunning() && dsp.Running() {
 			state.DNS.State = networkStateReachable
 		} else {
 			state.DNS.State = networkStateUnReachable
