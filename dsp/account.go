@@ -354,8 +354,9 @@ func (this *Endpoint) Logout() *DspErr {
 		DspService = &Endpoint{}
 		return nil
 	}
+	dsp := this.getDsp()
 	syncing, _ := this.IsChannelProcessBlocks()
-	if syncing {
+	if syncing || (dsp != nil && dsp.HasChannelInstance() && dsp.ChannelFirstSyncing()) {
 		return &DspErr{Code: DSP_CHANNEL_SYNCING, Error: ErrMaps[DSP_CHANNEL_SYNCING]}
 	}
 	if isExists {
