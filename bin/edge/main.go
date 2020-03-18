@@ -150,17 +150,22 @@ func cleanOldestLogs(path string) {
 		}
 		return nil
 	})
+	log.Debugf("size %v, config size %v", size, config.Parameters.BaseConfig.LogMaxSize)
+
 	if size < config.Parameters.BaseConfig.LogMaxSize*1024 {
-		return
+		// return
 	}
+	nowTimestamp := time.Now().Unix()
 	filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
-		if !info.IsDir() && time.Now().Unix() > info.ModTime().Unix() &&
-			time.Now().Unix()-info.ModTime().Unix() > 604800 {
-			log.Debugf("name: %s time: %d", filepath.Join(path, info.Name()), info.ModTime().Unix())
+		log.Debugf("name: %s now %d time: %d", filepath.Join(path, info.Name()), nowTimestamp, info.ModTime().Unix())
+		if !info.IsDir() && nowTimestamp > info.ModTime().Unix() &&
+			nowTimestamp-info.ModTime().Unix() > 604800 {
+			log.Debugf("delete name: %s time: %d", filepath.Join(path, info.Name()), info.ModTime().Unix())
 			os.Remove(filepath.Join(path, info.Name()))
 		}
 		return nil
 	})
+	// os.Exit(1)
 }
 
 func initRest() {
