@@ -1892,6 +1892,21 @@ func (this *Endpoint) SetUserSpace(walletAddr string, size, sizeOpType, blockCou
 	if countOpType == uint64(fs.UserSpaceNone) {
 		blockCount = 0
 	}
+	currentHeight, err := dsp.GetCurrentBlockHeight()
+	if err != nil {
+		return "", &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
+	}
+	oldUserSpace, err := dsp.GetUserSpace(walletAddr)
+	if err != nil {
+		return "", &DspErr{Code: FS_GET_USER_SPACE_FAILED, Error: err}
+	}
+	fsSetting, err := dsp.GetFsSetting()
+	if err != nil {
+		return "", &DspErr{Code: FS_GET_SETTING_FAILED, Error: err}
+	}
+	if countOpType == uint64(fs.UserSpaceRevoke) && (oldUserSpace.ExpireHeight-blockCount < uint64(currentHeight)+fsSetting.MinProveInterval) {
+		return "", &DspErr{Code: FS_USER_SPACE_SECOND_INVALID, Error: err}
+	}
 	blockCount = blockCount / config.BlockTime()
 	tx, err := dsp.UpdateUserSpace(walletAddr, size, sizeOpType, blockCount, countOpType)
 	if err != nil {
