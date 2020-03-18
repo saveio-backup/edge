@@ -23,6 +23,7 @@ import (
 	"github.com/saveio/edge/http/jsonrpc"
 	"github.com/saveio/edge/http/localrpc"
 	"github.com/saveio/edge/http/websocket"
+	edgeUtils "github.com/saveio/edge/utils"
 	"github.com/saveio/themis/common/log"
 	"github.com/saveio/themis/common/password"
 	"github.com/urfave/cli"
@@ -128,7 +129,6 @@ func initLog(ctx *cli.Context) {
 	if len(logPath) == 0 {
 		logPath = fmt.Sprintf("./Log_%s", time.Now().Format("2006-01-02"))
 	}
-
 	extra := ""
 	logFullPath := filepath.Join(baseDir, logPath) + extra + "/"
 	_, err := log.FileOpen(logFullPath)
@@ -139,33 +139,7 @@ func initLog(ctx *cli.Context) {
 	log.InitLog(logLevel, logFullPath, log.Stdout)
 	log.SetProcName("saveio")
 	log.Infof("start logging at %s", logFullPath)
-	go cleanOldestLogs(logFullPath)
-}
-
-func cleanOldestLogs(path string) {
-	var size uint64
-	filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
-		if !info.IsDir() {
-			size += uint64(info.Size())
-		}
-		return nil
-	})
-	log.Debugf("size %v, config size %v", size, config.Parameters.BaseConfig.LogMaxSize)
-
-	if size < config.Parameters.BaseConfig.LogMaxSize*1024 {
-		// return
-	}
-	nowTimestamp := time.Now().Unix()
-	filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
-		log.Debugf("name: %s now %d time: %d", filepath.Join(path, info.Name()), nowTimestamp, info.ModTime().Unix())
-		if !info.IsDir() && nowTimestamp > info.ModTime().Unix() &&
-			nowTimestamp-info.ModTime().Unix() > 604800 {
-			log.Debugf("delete name: %s time: %d", filepath.Join(path, info.Name()), info.ModTime().Unix())
-			os.Remove(filepath.Join(path, info.Name()))
-		}
-		return nil
-	})
-	// os.Exit(1)
+	go edgeUtils.CleanOldestLogs(logFullPath, config.Parameters.BaseConfig.LogMaxSize)
 }
 
 func initRest() {

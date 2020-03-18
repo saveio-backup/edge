@@ -9,10 +9,15 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"os"
+	"path/filepath"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/saveio/themis/common/log"
 	"github.com/urfave/cli"
 )
 
@@ -65,4 +70,52 @@ func StringToUint64(value interface{}) uint64 {
 		return 0
 	}
 	return intVal
+}
+
+type FileInfos []os.FileInfo
+
+func (s FileInfos) Len() int {
+	return len(s)
+}
+
+func (s FileInfos) Less(i, j int) bool {
+	return s[i].ModTime().Unix() < s[j].ModTime().Unix()
+}
+
+func (s FileInfos) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+func CleanOldestLogs(path string, maxSizeInKB uint64) {
+	var size uint64
+	filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
+		if !info.IsDir() {
+			size += uint64(info.Size())
+		}
+		return nil
+	})
+	log.Debugf("size %v, config size %v", size, maxSizeInKB)
+
+	if size < maxSizeInKB*1024 {
+		// return
+	}
+	nowTimestamp := time.Now().Unix()
+
+	fis := make(FileInfos, 0)
+	filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
+		log.Debugf("name: %s now %d time: %d", filepath.Join(path, info.Name()), nowTimestamp, info.ModTime().Unix())
+		if !info.IsDir() && nowTimestamp > info.ModTime().Unix() {
+			fis = append(fis, info)
+		}
+		return nil
+	})
+	sort.Sort(fis)
+	for _, info := range fis {
+		log.Debugf("delete name: %s time: %d", filepath.Join(path, info.Name()), info.ModTime().Unix())
+		os.Remove(filepath.Join(path, info.Name()))
+		size -= uint64(info.Size())
+		if size < maxSizeInKB*1024 {
+			break
+		}
+	}
 }
