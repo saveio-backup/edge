@@ -94,10 +94,9 @@ func CleanOldestLogs(path string, maxSizeInKB uint64) {
 		}
 		return nil
 	})
-	log.Debugf("size %v, config size %v", size, maxSizeInKB)
-
 	if size < maxSizeInKB*1024 {
-		// return
+		log.Debugf("skip remove oldest logs, size %v, config size %v", size, maxSizeInKB)
+		return
 	}
 	nowTimestamp := time.Now().Unix()
 
