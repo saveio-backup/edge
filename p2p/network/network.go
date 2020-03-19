@@ -197,7 +197,9 @@ func (this *Network) Start(protocol, addr, port string) error {
 	}
 	this.P2p.SetNetworkID(this.networkId)
 	go this.P2p.Listen()
+	log.Debugf("p2p start blocking... %s", addr)
 	this.P2p.BlockUntilListening()
+	log.Debugf("p2p start done")
 	err = this.startProxy(builder)
 	if err != nil {
 		log.Errorf("start proxy failed, err: %s", err)

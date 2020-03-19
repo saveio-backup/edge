@@ -1589,7 +1589,7 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit, cr
 					delete(primaryNodeM, detail.WalletAddr)
 				}
 			} else {
-				log.Errorf("get prove %s detail failed err %s", fileHashStr, err)
+				// log.Errorf("get prove %s detail failed err %s", fileHashStr, err)
 			}
 			if filterType == UploadFileFilterTypeDoing && len(primaryNodeM) == 0 {
 				continue
@@ -1907,7 +1907,7 @@ func (this *Endpoint) SetUserSpace(walletAddr string, size, sizeOpType, blockCou
 			return "", &DspErr{Code: FS_GET_SETTING_FAILED, Error: err}
 		}
 		if oldUserSpace.ExpireHeight-blockCount < uint64(currentHeight)+fsSetting.MinProveInterval {
-			return "", &DspErr{Code: FS_USER_SPACE_SECOND_INVALID, Error: err}
+			return "", &DspErr{Code: FS_USER_SPACE_SECOND_INVALID, Error: ErrMaps[FS_USER_SPACE_SECOND_INVALID]}
 		}
 	}
 	tx, err := dsp.UpdateUserSpace(walletAddr, size, sizeOpType, blockCount, countOpType)

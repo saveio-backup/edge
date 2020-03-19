@@ -258,6 +258,7 @@ var ErrMaps = map[int64]error{
 	DB_FIND_USER_SPACE_RECORD_FAILED: errors.New("db find user space record failed"),
 	DB_ADD_USER_SPACE_RECORD_FAILED:  errors.New("db add user space record failed"),
 	DB_GET_FILEINFO_FAILED:           errors.New("db get fileinfo failed"),
+	FS_USER_SPACE_SECOND_INVALID:     errors.New("fs user space second invalid"),
 
 	NET_RECONNECT_PEER_FAILED:  errors.New("net reconnect peer failed"),
 	NET_PROXY_DISCONNECTED:     errors.New("proxy has disconnted"),
