@@ -582,6 +582,16 @@ func GetNetworkState(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
+func GetModuleState(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	ret, derr := dsp.DspService.GetModuleState()
+	if derr != nil {
+		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
+	}
+	resp["Result"] = ret
+	return resp
+}
+
 func GetChainId(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	m := make(map[string]interface{}, 0)

@@ -160,6 +160,7 @@ const (
 	DNS_DELETE_URL            = "/api/v1/dns/url/delete"
 
 	NETWORK_STATE           = "/api/v1/network/state"
+	MODULE_STATE            = "/api/v1/module/state"
 	RECONNECT_CHANNEL_PEERS = "/api/v1/network/channel/reconnect"
 
 	GOROUTINE_LIST = "/api/v1/goroutine"
@@ -295,6 +296,7 @@ func (this *restServer) registryMethod() {
 		GOROUTINE_LIST:       {name: "getgoroutine", handler: nil},
 
 		DNS_QUERY_HASH: {name: "getfilehashbyurl", handler: GetHashFromUrl},
+		MODULE_STATE:   {name: "getmodulestate", handler: GetModuleState},
 	}
 	this.getMap = getMethodMap
 

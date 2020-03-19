@@ -101,11 +101,13 @@ func (this *Endpoint) GetNetworkState() (*NetworkStateResp, *DspErr) {
 	return state, nil
 }
 
-type EndpointState struct {
-	// Modules
+func (this *Endpoint) GetModuleState() (interface{}, *DspErr) {
+	dsp := this.getDsp()
+	if dsp == nil {
+		return "", &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+	return dsp.GetModuleState(), nil
 }
-
-// func (this *Endpoint) EndpointState()
 
 func (this *Endpoint) ReconnectChannelPeers(peers []string) []*ReconnectResp {
 	resp := make([]*ReconnectResp, 0, len(peers))
