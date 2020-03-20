@@ -177,6 +177,7 @@ func (this *Endpoint) notifyNewNetworkState() {
 	}
 	this.eventHub.netstate = state.String()
 	client.EventNotifyNetworkState()
+	client.EventNotifyModuleState()
 	client.EventNotifyChannels()
 }
 

@@ -95,6 +95,12 @@ func (self *WsServer) PushNetworkState() {
 	self.Broadcast(WS_TOPIC_EVENT, resp)
 }
 
+func (self *WsServer) PushModuleState() {
+	resp := rest.GetModuleState(nil)
+	resp["Action"] = "modulestate"
+	self.Broadcast(WS_TOPIC_EVENT, resp)
+}
+
 // PushChannelSyncing. push channel syncing state when block need to synced
 func (self *WsServer) PushChannelSyncing() {
 	resp := rest.IsChannelSyncing(nil)

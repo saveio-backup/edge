@@ -120,6 +120,11 @@ func (this *EventActorServer) Receive(ctx actor.Context) {
 			websocket.Server().PushNetworkState()
 			msg.Response <- &edgeCli.NotifyResp{}
 		}()
+	case *edgeCli.NotifyModuleState:
+		go func() {
+			websocket.Server().PushModuleState()
+			msg.Response <- &edgeCli.NotifyResp{}
+		}()
 	default:
 		log.Errorf("[P2PActor] receive unknown message type! %v", msg)
 	}

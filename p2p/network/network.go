@@ -178,7 +178,7 @@ func (this *Network) Start(protocol, addr, port string) error {
 	for k, v := range this.opCodes {
 		err := opcode.RegisterMessageType(k, v)
 		if err != nil {
-			log.Errorf("register messages failed %v, %s", k, err)
+			log.Warnf("register messages failed %v, %s", k, err)
 		} else {
 			log.Debugf("register msg %v success", k)
 		}

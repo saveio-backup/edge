@@ -71,6 +71,10 @@ type NotifyNetworkState struct {
 	Response chan *NotifyResp
 }
 
+type NotifyModuleState struct {
+	Response chan *NotifyResp
+}
+
 type NotifyResp struct {
 	Error error
 }
@@ -279,6 +283,24 @@ func EventNotifyNetworkState() error {
 		return fmt.Errorf("event server has not instance")
 	}
 	req := &NotifyNetworkState{
+		Response: make(chan *NotifyResp, 1),
+	}
+	f := utils.TimeoutFunc(func() error {
+		EventServerPid.Tell(req)
+		resp := <-req.Response
+		if resp != nil {
+			return resp.Error
+		}
+		return nil
+	})
+	return utils.DoWithTimeout(f, time.Duration(common.EVENT_ACTOR_TIMEOUT)*time.Second)
+}
+
+func EventNotifyModuleState() error {
+	if EventServerPid == nil {
+		return fmt.Errorf("event server has not instance")
+	}
+	req := &NotifyModuleState{
 		Response: make(chan *NotifyResp, 1),
 	}
 	f := utils.TimeoutFunc(func() error {
