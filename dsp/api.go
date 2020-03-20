@@ -220,7 +220,11 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 
 // Stop. stop endpoint instance
 func (this *Endpoint) Stop() error {
-	log.Debugf("stop endpoint...")
+	dsp := this.getDsp()
+	if dsp.GetTaskMgr() != nil && dsp.GetTaskMgr().HasRunningTask() {
+		log.Warnf("exist running task, cant stop")
+		return fmt.Errorf("exist running task, cant stop")
+	}
 	if err := this.state.Stop(); err != nil {
 		return err
 	}
