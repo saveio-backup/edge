@@ -378,6 +378,9 @@ func (this *Endpoint) ClosePaymentChannel(partnerAddr string) *DspErr {
 	if err != nil {
 		return &DspErr{Code: INVALID_WALLET_ADDRESS, Error: err}
 	}
+	if dsp.GetTaskMgr() != nil && dsp.GetTaskMgr().HasRunningDownloadTask() {
+		return &DspErr{Code: DSP_EXIST_ACTIVE_DOWNLOAD_TASK, Error: ErrMaps[DSP_EXIST_ACTIVE_DOWNLOAD_TASK]}
+	}
 	closeCurDNS := dsp.CurrentDNSWallet() == partnerAddr
 	if err := dsp.ChannelClose(partnerAddr); err != nil {
 		return &DspErr{Code: DSP_CHANNEL_CLOSE_FAILED, Error: err}

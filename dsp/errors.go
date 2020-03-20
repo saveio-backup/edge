@@ -104,6 +104,7 @@ const (
 	DSP_DNS_UPDATE_PLUGIN_INFO_FAILED   = 55065
 	DSP_DNS_QUERY_PLUGIN_INFO_FAILED    = 55066
 	DSP_DNS_QUERY_ALLPLUGININFOS_FAILED = 55067
+	DSP_EXIST_ACTIVE_DOWNLOAD_TASK      = 55068
 
 	DSP_FILE_INFO_NOT_FOUND      = 55100
 	DSP_FILE_NOT_EXISTS          = 55101
@@ -250,6 +251,7 @@ var ErrMaps = map[int64]error{
 	DSP_CHANNEL_SYNCING:                  errors.New("dsp channel syncing"),
 	DSP_CHANNEL_DNS_OFFLINE:              errors.New("dsp channel dns offline"),
 	DSP_CHANNEL_NOT_EXIST:                errors.New("dsp channel not exist"),
+	DSP_EXIST_ACTIVE_DOWNLOAD_TASK:       errors.New("dsp exist active task"),
 
 	DSP_TASK_NOT_EXIST: errors.New("dsp task not exist"),
 
