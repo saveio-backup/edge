@@ -184,6 +184,8 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		go func() {
 			if err = endpoint.startDspService(listenHost); err != nil {
 				log.Errorf("start dsp err %s", err)
+			} else {
+				endpoint.notifyWhenStartup()
 			}
 		}()
 	}
@@ -213,7 +215,6 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 	log.Infof("pylons version: %s", pylons.Version)
 	log.Infof("max version: %s", max.Version)
 	log.Infof("carrier version: %s", carNet.Version)
-	go endpoint.notifyWhenStartup()
 	return nil
 }
 

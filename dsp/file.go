@@ -642,7 +642,6 @@ func (this *Endpoint) DeleteUploadFile(fileHash string, gasLimit uint64) (*Delet
 		resp.Tx = deleteResp.Tx
 		resp.FileHash = deleteResp.FileHash
 		resp.FileName = deleteResp.FileName
-		resp.Nodes = deleteResp.Nodes
 		return resp, nil
 	}
 	log.Debugf("fi :%v, err :%v", fi, err)
@@ -708,7 +707,6 @@ func (this *Endpoint) DeleteUploadFiles(fileHashes []string, gasLimit uint64) ([
 		resp.Tx = r.Tx
 		resp.FileHash = r.FileHash
 		resp.FileName = r.FileName
-		resp.Nodes = r.Nodes
 		resps = append(resps, resp)
 	}
 	return resps, nil
@@ -2240,8 +2238,9 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 		if len(pInfo.Nodes) > 0 && pInfo.FileSize > 0 {
 			pInfo.Progress = (float64(pInfo.UploadSize) / float64(pInfo.FileSize))
 		}
-		if pInfo.Progress == 1 && info.Result != nil {
-			log.Warnf("info error msg of a success uploaded task %s", info.ErrorMsg)
+		if pInfo.Progress == 1 && info.Result != nil && info.ErrorCode == 0 {
+			log.Warnf("info error msg of a success uploaded task %s, pInfo.UploadSize %d, file size %d",
+				info.ErrorMsg, pInfo.UploadSize, pInfo.FileSize)
 			return nil
 		}
 		log.Debugf("info.total %d, sum :%d, info.result : %v, errormsg: %v, progress: %v",
