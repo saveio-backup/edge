@@ -374,9 +374,12 @@ func (this *Endpoint) ClosePaymentChannel(partnerAddr string) *DspErr {
 	if dsp == nil {
 		return &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
-	closeCurDNS := dsp.CurrentDNSWallet() == partnerAddr
-	err := dsp.ChannelClose(partnerAddr)
+	_, err := chainCom.AddressFromBase58(partnerAddr)
 	if err != nil {
+		return &DspErr{Code: INVALID_WALLET_ADDRESS, Error: err}
+	}
+	closeCurDNS := dsp.CurrentDNSWallet() == partnerAddr
+	if err := dsp.ChannelClose(partnerAddr); err != nil {
 		return &DspErr{Code: DSP_CHANNEL_CLOSE_FAILED, Error: err}
 	}
 	if !closeCurDNS {
