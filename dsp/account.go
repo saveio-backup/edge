@@ -195,6 +195,11 @@ func (this *Endpoint) ImportWithPrivateKey(wif, label, password string) (*Accoun
 	if err != nil {
 		return nil, &DspErr{Code: ACCOUNT_PASSWORD_WRONG, Error: err}
 	}
+	if common.FileExisted(config.WalletDatFilePath()) {
+		if err := os.RemoveAll(config.WalletDatFilePath()); err != nil {
+			return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
+		}
+	}
 	wallet, err := account.Open(config.WalletDatFilePath())
 	if err != nil {
 		return nil, &DspErr{Code: ACCOUNT_PASSWORD_WRONG, Error: err}
