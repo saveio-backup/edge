@@ -18,6 +18,7 @@ func (self *WsServer) PushToNewSubscriber() {
 	self.PushBalance()
 	self.PushRevenue()
 	self.PushNetworkState()
+	self.PushModuleState()
 	self.PushChannelSyncing()
 	self.PushChannelInitProgress()
 	self.PushCurrentChannel()
