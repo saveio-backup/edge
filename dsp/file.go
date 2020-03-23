@@ -1290,7 +1290,7 @@ func (this *Endpoint) CalculateUploadFee(filePath string, durationVal, intervalV
 	}
 	opt := &fs.UploadOption{
 		FileDesc:        []byte{},
-		FileSize:        uint64(fileStat.Size()),
+		FileSize:        uint64(fileStat.Size() / 1024),
 		ProveInterval:   uint64(interval),
 		CopyNum:         uint64(copyNum),
 		StorageType:     uint64(sType),
@@ -1564,7 +1564,7 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit, cr
 			nodesDetail := make([]NodeProveDetail, 0, info.CopyNum+1)
 			fileHasUploaded := false
 			if proveDetail != nil && err == nil {
-				log.Debugf("proveDetail %v, proveDetail.details %v", proveDetail, len(proveDetail.ProveDetails))
+				// log.Debugf("proveDetail %v, proveDetail.details %v", proveDetail, len(proveDetail.ProveDetails))
 				for _, detail := range proveDetail.ProveDetails {
 					nodeState := 2
 					if detail.ProveTimes > 0 {
