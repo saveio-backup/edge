@@ -89,6 +89,9 @@ func (this *Endpoint) SetConfigs(fields map[string]interface{}) (*ConfigResponse
 				log.Debugf("unsupport type %s %T", key, value)
 				continue
 			}
+			oldPath := config.Parameters.FsConfig.FsFileRoot
+			config.Parameters.FsConfig.FsFileRoot = newPath
+			newResp.DownloadPath = newPath
 			if this == nil {
 				continue
 			}
@@ -96,16 +99,11 @@ func (this *Endpoint) SetConfigs(fields map[string]interface{}) (*ConfigResponse
 			if dsp == nil {
 				continue
 			}
-			oldPath := config.Parameters.FsConfig.FsFileRoot
-			config.Parameters.FsConfig.FsFileRoot = newPath
 			if err := dsp.UpdateConfig("FsFileRoot", config.FsFileRootPath()); err != nil {
 				log.Errorf("update config err %s", err)
 				config.Parameters.FsConfig.FsFileRoot = oldPath
 				newResp.DownloadPath = oldPath
-			} else {
-				newResp.DownloadPath = newPath
 			}
-			newResp.DownloadPath = newPath
 		case "LogMaxSize":
 			newLogSize, ok := value.(float64)
 			if !ok {
