@@ -182,10 +182,76 @@ func TestConfig() *EdgeConfig {
 	}
 }
 
+func LocalConfig() *EdgeConfig {
+	curPath, _ := filepath.Abs(".")
+	return &EdgeConfig{
+		BaseConfig: BaseConfig{
+			BaseDir:             curPath,
+			LogPath:             "./Log",
+			ChainId:             "0",
+			BlockTime:           5,
+			NetworkId:           1567481545,
+			PublicIP:            "",
+			PortBase:            10000,
+			LogLevel:            1,
+			LocalRpcPortOffset:  338,
+			EnableLocalRpc:      false,
+			JsonRpcPortOffset:   336,
+			EnableJsonRpc:       true,
+			HttpRestPortOffset:  335,
+			HttpCertPath:        "",
+			HttpKeyPath:         "",
+			RestEnable:          true,
+			ChannelPortOffset:   3100,
+			ChannelProtocol:     "tcp",
+			DBPath:              "./DB",
+			ChainRestAddrs:      []string{"http://127.0.0.1:20334"},
+			ChainRpcAddrs:       []string{"http://127.0.0.1:20336"},
+			NATProxyServerAddrs: "tcp://127.0.0.1:6007",
+			DspProtocol:         "tcp",
+			DspPortOffset:       4100,
+			TrackerNetworkId:    1567481545,
+			TrackerProtocol:     "tcp",
+			TrackerPortOffset:   337,
+			WalletDir:           "./wallet.dat",
+		},
+		DspConfig: DspConfig{
+			BlockDelay:           "3",
+			BlockConfirm:         2,
+			ChannelClientType:    "rpc",
+			ChannelRevealTimeout: "20",
+			ChannelSettleTimeout: "50",
+			MaxUnpaidPayment:     5,
+			AutoSetupDNSEnable:   false,
+			DnsNodeMaxNum:        100,
+			DnsChannelDeposit:    0,
+			DNSWalletAddrs:       nil,
+			HealthCheckDNS:       true,
+			SeedInterval:         600,
+			Trackers:             nil,
+			MaxUploadTask:        1000,
+			MaxDownloadTask:      1000,
+			MaxShareTask:         1000,
+		},
+		FsConfig: FsConfig{
+			FsRepoRoot:   "./FS",
+			FsFileRoot:   "./Downloads",
+			FsType:       0,
+			EnableBackup: true,
+			FsGCPeriod:   "24h",
+			FsMaxStorage: "1T",
+		},
+	}
+}
+
 //current testnet config config
 var Parameters = DefaultConfig()
 var configDir string
 var curUsrWalAddr string
+
+func UserLocalCfg() {
+	Parameters = LocalConfig()
+}
 
 func setConfigByCommandParams(dspConfig *EdgeConfig, ctx *cli.Context) {
 	///////////////////// protocol setting ///////////////////////////

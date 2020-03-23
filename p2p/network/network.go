@@ -188,12 +188,7 @@ func (this *Network) Start(protocol, addr, port string) error {
 	this.P2p.SetCompressFileSize(common.COMPRESS_DATA_SIZE)
 	if len(this.proxyAddrs) > 0 {
 		log.Debugf("set proxy mode %v", this.proxyAddrs)
-		this.P2p.EnableProxyMode(true)
-		this.P2p.SetProxyServer([]network.ProxyServer{
-			network.ProxyServer{
-				IP: this.proxyAddrs[0],
-			},
-		})
+		this.setupProxy()
 	}
 	this.P2p.SetNetworkID(this.networkId)
 	go this.P2p.Listen()
@@ -1006,21 +1001,34 @@ func (this *Network) restartKeepAlive() {
 	// ka.Startup(this.P2p)
 }
 
+func (this *Network) setupProxy() {
+	if len(this.proxyAddrs) == 0 {
+		return
+	}
+	proxies := make([]network.ProxyServer, 0, len(this.proxyAddrs))
+	for _, proxyAddr := range this.proxyAddrs {
+		if len(proxyAddr) == 0 {
+			continue
+		}
+		log.Debugf("set proxy %s", proxyAddr)
+
+		proxies = append(proxies, network.ProxyServer{
+			IP: proxyAddr,
+		})
+
+	}
+	if len(proxies) == 0 {
+		return
+	}
+	this.P2p.EnableProxyMode(true)
+	this.P2p.SetProxyServer(proxies)
+}
+
 // startProxy. start proxy service
 func (this *Network) startProxy(builder *network.Builder) error {
 	var err error
 	log.Debugf("NATProxyServerAddrs :%v", this.proxyAddrs)
 	for _, proxyAddr := range this.proxyAddrs {
-		if len(proxyAddr) == 0 {
-			continue
-		}
-		log.Debugf("set proxy mode")
-		this.P2p.EnableProxyMode(true)
-		this.P2p.SetProxyServer([]network.ProxyServer{
-			network.ProxyServer{
-				IP: proxyAddr,
-			},
-		})
 		protocol := getProtocolFromAddr(proxyAddr)
 		log.Debugf("start proxy will blocking...%s %s, networkId: %d",
 			protocol, proxyAddr, this.networkId)

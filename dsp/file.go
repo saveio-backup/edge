@@ -821,7 +821,7 @@ func (this *Endpoint) DownloadFile(taskId, fileHash, url, linkStr, password stri
 			}()
 			err := dsp.DownloadFileByUrl(taskId, url, dspCom.ASSET_USDT, inOrder, password, false, setFileName, int(max))
 			if err != nil {
-				log.Errorf("Downloadfile from url failed %s", err)
+				log.Errorf("download task %s from url failed %s", taskId, err)
 			}
 		}()
 		return nil
@@ -1078,9 +1078,11 @@ func (this *Endpoint) RegisterProgressCh() {
 		case v, ok := <-dsp.ProgressChannel():
 			// TODO: replace with list
 			if v.ProgressState == task.TaskCreate && v.Type == store.TaskTypeUpload {
+				log.Debugf("notify new upload task %s", v.TaskId)
 				go this.notifyNewTransferTask(transferTypeUploading, v.TaskId)
 			}
 			if v.ProgressState == task.TaskCreate && v.Type == store.TaskTypeDownload {
+				log.Debugf("notify new download task %s", v.TaskId)
 				go this.notifyNewTransferTask(transferTypeDownloading, v.TaskId)
 			}
 			if !ok {
