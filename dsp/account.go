@@ -270,11 +270,22 @@ func (this *Endpoint) ImportWithWalletData(walletStr, password, walletPath strin
 		Label:     accData.Label,
 	}
 	if len(walletPath) > 0 {
-		relPath, err := filepath.Rel(config.Parameters.BaseConfig.BaseDir, walletPath)
-		if err != nil {
-			return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
+		if common.IsAbsPath(walletPath) {
+			log.Debugf("is abs path %v", walletPath)
+			config.Parameters.BaseConfig.WalletDir = walletPath
+		} else {
+			base, err := filepath.Abs(".")
+			if err != nil {
+				return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
+			}
+			fullPath := filepath.Join(base, walletPath)
+			relPath, err := filepath.Rel(config.Parameters.BaseConfig.BaseDir, fullPath)
+			log.Debugf("not abs path %v, base %v, rel %v", walletPath, base, relPath)
+			if err != nil {
+				return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
+			}
+			config.Parameters.BaseConfig.WalletDir = relPath
 		}
-		config.Parameters.BaseConfig.WalletDir = relPath
 	}
 	config.Save()
 	if len(walletPath) == 0 {

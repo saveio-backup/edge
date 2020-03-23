@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
+	"strings"
 )
 
 // FileExisted checks whether filename exists in filesystem
@@ -26,4 +28,9 @@ func GetJsonObjectFromFile(filePath string, jsonObject interface{}) error {
 		return fmt.Errorf("json.Unmarshal %s error:%s", data, err)
 	}
 	return nil
+}
+
+// IsAbsPath. check if the file path is a absolute path
+func IsAbsPath(filePath string) bool {
+	return path.IsAbs(filePath) || path.IsAbs(strings.Replace(filePath, "\\", "/", -1))
 }

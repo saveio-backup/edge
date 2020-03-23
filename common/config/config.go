@@ -420,6 +420,9 @@ func BlockTime() uint64 {
 
 // WalletDatFilePath. wallet.dat file path
 func WalletDatFilePath() string {
+	if common.IsAbsPath(Parameters.BaseConfig.WalletDir) {
+		return Parameters.BaseConfig.WalletDir
+	}
 	return filepath.Join(Parameters.BaseConfig.BaseDir, Parameters.BaseConfig.WalletDir)
 }
 
