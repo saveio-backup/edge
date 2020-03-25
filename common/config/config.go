@@ -60,6 +60,8 @@ type BaseConfig struct {
 	TrackerProtocol   string `json:"TrackerProtocol"`
 	TrackerPortOffset int    `json:"TrackerPortOffset"`
 
+	ProfilePortOffset int `json:"ProfilePortOffset"`
+
 	WalletDir string `json:"WalletDir"`
 }
 
@@ -360,6 +362,9 @@ func SetDefaultFieldForConfig(cfg *EdgeConfig) {
 	}
 	if cfg.DspConfig.MaxShareTask == 0 {
 		cfg.DspConfig.MaxShareTask = common.DEFAULT_MAX_SHARE_TASK_NUM
+	}
+	if cfg.BaseConfig.ProfilePortOffset == 0 {
+		cfg.BaseConfig.ProfilePortOffset = 332
 	}
 }
 

@@ -206,6 +206,12 @@ func (this *restServer) Start() error {
 	this.server = &http.Server{Handler: this.router}
 	err := this.server.Serve(this.listener)
 
+	// r.HandleFunc("/debug/pprof/", pprof.Index)
+	// r.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	// r.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	// r.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	// r.HandleFunc("/debug/pprof/trace", pprof.Trace)
+
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err.Error())
 		return err

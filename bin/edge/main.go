@@ -70,7 +70,7 @@ func main() {
 
 func dspInit(ctx *cli.Context) {
 	if ctx.Bool(flags.GetFlagName(flags.ProfileFlag)) {
-		go dumpMemory()
+		go edgeUtils.UseHttpProfile()
 	}
 	launchManual := ctx.Bool(flags.GetFlagName(flags.LaunchManualFlag))
 
@@ -167,16 +167,16 @@ func initJsonRpc() {
 }
 
 func waitToExit(ctx *cli.Context) {
-	var f os.File
-	if ctx.Bool(flags.GetFlagName(flags.ProfileFlag)) {
-		os.MkdirAll(filepath.Join(filepath.Base("."), "profile"), 0755)
-		filename := fmt.Sprintf("./profile/CPU.prof.%d", time.Now().Unix())
-		f, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0666)
-		if err != nil {
-			os.Exit(1)
-		}
-		pprof.StartCPUProfile(f)
-	}
+	// var f os.File
+	// if ctx.Bool(flags.GetFlagName(flags.ProfileFlag)) {
+	// 	os.MkdirAll(filepath.Join(filepath.Base("."), "profile"), 0755)
+	// 	filename := fmt.Sprintf("./profile/CPU.prof.%d", time.Now().Unix())
+	// 	f, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0666)
+	// 	if err != nil {
+	// 		os.Exit(1)
+	// 	}
+	// 	pprof.StartCPUProfile(f)
+	// }
 
 	exit := make(chan bool, 0)
 	sc := make(chan os.Signal, 1)
@@ -189,10 +189,10 @@ func waitToExit(ctx *cli.Context) {
 		}
 	}()
 	<-exit
-	if ctx.Bool(flags.GetFlagName(flags.ProfileFlag)) {
-		pprof.StopCPUProfile()
-		f.Close()
-	}
+	// if ctx.Bool(flags.GetFlagName(flags.ProfileFlag)) {
+	// 	pprof.StopCPUProfile()
+	// 	f.Close()
+	// }
 }
 
 func initLocalRpc() error {
@@ -221,6 +221,7 @@ func initLocalRpc() error {
 }
 
 func dumpMemory() {
+
 	os.MkdirAll(filepath.Join(filepath.Base("."), "profile"), 0755)
 	for {
 		filename := fmt.Sprintf("./profile/Heap.prof.%d", time.Now().Unix())
