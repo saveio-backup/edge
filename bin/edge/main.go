@@ -229,7 +229,7 @@ func dumpMemory() {
 			os.Exit(1)
 		}
 		log.Info("Heap Profile %s generated", filename)
-		time.Sleep(3 * time.Second)
+		time.Sleep(60 * time.Second)
 		pprof.WriteHeapProfile(f)
 		f.Close()
 	}
