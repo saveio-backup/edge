@@ -356,7 +356,7 @@ func (this *Network) WaitForConnected(walletAddr string, timeout time.Duration) 
 		}
 		<-time.After(interval)
 	}
-	return fmt.Errorf("wait for connecting %s timeout", peerId)
+	return fmt.Errorf("wait for connecting %s timeout", walletAddr)
 }
 
 func (this *Network) HealthCheckPeer(walletAddr string) error {
