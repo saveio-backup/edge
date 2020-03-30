@@ -28,6 +28,7 @@ import (
 	"github.com/saveio/edge/p2p/actor/req"
 	p2p_actor "github.com/saveio/edge/p2p/actor/server"
 	"github.com/saveio/edge/p2p/network"
+	edgeUtils "github.com/saveio/edge/utils"
 	"github.com/saveio/max/max"
 	"github.com/saveio/pylons"
 	"github.com/saveio/pylons/actor/msg_opcode"
@@ -550,6 +551,7 @@ func (this *Endpoint) initLog() {
 	log.Debugf("log new path %s", logFullPath)
 	log.InitLog(int(config.Parameters.BaseConfig.LogLevel), logFullPath, log.Stdout)
 	log.SetProcName("saveio")
+	go edgeUtils.CleanOldestLogs(logFullPath, config.Parameters.BaseConfig.LogMaxSize)
 }
 
 func (this *Endpoint) checkOnlineDNS() {
