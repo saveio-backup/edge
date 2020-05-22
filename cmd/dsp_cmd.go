@@ -9,7 +9,9 @@ import (
 	"github.com/saveio/edge/cmd/flags"
 	"github.com/saveio/edge/cmd/utils"
 	"github.com/saveio/edge/common/config"
+	eUtils "github.com/saveio/edge/utils"
 	"github.com/saveio/themis/common/log"
+	"github.com/saveio/themis/common/password"
 
 	"github.com/urfave/cli"
 )
@@ -143,18 +145,25 @@ func fileDownload(ctx *cli.Context) error {
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
+	pwd, err := password.GetPassword()
+	if err != nil {
+		return err
+	}
+	pwdHash := eUtils.Sha256HexStr(string(pwd))
+	if len(pwdHash) == 0 {
+	}
 	fileHash := ctx.String(flags.GetFlagName(flags.DspFileHashFlag))
 	url := ctx.String(flags.GetFlagName(flags.DspFileUrlFlag))
 	link := ctx.String(flags.GetFlagName(flags.DspFileLinkFlag))
 	password := ctx.String(flags.GetFlagName(flags.DspDecryptPwdFlag))
 	maxPeerNum := ctx.Uint64(flags.GetFlagName(flags.DspMaxPeerCntFlag))
 	setFileName := ctx.Bool(flags.GetFlagName(flags.DspSetFileNameFlag))
-	_, err := utils.DownloadFile(fileHash, url, link, password, maxPeerNum, setFileName)
+	_, err = utils.DownloadFile(fileHash, url, link, password, maxPeerNum, setFileName)
 	if err != nil {
 		PrintErrorMsg("download file err %s", err)
 		return err
 	}
-	PrintInfoMsg("download file succes. use <list> to show transfer list")
+	PrintInfoMsg("download file success. use <transferlist> to show transfer list")
 	return nil
 }
 
@@ -165,6 +174,11 @@ func fileUpload(ctx *cli.Context) error {
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
+	pwd, err := password.GetPassword()
+	if err != nil {
+		return err
+	}
+	pwdHash := eUtils.Sha256HexStr(string(pwd))
 	fileName := ctx.String(flags.GetFlagName(flags.DspUploadFileNameFlag))
 	fileDesc := ctx.String(flags.GetFlagName(flags.DspUploadFileDescFlag))
 	duration := ctx.String(flags.GetFlagName(flags.DspUploadDurationFlag))
@@ -193,12 +207,12 @@ func fileUpload(ctx *cli.Context) error {
 		ioutil.WriteFile(fileName, data, 0666)
 		PrintInfoMsg("filemd5 is %s", hex.EncodeToString(md5Ret[:]))
 	}
-	_, err := utils.UploadFile(fileName, fileDesc, nil, encryptPwd, uploadUrl, share, duration, rate, uploadPrivilege, copyNum, storeType)
+	_, err = utils.UploadFile(fileName, pwdHash, fileDesc, nil, encryptPwd, uploadUrl, share, duration, rate, uploadPrivilege, copyNum, storeType)
 	if err != nil {
 		PrintErrorMsg("upload file err %s", err)
 		return err
 	}
-	PrintInfoMsg("upload file succes. use <list> to show transfer list")
+	PrintInfoMsg("upload file success. use <transferlist> to show transfer list")
 	return nil
 }
 
@@ -207,6 +221,13 @@ func fileDelete(ctx *cli.Context) error {
 		PrintErrorMsg("Missing file hash.")
 		cli.ShowSubcommandHelp(ctx)
 		return nil
+	}
+	pwd, err := password.GetPassword()
+	if err != nil {
+		return err
+	}
+	pwdHash := eUtils.Sha256HexStr(string(pwd))
+	if len(pwdHash) == 0 {
 	}
 	hash := ctx.String(flags.GetFlagName(flags.DspFileHashFlag))
 	ret, err := utils.DeleteFile(hash)
@@ -279,6 +300,11 @@ func setUserSpace(ctx *cli.Context) error {
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
+	pwd, err := password.GetPassword()
+	if err != nil {
+		return err
+	}
+	pwdHash := eUtils.Sha256HexStr(string(pwd))
 	addr := ctx.String(flags.GetFlagName(flags.DspWalletAddrFlag))
 	size := ctx.Uint64(flags.GetFlagName(flags.DspSizeFlag))
 	sizeOp := ctx.Uint64(flags.GetFlagName(flags.DspSizeOpFlag))
@@ -293,7 +319,7 @@ func setUserSpace(ctx *cli.Context) error {
 	secondMap["Type"] = secondOp
 	secondMap["Value"] = second
 	log.Debugf("addr %v, size %v second %v", addr, sizeMap, secondMap)
-	ret, err := utils.SetUserSpace(addr, sizeMap, secondMap)
+	ret, err := utils.SetUserSpace(addr, pwdHash, sizeMap, secondMap)
 	if err != nil {
 		PrintErrorMsg("get upload file list err %s", err)
 		return err

@@ -1,17 +1,13 @@
 package rpc
 
 import (
-	"github.com/saveio/edge/dsp"
 	"github.com/saveio/edge/http/rest"
 )
 
 // file apis
 
 func UploadFile(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 11 {
-		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	}
-	params := convertSliceToMap(cmd, []string{"Path", "Desc", "WhiteList", "EncryptPassword", "Url", "Share", "Duration", "Interval", "Privilege", "CopyNum", "StoreType"})
+	params := convertSliceToMap(cmd, []string{"Path", "Password", "Desc", "WhiteList", "EncryptPassword", "Url", "Share", "Duration", "Interval", "Privilege", "CopyNum", "StoreType"})
 	v := rest.UploadFile(params)
 	ret, err := parseRestResult(v)
 	if err != nil {
@@ -21,9 +17,6 @@ func UploadFile(cmd []interface{}) map[string]interface{} {
 }
 
 func DeleteFile(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 1 {
-		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	}
 	params := convertSliceToMap(cmd, []string{"Hash"})
 	v := rest.DeleteUploadFile(params)
 	ret, err := parseRestResult(v)
@@ -34,9 +27,6 @@ func DeleteFile(cmd []interface{}) map[string]interface{} {
 }
 
 func DownloadFile(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 6 {
-		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	}
 	params := convertSliceToMap(cmd, []string{"Hash", "Url", "Link", "Password", "MaxPeerNum", "SetFileName"})
 	v := rest.DownloadFile(params)
 	ret, err := parseRestResult(v)
@@ -47,9 +37,6 @@ func DownloadFile(cmd []interface{}) map[string]interface{} {
 }
 
 func GetUploadFiles(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 3 {
-		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	}
 	params := convertSliceToMap(cmd, []string{"Type", "Offset", "Limit"})
 	v := rest.GetUploadFiles(params)
 	ret, err := parseRestResult(v)
@@ -60,9 +47,6 @@ func GetUploadFiles(cmd []interface{}) map[string]interface{} {
 }
 
 func GetDownloadFiles(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 3 {
-		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	}
 	params := convertSliceToMap(cmd, []string{"Type", "Offset", "Limit"})
 	v := rest.GetDownloadFiles(params)
 	ret, err := parseRestResult(v)
@@ -73,9 +57,6 @@ func GetDownloadFiles(cmd []interface{}) map[string]interface{} {
 }
 
 func GetTransferList(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 3 {
-		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	}
 	params := convertSliceToMap(cmd, []string{"Type", "Offset", "Limit"})
 	v := rest.GetTransferList(params)
 	ret, err := parseRestResult(v)
@@ -86,9 +67,6 @@ func GetTransferList(cmd []interface{}) map[string]interface{} {
 }
 
 func CalculateUploadFee(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 2 {
-		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	}
 	params := convertSliceToMap(cmd, []string{"Path", "Duration"})
 	v := rest.CalculateUploadFee(params)
 	ret, err := parseRestResult(v)
@@ -99,9 +77,6 @@ func CalculateUploadFee(cmd []interface{}) map[string]interface{} {
 }
 
 func GetDownloadFileInfo(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 1 {
-		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	}
 	params := convertSliceToMap(cmd, []string{"Url"})
 	v := rest.GetDownloadFileInfo(params)
 	ret, err := parseRestResult(v)
@@ -112,9 +87,6 @@ func GetDownloadFileInfo(cmd []interface{}) map[string]interface{} {
 }
 
 func EncryptFile(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 2 {
-		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	}
 	params := convertSliceToMap(cmd, []string{"Path", "Password"})
 	v := rest.EncryptFile(params)
 	ret, err := parseRestResult(v)
@@ -125,9 +97,6 @@ func EncryptFile(cmd []interface{}) map[string]interface{} {
 }
 
 func DecryptFile(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 2 {
-		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	}
 	params := convertSliceToMap(cmd, []string{"Path", "Password"})
 	v := rest.DecryptFile(params)
 	ret, err := parseRestResult(v)
@@ -138,9 +107,6 @@ func DecryptFile(cmd []interface{}) map[string]interface{} {
 }
 
 func GetFileShareIncome(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 4 {
-		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	}
 	params := convertSliceToMap(cmd, []string{"Begin", "End", "Offset", "Limit"})
 	v := rest.GetFileShareIncome(params)
 	ret, err := parseRestResult(v)
@@ -161,9 +127,6 @@ func GetFileShareRevenue(cmd []interface{}) map[string]interface{} {
 }
 
 func WhiteListOperate(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 3 {
-		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	}
 	params := convertSliceToMap(cmd, []string{"FileHash", "Operation", "List"})
 	v := rest.WhiteListOperate(params)
 	ret, err := parseRestResult(v)
@@ -174,9 +137,6 @@ func WhiteListOperate(cmd []interface{}) map[string]interface{} {
 }
 
 func GetFileWhiteList(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 1 {
-		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	}
 	params := convertSliceToMap(cmd, []string{"FileHash"})
 	v := rest.GetFileWhiteList(params)
 	ret, err := parseRestResult(v)
@@ -187,9 +147,6 @@ func GetFileWhiteList(cmd []interface{}) map[string]interface{} {
 }
 
 func GetUserSpace(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 1 {
-		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	}
 	params := convertSliceToMap(cmd, []string{"Addr"})
 	v := rest.GetUserSpace(params)
 	ret, err := parseRestResult(v)
@@ -200,10 +157,7 @@ func GetUserSpace(cmd []interface{}) map[string]interface{} {
 }
 
 func SetUserSpace(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 3 {
-		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	}
-	params := convertSliceToMap(cmd, []string{"Addr", "Size", "Second"})
+	params := convertSliceToMap(cmd, []string{"Addr", "Password", "Size", "Second"})
 	v := rest.SetUserSpace(params)
 	ret, err := parseRestResult(v)
 	if err != nil {
@@ -213,9 +167,6 @@ func SetUserSpace(cmd []interface{}) map[string]interface{} {
 }
 
 func GetUserSpaceRecords(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 3 {
-		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	}
 	params := convertSliceToMap(cmd, []string{"Addr", "Offset", "Limit"})
 	v := rest.GetUserSpaceRecords(params)
 	ret, err := parseRestResult(v)

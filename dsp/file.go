@@ -789,6 +789,7 @@ func (this *Endpoint) DownloadFile(taskId, fileHash, url, linkStr, password stri
 			canDownload = true
 			break
 		}
+		log.Debugf("ch.Balance %v, info.fee %v", ch.Balance, fileInfo.Fee)
 	}
 
 	if !canDownload {

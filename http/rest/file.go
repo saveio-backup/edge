@@ -14,7 +14,6 @@ import (
 func UploadFile(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	taskId, _ := cmd["Id"].(string)
-
 	path, ok := cmd["Path"].(string)
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
@@ -30,7 +29,6 @@ func UploadFile(cmd map[string]interface{}) map[string]interface{} {
 	if checkErr := dsp.DspService.CheckPassword(password); checkErr != nil {
 		return ResponsePackWithErrMsg(checkErr.Code, checkErr.Error.Error())
 	}
-
 	whitelist := make([]string, 0)
 	wh, _ := cmd["WhiteList"].([]interface{})
 	for _, w := range wh {

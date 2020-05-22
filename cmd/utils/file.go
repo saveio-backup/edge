@@ -1,10 +1,12 @@
 package utils
 
 import (
+	"fmt"
 	"strconv"
 )
 
-func UploadFile(path, desc string, WhiteList []string, encryptPassword, url string, share bool, duration, interval string, privilege uint64, copyNum string, storeType int64) ([]byte, error) {
+func UploadFile(path, password, desc string, WhiteList []string, encryptPassword, url string, share bool,
+	duration, interval string, privilege uint64, copyNum string, storeType int64) ([]byte, error) {
 	var err error
 	var durationVal, intervalVal, copyNumVal interface{}
 	if len(duration) > 0 {
@@ -25,8 +27,10 @@ func UploadFile(path, desc string, WhiteList []string, encryptPassword, url stri
 			return nil, err
 		}
 	}
-	ret, dErr := sendRpcRequest("uploadfile", []interface{}{path, desc, WhiteList, encryptPassword, url, share, durationVal, intervalVal, float64(privilege), copyNumVal, storeType})
+	ret, dErr := sendRpcRequest("uploadfile", []interface{}{path, password, desc, WhiteList, encryptPassword, url,
+		share, durationVal, intervalVal, float64(privilege), copyNumVal, storeType})
 	if dErr != nil {
+		fmt.Printf("dErr %v\n", dErr)
 		return nil, dErr.Error
 	}
 	return ret, nil
@@ -131,8 +135,8 @@ func GetUserSpace(addr string) ([]byte, error) {
 	}
 	return ret, nil
 }
-func SetUserSpace(addr string, size, second map[string]interface{}) ([]byte, error) {
-	ret, dErr := sendRpcRequest("setuserspace", []interface{}{addr, size, second})
+func SetUserSpace(addr, password string, size, second map[string]interface{}) ([]byte, error) {
+	ret, dErr := sendRpcRequest("setuserspace", []interface{}{addr, password, size, second})
 	if dErr != nil {
 		return nil, dErr.Error
 	}
