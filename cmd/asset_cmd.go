@@ -1,53 +1,37 @@
 package cmd
 
 import (
+	"github.com/saveio/edge/cmd/flags"
+	cmdutil "github.com/saveio/edge/cmd/utils"
 	"github.com/saveio/themis/cmd/utils"
-
 	"github.com/urfave/cli"
 )
 
 var AssetCommand = cli.Command{
 	Name:        "asset",
 	Usage:       "Handle assets",
-	Description: "Asset management commands can check account balance, ONT/ONG transfers, extract ONGs, and view unbound ONGs, and so on.",
+	Description: "Asset management commands can check account balance.",
 	Subcommands: []cli.Command{
 
 		{
 			Action:    getBalance,
 			Name:      "balance",
-			Usage:     "Show balance of ont and ong of specified account",
-			ArgsUsage: "<address|label|index>",
+			Usage:     "Show balance of specified account",
+			ArgsUsage: "<address>",
 			Flags: []cli.Flag{
-				utils.RPCPortFlag,
-				utils.WalletFileFlag,
+				flags.DspWalletAddrFlag,
 			},
 		},
 	},
 }
 
 func getBalance(ctx *cli.Context) error {
-	if ctx.NArg() < 1 {
-		PrintErrorMsg("Missing account argument.")
-		cli.ShowSubcommandHelp(ctx)
-		return nil
+	addr := ctx.String(utils.GetFlagName(flags.DspWalletAddrFlag))
+	balance, err := cmdutil.GetBalance(addr)
+	if err != nil {
+		return err
 	}
-
-	// addrArg := ctx.Args().First()
-	// accAddr, err := cmdcom.ParseAddress(addrArg, ctx)
-	// if err != nil {
-	// 	return err
-	// }
-	// balance, err := cutils.GetBalance(accAddr)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// PrintInfoMsg("BalanceOf:%s", accAddr)
-	// // PrintInfoMsg("  ONT:%s", balance.Usdt)
-	// usdt, err := strconv.ParseUint(balance.Usdt, 10, 64)
-	// if err != nil {
-	// 	return err
-	// }
-	// PrintInfoMsg("  USDT:%s", utils.FormatUsdt(usdt))
+	PrintInfoMsg("BalanceOf:%s", addr)
+	PrintJsonData(balance)
 	return nil
 }

@@ -71,8 +71,8 @@ func WithdrawChannel(partnerAddr, realAmount, password string) (interface{}, err
 	return ret, nil
 }
 
-func MediaTransfer(paymentId, amount, to string) error {
-	ret, dErr := sendRpcRequest("transferbychannel", []interface{}{to, amount, paymentId})
+func MediaTransfer(paymentId, amount, to, password string) error {
+	ret, dErr := sendRpcRequest("transferbychannel", []interface{}{to, amount, paymentId, password})
 	fmt.Printf("ret:%v, dErr %v", ret, dErr)
 	if dErr != nil {
 		return dErr.Error
@@ -90,28 +90,11 @@ func QuerySpecialChannelDeposit(partnerAddr string) ([]byte, error) {
 	return bufs, nil
 }
 
-// func QuerySpecialChannelAvaliable(partnerAddr string) (uint64, error) {
-// 	ret, dErr := sendRpcRequest("", []interface{}{})
-// 	if dErr != nil {
-// 		return nil, dErr.Error
-// 	}
-
-// }
-
-// func ChannelCooperativeSettle(partnerAddr string) error {
-// 	ret, dErr := sendRpcRequest("", []interface{}{})
-// 	if dErr != nil {
-// 		return nil, dErr.Error
-// 	}
-
-// }
-// func QueryChannel(partnerAddrStr string) map[int]interface{} {
-
-// }
-// func QueryChannelByID(idstr, partnerAddr string) (interface{}, error) {
-// 	ret, dErr := sendRpcRequest("", []interface{}{})
-// 	if dErr != nil {
-// 		return nil, dErr.Error
-// 	}
-
-// }
+func ChannelCooperativeSettle(to, password string) error {
+	ret, dErr := sendRpcRequest("channelcooperativesettle", []interface{}{to, password})
+	fmt.Printf("ret:%v, dErr %v", ret, dErr)
+	if dErr != nil {
+		return dErr.Error
+	}
+	return nil
+}

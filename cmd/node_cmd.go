@@ -26,6 +26,9 @@ var NodeCommand = cli.Command{
 			Name:        "unregister",
 			Usage:       "Unregister node from themis",
 			Description: "Unregister node",
+			Flags: []cli.Flag{
+				flags.VerboseFlag,
+			},
 		},
 		{
 			Action:    queryNode,
@@ -54,6 +57,9 @@ var NodeCommand = cli.Command{
 			Name:        "withdraw",
 			Usage:       "Withdraw node profit",
 			Description: "Withdraw node profit",
+			Flags: []cli.Flag{
+				flags.DspWalletAddrFlag,
+			},
 		},
 	},
 	Description: `./dsp node --help command to view help information.`,

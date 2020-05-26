@@ -28,19 +28,23 @@ var ChannelCommand = cli.Command{
 	Before: utils.BeforeFunc,
 	Subcommands: []cli.Command{
 		{
-			Action:      channelInitProgress,
-			Name:        "initprogress",
-			Usage:       "Get channel init progress",
-			ArgsUsage:   " ",
-			Flags:       []cli.Flag{},
+			Action:    channelInitProgress,
+			Name:      "initprogress",
+			Usage:     "Get channel init progress",
+			ArgsUsage: " ",
+			Flags: []cli.Flag{
+				flags.VerboseFlag,
+			},
 			Description: "Get channel init progress",
 		},
 		{
-			Action:      listAllChannels,
-			Name:        "list",
-			Usage:       "Get all channels",
-			ArgsUsage:   " ",
-			Flags:       []cli.Flag{},
+			Action:    listAllChannels,
+			Name:      "list",
+			Usage:     "Get all channels",
+			ArgsUsage: " ",
+			Flags: []cli.Flag{
+				flags.VerboseFlag,
+			},
 			Description: "Get all channels",
 		},
 		{
@@ -75,11 +79,13 @@ var ChannelCommand = cli.Command{
 			Description: "Close a payment channel with partner",
 		},
 		{
-			Action:      closeAllChannel,
-			Name:        "closeall",
-			Usage:       "Close all payment channels",
-			ArgsUsage:   " ",
-			Flags:       []cli.Flag{},
+			Action:    closeAllChannel,
+			Name:      "closeall",
+			Usage:     "Close all payment channels",
+			ArgsUsage: " ",
+			Flags: []cli.Flag{
+				flags.VerboseFlag,
+			},
 			Description: "Close a payment channel with partner",
 		},
 		{
@@ -254,7 +260,12 @@ func transferToSomebody(ctx *cli.Context) error {
 		r := rand.New(rand.NewSource(time.Now().UnixNano()))
 		paymentID = uint64(r.Int31())
 	}
-	err := utils.MediaTransfer(fmt.Sprintf("%d", paymentID), amount, targetAddr)
+	pwd, err := password.GetPassword()
+	if err != nil {
+		return err
+	}
+	pwdHash := eUtils.Sha256HexStr(string(pwd))
+	err = utils.MediaTransfer(fmt.Sprintf("%d", paymentID), amount, targetAddr, pwdHash)
 	if err != nil {
 		return err
 	}
@@ -301,29 +312,23 @@ func withdrawChannel(ctx *cli.Context) error {
 }
 
 func cooperativeSettle(ctx *cli.Context) error {
-	if ctx.NumFlags() < 1 {
-		PrintErrorMsg("Missing argument.")
+	if !ctx.IsSet(flags.GetFlagName(flags.PartnerAddressFlag)) {
+		PrintErrorMsg("Missing argument: partnerAddr")
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
-	// partnerAddr := ctx.String(flags.GetFlagName(flags.PartnerAddressFlag))
-	// endpoint, err := dsp.Init(config.WalletDatFilePath(), config.Parameters.BaseConfig.WalletPwd)
-	// if err != nil {
-	// 	PrintErrorMsg("init dsp err:%s\n", err)
-	// 	return err
-	// }
-	// err = dsp.StartDspNode(endpoint, false, false, true)
-	// if err != nil {
-	// 	PrintErrorMsg("start dsp err:%s\n", err)
-	// 	return err
-	// }
-
-	// err = endpoint.ChannelCooperativeSettle(partnerAddr)
-	// if err != nil {
-	// 	PrintErrorMsg("cooperative settle channel err: %s", err)
-	// 	return err
-	// }
-	// PrintInfoMsg("Cooperative settle success")
+	partnerAddr := ctx.String(flags.GetFlagName(flags.PartnerAddressFlag))
+	pwd, err := password.GetPassword()
+	if err != nil {
+		return err
+	}
+	pwdHash := eUtils.Sha256HexStr(string(pwd))
+	err = utils.ChannelCooperativeSettle(partnerAddr, pwdHash)
+	if err != nil {
+		PrintErrorMsg("%s", err)
+		return err
+	}
+	PrintInfoMsg("cooperate settle to channel success. use <channel list> to get infos")
 	return nil
 }
 

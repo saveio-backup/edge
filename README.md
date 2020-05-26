@@ -147,7 +147,7 @@ The result will be:
 Open another terminal for input commands. Use `account` command for manage account. Create account command is:
 
 ```shell
-$ ./edge account create
+$ ./edge account create --label="123"
 ```
 
 The shell will prompt you to ether the account password. Then apply the testnet assets for testing.

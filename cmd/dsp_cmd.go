@@ -279,11 +279,11 @@ func getTransferList(ctx *cli.Context) error {
 }
 
 func getUserSpace(ctx *cli.Context) error {
-	if !ctx.IsSet(flags.GetFlagName(flags.DspWalletAddrFlag)) {
-		PrintErrorMsg("Missing wallet address.")
-		cli.ShowSubcommandHelp(ctx)
-		return nil
-	}
+	// if !ctx.IsSet(flags.GetFlagName(flags.DspWalletAddrFlag)) {
+	// 	PrintErrorMsg("Missing wallet address.")
+	// 	cli.ShowSubcommandHelp(ctx)
+	// 	return nil
+	// }
 	addr := ctx.String(flags.GetFlagName(flags.DspWalletAddrFlag))
 	ret, err := utils.GetUserSpace(addr)
 	if err != nil {

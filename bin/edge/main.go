@@ -37,6 +37,7 @@ func initAPP() *cli.App {
 	app.Copyright = "Copyright in 2018 The SAVE Authors"
 	app.Commands = []cli.Command{
 		cmd.AccountCommand,
+		cmd.AssetCommand,
 		cmd.FileCommand,
 		cmd.UserspaceCommand,
 		cmd.NodeCommand,
@@ -45,9 +46,6 @@ func initAPP() *cli.App {
 		cmd.VersionCommand,
 	}
 	app.Flags = []cli.Flag{
-		flags.ProtocolListenPortOffsetFlag,
-		flags.ProtocolFsRepoRootFlag,
-		flags.ProtocolFsFileRootFlag,
 		flags.ConfigFlag,
 		flags.LaunchManualFlag,
 		flags.WalletPasswordFlag,
@@ -98,7 +96,7 @@ func dspInit(ctx *cli.Context) {
 	initWebsocket()
 	initJsonRpc()
 
-	if launchManual {
+	if launchManual || !common.FileExisted(config.WalletDatFilePath()) {
 		waitToExit(ctx)
 		return
 	}

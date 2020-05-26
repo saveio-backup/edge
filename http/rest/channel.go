@@ -318,6 +318,13 @@ func TransferByChannel(cmd map[string]interface{}) map[string]interface{} {
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
+	password, ok := cmd["Password"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	if checkErr := dsp.DspService.CheckPassword(password); checkErr != nil {
+		return ResponsePackWithErrMsg(checkErr.Code, checkErr.Error.Error())
+	}
 	derr := dsp.DspService.MediaTransfer(int32(paymentId), amount, toAddrstr)
 	if derr != nil {
 		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
@@ -339,5 +346,25 @@ func GetChannelInitProgress(cmd map[string]interface{}) map[string]interface{} {
 	}
 	log.Debugf("progress: %v, dsp is nil %t", progress.Progress, dsp.DspService == nil)
 	resp["Result"] = progress
+	return resp
+}
+
+func ChannelCooperativeSettle(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	partnerAddrStr, _ := cmd["Partner"].(string)
+	if dsp.DspService == nil {
+		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
+	}
+	password, ok := cmd["Password"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	if checkErr := dsp.DspService.CheckPassword(password); checkErr != nil {
+		return ResponsePackWithErrMsg(checkErr.Code, checkErr.Error.Error())
+	}
+
+	if err := dsp.DspService.ChannelCooperativeSettle(partnerAddrStr); err != nil {
+		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
+	}
 	return resp
 }

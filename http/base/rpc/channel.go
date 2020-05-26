@@ -3,7 +3,6 @@ package rpc
 import (
 	"fmt"
 
-	"github.com/saveio/edge/dsp"
 	"github.com/saveio/edge/http/rest"
 )
 
@@ -18,9 +17,6 @@ func GetAllChannels(cmd []interface{}) map[string]interface{} {
 }
 
 func OpenChannel(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 3 {
-		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	}
 	params := convertSliceToMap(cmd, []string{"Partner", "Password", "Amount"})
 	v := rest.OpenChannel(params)
 	ret, err := parseRestResult(v)
@@ -31,9 +27,6 @@ func OpenChannel(cmd []interface{}) map[string]interface{} {
 }
 
 func OpenToAllDNSChannel(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 2 {
-		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	}
 	params := convertSliceToMap(cmd, []string{"Password", "Amount"})
 	v := rest.OpenToAllDNSChannel(params)
 	ret, err := parseRestResult(v)
@@ -44,9 +37,6 @@ func OpenToAllDNSChannel(cmd []interface{}) map[string]interface{} {
 }
 
 func CloseChannel(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 2 {
-		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	}
 	params := convertSliceToMap(cmd, []string{"Partner", "Password"})
 	v := rest.CloseChannel(params)
 	fmt.Printf("rest close channel %v\n", v)
@@ -58,9 +48,6 @@ func CloseChannel(cmd []interface{}) map[string]interface{} {
 }
 
 func CloseAllChannel(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 1 {
-		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	}
 	params := convertSliceToMap(cmd, []string{"Password"})
 	v := rest.CloseAllChannel(params)
 	ret, err := parseRestResult(v)
@@ -71,9 +58,6 @@ func CloseAllChannel(cmd []interface{}) map[string]interface{} {
 }
 
 func DepositChannel(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 3 {
-		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	}
 	params := convertSliceToMap(cmd, []string{"Partner", "Amount", "Password"})
 	v := rest.DepositChannel(params)
 	ret, err := parseRestResult(v)
@@ -84,9 +68,6 @@ func DepositChannel(cmd []interface{}) map[string]interface{} {
 }
 
 func WithdrawChannel(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 2 {
-		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	}
 	params := convertSliceToMap(cmd, []string{"Partner", "Amount", "Password"})
 	v := rest.WithdrawChannel(params)
 	ret, err := parseRestResult(v)
@@ -97,9 +78,6 @@ func WithdrawChannel(cmd []interface{}) map[string]interface{} {
 }
 
 func QueryChannelDeposit(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 1 {
-		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	}
 	params := convertSliceToMap(cmd, []string{"Partner"})
 	v := rest.QueryChannelDeposit(params)
 	ret, err := parseRestResult(v)
@@ -110,9 +88,6 @@ func QueryChannelDeposit(cmd []interface{}) map[string]interface{} {
 }
 
 func QueryChannel(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 1 {
-		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	}
 	params := convertSliceToMap(cmd, []string{"Partner"})
 	v := rest.QueryChannel(params)
 	ret, err := parseRestResult(v)
@@ -123,9 +98,6 @@ func QueryChannel(cmd []interface{}) map[string]interface{} {
 }
 
 func QueryChannelByID(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 2 {
-		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	}
 	params := convertSliceToMap(cmd, []string{"Id", "Partner"})
 	v := rest.QueryChannelByID(params)
 	ret, err := parseRestResult(v)
@@ -136,10 +108,7 @@ func QueryChannelByID(cmd []interface{}) map[string]interface{} {
 }
 
 func TransferByChannel(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 3 {
-		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	}
-	params := convertSliceToMap(cmd, []string{"To", "Amount", "PaymentId"})
+	params := convertSliceToMap(cmd, []string{"To", "Amount", "PaymentId", "Password"})
 	v := rest.TransferByChannel(params)
 	ret, err := parseRestResult(v)
 	if err != nil {
@@ -151,6 +120,16 @@ func TransferByChannel(cmd []interface{}) map[string]interface{} {
 func GetChannelInitProgress(cmd []interface{}) map[string]interface{} {
 	params := convertSliceToMap(cmd, []string{})
 	v := rest.GetChannelInitProgress(params)
+	ret, err := parseRestResult(v)
+	if err != nil {
+		return responsePackError(err.Code, err.Error.Error())
+	}
+	return responseSuccess(ret)
+}
+
+func ChannelCooperativeSettle(cmd []interface{}) map[string]interface{} {
+	params := convertSliceToMap(cmd, []string{"Partner", "Password"})
+	v := rest.ChannelCooperativeSettle(params)
 	ret, err := parseRestResult(v)
 	if err != nil {
 		return responsePackError(err.Code, err.Error.Error())

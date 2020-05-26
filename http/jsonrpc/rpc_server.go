@@ -74,6 +74,7 @@ func StartRPCServer() error {
 	rpc.HandleFunc("querychannelbyid", rpc.QueryChannelByID)
 	rpc.HandleFunc("transferbychannel", rpc.TransferByChannel)
 	rpc.HandleFunc("getchannelinitprogress", rpc.GetChannelInitProgress)
+	rpc.HandleFunc("channelcooperativesettle", rpc.ChannelCooperativeSettle)
 
 	rpc.HandleFunc("uploadfile", rpc.UploadFile)
 	rpc.HandleFunc("deletefile", rpc.DeleteFile)

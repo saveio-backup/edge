@@ -84,43 +84,7 @@ You can use ./edge account --help command to view help information of wallet man
 					utils.WalletFileFlag,
 					utils.AccountVerboseFlag,
 				},
-				Description: `List existing accounts. If specified in args, will list those account. If not specified in args, will list all accouns in wallet`,
-			},
-			{
-				Action:    accountSet,
-				Name:      "set",
-				Usage:     "Modify an account",
-				ArgsUsage: "[sub-command options] <label|address|index>",
-				Flags: []cli.Flag{
-					utils.AccountSetDefaultFlag,
-					utils.WalletFileFlag,
-					utils.AccountLabelFlag,
-					utils.AccountChangePasswdFlag,
-					utils.AccountSigSchemeFlag,
-				},
-				Description: `Modify settings for an account. Account is specified by address, label of index. Index start from 1. This can be showed by the 'list' command.`,
-			},
-			{
-				Action:    accountDelete,
-				Name:      "del",
-				Usage:     "Delete an account",
-				ArgsUsage: "[sub-command options] <address|label|index>",
-				Flags: []cli.Flag{
-					utils.WalletFileFlag,
-				},
-				Description: `Delete an account specified by address, label of index. Index start from 1. This can be showed by the 'list' command`,
-			},
-			{
-				Action:    accountImport,
-				Name:      "import",
-				Usage:     "Import accounts of wallet to another",
-				ArgsUsage: "[sub-command options]",
-				Flags: []cli.Flag{
-					flags.WalletFileFlag,
-					flags.WalletPasswordFlag,
-					flags.ImportOnlineWalletFlag,
-				},
-				Description: "Import accounts of wallet to another. If not specific accounts in args, all account in source will be import",
+				Description: `List existing accounts. If specified in args, will list those account. If not specified in args, will list all accounts in wallet`,
 			},
 			{
 				Action:    accountCreateOnline,
@@ -141,6 +105,7 @@ You can use ./edge account --help command to view help information of wallet man
 				ArgsUsage: "[sub-command options] <filename>",
 				Flags: []cli.Flag{
 					flags.WalletExportTypeFlag,
+					flags.WalletExportFileFlag,
 				},
 			},
 			{
@@ -148,14 +113,18 @@ You can use ./edge account --help command to view help information of wallet man
 				Name:      "current",
 				Usage:     "List current account",
 				ArgsUsage: "[sub-command options]",
-				Flags:     []cli.Flag{},
+				Flags: []cli.Flag{
+					utils.AccountVerboseFlag,
+				},
 			},
 			{
 				Action:    logoutAccount,
 				Name:      "logout",
 				Usage:     "Logout current account",
 				ArgsUsage: "[sub-command options]",
-				Flags:     []cli.Flag{},
+				Flags: []cli.Flag{
+					utils.AccountVerboseFlag,
+				},
 			},
 		},
 	}
@@ -234,7 +203,7 @@ func accountList(ctx *cli.Context) error {
 	}
 	accNum := wallet.GetAccountNum()
 	if accNum == 0 {
-		PrintInfoMsg("No account.")
+		PrintInfoMsg("No account for wallet %s", optionFile)
 		return nil
 	}
 	accList := make(map[string]string, ctx.NArg())
@@ -437,15 +406,13 @@ func accountCreateOnline(ctx *cli.Context) error {
 
 func accountExport(ctx *cli.Context) error {
 	exportType := ctx.Int(flags.GetFlagName(flags.WalletExportTypeFlag))
-
-	if exportType == 0 && ctx.NArg() <= 0 {
-		PrintErrorMsg("Missing target file argument to export.")
-		cli.ShowSubcommandHelp(ctx)
-		return nil
-	}
 	if exportType == 0 {
-		target := ctx.Args().First()
-
+		target := ctx.String(flags.GetFlagName(flags.WalletExportFileFlag))
+		if len(target) == 0 {
+			PrintErrorMsg("Missing target file argument to export.")
+			cli.ShowSubcommandHelp(ctx)
+			return nil
+		}
 		wal, err := cmdutil.ExportWalletFile()
 		if err != nil {
 			return err
@@ -454,7 +421,7 @@ func accountExport(ctx *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		PrintInfoMsg("Export wallet success.")
+		PrintInfoMsg("Export wallet success. See `%s` for detail.", target)
 	} else {
 		pwd, err := password.GetPassword()
 		if err != nil {

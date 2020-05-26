@@ -9,16 +9,16 @@ import (
 var (
 	ConfigFlag = cli.StringFlag{
 		Name:  "config",
-		Usage: "Use `<filename>` to specifies the config file to connect to cunstomize network.",
+		Usage: "Use `<filename>` to specifies the config file to connect to customize network.",
 	}
 	LaunchManualFlag = cli.BoolFlag{
 		Name:  "launchManual",
-		Usage: "launch dsp manually",
+		Usage: "Launch dsp manually",
 	}
 	//commmon
 	LogStderrFlag = cli.BoolFlag{
 		Name:  "logstderr",
-		Usage: "log to standard error instead of files,default false",
+		Usage: "Log to standard error instead of files,default false",
 	}
 	LogLevelFlag = cli.UintFlag{
 		Name:  "loglevel",
@@ -27,11 +27,11 @@ var (
 
 	NetworkIDFlag = cli.UintFlag{
 		Name:  "networkId",
-		Usage: "",
+		Usage: "P2P network identity",
 	}
 	RpcServerFlag = cli.StringFlag{
 		Name:  "rpcServer",
-		Usage: "",
+		Usage: "Chain RPC server address",
 		Value: "",
 	}
 
@@ -45,7 +45,7 @@ var (
 	}
 	WalletPasswordFlag = cli.StringFlag{
 		Name:  "password,p",
-		Usage: "Create wallet password",
+		Usage: "Wallet password",
 	}
 	WalletLabelFlag = cli.StringFlag{
 		Name:  "label,l",
@@ -71,85 +71,33 @@ var (
 		Name:  "type,t",
 		Usage: "ExportType. 0: WalletFile, 1: PrivateKey",
 	}
-
-	/////////////Dsp Protocol Setting////////////
-	ProtocolListenPortOffsetFlag = cli.UintFlag{
-		Name:  "protocolListenPortOffset",
-		Usage: "",
-	}
-	ProtocolFsRepoRootFlag = cli.StringFlag{
-		Name:  "protocolFsRepoRoot",
-		Usage: "",
-		Value: "",
-	}
-	ProtocolFsFileRootFlag = cli.StringFlag{
-		Name:  "protocolFsFileRoot",
-		Usage: "",
-		Value: "",
-	}
-	ProtocolSeedFlag = cli.BoolFlag{
-		Name:  "protocolSeed",
-		Usage: "",
-	}
-	ProtocolDebugFlag = cli.BoolFlag{
-		Name:  "protocolDebug",
-		Usage: "",
-	}
-	ProtocolProxyAddrFlag = cli.StringFlag{
-		Name:  "protocolProxyAddr",
-		Usage: "",
-	}
-
-	////////////////Dsp Tracker Setting///////////////////
-	TrackerSizeFlag = cli.IntFlag{
-		Name:  "trackerSize",
-		Usage: "",
-	}
-	TrackerPortFlag = cli.IntFlag{
-		Name:  "trackerPort",
-		Usage: "",
-	}
-	TrackerUrlFlag = cli.StringFlag{
-		Name:  "trackerUrl",
-		Usage: "",
-	}
-
-	////////////////Dsp Channel Setting///////////////////
-	ChannelChainRpcURLFlag = cli.StringFlag{
-		Name:  "channelChainRpcURL",
-		Usage: "",
-	}
-	ChannelProtocolFlag = cli.StringFlag{
-		Name:  "channelProtocol",
-		Usage: "",
-	}
-	ChannelDBPathFlag = cli.StringFlag{
-		Name:  "channelDbPath",
-		Usage: "",
+	WalletExportFileFlag = cli.StringFlag{
+		Name:  "output,o",
+		Usage: "Output file",
 	}
 
 	////////////////Dsp Command Common Setting///////////////////
 	DspRestAddrFlag = cli.StringFlag{
 		Name:  "dspRestAddr",
-		Usage: "dsp rest sever address",
+		Usage: "DSP restful sever address",
 	}
 
 	////////////////Dsp Node Setting///////////////////
 	DspNodeAddrFlag = cli.StringFlag{
 		Name:  "nodeAddr",
-		Usage: "Node address",
+		Usage: "DSP node listen address",
 	}
 	DspVolumeFlag = cli.StringFlag{
 		Name:  "volume",
-		Usage: "",
+		Usage: "DSP node storage volume",
 	}
 	DspServiceTimeFlag = cli.StringFlag{
 		Name:  "serviceTime",
-		Usage: "",
+		Usage: "DSP storage node service time",
 	}
 	DspWalletAddrFlag = cli.StringFlag{
 		Name:  "walletAddr",
-		Usage: "",
+		Usage: "Account wallet address",
 	}
 
 	////////////////Dsp File(download) Setting///////////////////
@@ -163,28 +111,24 @@ var (
 	}
 	DspInorderFlag = cli.BoolFlag{
 		Name:  "inorder",
-		Usage: "",
+		Usage: "Download file in order",
 	}
 	DspNofeeFlag = cli.BoolFlag{
 		Name:  "noFee",
-		Usage: "",
+		Usage: "Download file free",
 	}
 	DspDecryptPwdFlag = cli.StringFlag{
 		Name:  "decryptPwd",
-		Usage: "",
+		Usage: "Decrypt file password",
 	}
 	DspMaxPeerCntFlag = cli.Uint64Flag{
 		Name:  "maxPeerCnt",
-		Usage: "",
+		Usage: "Max number of peer for downloading files",
 		Value: 1,
-	}
-	DspProgressEnableFlag = cli.BoolFlag{
-		Name:  "progressEnable",
-		Usage: "",
 	}
 	DspSetFileNameFlag = cli.BoolFlag{
 		Name:  "setFileName",
-		Usage: "",
+		Usage: "Auto save file with its original file name.",
 	}
 
 	////////////////Dsp File(upload) Setting///////////////////
@@ -202,7 +146,7 @@ var (
 	}
 	DspFileUrlFlag = cli.StringFlag{
 		Name:  "url",
-		Usage: "File search url",
+		Usage: "URL of file for downloading",
 	}
 	DspUploadProveIntervalFlag = cli.StringFlag{
 		Name:  "interval",
@@ -210,7 +154,7 @@ var (
 	}
 	DspUploadExpiredHeightFlag = cli.StringFlag{
 		Name:  "expiredHeight",
-		Usage: "expired height",
+		Usage: "File expired block height",
 	}
 	DspUploadPrivilegeFlag = cli.Uint64Flag{
 		Name:  "privilege",
@@ -219,7 +163,7 @@ var (
 	}
 	DspUploadCopyNumFlag = cli.StringFlag{
 		Name:  "copyNum",
-		Usage: "Copy Number of file storage",
+		Usage: "Copy Number of file",
 	}
 	DspUploadEncryptFlag = cli.BoolFlag{
 		Name:  "encrypt",
@@ -255,7 +199,7 @@ var (
 	}
 	DspUploadStoreTypeFlag = cli.Int64Flag{
 		Name:  "storeType",
-		Usage: "store type",
+		Usage: "Store file type",
 	}
 
 	////////////////Dsp File(delete) Setting///////////////////
@@ -266,23 +210,23 @@ var (
 
 	DspSecondOpFlag = cli.Uint64Flag{
 		Name:  "secondOp",
-		Usage: "User space second operation",
-		Value: 0,
+		Usage: "User space second operation.0: none, 1: add, 2: revoke",
+		Value: 1,
 	}
 	DspSecondFlag = cli.Uint64Flag{
 		Name:  "second",
 		Usage: "User space second",
-		Value: 0,
+		Value: 864000,
 	}
 	DspSizeFlag = cli.Uint64Flag{
 		Name:  "size",
-		Usage: "User space size",
-		Value: 0,
+		Usage: "User space size.(KB)",
+		Value: 1024000,
 	}
 	DspSizeOpFlag = cli.Uint64Flag{
 		Name:  "sizeOp",
-		Usage: "User space size operation",
-		Value: 0,
+		Usage: "User space size operation.0: none, 1: add, 2: revoke",
+		Value: 1,
 	}
 
 	////////////////Dsp DNS Command Setting///////////////////
@@ -360,11 +304,19 @@ var (
 
 	TestFlag = cli.BoolFlag{
 		Name:  "test",
-		Usage: "use in test case",
+		Usage: "Use in test case",
 	}
 	ProfileFlag = cli.BoolFlag{
 		Name:  "profile",
-		Usage: "profile with memory",
+		Usage: "Profile with memory",
+	}
+	AddressFlag = cli.StringFlag{
+		Name:  "address,addr",
+		Usage: "Wallet address",
+	}
+	VerboseFlag = cli.StringFlag{
+		Name:  "verbose,v",
+		Usage: "Show detail message",
 	}
 )
 
