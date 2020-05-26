@@ -1,7 +1,7 @@
 package utils
 
-func RegisterUrl(url, link string) ([]byte, error) {
-	ret, dErr := sendRpcRequest("registerurl", []interface{}{url, link})
+func RegisterUrl(args ...interface{}) ([]byte, error) {
+	ret, dErr := sendRpcRequest("registerurl", args)
 	if dErr != nil {
 		return nil, dErr.Error
 	}

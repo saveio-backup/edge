@@ -3,7 +3,6 @@ package cmd
 import (
 	"github.com/saveio/edge/cmd/flags"
 	"github.com/saveio/edge/cmd/utils"
-
 	"github.com/urfave/cli"
 )
 
@@ -18,7 +17,12 @@ var DnsCommand = cli.Command{
 			ArgsUsage: "<hash>",
 			Flags: []cli.Flag{
 				flags.DnsURLFlag,
-				flags.DnsLinkFlag,
+				flags.DspFileHashFlag,
+				flags.DspFileNameFlag,
+				flags.DspFileBlocksRoot,
+				flags.DspFileOwner,
+				flags.DspFileSize,
+				flags.DspBlockCountSize,
 			},
 			Description: "Register url and link to DNS",
 		},
@@ -35,75 +39,17 @@ var DnsCommand = cli.Command{
 		},
 		{
 			Action:    queryLink,
-			Name:      "querylink",
-			Usage:     "Query link binded with url",
+			Name:      "query",
+			Usage:     "Query link with url",
 			ArgsUsage: "<link>",
 			Flags: []cli.Flag{
 				flags.DnsURLFlag,
 			},
-			Description: "Query link binded with url",
-		},
-		// dns candiate cmd
-		{
-			Action:    registerDns,
-			Name:      "registerdns",
-			Usage:     "Register dns candidate",
-			ArgsUsage: " ",
-			Flags: []cli.Flag{
-				flags.DnsIpFlag,
-				flags.DnsPortFlag,
-				flags.InitDepositFlag,
-			},
-			Description: "Request register as dns candidate",
-		},
-		{
-			Action:      unregisterDns,
-			Name:        "unregisterdns",
-			Usage:       "Cancel previous register request",
-			ArgsUsage:   " ",
-			Description: "Cancel previous register request",
-		},
-		{
-			Action:      quitDns,
-			Name:        "quitdns",
-			Usage:       "Quit working as dns",
-			ArgsUsage:   " ",
-			Description: "Quit working as dns",
-		},
-		{
-			Action:    addPos,
-			Name:      "addInitPos",
-			Usage:     "Increase init deposit",
-			ArgsUsage: " ",
-			Flags: []cli.Flag{
-				flags.DeltaDepositFlag,
-			},
-			Description: "Increase init deposit",
-		},
-		{
-			Action:    reducePos,
-			Name:      "reduceInitPos",
-			Usage:     "Reduce init deposit",
-			ArgsUsage: " ",
-			Flags: []cli.Flag{
-				flags.DeltaDepositFlag,
-			},
-			Description: "Reduce init deposit",
-		},
-		{
-			Action:    getRegisterInfo,
-			Name:      "getRegInfo",
-			Usage:     "Display all or specified Dns register info",
-			ArgsUsage: " ",
-			Flags: []cli.Flag{
-				flags.DnsAllFlag,
-				flags.PeerPubkeyFlag,
-			},
-			Description: "Display all or specified Dns register info",
+			Description: "Query link with url",
 		},
 		{
 			Action:    getHostInfo,
-			Name:      "getHostInfo",
+			Name:      "hostinfo",
 			Usage:     "Display all or specified Dns host info including ip, port",
 			ArgsUsage: " ",
 			Flags: []cli.Flag{
@@ -114,28 +60,33 @@ var DnsCommand = cli.Command{
 		},
 		{
 			Action:    getPublicIP,
-			Name:      "getPublicIP",
-			Usage:     "Display all or specified Dns host info including ip, port",
+			Name:      "publicip",
+			Usage:     "Display public ip for a node",
 			ArgsUsage: " ",
 			Flags: []cli.Flag{
 				flags.DnsWalletFlag,
 			},
-			Description: "Display all or specified Dns host info including ip, port",
+			Description: "Display public ip for a node",
 		},
 	},
 }
 
 //dns command
 func registerUrl(ctx *cli.Context) error {
-	if ctx.NumFlags() < 2 {
-		PrintErrorMsg("Missing argument.")
+	if !ctx.IsSet(flags.GetFlagName(flags.DnsURLFlag)) || !ctx.IsSet(flags.GetFlagName(flags.DspFileHashFlag)) {
+		PrintErrorMsg("Missing argument: url or fileHash")
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
 
 	url := ctx.String(flags.GetFlagName(flags.DnsURLFlag))
-	link := ctx.String(flags.GetFlagName(flags.DnsLinkFlag))
-	ret, err := utils.RegisterUrl(url, link)
+	fileHash := ctx.String(flags.GetFlagName(flags.DspFileHashFlag))
+	fileName := ctx.String(flags.GetFlagName(flags.DspFileNameFlag))
+	blocksRoot := ctx.String(flags.GetFlagName(flags.DspFileBlocksRoot))
+	fileOwner := ctx.String(flags.GetFlagName(flags.DspFileOwner))
+	fileSize := ctx.Int64(flags.GetFlagName(flags.DspFileSize))
+	totalCount := ctx.Int64(flags.GetFlagName(flags.DspBlockCountSize))
+	ret, err := utils.RegisterUrl(url, fileHash, fileName, blocksRoot, fileOwner, fileSize, totalCount)
 	if err != nil {
 		return err
 	}
@@ -161,82 +112,14 @@ func bindUrl(ctx *cli.Context) error {
 }
 
 func queryLink(ctx *cli.Context) error {
-	if ctx.NumFlags() < 1 {
-		PrintErrorMsg("Missing argument.")
+	if !ctx.IsSet(flags.GetFlagName(flags.DnsURLFlag)) {
+		PrintErrorMsg("Missing argument: url")
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
 
 	url := ctx.String(flags.GetFlagName(flags.DnsURLFlag))
 	ret, err := utils.QueryLink(url)
-	if err != nil {
-		return err
-	}
-	PrintJsonData(ret)
-	return nil
-}
-
-func registerDns(ctx *cli.Context) error {
-	if ctx.NumFlags() < 3 {
-		PrintErrorMsg("Missing argument.")
-		cli.ShowSubcommandHelp(ctx)
-		return nil
-	}
-	ip := ctx.String(flags.GetFlagName(flags.DnsIpFlag))
-	port := ctx.String(flags.GetFlagName(flags.DnsPortFlag))
-	initDeposit := ctx.String(flags.GetFlagName(flags.InitDepositFlag))
-	ret, err := utils.RegisterDns(ip, port, initDeposit)
-	if err != nil {
-		return err
-	}
-	PrintJsonData(ret)
-	return nil
-}
-
-func unregisterDns(ctx *cli.Context) error {
-	// TODO: check password
-	ret, err := utils.UnregisterDns()
-	if err != nil {
-		return err
-	}
-	PrintJsonData(ret)
-
-	return nil
-}
-
-func quitDns(ctx *cli.Context) error {
-	// TODO: check password
-	ret, err := utils.QuitDns()
-	if err != nil {
-		return err
-	}
-	PrintJsonData(ret)
-	return nil
-}
-
-func addPos(ctx *cli.Context) error {
-	if ctx.NumFlags() < 1 {
-		PrintErrorMsg("Missing argument.")
-		cli.ShowSubcommandHelp(ctx)
-		return nil
-	}
-	deltaDeposit := ctx.String(flags.GetFlagName(flags.DeltaDepositFlag))
-	ret, err := utils.AddPos(deltaDeposit)
-	if err != nil {
-		return err
-	}
-	PrintJsonData(ret)
-	return nil
-}
-
-func reducePos(ctx *cli.Context) error {
-	if ctx.NumFlags() < 1 {
-		PrintErrorMsg("Missing argument.")
-		cli.ShowSubcommandHelp(ctx)
-		return nil
-	}
-	deltaDeposit := ctx.String(flags.GetFlagName(flags.DeltaDepositFlag))
-	ret, err := utils.ReducePos(deltaDeposit)
 	if err != nil {
 		return err
 	}

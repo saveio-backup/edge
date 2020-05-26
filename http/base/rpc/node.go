@@ -1,6 +1,8 @@
 package rpc
 
 import (
+	"fmt"
+
 	"github.com/saveio/edge/dsp"
 	"github.com/saveio/edge/http/rest"
 )
@@ -65,10 +67,8 @@ func NodeWithdrawProfit(cmd []interface{}) map[string]interface{} {
 }
 
 func RegisterUrl(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 2 {
-		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	}
-	params := convertSliceToMap(cmd, []string{"Url", "Link"})
+	fmt.Printf("+++++++cmd %v\n", cmd)
+	params := convertSliceToMap(cmd, []string{"Url", "FileHash", "FileName", "BlocksRoot", "FileOwner", "FileSize", "TotalCount"})
 	v := rest.RegisterUrl(params)
 	ret, err := parseRestResult(v)
 	if err != nil {
@@ -96,65 +96,6 @@ func QueryLink(cmd []interface{}) map[string]interface{} {
 	}
 	params := convertSliceToMap(cmd, []string{"Url"})
 	v := rest.QueryLink(params)
-	ret, err := parseRestResult(v)
-	if err != nil {
-		return responsePackError(err.Code, err.Error.Error())
-	}
-	return responseSuccess(ret)
-}
-
-func RegisterDns(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 3 {
-		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	}
-	params := convertSliceToMap(cmd, []string{"Ip", "Port", "Amount"})
-	v := rest.RegisterDns(params)
-	ret, err := parseRestResult(v)
-	if err != nil {
-		return responsePackError(err.Code, err.Error.Error())
-	}
-	return responseSuccess(ret)
-}
-
-func UnRegisterDns(cmd []interface{}) map[string]interface{} {
-	params := convertSliceToMap(cmd, []string{})
-	v := rest.UnRegisterDns(params)
-	ret, err := parseRestResult(v)
-	if err != nil {
-		return responsePackError(err.Code, err.Error.Error())
-	}
-	return responseSuccess(ret)
-}
-
-func QuitDns(cmd []interface{}) map[string]interface{} {
-	params := convertSliceToMap(cmd, []string{})
-	v := rest.QuitDns(params)
-	ret, err := parseRestResult(v)
-	if err != nil {
-		return responsePackError(err.Code, err.Error.Error())
-	}
-	return responseSuccess(ret)
-}
-
-func AddPos(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 1 {
-		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	}
-	params := convertSliceToMap(cmd, []string{"Amount"})
-	v := rest.AddPos(params)
-	ret, err := parseRestResult(v)
-	if err != nil {
-		return responsePackError(err.Code, err.Error.Error())
-	}
-	return responseSuccess(ret)
-}
-
-func ReducePos(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 1 {
-		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	}
-	params := convertSliceToMap(cmd, []string{"Amount"})
-	v := rest.ReducePos(params)
 	ret, err := parseRestResult(v)
 	if err != nil {
 		return responsePackError(err.Code, err.Error.Error())

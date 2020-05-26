@@ -201,6 +201,26 @@ var (
 		Name:  "storeType",
 		Usage: "Store file type",
 	}
+	DspFileNameFlag = cli.StringFlag{
+		Name:  "fileName",
+		Usage: "File name",
+	}
+	DspFileBlocksRoot = cli.StringFlag{
+		Name:  "blocksRoot",
+		Usage: "Merkle root hash for all block hash of file",
+	}
+	DspFileOwner = cli.StringFlag{
+		Name:  "fileOwner",
+		Usage: "Wallet address of the file owner",
+	}
+	DspFileSize = cli.Int64Flag{
+		Name:  "fileSize",
+		Usage: "File size. (KB)",
+	}
+	DspBlockCountSize = cli.Int64Flag{
+		Name:  "blockCount",
+		Usage: "File block count.",
+	}
 
 	////////////////Dsp File(delete) Setting///////////////////
 	DspDeleteLocalFlag = cli.BoolFlag{
@@ -231,8 +251,8 @@ var (
 
 	////////////////Dsp DNS Command Setting///////////////////
 	DnsURLFlag = cli.StringFlag{
-		Name:  "dnsUrl",
-		Usage: "Dns `<url>`",
+		Name:  "url",
+		Usage: "`<url>` of the file",
 	}
 	DnsLinkFlag = cli.StringFlag{
 		Name:  "dnsLink",
