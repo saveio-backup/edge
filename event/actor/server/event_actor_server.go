@@ -42,6 +42,10 @@ func (this *EventActorServer) Stop() error {
 }
 
 func (this *EventActorServer) Receive(ctx actor.Context) {
+	if websocket.Server() == nil {
+		log.Warnf("webSocket is not runing...")
+		return
+	}
 	switch msg := ctx.Message().(type) {
 	case *actor.Restarting:
 		log.Warn("[P2PActor] actor restarting")
