@@ -128,8 +128,8 @@ var UserspaceCommand = cli.Command{
 			ArgsUsage: "[arguments...]",
 			Flags: []cli.Flag{
 				flags.DspWalletAddrFlag,
-				flags.DspSecondFlag,
-				flags.DspSecondOpFlag,
+				flags.DspBlockCountFlag,
+				flags.DspBlockCountOpFlag,
 				flags.DspSizeFlag,
 				flags.DspSizeOpFlag,
 			},
@@ -296,11 +296,7 @@ func getUserSpace(ctx *cli.Context) error {
 }
 
 func setUserSpace(ctx *cli.Context) error {
-	if !ctx.IsSet(flags.GetFlagName(flags.DspWalletAddrFlag)) {
-		PrintErrorMsg("Missing wallet address.")
-		cli.ShowSubcommandHelp(ctx)
-		return nil
-	}
+
 	pwd, err := password.GetPassword()
 	if err != nil {
 		return err
@@ -309,8 +305,8 @@ func setUserSpace(ctx *cli.Context) error {
 	addr := ctx.String(flags.GetFlagName(flags.DspWalletAddrFlag))
 	size := ctx.Uint64(flags.GetFlagName(flags.DspSizeFlag))
 	sizeOp := ctx.Uint64(flags.GetFlagName(flags.DspSizeOpFlag))
-	second := ctx.Uint64(flags.GetFlagName(flags.DspSecondFlag))
-	secondOp := ctx.Uint64(flags.GetFlagName(flags.DspSecondOpFlag))
+	second := ctx.Uint64(flags.GetFlagName(flags.DspBlockCountFlag))
+	secondOp := ctx.Uint64(flags.GetFlagName(flags.DspBlockCountOpFlag))
 
 	sizeMap := make(map[string]interface{}, 0)
 	sizeMap["Type"] = sizeOp
@@ -318,7 +314,7 @@ func setUserSpace(ctx *cli.Context) error {
 
 	secondMap := make(map[string]interface{}, 0)
 	secondMap["Type"] = secondOp
-	secondMap["Value"] = second
+	secondMap["Value"] = second * config.Parameters.BaseConfig.BlockTime
 	log.Debugf("addr %v, size %v second %v", addr, sizeMap, secondMap)
 	ret, err := utils.SetUserSpace(addr, pwdHash, sizeMap, secondMap)
 	if err != nil {

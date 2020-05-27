@@ -3,12 +3,14 @@ package cmd
 import (
 	"bufio"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
 
 	"github.com/saveio/edge/cmd/flags"
 	cmdutil "github.com/saveio/edge/cmd/utils"
+	edgeCom "github.com/saveio/edge/common"
 	eUtils "github.com/saveio/edge/utils"
 	"github.com/saveio/themis/account"
 	"github.com/saveio/themis/cmd/common"
@@ -124,6 +126,17 @@ You can use ./edge account --help command to view help information of wallet man
 				ArgsUsage: "[sub-command options]",
 				Flags: []cli.Flag{
 					utils.AccountVerboseFlag,
+				},
+			},
+			{
+				Action:    accountImport,
+				Name:      "import",
+				Usage:     "Import account with wallet file or private key",
+				ArgsUsage: "[sub-command options]",
+				Flags: []cli.Flag{
+					utils.WalletFileFlag,
+					flags.WalletLabelFlag,
+					flags.PrivateKeyFlag,
 				},
 			},
 		},
@@ -367,22 +380,43 @@ func accountDelete(ctx *cli.Context) error {
 }
 
 func accountImport(ctx *cli.Context) error {
-	password := ctx.String(flags.GetFlagName(flags.WalletPasswordFlag))
+	pwd, err := password.GetPassword()
+	if err != nil {
+		return err
+	}
+	password := string(pwd)
 	walletFile := ctx.String(flags.GetFlagName(flags.WalletFileFlag))
-	forOnline := ctx.Bool(flags.GetFlagName(flags.ImportOnlineWalletFlag))
-	if !forOnline {
-		// TODO: support import offline
+
+	if len(walletFile) > 0 && edgeCom.FileExisted(walletFile) {
+		wallet, err := ioutil.ReadFile(walletFile)
+		if err != nil {
+			return err
+		}
+		acc, err := cmdutil.ImportWithWalletData(string(wallet), password)
+		if err != nil {
+			return err
+		}
+		PrintJsonObject(acc)
 		return nil
 	}
-	wallet, err := ioutil.ReadFile(walletFile)
-	if err != nil {
-		return err
+
+	privateKey := ctx.String(flags.GetFlagName(flags.PrivateKeyFlag))
+	walletLabel := ctx.String(flags.GetFlagName(flags.WalletLabelFlag))
+	if len(privateKey) > 0 && len(walletLabel) > 0 {
+		acc, err := cmdutil.ImportWithPrivateKey(privateKey, walletLabel, password)
+		if err != nil {
+			return err
+		}
+		PrintJsonObject(acc)
+		return nil
 	}
-	acc, err := cmdutil.ImportWithWalletData(string(wallet), password)
-	if err != nil {
-		return err
+
+	if len(privateKey) > 0 && len(walletLabel) == 0 {
+		PrintErrorMsg("Missing account argument. --label")
+	} else {
+		PrintErrorMsg("Missing account argument.")
 	}
-	PrintJsonObject(acc)
+	cli.ShowSubcommandHelp(ctx)
 	return nil
 }
 
@@ -413,7 +447,12 @@ func accountExport(ctx *cli.Context) error {
 			return err
 		}
 		if len(target) > 0 {
-			err = ioutil.WriteFile(target, []byte(wal), 0666)
+			m := make(map[string]interface{})
+			if err := json.Unmarshal([]byte(wal), &m); err != nil {
+				return err
+			}
+			walletData := m["Wallet"].(string)
+			err = ioutil.WriteFile(target, []byte(walletData), 0666)
 			if err != nil {
 				return err
 			}

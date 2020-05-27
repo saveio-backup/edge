@@ -3,7 +3,6 @@ package rpc
 import (
 	"github.com/saveio/edge/dsp"
 	"github.com/saveio/edge/http/rest"
-	"github.com/saveio/themis/common/log"
 )
 
 func GetCurrentAccount(cmd []interface{}) map[string]interface{} {
@@ -30,9 +29,6 @@ func NewAccount(cmd []interface{}) map[string]interface{} {
 }
 
 func ImportWithPrivateKey(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 3 {
-		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	}
 	params := convertSliceToMap(cmd, []string{"PrivateKey", "Label", "Password"})
 	v := rest.ImportWithPrivateKey(params)
 	ret, err := parseRestResult(v)
@@ -43,9 +39,6 @@ func ImportWithPrivateKey(cmd []interface{}) map[string]interface{} {
 }
 
 func ExportPrivateKey(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 1 {
-		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	}
 	params := convertSliceToMap(cmd, []string{"Password"})
 	v := rest.ExportWIFPrivateKey(params)
 	ret, err := parseRestResult(v)
@@ -56,14 +49,9 @@ func ExportPrivateKey(cmd []interface{}) map[string]interface{} {
 }
 
 func ImportWithWalletData(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 2 {
-		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	}
 	params := convertSliceToMap(cmd, []string{"Wallet", "Password"})
 	v := rest.ImportWithWalletData(params)
-	log.Debugf("import %v", v)
 	ret, err := parseRestResult(v)
-	log.Debugf("ret %v, err %s", ret, err)
 	if err != nil {
 		return responsePackError(err.Code, err.Error.Error())
 	}

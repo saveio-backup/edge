@@ -206,7 +206,7 @@ Use `$ ./edge userspace show --walletAddr=AZgCJrwXBwSrZVGumnfdUogTUBRUbUq8YW`  t
 #### Upload file
 
 ```shell
-$./edge file upload --filePath=./wallet.dat --fileDesc=wallet.dat --copyNum=0
+$./edge file upload --filePath=./wallet.dat --desc=wallet.dat --copyNum=0
 ```
 
 * filePath: the file location.

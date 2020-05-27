@@ -1880,6 +1880,9 @@ func (this *Endpoint) GetWhitelist(fileHash string) ([]*WhiteListRule, *DspErr) 
 
 func (this *Endpoint) SetUserSpace(walletAddr string, size, sizeOpType, blockCount, countOpType uint64) (
 	string, *DspErr) {
+	if len(walletAddr) == 0 {
+		walletAddr = this.getDspWalletAddress()
+	}
 	if sizeOpType == uint64(fs.UserSpaceNone) && countOpType == uint64(fs.UserSpaceNone) {
 		return "", &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
 	}

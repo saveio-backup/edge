@@ -10,7 +10,6 @@ import (
 
 	"github.com/saveio/edge/cmd/flags"
 	"github.com/saveio/edge/common"
-	"github.com/saveio/themis/common/log"
 
 	"github.com/urfave/cli"
 )
@@ -290,7 +289,7 @@ func Init(ctx *cli.Context) {
 	}
 	existed := common.FileExisted(configDir)
 	if !existed {
-		log.Infof("config file is not exist: %s, use default config", configDir)
+		// log.Infof("config file is not exist: %s, use default config", configDir)
 		return
 	}
 	Parameters = ParseConfigFromFile(configDir)

@@ -3,23 +3,28 @@ package utils
 import (
 	"fmt"
 	"strconv"
+
+	"github.com/saveio/edge/common/config"
 )
 
 func UploadFile(path, password, desc string, WhiteList []string, encryptPassword, url string, share bool,
 	duration, interval string, privilege uint64, copyNum string, storeType int64) ([]byte, error) {
 	var err error
 	var durationVal, intervalVal, copyNumVal interface{}
+	var durationF, intervalF float64
 	if len(duration) > 0 {
-		durationVal, err = strconv.ParseFloat(duration, 64)
+		durationF, err = strconv.ParseFloat(duration, 64)
 		if err != nil {
 			return nil, err
 		}
+		durationVal = durationF * float64(config.Parameters.BaseConfig.BlockTime)
 	}
 	if len(interval) > 0 {
-		intervalVal, err = strconv.ParseFloat(interval, 64)
+		intervalF, err = strconv.ParseFloat(interval, 64)
 		if err != nil {
 			return nil, err
 		}
+		intervalVal = intervalF * float64(config.Parameters.BaseConfig.BlockTime)
 	}
 	if len(copyNum) > 0 {
 		copyNumVal, err = strconv.ParseFloat(copyNum, 64)

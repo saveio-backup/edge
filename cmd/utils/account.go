@@ -2,7 +2,6 @@ package utils
 
 import (
 	"encoding/json"
-	"strings"
 
 	"github.com/saveio/edge/dsp"
 )
@@ -65,8 +64,9 @@ func ExportWalletFile() (string, error) {
 		return "", ontErr.Error
 	}
 	old := string(ret)
-	new := strings.Replace(old, "\\", "", -1)
-	return string(new), nil
+	return old, nil
+	// new := strings.Replace(old, "\\", "", -1)
+	// return string(new), nil
 }
 
 func ExportPrivateKey(password string) (string, error) {

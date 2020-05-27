@@ -570,10 +570,7 @@ func GetUserSpace(cmd map[string]interface{}) map[string]interface{} {
 
 func SetUserSpace(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
-	addr, ok := cmd["Addr"].(string)
-	if !ok {
-		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	}
+	addr, _ := cmd["Addr"].(string)
 	size, sizeOp, second, secondOp := float64(0), float64(0), float64(0), float64(0)
 	sizeMap, ok := cmd["Size"].(map[string]interface{})
 	if ok {

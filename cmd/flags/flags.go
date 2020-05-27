@@ -39,6 +39,10 @@ var (
 		Name:  "wallet,w",
 		Usage: "Import wallet from file",
 	}
+	PrivateKeyFlag = cli.StringFlag{
+		Name:  "privatekey, privk",
+		Usage: "Import wallet from private key (WIF)",
+	}
 	ImportOnlineWalletFlag = cli.BoolFlag{
 		Name:  "online",
 		Usage: "Import for online node or not",
@@ -142,7 +146,8 @@ var (
 	}
 	DspUploadDurationFlag = cli.StringFlag{
 		Name:  "duration",
-		Usage: "File storage life cycle",
+		Usage: "File storage block count",
+		Value: "172800",
 	}
 	DspFileUrlFlag = cli.StringFlag{
 		Name:  "url",
@@ -150,7 +155,8 @@ var (
 	}
 	DspUploadProveIntervalFlag = cli.StringFlag{
 		Name:  "interval",
-		Usage: "File challenge interval",
+		Usage: "File challenge interval block count. Minimum 17280.",
+		Value: "17280",
 	}
 	DspUploadExpiredHeightFlag = cli.StringFlag{
 		Name:  "expiredHeight",
@@ -228,15 +234,15 @@ var (
 		Usage: "Delete remote file or local file",
 	}
 
-	DspSecondOpFlag = cli.Uint64Flag{
-		Name:  "secondOp",
-		Usage: "User space second operation.0: none, 1: add, 2: revoke",
+	DspBlockCountOpFlag = cli.Uint64Flag{
+		Name:  "blockCountOp",
+		Usage: "User space storage block count operation.0: none, 1: add, 2: revoke",
 		Value: 1,
 	}
-	DspSecondFlag = cli.Uint64Flag{
-		Name:  "second",
-		Usage: "User space second",
-		Value: 864000,
+	DspBlockCountFlag = cli.Uint64Flag{
+		Name:  "blockCount",
+		Usage: "User space storage block count",
+		Value: 172800,
 	}
 	DspSizeFlag = cli.Uint64Flag{
 		Name:  "size",
