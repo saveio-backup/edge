@@ -2332,7 +2332,7 @@ func (this *Endpoint) getDownloadFilePath(fileName string) string {
 	if len(fileName) == 0 {
 		return config.FsFileRootPath()
 	}
-	return config.FsFileRootPath() + "/" + fileName
+	return filepath.Join(config.FsFileRootPath(), "/", fileName)
 }
 
 func blockHeightToTimestamp(curBlockHeight, endBlockHeight uint64) uint64 {

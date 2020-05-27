@@ -32,7 +32,7 @@ You can use ./edge account --help command to view help information of wallet man
 			{
 				Action:    accountCreate,
 				Name:      "add",
-				Usage:     "Add a new account",
+				Usage:     "Add a new account offline",
 				ArgsUsage: "[sub-command options]",
 				Flags: []cli.Flag{
 					utils.AccountQuantityFlag,
@@ -89,7 +89,7 @@ You can use ./edge account --help command to view help information of wallet man
 			{
 				Action:    accountCreateOnline,
 				Name:      "create",
-				Usage:     "Create online account to start edge",
+				Usage:     "Create a account to a runing edge node",
 				ArgsUsage: "[sub-command options]",
 				Flags: []cli.Flag{
 					flags.WalletLabelFlag,
@@ -408,21 +408,19 @@ func accountExport(ctx *cli.Context) error {
 	exportType := ctx.Int(flags.GetFlagName(flags.WalletExportTypeFlag))
 	if exportType == 0 {
 		target := ctx.String(flags.GetFlagName(flags.WalletExportFileFlag))
-		if len(target) == 0 {
-			PrintErrorMsg("Missing target file argument to export.")
-			cli.ShowSubcommandHelp(ctx)
-			return nil
-		}
 		wal, err := cmdutil.ExportWalletFile()
 		if err != nil {
 			return err
 		}
-		err = ioutil.WriteFile(target, []byte(wal), 0666)
-		if err != nil {
-			return err
+		if len(target) > 0 {
+			err = ioutil.WriteFile(target, []byte(wal), 0666)
+			if err != nil {
+				return err
+			}
 		}
 		PrintInfoMsg("Export wallet success. See `%s` for detail.", target)
 	} else {
+		target := ctx.String(flags.GetFlagName(flags.WalletExportFileFlag))
 		pwd, err := password.GetPassword()
 		if err != nil {
 			return err
@@ -431,6 +429,12 @@ func accountExport(ctx *cli.Context) error {
 		ret, err := cmdutil.ExportPrivateKey(pwdHash)
 		if err != nil {
 			return err
+		}
+		if len(target) > 0 {
+			err = ioutil.WriteFile(target, []byte(ret), 0666)
+			if err != nil {
+				return err
+			}
 		}
 		PrintInfoMsg(ret)
 	}

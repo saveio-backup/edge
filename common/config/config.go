@@ -113,7 +113,7 @@ type EdgeConfig struct {
 }
 
 func DefaultConfig() *EdgeConfig {
-	configDir = "./" + DEFAULT_CONFIG_FILENAME
+	configDir = filepath.Join(".", DEFAULT_CONFIG_FILENAME)
 	existed := common.FileExisted(configDir)
 	if !existed {
 		return TestConfig()
@@ -270,10 +270,10 @@ func Init(ctx *cli.Context) {
 		if strings.Contains(path, ".json") {
 			configDir = path
 		} else {
-			configDir = ctx.String(flags.GetFlagName(flags.ConfigFlag)) + "/" + DEFAULT_CONFIG_FILENAME
+			configDir = filepath.Join(flags.GetFlagName(flags.ConfigFlag), "/", DEFAULT_CONFIG_FILENAME)
 		}
 	} else {
-		configDir = "./" + DEFAULT_CONFIG_FILENAME
+		configDir = filepath.Join(".", DEFAULT_CONFIG_FILENAME)
 	}
 	existed := common.FileExisted(configDir)
 	if !existed {
@@ -281,12 +281,15 @@ func Init(ctx *cli.Context) {
 		return
 	}
 	Parameters = ParseConfigFromFile(configDir)
+	// fmt.Printf("use config %s Parameters %v\n", configDir, Parameters)
 }
 
 // ParseConfigFromFile. parse config from json file
 func ParseConfigFromFile(file string) *EdgeConfig {
 	cfg := &EdgeConfig{}
-	common.GetJsonObjectFromFile(file, cfg)
+	if err := common.GetJsonObjectFromFile(file, cfg); err != nil {
+		panic(err)
+	}
 	SetDefaultFieldForConfig(cfg)
 	return cfg
 }

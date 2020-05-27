@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"io/ioutil"
 	"math/rand"
+	"path/filepath"
 
 	"github.com/saveio/edge/cmd/flags"
 	"github.com/saveio/edge/cmd/utils"
@@ -203,7 +204,7 @@ func fileUpload(ctx *cli.Context) error {
 		exts := []string{"txt", "jpg", "mp3", "mp4"}
 		baseName = baseName + "." + exts[rand.Int31n(int32(len(exts)))]
 		fileDesc = baseName
-		fileName = config.FsFileRootPath() + "/" + baseName
+		fileName = filepath.Join(config.FsFileRootPath(), "/", baseName)
 		ioutil.WriteFile(fileName, data, 0666)
 		PrintInfoMsg("filemd5 is %s", hex.EncodeToString(md5Ret[:]))
 	}
