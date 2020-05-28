@@ -160,7 +160,7 @@ func accountCreate(ctx *cli.Context) error {
 		PrintInfoMsg("	curve: %s", curveMap[optionCurve].name)
 		PrintInfoMsg("	signature scheme: %s", schemeMap[optionScheme].name)
 	}
-	optionFile := checkFileName(ctx)
+	optionFile := checkWalletFileName(ctx)
 	optionNumber := checkNumber(ctx)
 	optionLabel := checkLabel(ctx)
 	pass, _ := password.GetConfirmedPassword()
@@ -209,7 +209,7 @@ func accountCreate(ctx *cli.Context) error {
 }
 
 func accountList(ctx *cli.Context) error {
-	optionFile := checkFileName(ctx)
+	optionFile := checkWalletFileName(ctx)
 	wallet, err := account.Open(optionFile)
 	if err != nil {
 		return fmt.Errorf("open wallet:%s error:%s", optionFile, err)

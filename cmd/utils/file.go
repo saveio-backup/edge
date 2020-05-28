@@ -49,8 +49,8 @@ func DownloadFile(args ...interface{}) ([]byte, error) {
 	return ret, nil
 }
 
-func DeleteFile(hash string) ([]byte, error) {
-	ret, dErr := sendRpcRequest("deletefile", []interface{}{hash})
+func DeleteFile(args ...interface{}) ([]byte, error) {
+	ret, dErr := sendRpcRequest("deletefile", args)
 	if dErr != nil {
 		return nil, dErr.Error
 	}

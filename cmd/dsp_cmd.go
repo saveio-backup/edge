@@ -3,6 +3,7 @@ package cmd
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"path/filepath"
@@ -64,6 +65,7 @@ var FileCommand = cli.Command{
 			ArgsUsage: "[arguments...]",
 			Flags: []cli.Flag{
 				flags.DspFileHashFlag,
+				flags.GasLimitFlag,
 			},
 			Description: "Delete file",
 		},
@@ -248,10 +250,9 @@ func fileDelete(ctx *cli.Context) error {
 		return err
 	}
 	pwdHash := eUtils.Sha256HexStr(string(pwd))
-	if len(pwdHash) == 0 {
-	}
 	hash := ctx.String(flags.GetFlagName(flags.DspFileHashFlag))
-	ret, err := utils.DeleteFile(hash)
+	gasLimit := ctx.Uint64(flags.GetFlagName(flags.GasLimitFlag))
+	ret, err := utils.DeleteFile(hash, pwdHash, fmt.Sprintf("%v",gasLimit))
 	if err != nil {
 		PrintErrorMsg("delete file err %s", err)
 		return err

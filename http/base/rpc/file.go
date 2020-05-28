@@ -20,7 +20,7 @@ func UploadFile(cmd []interface{}) map[string]interface{} {
 }
 
 func DeleteFile(cmd []interface{}) map[string]interface{} {
-	params := convertSliceToMap(cmd, []string{"Hash"})
+	params := convertSliceToMap(cmd, []string{"Hash", "Password", "GasLimit"})
 	v := rest.DeleteUploadFile(params)
 	ret, err := parseRestResult(v)
 	if err != nil {

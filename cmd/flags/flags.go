@@ -348,6 +348,16 @@ var (
 		Name:  "address,addr",
 		Usage: "Wallet address. [string]",
 	}
+	GasPriceFlag = cli.Uint64Flag{
+		Name:  "gasPrice,gp",
+		Usage: "Invoke smart contract gas price. [uint64]",
+		Value: 500,
+	}
+	GasLimitFlag = cli.Uint64Flag{
+		Name:  "gasLimit,gl",
+		Usage: "Invoke smart contract gas limit. [uint64]",
+		Value: 20000,
+	}
 	VerboseFlag = cli.StringFlag{
 		Name:  "verbose,v",
 		Usage: "Show detail message. [string]",

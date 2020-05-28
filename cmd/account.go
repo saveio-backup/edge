@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"strings"
 
+	edgeCfg "github.com/saveio/edge/common/config"
 	"github.com/saveio/themis/cmd/common"
 	"github.com/saveio/themis/cmd/utils"
-	"github.com/saveio/themis/common/config"
 	"github.com/saveio/themis/crypto/keypair"
 	s "github.com/saveio/themis/crypto/signature"
-
 	"github.com/urfave/cli"
 )
 
@@ -136,12 +135,12 @@ func chooseCurve(reader *bufio.Reader) string {
 	return ""
 }
 
-func checkFileName(ctx *cli.Context) string {
+func checkWalletFileName(ctx *cli.Context) string {
 	if ctx.IsSet(utils.GetFlagName(utils.WalletFileFlag)) {
 		return ctx.String(utils.GetFlagName(utils.WalletFileFlag))
 	} else {
 		//default account file name
-		return config.DEFAULT_WALLET_FILE_NAME
+		return edgeCfg.Parameters.BaseConfig.WalletDir
 	}
 }
 func checkNumber(ctx *cli.Context) int {
