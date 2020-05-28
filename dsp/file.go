@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -1444,20 +1444,19 @@ func (this *Endpoint) EncryptFile(path, password string) *DspErr {
 	if _, err := outputFile.Write(prefixBuf); err != nil {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
 	}
-	remain, err := ioutil.ReadFile(tempOutput)
-	log.Debugf("prefixBuf %v %v, len %d %d", prefixBuf, remain, len(prefixBuf), len(remain))
+	remain, err := os.Open(tempOutput)
 	if err != nil {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
 	}
-	if _, err := outputFile.WriteAt(remain, int64(len(prefixBuf))); err != nil {
+	if _, err := outputFile.Seek(int64(len(prefixBuf)), io.SeekStart); err != nil {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
 	}
-	err = os.Remove(tempOutput)
-	if err != nil {
+	if _, err := io.Copy(outputFile, remain); err != nil {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
 	}
-	result, _ := ioutil.ReadFile(output)
-	log.Debugf("result %v %d", result, len(result))
+	if err := os.Remove(tempOutput); err != nil {
+		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
+	}
 	return nil
 }
 

@@ -103,17 +103,17 @@ var FileCommand = cli.Command{
 			},
 			Description: "Get transfer file list",
 		},
-		// {
-		// 	Action:    encryptFile,
-		// 	Name:      "encrypt",
-		// 	Usage:     "Encrypt file",
-		// 	ArgsUsage: "[arguments...]",
-		// 	Flags: []cli.Flag{
-		// 		flags.DspFilePathFlag,
-		// 		flags.DspEncryptPwdFlag,
-		// 	},
-		// 	Description: "Encrypt file",
-		// },
+		{
+			Action:    encryptFile,
+			Name:      "encrypt",
+			Usage:     "Encrypt file",
+			ArgsUsage: "[arguments...]",
+			Flags: []cli.Flag{
+				flags.DspFilePathFlag,
+				flags.DspEncryptPwdFlag,
+			},
+			Description: "Encrypt file",
+		},
 		{
 			Action:    decryptFile,
 			Name:      "decrypt",
