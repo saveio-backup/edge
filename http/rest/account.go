@@ -181,6 +181,9 @@ func CheckPassword(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
+	if dsp.DspService == nil {
+		return ResponsePackWithErrMsg(dsp.NO_DSP, dsp.ErrMaps[dsp.NO_DSP].Error())
+	}
 	err := dsp.DspService.CheckPassword(password)
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())

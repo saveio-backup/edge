@@ -1,6 +1,9 @@
 package rpc
 
 import (
+	"fmt"
+
+	"github.com/saveio/edge/dsp"
 	"github.com/saveio/edge/http/rest"
 )
 
@@ -27,7 +30,13 @@ func DeleteFile(cmd []interface{}) map[string]interface{} {
 }
 
 func DownloadFile(cmd []interface{}) map[string]interface{} {
-	params := convertSliceToMap(cmd, []string{"Hash", "Url", "Link", "Password", "MaxPeerNum", "SetFileName"})
+	params := convertSliceToMap(cmd, []string{"Hash", "Url", "Link", "DecryptPassword", "MaxPeerNum", "SetFileName", "Password"})
+	checkPasswordRet := rest.CheckPassword(params)
+	errorCode, _ := checkPasswordRet["Error"].(int64)
+	if errorCode != 0 {
+		return responsePackError(dsp.ACCOUNT_PASSWORD_WRONG, "wrong password")
+	}
+	fmt.Println(params)
 	v := rest.DownloadFile(params)
 	ret, err := parseRestResult(v)
 	if err != nil {

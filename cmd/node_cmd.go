@@ -1,8 +1,11 @@
 package cmd
 
 import (
+	"encoding/json"
+
 	"github.com/saveio/edge/cmd/flags"
 	"github.com/saveio/edge/cmd/utils"
+	chainCom "github.com/saveio/themis/common"
 	"github.com/urfave/cli"
 )
 
@@ -101,10 +104,31 @@ func queryNode(ctx *cli.Context) error {
 	walletAddr := ctx.String(flags.GetFlagName(flags.DspWalletAddrFlag))
 	ret, err := utils.QueryNode(walletAddr)
 	if err != nil {
-		PrintErrorMsg("start dsp err:%s\n", err)
+		PrintErrorMsg("query node err:%s\n", err)
 		return err
 	}
-	PrintJsonData(ret)
+	m := make(map[string]interface{})
+	if err := json.Unmarshal(ret, &m); err != nil {
+		return err
+	}
+	info := m["Info"].(map[string]interface{})
+	buf, err := json.Marshal(info["WalletAddr"])
+	if err != nil {
+		return err
+	}
+	bufs := make([]byte, 0)
+	if err := json.Unmarshal(buf, &bufs); err != nil {
+		return err
+	}
+	addr, err := chainCom.AddressParseFromBytes(bufs)
+	if err != nil {
+		return err
+	}
+	info["Pledge"] = utils.ParseAssets(info["Pledge"])
+	info["RestVol"] = utils.ParserByteSizeToKB(info["RestVol"])
+	info["Volume"] = utils.ParserByteSizeToKB(info["Volume"])
+	info["WalletAddr"] = addr.ToBase58()
+	PrintJsonObject(m)
 	return nil
 }
 
@@ -114,7 +138,7 @@ func updateNode(ctx *cli.Context) error {
 	serviceTime := ctx.String(flags.GetFlagName(flags.DspServiceTimeFlag))
 	ret, err := utils.NodeUpdate(nodeAddr, volume, serviceTime)
 	if err != nil {
-		PrintErrorMsg("start dsp err:%s\n", err)
+		PrintErrorMsg("update node err:%s\n", err)
 		return err
 	}
 	PrintJsonData(ret)

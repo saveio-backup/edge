@@ -9,340 +9,348 @@ import (
 var (
 	ConfigFlag = cli.StringFlag{
 		Name:  "config",
-		Usage: "Use `<filename>` to specifies the config file to connect to customize network.",
+		Usage: "Use `<filename>` to specifies the config file to connect to customize network. [string]",
 	}
 	LaunchManualFlag = cli.BoolFlag{
 		Name:  "launchManual",
-		Usage: "Launch dsp manually",
+		Usage: "Launch dsp manually. [bool]",
 	}
 	//commmon
 	LogStderrFlag = cli.BoolFlag{
 		Name:  "logstderr",
-		Usage: "Log to standard error instead of files,default false",
+		Usage: "Log to standard error instead of files,default false. [bool]",
 	}
 	LogLevelFlag = cli.UintFlag{
 		Name:  "loglevel",
-		Usage: "Set the log level to `<level>` (0~6). 0:Trace 1:Debug 2:Info 3:Warn 4:Error 5:Fatal 6:MaxLevel",
+		Usage: "Set the log level to `<level>` (0~6). 0:Trace 1:Debug 2:Info 3:Warn 4:Error 5:Fatal 6:MaxLevel. [uint]. [int]",
 	}
 
 	NetworkIDFlag = cli.UintFlag{
 		Name:  "networkId",
-		Usage: "P2P network identity",
+		Usage: "P2P network identity. [uint]. [int]",
 	}
 	RpcServerFlag = cli.StringFlag{
 		Name:  "rpcServer",
-		Usage: "Chain RPC server address",
+		Usage: "Chain RPC server address. [string]",
 		Value: "",
 	}
 
 	WalletFileFlag = cli.StringFlag{
 		Name:  "wallet,w",
-		Usage: "Import wallet from file",
+		Usage: "Import wallet from file. [string]",
 	}
 	PrivateKeyFlag = cli.StringFlag{
 		Name:  "privatekey, privk",
-		Usage: "Import wallet from private key (WIF)",
+		Usage: "Import wallet from private key (WIF). [string]",
 	}
 	ImportOnlineWalletFlag = cli.BoolFlag{
 		Name:  "online",
-		Usage: "Import for online node or not",
+		Usage: "Import for online node or not. [bool]",
 	}
 	WalletPasswordFlag = cli.StringFlag{
 		Name:  "password,p",
-		Usage: "Wallet password",
+		Usage: "Wallet password. [string]",
 	}
 	WalletLabelFlag = cli.StringFlag{
 		Name:  "label,l",
-		Usage: "Create wallet label",
+		Usage: "Create wallet label. [string]",
 		Value: "",
 	}
 	WalletKeyTypeFlag = cli.StringFlag{
 		Name:  "keyType,k",
-		Usage: "Create wallet keyType",
+		Usage: "Create wallet keyType. [string]",
 		Value: "ecdsa",
 	}
 	WalletCurveFlag = cli.StringFlag{
 		Name:  "curve,c",
-		Usage: "Create wallet curve",
+		Usage: "Create wallet curve. [string]",
 		Value: "P-256",
 	}
 	WalletSchemeFlag = cli.StringFlag{
 		Name:  "scheme,s",
-		Usage: "Create wallet scheme",
+		Usage: "Create wallet scheme. [string]",
 		Value: "SHA256withECDSA",
 	}
 	WalletExportTypeFlag = cli.IntFlag{
 		Name:  "type,t",
-		Usage: "ExportType. 0: WalletFile, 1: PrivateKey",
+		Usage: "ExportType. 0: WalletFile, 1: PrivateKey. [int]",
 	}
 	WalletExportFileFlag = cli.StringFlag{
 		Name:  "output,o",
-		Usage: "Output file",
+		Usage: "Output file. [string]",
 	}
 
 	////////////////Dsp Command Common Setting///////////////////
 	DspRestAddrFlag = cli.StringFlag{
 		Name:  "dspRestAddr",
-		Usage: "DSP restful sever address",
+		Usage: "DSP restful sever address. [string]",
 	}
 
 	////////////////Dsp Node Setting///////////////////
 	DspNodeAddrFlag = cli.StringFlag{
 		Name:  "nodeAddr",
-		Usage: "DSP node listen address",
+		Usage: "DSP node listen address. [string]",
 	}
 	DspVolumeFlag = cli.StringFlag{
 		Name:  "volume",
-		Usage: "DSP node storage volume",
+		Usage: "DSP node storage volume. [string]",
 	}
 	DspServiceTimeFlag = cli.StringFlag{
 		Name:  "serviceTime",
-		Usage: "DSP storage node service time",
+		Usage: "DSP storage node service time. [string]",
 	}
 	DspWalletAddrFlag = cli.StringFlag{
 		Name:  "walletAddr",
-		Usage: "Account wallet address",
+		Usage: "Account wallet address. [string]",
 	}
 
 	////////////////Dsp File(download) Setting///////////////////
 	DspFileHashFlag = cli.StringFlag{
 		Name:  "fileHash",
-		Usage: "`<hash>` of file",
+		Usage: "`<hash>` of file. [string]",
 	}
 	DspFileLinkFlag = cli.StringFlag{
 		Name:  "link",
-		Usage: "`<link>` of file",
+		Usage: "`<link>` of file. [string]",
 	}
 	DspInorderFlag = cli.BoolFlag{
 		Name:  "inorder",
-		Usage: "Download file in order",
+		Usage: "Download file in order. [bool]",
 	}
 	DspNofeeFlag = cli.BoolFlag{
 		Name:  "noFee",
-		Usage: "Download file free",
+		Usage: "Download file free. [bool]",
 	}
 	DspDecryptPwdFlag = cli.StringFlag{
 		Name:  "decryptPwd",
-		Usage: "Decrypt file password",
+		Usage: "Decrypt file password. [string]",
 	}
 	DspMaxPeerCntFlag = cli.Uint64Flag{
 		Name:  "maxPeerCnt",
-		Usage: "Max number of peer for downloading files",
+		Usage: "Max number of peer for downloading files. [uint64]",
 		Value: 1,
 	}
 	DspSetFileNameFlag = cli.BoolFlag{
 		Name:  "setFileName",
-		Usage: "Auto save file with its original file name.",
+		Usage: "Auto save file with its original file name. [bool]",
 	}
 
 	////////////////Dsp File(upload) Setting///////////////////
-	DspUploadFileNameFlag = cli.StringFlag{
+	DspUploadFilePathFlag = cli.StringFlag{
 		Name:  "filePath",
-		Usage: "Absolute `<path>` of file to be uploaded",
+		Usage: "Absolute `<path>` of file to be uploaded. [string]",
+	}
+	DspFilePathFlag = cli.StringFlag{
+		Name:  "filePath",
+		Usage: "Absolute `<path>` of the file. [string]",
+	}
+	DspEncryptPwdFlag = cli.StringFlag{
+		Name:  "encryptPwd",
+		Usage: "Password for encrypting the file [string]",
 	}
 	DspUploadFileDescFlag = cli.StringFlag{
 		Name:  "desc",
-		Usage: "File description",
+		Usage: "File description. [string]",
 	}
 	DspUploadDurationFlag = cli.StringFlag{
 		Name:  "duration",
-		Usage: "File storage block count",
+		Usage: "File storage block count. [string]",
 		Value: "172800",
 	}
 	DspFileUrlFlag = cli.StringFlag{
 		Name:  "url",
-		Usage: "URL of file for downloading",
+		Usage: "URL of file for downloading. [string]",
 	}
 	DspUploadProveIntervalFlag = cli.StringFlag{
 		Name:  "interval",
-		Usage: "File challenge interval block count. Minimum 17280.",
+		Usage: "File challenge interval block count. Minimum 17280. [string]",
 		Value: "17280",
 	}
 	DspUploadExpiredHeightFlag = cli.StringFlag{
 		Name:  "expiredHeight",
-		Usage: "File expired block height",
+		Usage: "File expired block height. [string]",
 	}
 	DspUploadPrivilegeFlag = cli.Uint64Flag{
 		Name:  "privilege",
-		Usage: "Privilege of file sharing",
+		Usage: "Privilege of file sharing. [uint64]",
 		Value: 1,
 	}
 	DspUploadCopyNumFlag = cli.StringFlag{
 		Name:  "copyNum",
-		Usage: "Copy Number of file",
+		Usage: "Copy Number of file. [string]",
 	}
 	DspUploadEncryptFlag = cli.BoolFlag{
 		Name:  "encrypt",
-		Usage: "Encrypt file or not",
+		Usage: "Encrypt file or not. [bool]",
 	}
 	DspUploadEncryptPasswordFlag = cli.StringFlag{
 		Name:  "encryptPwd",
-		Usage: "Encrypt password",
+		Usage: "Encrypt password. [string]",
 	}
 	DspUploadShareFlag = cli.BoolFlag{
 		Name:  "share",
-		Usage: "Share file or not",
+		Usage: "Share file or not. [bool]",
 	}
 	DspFileTypeFlag = cli.StringFlag{
 		Name:  "fileType",
-		Usage: "File list type",
+		Usage: "File list type. [string]",
 		Value: "0",
 	}
 	DspListOffsetFlag = cli.StringFlag{
 		Name:  "offset",
-		Usage: "File list offset",
+		Usage: "File list offset. [string]",
 		Value: "0",
 	}
 	DspListLimitFlag = cli.StringFlag{
 		Name:  "limit",
-		Usage: "File list size limit",
+		Usage: "File list size limit. [string]",
 		Value: "0",
 	}
 	DspFileTransferTypeFlag = cli.StringFlag{
 		Name:  "transferType",
-		Usage: "File transfer type",
+		Usage: "File transfer type. [string]",
 		Value: "0",
 	}
 	DspUploadStoreTypeFlag = cli.Int64Flag{
 		Name:  "storeType",
-		Usage: "Store file type",
+		Usage: "Store file type. [int64]",
 	}
 	DspFileNameFlag = cli.StringFlag{
 		Name:  "fileName",
-		Usage: "File name",
+		Usage: "File name. [string]",
 	}
 	DspFileBlocksRoot = cli.StringFlag{
 		Name:  "blocksRoot",
-		Usage: "Merkle root hash for all block hash of file",
+		Usage: "Merkle root hash for all block hash of file. [string]",
 	}
 	DspFileOwner = cli.StringFlag{
 		Name:  "fileOwner",
-		Usage: "Wallet address of the file owner",
+		Usage: "Wallet address of the file owner. [string]",
 	}
 	DspFileSize = cli.Int64Flag{
 		Name:  "fileSize",
-		Usage: "File size. (KB)",
+		Usage: "File size. (KB). [int64]",
 	}
 	DspBlockCountSize = cli.Int64Flag{
 		Name:  "blockCount",
-		Usage: "File block count.",
+		Usage: "File block count. [int64]",
 	}
 
 	////////////////Dsp File(delete) Setting///////////////////
 	DspDeleteLocalFlag = cli.BoolFlag{
 		Name:  "local",
-		Usage: "Delete remote file or local file",
+		Usage: "Delete remote file or local file. [bool]",
 	}
 
 	DspBlockCountOpFlag = cli.Uint64Flag{
 		Name:  "blockCountOp",
-		Usage: "User space storage block count operation.0: none, 1: add, 2: revoke",
+		Usage: "User space storage block count operation.0: none, 1: add, 2: revoke. [uint64]",
 		Value: 1,
 	}
 	DspBlockCountFlag = cli.Uint64Flag{
 		Name:  "blockCount",
-		Usage: "User space storage block count",
+		Usage: "User space storage block count. [uint64]",
 		Value: 172800,
 	}
 	DspSizeFlag = cli.Uint64Flag{
 		Name:  "size",
-		Usage: "User space size.(KB)",
+		Usage: "User space size.(KB). [uint64]",
 		Value: 1024000,
 	}
 	DspSizeOpFlag = cli.Uint64Flag{
 		Name:  "sizeOp",
-		Usage: "User space size operation.0: none, 1: add, 2: revoke",
+		Usage: "User space size operation.0: none, 1: add, 2: revoke. [uint64]",
 		Value: 1,
 	}
 
 	////////////////Dsp DNS Command Setting///////////////////
 	DnsURLFlag = cli.StringFlag{
 		Name:  "url",
-		Usage: "`<url>` of the file",
+		Usage: "`<url>` of the file. [string]",
 	}
 	DnsLinkFlag = cli.StringFlag{
 		Name:  "dnsLink",
-		Usage: "Dns `<link>`",
+		Usage: "Dns `<link>`. [string]",
 	}
 	DnsIpFlag = cli.StringFlag{
 		Name:  "dnsIp",
-		Usage: "Dns `<ip>`",
+		Usage: "Dns `<ip>`. [string]",
 	}
 	DnsPortFlag = cli.StringFlag{
 		Name:  "dnsPort",
-		Usage: "Dns `<port>`",
+		Usage: "Dns `<port>`. [string]",
 	}
 	DnsWalletFlag = cli.StringFlag{
 		Name:  "walletAddr",
-		Usage: "Dns `<walletAddr>`",
+		Usage: "Dns `<walletAddr>`. [string]",
 	}
 	DnsAllFlag = cli.BoolFlag{
 		Name:  "all",
-		Usage: "All Dns info",
+		Usage: "All Dns info. [bool]",
 	}
 	/////////////Dsp Channel Command Setting////////////
 	PartnerAddressFlag = cli.StringFlag{
 		Name:  "partnerAddr",
-		Usage: "Channel partner `<address>`",
+		Usage: "Channel partner `<address>`. [string]",
 	}
 	TargetAddressFlag = cli.StringFlag{
 		Name:  "targetAddr",
-		Usage: "Channel transfer target `<address>`",
+		Usage: "Channel transfer target `<address>`. [string]",
 	}
 	TotalDepositFlag = cli.Uint64Flag{
 		Name:  "totalDeposit",
-		Usage: "Channel total `<deposit>`",
+		Usage: "Channel total `<deposit>`. [uint64]",
 	}
 	AmountFlag = cli.Uint64Flag{
 		Name:  "amount",
-		Usage: "Channel payment amount `<amount>`",
+		Usage: "Channel payment amount `<amount>`. [uint64]",
 	}
 	AmountStrFlag = cli.StringFlag{
 		Name:  "amount",
-		Usage: "Channel payment amount `<amount>`. float",
+		Usage: "Channel payment amount `<amount>`. float. [string]",
 	}
 	PaymentIDFlag = cli.Uint64Flag{
 		Name:  "paymentId",
-		Usage: "",
+		Usage: ". [uint64]",
 	}
 
 	/////////////Dsp Governance Command Setting////////////
 	PeerPubkeyFlag = cli.StringFlag{
 		Name:  "peerPubkey",
-		Usage: "candidate pubkey",
+		Usage: "candidate pubkey. [string]",
 	}
 	InitDepositFlag = cli.StringFlag{
 		Name:  "initDeposit",
-		Usage: "Init `<deposit>`",
+		Usage: "Init `<deposit>`. [string]",
 	}
 	PeerPubkeyListFlag = cli.StringFlag{
 		Name:  "peerPubkeyList",
-		Usage: "candidate pubkey list",
+		Usage: "candidate pubkey list. [string]",
 	}
 	WithdrawListFlag = cli.StringFlag{
 		Name:  "withdrawList",
-		Usage: "withdraw value list",
+		Usage: "withdraw value list. [string]",
 	}
 	DeltaDepositFlag = cli.StringFlag{
 		Name:  "deltaDeposit",
-		Usage: "Delta `<deposit>`",
+		Usage: "Delta `<deposit>`. [string]",
 	}
 
 	TestFlag = cli.BoolFlag{
 		Name:  "test",
-		Usage: "Use in test case",
+		Usage: "Use in test case. [bool]",
 	}
 	ProfileFlag = cli.BoolFlag{
 		Name:  "profile",
-		Usage: "Profile with memory",
+		Usage: "Profile with memory. [bool]",
 	}
 	AddressFlag = cli.StringFlag{
 		Name:  "address,addr",
-		Usage: "Wallet address",
+		Usage: "Wallet address. [string]",
 	}
 	VerboseFlag = cli.StringFlag{
 		Name:  "verbose,v",
-		Usage: "Show detail message",
+		Usage: "Show detail message. [string]",
 	}
 )
 

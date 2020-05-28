@@ -7,4 +7,5 @@ DB/
 FS/
 edge
 !bin/edge
-
+bin/edge/Chain-1/
+bin/edge/keystore.dat

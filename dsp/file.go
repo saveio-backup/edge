@@ -4,7 +4,9 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -750,6 +752,30 @@ func (this *Endpoint) GetFsConfig() (*FsContractSettingResp, *DspErr) {
 	}, nil
 }
 
+func (this *Endpoint) getChannelMinBalance() (uint64, *DspErr) {
+	//[NOTE] when this.QueryChannel works, replace this.GetAllChannels logic
+	dsp := this.getDsp()
+	if dsp == nil {
+		return 0, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+	all, getChannelErr := dsp.AllChannels()
+	if getChannelErr != nil {
+		return 0, &DspErr{Code: INTERNAL_ERROR, Error: getChannelErr}
+	}
+	if all == nil || len(all.Channels) == 0 {
+		return 0, &DspErr{Code: DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH, Error: ErrMaps[DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH]}
+	}
+
+	minChannelBalance := uint64(0)
+	for _, ch := range all.Channels {
+		if dsp.IsDNS(ch.Address) && minChannelBalance < ch.Balance {
+			minChannelBalance = ch.Balance
+		}
+	}
+	log.Debugf("all channel min balance %v", minChannelBalance)
+	return minChannelBalance, nil
+}
+
 func (this *Endpoint) DownloadFile(taskId, fileHash, url, linkStr, password string, max uint64,
 	setFileName, inOrder bool) *DspErr {
 	dsp := this.getDsp()
@@ -764,37 +790,13 @@ func (this *Endpoint) DownloadFile(taskId, fileHash, url, linkStr, password stri
 	if !this.channelNet.IsConnReachable(dsp.CurrentDNSWallet()) {
 		return &DspErr{Code: DSP_CHANNEL_DNS_OFFLINE, Error: ErrMaps[DSP_CHANNEL_DNS_OFFLINE]}
 	}
-	fileInfo, err := this.GetDownloadFileInfo(url)
-	if err != nil {
-		return err
-	}
+
 	if len(this.dspNet.GetProxyServer().PeerID) > 0 &&
 		!this.dspNet.IsConnReachable(this.dspNet.WalletAddrFromPeerId(this.dspNet.GetProxyServer().PeerID)) {
 		return &DspErr{Code: NET_PROXY_DISCONNECTED,
 			Error: fmt.Errorf("proxy %s is unreachable", this.dspNet.GetProxyServer())}
 	}
 
-	canDownload := false
-	//[NOTE] when this.QueryChannel works, replace this.GetAllChannels logic
-	all, getChannelErr := dsp.AllChannels()
-	if getChannelErr != nil {
-		return &DspErr{Code: INTERNAL_ERROR, Error: getChannelErr}
-	}
-	if all == nil || len(all.Channels) == 0 {
-		return &DspErr{Code: DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH, Error: ErrMaps[DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH]}
-	}
-
-	for _, ch := range all.Channels {
-		if dsp.IsDNS(ch.Address) && ch.Balance >= fileInfo.Fee {
-			canDownload = true
-			break
-		}
-		log.Debugf("ch.Balance %v, info.fee %v", ch.Balance, fileInfo.Fee)
-	}
-
-	if !canDownload {
-		return &DspErr{Code: DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH, Error: ErrMaps[DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH]}
-	}
 	syncing, syncErr := this.IsChannelProcessBlocks()
 	if syncErr != nil {
 		return syncErr
@@ -802,8 +804,18 @@ func (this *Endpoint) DownloadFile(taskId, fileHash, url, linkStr, password stri
 	if syncing {
 		return &DspErr{Code: DSP_CHANNEL_SYNCING, Error: ErrMaps[DSP_CHANNEL_SYNCING]}
 	}
-
+	minChannelBalance, err := this.getChannelMinBalance()
+	if err != nil {
+		return err
+	}
 	if len(url) > 0 {
+		fileInfoFromUrl, err := this.GetDownloadFileInfo(url)
+		if err != nil {
+			return err
+		}
+		if fileInfoFromUrl != nil && fileInfoFromUrl.Fee > minChannelBalance {
+			return &DspErr{Code: DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH, Error: ErrMaps[DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH]}
+		}
 		hash := dsp.GetFileHashFromUrl(url)
 		if len(hash) == 0 {
 			return &DspErr{Code: INTERNAL_ERROR, Error: fmt.Errorf("file hash not found for url %s", url)}
@@ -834,6 +846,10 @@ func (this *Endpoint) DownloadFile(taskId, fileHash, url, linkStr, password stri
 			return &DspErr{Code: DSP_NO_PRIVILEGE_TO_DOWNLOAD,
 				Error: fmt.Errorf("user %s has no privilege to download this file", dsp.WalletAddress())}
 		}
+		fmt.Printf("info.FileBlockNum*info.FileBlockSize %v\n", info.FileBlockNum*info.FileBlockSize)
+		if info != nil && info.FileBlockNum*info.FileBlockSize*1024 > minChannelBalance {
+			return &DspErr{Code: DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH, Error: ErrMaps[DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH]}
+		}
 		go func() {
 			defer func() {
 				if e := recover(); e != nil {
@@ -861,6 +877,9 @@ func (this *Endpoint) DownloadFile(taskId, fileHash, url, linkStr, password stri
 		if info != nil && !dsp.CheckFilePrivilege(info, hash, dsp.WalletAddress()) {
 			return &DspErr{Code: DSP_NO_PRIVILEGE_TO_DOWNLOAD,
 				Error: fmt.Errorf("user %s has no privilege to download this file", dsp.WalletAddress())}
+		}
+		if info != nil && info.FileBlockNum*info.FileBlockSize*1024 > minChannelBalance {
+			return &DspErr{Code: DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH, Error: ErrMaps[DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH]}
 		}
 		go func() {
 			defer func() {
@@ -1402,14 +1421,43 @@ func (this *Endpoint) EncryptFile(path, password string) *DspErr {
 	if dsp == nil {
 		return &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
-	err := dsp.AESEncryptFile(path, password, path+".temp")
+	stat, err := os.Stat(path)
 	if err != nil {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
 	}
-	err = os.Rename(path+".temp", path)
+	prefix := dspUtils.NewEncryptPrefix(password, this.getDspWalletAddr(), uint64(stat.Size()))
+	if prefix == nil {
+		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: errors.New("prefix is nil")}
+	}
+	tempOutput := path + ".temp"
+	prefixBuf := prefix.Serialize()
+	output := path + ".ept"
+	if err := dsp.AESEncryptFile(path, password, tempOutput); err != nil {
+		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
+	}
+	log.Debugf("+++++ prefix %s", prefixBuf)
+	outputFile, err := os.OpenFile(output, os.O_CREATE|os.O_RDWR, 0666)
 	if err != nil {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
 	}
+	defer outputFile.Close()
+	if _, err := outputFile.Write(prefixBuf); err != nil {
+		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
+	}
+	remain, err := ioutil.ReadFile(tempOutput)
+	log.Debugf("prefixBuf %v %v, len %d %d", prefixBuf, remain, len(prefixBuf), len(remain))
+	if err != nil {
+		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
+	}
+	if _, err := outputFile.WriteAt(remain, int64(len(prefixBuf))); err != nil {
+		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
+	}
+	err = os.Remove(tempOutput)
+	if err != nil {
+		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
+	}
+	result, _ := ioutil.ReadFile(output)
+	log.Debugf("result %v %d", result, len(result))
 	return nil
 }
 
@@ -1421,6 +1469,7 @@ func (this *Endpoint) DecryptFile(path, fileName, password string) (string, *Dsp
 	if !dspUtils.VerifyEncryptPassword(password, filePrefix.EncryptSalt, filePrefix.EncryptHash) {
 		return "", &DspErr{Code: DSP_FILE_DECRYPTED_WRONG_PWD, Error: ErrMaps[DSP_FILE_DECRYPTED_WRONG_PWD]}
 	}
+	log.Debugf("verified %s, %s", password, prefix)
 	dsp := this.getDsp()
 	if dsp == nil {
 		return "", &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
@@ -2228,6 +2277,7 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 		DetailStatus: info.ProgressState,
 		FileSize:     info.FileSize,
 		RealFileSize: info.RealFileSize,
+		Encrypted:    info.Encrypt,
 		Nodes:        nPros,
 		CreatedAt:    info.CreatedAt,
 		UpdatedAt:    info.UpdatedAt,

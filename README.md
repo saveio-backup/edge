@@ -16,7 +16,7 @@ We have developed a underlay infrastructure for distributed storage protocol. In
 
 ```mermaid
 graph BT
-	Edge-->RESTAPI,RPC
+	Edge-->RESTFUL_API,RPC
 	dsp((dsp-go-sdk))-->Edge
 	fs-->dsp
 	channel-->dsp
@@ -150,7 +150,7 @@ Open another terminal for input commands. Use `account` command for manage accou
 $ ./edge account create --label="123"
 ```
 
-The shell will prompt you to ether the account password. Then apply the testnet assets for testing.
+The shell will prompt you to ether the account password. Then apply the TestNet assets for testing.
 
 
 
@@ -188,7 +188,7 @@ See more detail in [Restful API Doc](./docs/REST_API.md)
 #### Buy space for storing file (optional)
 
 ```shell
-$./edge userspace set --walletAddr=AZgCJrwXBwSrZVGumnfdUogTUBRUbUq8YW --second=864000 --secondOp=1 --size=1024000 --sizeOp=1
+$./edge userspace set --walletAddr=AZgCJrwXBwSrZVGumnfdUogTUBRUbUq8YW --blockCount=864000 --blockCountOp=1 --size=1024000 --sizeOp=1
 ```
 
 Result:
@@ -211,7 +211,7 @@ $./edge file upload --filePath=./wallet.dat --desc=wallet.dat --copyNum=0
 
 * filePath: the file location.
 * fileDesc: description of file, recommend use file name.
-* copyNum: number of redunancy storage node
+* copyNum: number of redundancy storage node
 
 
 

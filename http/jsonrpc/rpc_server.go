@@ -78,7 +78,7 @@ func StartRPCServer() error {
 
 	rpc.HandleFunc("uploadfile", rpc.UploadFile)
 	rpc.HandleFunc("deletefile", rpc.DeleteFile)
-	rpc.HandleFunc("downloadfile", rpc.DownloadFile)
+	rpc.HandleFunc("downloadFile", rpc.DownloadFile)
 	rpc.HandleFunc("getuploadfiles", rpc.GetUploadFiles)
 	rpc.HandleFunc("getdownloadfiles", rpc.GetDownloadFiles)
 	rpc.HandleFunc("gettransferlist", rpc.GetTransferList)

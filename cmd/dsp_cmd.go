@@ -27,7 +27,7 @@ var FileCommand = cli.Command{
 			Usage:     "Upload file",
 			ArgsUsage: "<hash>",
 			Flags: []cli.Flag{
-				flags.DspUploadFileNameFlag,
+				flags.DspUploadFilePathFlag,
 				flags.DspUploadFileDescFlag,
 				flags.DspUploadDurationFlag,
 				flags.DspUploadProveIntervalFlag,
@@ -103,6 +103,28 @@ var FileCommand = cli.Command{
 			},
 			Description: "Get transfer file list",
 		},
+		// {
+		// 	Action:    encryptFile,
+		// 	Name:      "encrypt",
+		// 	Usage:     "Encrypt file",
+		// 	ArgsUsage: "[arguments...]",
+		// 	Flags: []cli.Flag{
+		// 		flags.DspFilePathFlag,
+		// 		flags.DspEncryptPwdFlag,
+		// 	},
+		// 	Description: "Encrypt file",
+		// },
+		{
+			Action:    decryptFile,
+			Name:      "decrypt",
+			Usage:     "Decrypt file",
+			ArgsUsage: "[arguments...]",
+			Flags: []cli.Flag{
+				flags.DspFilePathFlag,
+				flags.DspDecryptPwdFlag,
+			},
+			Description: "Decrypt file",
+		},
 	},
 	Description: `./edge file --help command to view help information.`,
 }
@@ -151,15 +173,13 @@ func fileDownload(ctx *cli.Context) error {
 		return err
 	}
 	pwdHash := eUtils.Sha256HexStr(string(pwd))
-	if len(pwdHash) == 0 {
-	}
 	fileHash := ctx.String(flags.GetFlagName(flags.DspFileHashFlag))
 	url := ctx.String(flags.GetFlagName(flags.DspFileUrlFlag))
 	link := ctx.String(flags.GetFlagName(flags.DspFileLinkFlag))
-	password := ctx.String(flags.GetFlagName(flags.DspDecryptPwdFlag))
+	decryptPwd := ctx.String(flags.GetFlagName(flags.DspDecryptPwdFlag))
 	maxPeerNum := ctx.Uint64(flags.GetFlagName(flags.DspMaxPeerCntFlag))
 	setFileName := ctx.Bool(flags.GetFlagName(flags.DspSetFileNameFlag))
-	_, err = utils.DownloadFile(fileHash, url, link, password, maxPeerNum, setFileName)
+	_, err = utils.DownloadFile(fileHash, url, link, decryptPwd, maxPeerNum, setFileName, pwdHash)
 	if err != nil {
 		PrintErrorMsg("download file err %s", err)
 		return err
@@ -170,7 +190,7 @@ func fileDownload(ctx *cli.Context) error {
 
 //upload can be done without dsp daemon
 func fileUpload(ctx *cli.Context) error {
-	if !ctx.IsSet(flags.GetFlagName(flags.DspUploadFileNameFlag)) {
+	if !ctx.IsSet(flags.GetFlagName(flags.DspUploadFilePathFlag)) {
 		PrintErrorMsg("Missing file name.")
 		cli.ShowSubcommandHelp(ctx)
 		return nil
@@ -180,7 +200,7 @@ func fileUpload(ctx *cli.Context) error {
 		return err
 	}
 	pwdHash := eUtils.Sha256HexStr(string(pwd))
-	fileName := ctx.String(flags.GetFlagName(flags.DspUploadFileNameFlag))
+	fileName := ctx.String(flags.GetFlagName(flags.DspUploadFilePathFlag))
 	fileDesc := ctx.String(flags.GetFlagName(flags.DspUploadFileDescFlag))
 	duration := ctx.String(flags.GetFlagName(flags.DspUploadDurationFlag))
 	rate := ctx.String(flags.GetFlagName(flags.DspUploadProveIntervalFlag))
@@ -321,6 +341,53 @@ func setUserSpace(ctx *cli.Context) error {
 		PrintErrorMsg("get upload file list err %s", err)
 		return err
 	}
+	PrintJsonData(ret)
+	return nil
+}
+
+func encryptFile(ctx *cli.Context) error {
+	if !ctx.IsSet(flags.GetFlagName(flags.DspFilePathFlag)) {
+		PrintErrorMsg("Missing file path. --filePath")
+		cli.ShowSubcommandHelp(ctx)
+		return nil
+	}
+	if !ctx.IsSet(flags.GetFlagName(flags.DspEncryptPwdFlag)) {
+		PrintErrorMsg("Missing encrypt password. --encryptPwd")
+		cli.ShowSubcommandHelp(ctx)
+		return nil
+	}
+	filePath := ctx.String(flags.GetFlagName(flags.DspFilePathFlag))
+	pwd := ctx.String(flags.GetFlagName(flags.DspEncryptPwdFlag))
+	_, err := utils.EncryptFile(filePath, pwd)
+	if err != nil {
+		PrintErrorMsg("encrypt file err %s", err)
+		return err
+	}
+	PrintInfoMsg("Encrypt file success. See %s.ept for detail", filePath)
+
+	return nil
+}
+
+func decryptFile(ctx *cli.Context) error {
+	if !ctx.IsSet(flags.GetFlagName(flags.DspFilePathFlag)) {
+		PrintErrorMsg("Missing file path. --filePath")
+		cli.ShowSubcommandHelp(ctx)
+		return nil
+	}
+	if !ctx.IsSet(flags.GetFlagName(flags.DspDecryptPwdFlag)) {
+		PrintErrorMsg("Missing decrypt password. --decryptPwd")
+		cli.ShowSubcommandHelp(ctx)
+		return nil
+	}
+
+	filePath := ctx.String(flags.GetFlagName(flags.DspFilePathFlag))
+	pwd := ctx.String(flags.GetFlagName(flags.DspDecryptPwdFlag))
+	ret, err := utils.DecryptFile(filePath, pwd)
+	if err != nil {
+		PrintErrorMsg("decrypt file err %s", err)
+		return err
+	}
+	PrintInfoMsg("Decrypt file success")
 	PrintJsonData(ret)
 	return nil
 }
