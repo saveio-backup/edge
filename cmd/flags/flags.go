@@ -362,6 +362,20 @@ var (
 		Name:  "verbose,v",
 		Usage: "Show detail message. [string]",
 	}
+
+	////////////////Dsp Sector Setting///////////////////
+	DspSectorIdFlag = cli.Uint64Flag{
+		Name:  "sectorId",
+		Usage: "Sector id. [uint64]",
+	}
+	DspSectorProveLevelFlag = cli.Uint64Flag{
+		Name:  "proveLevel",
+		Usage: "Sector prove level. [uint64]",
+	}
+	DspSectorSizeFlag = cli.Uint64Flag{
+		Name:  "sectorSize",
+		Usage: "Sector size. [uint64]",
+	}
 )
 
 //GetFlagName deal with short flag, and return the flag name whether flag name have short name

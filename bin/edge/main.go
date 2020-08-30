@@ -41,6 +41,7 @@ func initAPP() *cli.App {
 		cmd.FileCommand,
 		cmd.UserspaceCommand,
 		cmd.NodeCommand,
+		cmd.SectorCommand,
 		cmd.DnsCommand,
 		cmd.ChannelCommand,
 		cmd.VersionCommand,

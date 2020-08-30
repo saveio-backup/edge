@@ -108,6 +108,11 @@ func StartRPCServer() error {
 	rpc.HandleFunc("queryhostinfo", rpc.QueryHostInfo)
 	rpc.HandleFunc("querypublicip", rpc.QueryPublicIP)
 
+	rpc.HandleFunc("createsector", rpc.CreateSector)
+	rpc.HandleFunc("deletesector", rpc.DeleteSector)
+	rpc.HandleFunc("getsectorinfo", rpc.GetSectorInfo)
+	rpc.HandleFunc("getsectorinfosfornode", rpc.GetSectorInfosForNode)
+
 	err := http.ListenAndServe(":"+strconv.Itoa(int(config.Parameters.BaseConfig.PortBase+uint32(config.Parameters.BaseConfig.JsonRpcPortOffset))), nil)
 	if err != nil {
 		return fmt.Errorf("ListenAndServe error:%s", err)
