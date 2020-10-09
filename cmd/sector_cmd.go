@@ -67,7 +67,7 @@ func createSector(ctx *cli.Context) error {
 		return nil
 	}
 
-	sectorId := ctx.Uint64(flags.GetFlagName(flags.DspSectorIdFlag))
+	sectorId := ctx.String(flags.GetFlagName(flags.DspSectorIdFlag))
 	proveLevel := ctx.Uint64(flags.GetFlagName(flags.DspSectorProveLevelFlag))
 	size := ctx.Uint64(flags.GetFlagName(flags.DspSectorSizeFlag))
 	ret, err := utils.CreateSector(sectorId, proveLevel, size)
@@ -85,7 +85,7 @@ func deleteSector(ctx *cli.Context) error {
 		return nil
 	}
 
-	sectorId := ctx.Uint64(flags.GetFlagName(flags.DspSectorIdFlag))
+	sectorId := ctx.String(flags.GetFlagName(flags.DspSectorIdFlag))
 	ret, err := utils.DeleteSector(sectorId)
 	if err != nil {
 		return err
@@ -101,7 +101,7 @@ func getSectorInfo(ctx *cli.Context) error {
 		return nil
 	}
 
-	sectorId := ctx.Uint64(flags.GetFlagName(flags.DspSectorIdFlag))
+	sectorId := ctx.String(flags.GetFlagName(flags.DspSectorIdFlag))
 	ret, err := utils.GetSectorInfo(sectorId)
 	if err != nil {
 		return err

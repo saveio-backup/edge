@@ -364,9 +364,9 @@ var (
 	}
 
 	////////////////Dsp Sector Setting///////////////////
-	DspSectorIdFlag = cli.Uint64Flag{
+	DspSectorIdFlag = cli.StringFlag{
 		Name:  "sectorId",
-		Usage: "Sector id. [uint64]",
+		Usage: "Sector id. Sector id should be bigger than 0. [string]",
 	}
 	DspSectorProveLevelFlag = cli.Uint64Flag{
 		Name:  "proveLevel",
@@ -375,7 +375,8 @@ var (
 	}
 	DspSectorSizeFlag = cli.Uint64Flag{
 		Name:  "sectorSize",
-		Usage: "Sector size. [uint64]",
+		Usage: "Sector size. (KB). Minimum sector size is 1GB. [uint64]",
+		Value: 1048576,
 	}
 )
 

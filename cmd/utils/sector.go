@@ -1,6 +1,6 @@
 package utils
 
-func CreateSector(sectorId uint64, proveLevel uint64, size uint64) ([]byte, error) {
+func CreateSector(sectorId string, proveLevel uint64, size uint64) ([]byte, error) {
 	ret, dErr := sendRpcRequest("createsector", []interface{}{sectorId, proveLevel, size})
 	if dErr != nil {
 		return nil, dErr.Error
@@ -8,7 +8,7 @@ func CreateSector(sectorId uint64, proveLevel uint64, size uint64) ([]byte, erro
 	return ret, nil
 }
 
-func DeleteSector(sectorId uint64) ([]byte, error) {
+func DeleteSector(sectorId string) ([]byte, error) {
 	ret, dErr := sendRpcRequest("deletesector", []interface{}{sectorId})
 	if dErr != nil {
 		return nil, dErr.Error
@@ -16,7 +16,7 @@ func DeleteSector(sectorId uint64) ([]byte, error) {
 	return ret, nil
 }
 
-func GetSectorInfo(sectorId uint64) ([]byte, error) {
+func GetSectorInfo(sectorId string) ([]byte, error) {
 	ret, dErr := sendRpcRequest("getsectorinfo", []interface{}{sectorId})
 	if dErr != nil {
 		return nil, dErr.Error

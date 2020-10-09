@@ -1,13 +1,16 @@
 package rest
 
 import (
+	"fmt"
 	"github.com/saveio/edge/dsp"
+	"strconv"
 )
 
 func CreateSector(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
-	sectorId, ok := cmd["SectorId"].(float64)
-	if !ok || sectorId == 0 {
+
+	sectorId, err := parseSectorId(cmd["SectorId"])
+	if err != nil || sectorId == 0 {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 
@@ -35,8 +38,9 @@ func CreateSector(cmd map[string]interface{}) map[string]interface{} {
 
 func DeleteSector(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
-	sectorId, ok := cmd["SectorId"].(float64)
-	if !ok || sectorId == 0 {
+
+	sectorId, err := parseSectorId(cmd["SectorId"])
+	if err != nil || sectorId == 0 {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 
@@ -52,8 +56,9 @@ func DeleteSector(cmd map[string]interface{}) map[string]interface{} {
 }
 func GetSectorInfo(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
-	sectorId, ok := cmd["SectorId"].(float64)
-	if !ok || sectorId == 0 {
+
+	sectorId, err := parseSectorId(cmd["SectorId"])
+	if err != nil || sectorId == 0 {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 
@@ -78,4 +83,12 @@ func GetSectorInfosForNode(cmd map[string]interface{}) map[string]interface{} {
 	}
 	resp["Result"] = sectorInfos
 	return resp
+}
+
+func parseSectorId(param interface{}) (int, error) {
+	sectorIdStr, ok := param.(string)
+	if !ok {
+		return 0, fmt.Errorf("sectorId not string")
+	}
+	return strconv.Atoi(sectorIdStr)
 }
