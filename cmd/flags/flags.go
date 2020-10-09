@@ -370,7 +370,8 @@ var (
 	}
 	DspSectorProveLevelFlag = cli.Uint64Flag{
 		Name:  "proveLevel",
-		Usage: "Sector prove level. [uint64]",
+		Usage: "Sector prove level.1: high, 2: medium, 3:low. [uint64]",
+		Value: 1,
 	}
 	DspSectorSizeFlag = cli.Uint64Flag{
 		Name:  "sectorSize",
