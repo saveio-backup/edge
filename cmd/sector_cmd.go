@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"encoding/json"
 	"github.com/saveio/edge/cmd/flags"
 	"github.com/saveio/edge/cmd/utils"
+	fs "github.com/saveio/themis/smartcontract/service/native/savefs"
 	"github.com/urfave/cli"
 )
 
@@ -106,8 +108,16 @@ func getSectorInfo(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	PrintJsonData(ret)
+
+	sectorInfo := new(fs.SectorInfo)
+	err = json.Unmarshal(ret, sectorInfo)
+	if err != nil {
+		return err
+	}
+
+	PrintJsonObject(formatSectorInfo(sectorInfo))
 	return nil
+
 }
 
 func getSectorInfosForNode(ctx *cli.Context) error {
@@ -122,6 +132,63 @@ func getSectorInfosForNode(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	PrintJsonData(ret)
+
+	sectorInfos := new(fs.SectorInfos)
+	err = json.Unmarshal(ret, sectorInfos)
+	if err != nil {
+		return err
+	}
+
+	PrintJsonObject(formatSectorInfosForNode(sectorInfos))
 	return nil
+}
+
+type SectorInfo struct {
+	NodeAddr         string
+	SectorID         uint64
+	Size             uint64
+	ProveLevel       uint64
+	FirstProveHeight uint64
+	NextProveHeight  uint64
+	TotalBlockNum    uint64
+	FileNum          uint64
+	FileList         []string
+}
+
+func formatSectorInfo(sectorInfo *fs.SectorInfo) *SectorInfo {
+	info := &SectorInfo{
+		NodeAddr:         sectorInfo.NodeAddr.ToBase58(),
+		SectorID:         sectorInfo.SectorID,
+		Size:             sectorInfo.Size,
+		ProveLevel:       sectorInfo.ProveLevel,
+		FirstProveHeight: sectorInfo.FirstProveHeight,
+		NextProveHeight:  sectorInfo.NextProveHeight,
+		TotalBlockNum:    sectorInfo.TotalBlockNum,
+		FileList:         nil,
+	}
+
+	info.FileNum = uint64(len(sectorInfo.FileList.List))
+	for _, fileHash := range sectorInfo.FileList.List {
+		info.FileList = append(info.FileList, string(fileHash.Hash))
+	}
+
+	return info
+}
+
+type SectorInfos struct {
+	SectorCount uint64
+	SectorInfos []*SectorInfo
+}
+
+func formatSectorInfosForNode(sectorInfos *fs.SectorInfos) *SectorInfos {
+	info := &SectorInfos{
+		SectorCount: sectorInfos.SectorCount,
+		SectorInfos: nil,
+	}
+
+	for _, sectorInfo := range sectorInfos.Sectors {
+		info.SectorInfos = append(info.SectorInfos, formatSectorInfo(sectorInfo))
+	}
+
+	return info
 }
