@@ -62,7 +62,6 @@ var SectorCommand = cli.Command{
 //node command
 func createSector(ctx *cli.Context) error {
 	if !ctx.IsSet(flags.GetFlagName(flags.DspSectorIdFlag)) ||
-		!ctx.IsSet(flags.GetFlagName(flags.DspSectorProveLevelFlag)) ||
 		!ctx.IsSet(flags.GetFlagName(flags.DspSectorSizeFlag)) {
 		PrintErrorMsg("Missing argument.")
 		cli.ShowSubcommandHelp(ctx)
