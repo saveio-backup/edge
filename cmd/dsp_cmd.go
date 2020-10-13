@@ -31,7 +31,7 @@ var FileCommand = cli.Command{
 				flags.DspUploadFilePathFlag,
 				flags.DspUploadFileDescFlag,
 				flags.DspUploadDurationFlag,
-				flags.DspUploadProveIntervalFlag,
+				flags.DspUploadProveLevelFlag,
 				flags.DspUploadPrivilegeFlag,
 				flags.DspUploadCopyNumFlag,
 				flags.DspUploadEncryptPasswordFlag,
@@ -205,7 +205,7 @@ func fileUpload(ctx *cli.Context) error {
 	fileName := ctx.String(flags.GetFlagName(flags.DspUploadFilePathFlag))
 	fileDesc := ctx.String(flags.GetFlagName(flags.DspUploadFileDescFlag))
 	duration := ctx.String(flags.GetFlagName(flags.DspUploadDurationFlag))
-	rate := ctx.String(flags.GetFlagName(flags.DspUploadProveIntervalFlag))
+	proveLevel := ctx.String(flags.GetFlagName(flags.DspUploadProveLevelFlag))
 	uploadPrivilege := ctx.Uint64(flags.GetFlagName(flags.DspUploadPrivilegeFlag))
 	copyNum := ctx.String(flags.GetFlagName(flags.DspUploadCopyNumFlag))
 	encryptPwd := ctx.String(flags.GetFlagName(flags.DspUploadEncryptPasswordFlag))
@@ -230,7 +230,7 @@ func fileUpload(ctx *cli.Context) error {
 		ioutil.WriteFile(fileName, data, 0666)
 		PrintInfoMsg("filemd5 is %s", hex.EncodeToString(md5Ret[:]))
 	}
-	_, err = utils.UploadFile(fileName, pwdHash, fileDesc, nil, encryptPwd, uploadUrl, share, duration, rate, uploadPrivilege, copyNum, storeType)
+	_, err = utils.UploadFile(fileName, pwdHash, fileDesc, nil, encryptPwd, uploadUrl, share, duration, proveLevel, uploadPrivilege, copyNum, storeType)
 	if err != nil {
 		PrintErrorMsg("upload file err %s", err)
 		return err
@@ -252,7 +252,7 @@ func fileDelete(ctx *cli.Context) error {
 	pwdHash := eUtils.Sha256HexStr(string(pwd))
 	hash := ctx.String(flags.GetFlagName(flags.DspFileHashFlag))
 	gasLimit := ctx.Uint64(flags.GetFlagName(flags.GasLimitFlag))
-	ret, err := utils.DeleteFile(hash, pwdHash, fmt.Sprintf("%v",gasLimit))
+	ret, err := utils.DeleteFile(hash, pwdHash, fmt.Sprintf("%v", gasLimit))
 	if err != nil {
 		PrintErrorMsg("delete file err %s", err)
 		return err

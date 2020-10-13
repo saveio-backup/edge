@@ -53,6 +53,7 @@ const (
 	FS_UPLOAD_CALC_FEE_FAILED       = 54012
 	FS_DELETE_CALC_FEE_FAILED       = 54013
 	FS_USER_SPACE_SECOND_INVALID    = 54014
+	FS_UPLOAD_INVALID_PROVE_LEVEL   = 54015
 
 	DSP_INIT_FAILED            = 55000
 	DSP_START_FAILED           = 55001
@@ -184,6 +185,7 @@ var ErrMaps = map[int64]error{
 	FS_USER_SPACE_PERMISSION_DENIED: errors.New("fs user space permission denied"),
 	FS_UPLOAD_FILEPATH_ERROR:        errors.New("fs upload filepath error"),
 	FS_UPLOAD_INTERVAL_TOO_SMALL:    errors.New("fs upload interval too small"),
+	FS_UPLOAD_INVALID_PROVE_LEVEL:   errors.New("fs upload invalid prove level"),
 	FS_UPLOAD_GET_FILESIZE_FAILED:   errors.New("fs upload get file size failed"),
 	FS_UPLOAD_CALC_FEE_FAILED:       errors.New("fs upload calculate fee failed"),
 	FS_DELETE_CALC_FEE_FAILED:       errors.New("fs delete calculate fee failed"),

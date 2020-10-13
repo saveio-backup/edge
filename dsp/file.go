@@ -219,7 +219,7 @@ type FsContractSettingResp struct {
 	DefaultCopyNum     uint64
 	MaxCopyNum         uint64
 	DefaultProvePeriod uint64
-	MinProveInterval   uint64
+	DefaultProveLevel  uint64
 	MinVolume          uint64
 }
 
@@ -244,7 +244,7 @@ const (
 	UploadFileFilterTypeDone
 )
 
-func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, intervalVal, privilegeVal, copyNumVal,
+func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, proveLevelVal, privilegeVal, copyNumVal,
 	storageTypeVal, realFileSizeVal interface{}, encryptPwd, url string,
 	whitelist []string, share bool) (*fs.UploadOption, *DspErr) {
 	log.Debugf("upload task id %s", taskId)
@@ -283,14 +283,16 @@ func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, interva
 	if bal == 0 {
 		return nil, &DspErr{Code: INSUFFICIENT_BALANCE, Error: err}
 	}
-	interval, ok := intervalVal.(float64)
-	interval = interval / float64(config.BlockTime())
-	if !ok || interval == 0 {
-		interval = float64(fsSetting.DefaultProvePeriod)
+
+	proveLevel, _ := proveLevelVal.(float64)
+	switch proveLevel {
+	case fs.PROVE_LEVEL_HIGH:
+	case fs.PROVE_LEVEL_MEDIEUM:
+	case fs.PROVE_LEVEL_LOW:
+	default:
+		return nil, &DspErr{Code: FS_UPLOAD_INVALID_PROVE_LEVEL, Error: ErrMaps[FS_UPLOAD_INVALID_PROVE_LEVEL]}
 	}
-	if uint64(interval) < fsSetting.MinProveInterval {
-		return nil, &DspErr{Code: FS_UPLOAD_INTERVAL_TOO_SMALL, Error: ErrMaps[FS_UPLOAD_INTERVAL_TOO_SMALL]}
-	}
+
 	storageType, _ := storageTypeVal.(float64)
 	realFileSize, _ := realFileSizeVal.(float64)
 	var fileSizeInKB uint64
@@ -303,11 +305,12 @@ func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, interva
 		}
 	}
 	opt := &fs.UploadOption{
-		FileDesc:      []byte(desc),
-		ProveInterval: uint64(interval),
-		StorageType:   uint64(storageType),
-		FileSize:      uint64(fileSizeInKB),
+		FileDesc:    []byte(desc),
+		ProveLevel:  uint64(proveLevel),
+		StorageType: uint64(storageType),
+		FileSize:    uint64(fileSizeInKB),
 	}
+	opt.ProveInterval = fs.GetProveIntervalByProveLevel(opt.ProveLevel)
 	if fs.FileStoreType(storageType) == fs.FileStoreTypeNormal {
 		userspace, err := dsp.GetUserSpace(currentAccount.Address.ToBase58())
 		if err != nil {
@@ -326,9 +329,9 @@ func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, interva
 		duration, _ := durationVal.(float64)
 		opt.ExpiredHeight = uint64(currentHeight + uint32(duration/float64(config.BlockTime())))
 	}
-	log.Debugf("opt.ExpiredHeight :%d, minInterval :%d, current: %d",
-		opt.ExpiredHeight, fsSetting.MinProveInterval, currentHeight)
-	if opt.ExpiredHeight < fsSetting.MinProveInterval+uint64(currentHeight) {
+	log.Debugf("opt.ExpiredHeight :%d, opt.Interval :%d, current: %d",
+		opt.ExpiredHeight, opt.ProveInterval, currentHeight)
+	if opt.ExpiredHeight < opt.ProveInterval+uint64(currentHeight) {
 		return nil, &DspErr{Code: DSP_CUSTOM_EXPIRED_NOT_ENOUGH, Error: ErrMaps[DSP_CUSTOM_EXPIRED_NOT_ENOUGH]}
 	}
 	privilege, ok := privilegeVal.(float64)
@@ -747,7 +750,7 @@ func (this *Endpoint) GetFsConfig() (*FsContractSettingResp, *DspErr) {
 		DefaultCopyNum:     set.DefaultCopyNum,
 		MaxCopyNum:         maxCopyNum,
 		DefaultProvePeriod: set.DefaultProvePeriod * config.BlockTime(),
-		MinProveInterval:   set.MinProveInterval,
+		DefaultProveLevel:  set.DefaultProveLevel,
 		MinVolume:          set.MinVolume,
 	}, nil
 }
@@ -1270,7 +1273,7 @@ func (this *Endpoint) GetTransferDetailByUrl(pType TransferType, url string) (*T
 	return tr, err
 }
 
-func (this *Endpoint) CalculateUploadFee(filePath string, durationVal, intervalVal, timesVal, copynumVal,
+func (this *Endpoint) CalculateUploadFee(filePath string, durationVal, proveLevelVal, timesVal, copynumVal,
 	whitelistVal, storeType interface{}) (*CalculateResp, *DspErr) {
 	dsp := this.getDsp()
 	if dsp == nil {
@@ -1281,11 +1284,20 @@ func (this *Endpoint) CalculateUploadFee(filePath string, durationVal, intervalV
 	if err != nil {
 		return nil, &DspErr{Code: FS_GET_SETTING_FAILED, Error: err}
 	}
-	interval, err := OptionStrToFloat64(intervalVal, float64(fsSetting.DefaultProvePeriod))
-	interval = interval / float64(config.BlockTime())
-	if err != nil || interval == 0 {
+
+	proveLevel, err := OptionStrToFloat64(proveLevelVal, float64(fsSetting.DefaultProveLevel))
+	if err != nil {
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: err}
 	}
+
+	switch proveLevel {
+	case fs.PROVE_LEVEL_HIGH:
+	case fs.PROVE_LEVEL_MEDIEUM:
+	case fs.PROVE_LEVEL_LOW:
+	default:
+		return nil, &DspErr{Code: FS_UPLOAD_INVALID_PROVE_LEVEL, Error: ErrMaps[FS_UPLOAD_INVALID_PROVE_LEVEL]}
+	}
+
 	sType, _ := OptionStrToFloat64(storeType, 0)
 
 	fi, err := os.Open(filePath)
@@ -1311,7 +1323,8 @@ func (this *Endpoint) CalculateUploadFee(filePath string, durationVal, intervalV
 	opt := &fs.UploadOption{
 		FileDesc:        []byte{},
 		FileSize:        uint64(fileStat.Size() / 1024),
-		ProveInterval:   uint64(interval),
+		ProveLevel:      uint64(proveLevel),
+		ProveInterval:   fs.GetProveIntervalByProveLevel(uint64(proveLevel)),
 		CopyNum:         uint64(copyNum),
 		StorageType:     uint64(sType),
 		Encrypt:         false,
@@ -1341,7 +1354,7 @@ func (this *Endpoint) CalculateUploadFee(filePath string, durationVal, intervalV
 		}
 		opt.ExpiredHeight = userspace.ExpireHeight
 		log.Debugf("userspace.ExpireHeight %d, current %d, interval:%v",
-			userspace.ExpireHeight, currentHeight, interval)
+			userspace.ExpireHeight, currentHeight, opt.ProveInterval)
 		fee, err := dsp.CalculateUploadFee(opt)
 		if err != nil {
 			log.Debugf("fee :%v, err %s", fee, err)
@@ -1720,6 +1733,7 @@ type fileInfoResp struct {
 	CreatedAt     uint64
 	CopyNum       uint64
 	Interval      uint64
+	ProveLevel    uint64
 	ProveTimes    uint64
 	ExpiredHeight uint64
 	Privilege     uint64
@@ -1761,6 +1775,7 @@ func (this *Endpoint) GetFileInfo(fileHashStr string) (*fileInfoResp, *DspErr) {
 		FileHash:      string(info.FileHash),
 		CopyNum:       info.CopyNum,
 		Interval:      info.ProveInterval * config.BlockTime(),
+		ProveLevel:    info.ProveLevel,
 		ProveTimes:    info.ProveTimes,
 		ExpiredHeight: info.ExpiredHeight,
 		Privilege:     info.Privilege,
@@ -1958,7 +1973,7 @@ func (this *Endpoint) SetUserSpace(walletAddr string, size, sizeOpType, blockCou
 		if err != nil {
 			return "", &DspErr{Code: FS_GET_SETTING_FAILED, Error: err}
 		}
-		if oldUserSpace.ExpireHeight-blockCount < uint64(currentHeight)+fsSetting.MinProveInterval {
+		if oldUserSpace.ExpireHeight-blockCount < uint64(currentHeight)+fsSetting.DefaultProvePeriod {
 			return "", &DspErr{Code: FS_USER_SPACE_SECOND_INVALID, Error: ErrMaps[FS_USER_SPACE_SECOND_INVALID]}
 		}
 	}

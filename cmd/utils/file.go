@@ -8,10 +8,10 @@ import (
 )
 
 func UploadFile(path, password, desc string, WhiteList []string, encryptPassword, url string, share bool,
-	duration, interval string, privilege uint64, copyNum string, storeType int64) ([]byte, error) {
+	duration, proveLevel string, privilege uint64, copyNum string, storeType int64) ([]byte, error) {
 	var err error
-	var durationVal, intervalVal, copyNumVal interface{}
-	var durationF, intervalF float64
+	var durationVal, proveLevelVal, copyNumVal interface{}
+	var durationF float64
 	if len(duration) > 0 {
 		durationF, err = strconv.ParseFloat(duration, 64)
 		if err != nil {
@@ -19,12 +19,11 @@ func UploadFile(path, password, desc string, WhiteList []string, encryptPassword
 		}
 		durationVal = durationF * float64(config.Parameters.BaseConfig.BlockTime)
 	}
-	if len(interval) > 0 {
-		intervalF, err = strconv.ParseFloat(interval, 64)
+	if len(proveLevel) > 0 {
+		proveLevelVal, err = strconv.ParseFloat(proveLevel, 64)
 		if err != nil {
 			return nil, err
 		}
-		intervalVal = intervalF * float64(config.Parameters.BaseConfig.BlockTime)
 	}
 	if len(copyNum) > 0 {
 		copyNumVal, err = strconv.ParseFloat(copyNum, 64)
@@ -33,7 +32,7 @@ func UploadFile(path, password, desc string, WhiteList []string, encryptPassword
 		}
 	}
 	ret, dErr := sendRpcRequest("uploadfile", []interface{}{path, password, desc, WhiteList, encryptPassword, url,
-		share, durationVal, intervalVal, float64(privilege), copyNumVal, storeType})
+		share, durationVal, proveLevelVal, float64(privilege), copyNumVal, storeType})
 	if dErr != nil {
 		fmt.Printf("dErr %v\n", dErr)
 		return nil, dErr.Error
@@ -77,8 +76,8 @@ func GetTransferList(transferType, offset, limit string) ([]byte, error) {
 	}
 	return ret, nil
 }
-func CalculateUploadFee(path, duration, interval, times, copyNum string, WhiteList []string) ([]byte, error) {
-	ret, dErr := sendRpcRequest("calculateuploadfee", []interface{}{path, duration, interval, times, copyNum, WhiteList})
+func CalculateUploadFee(path, duration, proveLevel, times, copyNum string, WhiteList []string) ([]byte, error) {
+	ret, dErr := sendRpcRequest("calculateuploadfee", []interface{}{path, duration, proveLevel, times, copyNum, WhiteList})
 	if dErr != nil {
 		return nil, dErr.Error
 	}

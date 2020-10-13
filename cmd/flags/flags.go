@@ -161,10 +161,10 @@ var (
 		Name:  "url",
 		Usage: "URL of file for downloading. [string]",
 	}
-	DspUploadProveIntervalFlag = cli.StringFlag{
-		Name:  "interval",
-		Usage: "File challenge interval block count. Minimum 17280. [string]",
-		Value: "17280",
+	DspUploadProveLevelFlag = cli.StringFlag{
+		Name:  "proveLevel",
+		Usage: "File prove level, 1:high 2:medium 3:low",
+		Value: "1",
 	}
 	DspUploadExpiredHeightFlag = cli.StringFlag{
 		Name:  "expiredHeight",
