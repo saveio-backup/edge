@@ -285,6 +285,9 @@ func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, proveLe
 	}
 
 	proveLevel, _ := proveLevelVal.(float64)
+	if proveLevel == 0 {
+		proveLevel = float64(fsSetting.DefaultProveLevel)
+	}
 	switch proveLevel {
 	case fs.PROVE_LEVEL_HIGH:
 	case fs.PROVE_LEVEL_MEDIEUM:
