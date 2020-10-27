@@ -508,3 +508,13 @@ func QueryPublicIP(cmd map[string]interface{}) map[string]interface{} {
 	resp["Result"] = ret
 	return resp
 }
+
+func GetSysUsedPercent(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	ret, derr := dsp.DspService.GetSysUsedPercent()
+	if derr != nil {
+		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
+	}
+	resp["Result"] = ret
+	return resp
+}

@@ -162,6 +162,7 @@ const (
 	NETWORK_STATE           = "/api/v1/network/state"
 	MODULE_STATE            = "/api/v1/module/state"
 	RECONNECT_CHANNEL_PEERS = "/api/v1/network/channel/reconnect"
+	SYSTEM_STATE            = "/api/v1/system/state"
 
 	GOROUTINE_LIST = "/api/v1/goroutine"
 )
@@ -303,6 +304,7 @@ func (this *restServer) registryMethod() {
 
 		DNS_QUERY_HASH: {name: "getfilehashbyurl", handler: GetHashFromUrl},
 		MODULE_STATE:   {name: "getmodulestate", handler: GetModuleState},
+		SYSTEM_STATE:   {name: "systemstate", handler: GetSysUsedPercent},
 	}
 	this.getMap = getMethodMap
 

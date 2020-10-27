@@ -8,6 +8,7 @@ import (
 	"github.com/saveio/dsp-go-sdk/utils"
 	"github.com/saveio/themis/common"
 	"github.com/saveio/themis/common/log"
+	"github.com/saveio/themis/http/base/sys"
 	"github.com/saveio/themis/smartcontract/service/native/dns"
 	fs "github.com/saveio/themis/smartcontract/service/native/savefs"
 )
@@ -396,4 +397,9 @@ func (this *Endpoint) GetExternalIP(walletAddr string) (string, *DspErr) {
 		return "", &DspErr{Code: DSP_DNS_GET_EXTERNALIP_FAILED, Error: ErrMaps[DSP_DNS_GET_EXTERNALIP_FAILED]}
 	}
 	return hostAddr, nil
+}
+
+func (this *Endpoint) GetSysUsedPercent() (interface{}, *DspErr) {
+	ret := sys.GetSysUsedPercent()
+	return ret, nil
 }
