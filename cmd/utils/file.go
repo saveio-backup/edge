@@ -8,7 +8,7 @@ import (
 )
 
 func UploadFile(path, password, desc string, WhiteList []string, encryptPassword, url string, share bool,
-	duration, proveLevel string, privilege uint64, copyNum string, storeType int64) ([]byte, error) {
+	duration, proveLevel string, privilege uint64, copyNum string, storeType int64, realFileSize uint64) ([]byte, error) {
 	var err error
 	var durationVal, proveLevelVal, copyNumVal interface{}
 	var durationF float64
@@ -32,7 +32,7 @@ func UploadFile(path, password, desc string, WhiteList []string, encryptPassword
 		}
 	}
 	ret, dErr := sendRpcRequest("uploadfile", []interface{}{path, password, desc, WhiteList, encryptPassword, url,
-		share, durationVal, proveLevelVal, float64(privilege), copyNumVal, storeType})
+		share, durationVal, proveLevelVal, float64(privilege), copyNumVal, storeType, realFileSize})
 	if dErr != nil {
 		fmt.Printf("dErr %v\n", dErr)
 		return nil, dErr.Error

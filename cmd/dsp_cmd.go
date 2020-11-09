@@ -39,6 +39,7 @@ var FileCommand = cli.Command{
 				flags.DspUploadShareFlag,
 				flags.DspUploadStoreTypeFlag,
 				flags.TestFlag,
+				flags.DspUploadFileTestCountSize,
 				flags.DspSizeFlag,
 			},
 			Description: "Upload file",
@@ -192,7 +193,8 @@ func fileDownload(ctx *cli.Context) error {
 
 //upload can be done without dsp daemon
 func fileUpload(ctx *cli.Context) error {
-	if !ctx.IsSet(flags.GetFlagName(flags.DspUploadFilePathFlag)) {
+	if !ctx.IsSet(flags.GetFlagName(flags.DspUploadFilePathFlag)) &&
+		!ctx.IsSet(flags.GetFlagName(flags.TestFlag)) {
 		PrintErrorMsg("Missing file name.")
 		cli.ShowSubcommandHelp(ctx)
 		return nil
@@ -212,11 +214,23 @@ func fileUpload(ctx *cli.Context) error {
 	uploadUrl := ctx.String(flags.GetFlagName(flags.DspFileUrlFlag))
 	share := ctx.Bool(flags.GetFlagName(flags.DspUploadShareFlag))
 	storeType := ctx.Int64(flags.GetFlagName(flags.DspUploadStoreTypeFlag))
+
+	realFileSize := ctx.Uint64(flags.GetFlagName(flags.DspSizeFlag))
 	test := ctx.Bool(flags.GetFlagName(flags.TestFlag))
-	if test {
-		dataSize := ctx.Uint64(flags.GetFlagName(flags.DspSizeFlag))
-		data := make([]byte, dataSize*1024)
-		_, err := rand.Read(data)
+	testCount := ctx.Int64(flags.GetFlagName(flags.DspUploadFileTestCountSize))
+	fmt.Println("testCount++++++", testCount)
+	if !test {
+		_, err = utils.UploadFile(fileName, pwdHash, fileDesc, nil, encryptPwd, uploadUrl, share, duration, proveLevel, uploadPrivilege, copyNum, storeType, realFileSize)
+		if err != nil {
+			PrintErrorMsg("upload file err %s", err)
+			return err
+		}
+		PrintInfoMsg("upload file success. use <transferlist> to show transfer list")
+		return nil
+	}
+	for i := 0; i < int(testCount); i++ {
+		data := make([]byte, realFileSize*1024)
+		_, err = rand.Read(data)
 		if err != nil {
 			log.Errorf("make rand data err %s", err)
 			return nil
@@ -229,13 +243,14 @@ func fileUpload(ctx *cli.Context) error {
 		fileName = filepath.Join(config.FsFileRootPath(), "/", baseName)
 		ioutil.WriteFile(fileName, data, 0666)
 		PrintInfoMsg("filemd5 is %s", hex.EncodeToString(md5Ret[:]))
+		_, err = utils.UploadFile(fileName, pwdHash, fileDesc, nil, encryptPwd, uploadUrl, share, duration, proveLevel, uploadPrivilege, copyNum, storeType, realFileSize)
+		if err != nil {
+			PrintErrorMsg("upload file err %s", err)
+			return err
+		}
+		PrintInfoMsg("upload file success. use <transferlist> to show transfer list")
 	}
-	_, err = utils.UploadFile(fileName, pwdHash, fileDesc, nil, encryptPwd, uploadUrl, share, duration, proveLevel, uploadPrivilege, copyNum, storeType)
-	if err != nil {
-		PrintErrorMsg("upload file err %s", err)
-		return err
-	}
-	PrintInfoMsg("upload file success. use <transferlist> to show transfer list")
+
 	return nil
 }
 

@@ -13,6 +13,7 @@ import (
 
 func UploadFile(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
+	log.Debugf("Upload File cmd %v", cmd)
 	taskId, _ := cmd["Id"].(string)
 	path, ok := cmd["Path"].(string)
 	if !ok {

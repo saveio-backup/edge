@@ -93,6 +93,7 @@ type DspConfig struct {
 	MaxUploadTask   uint32 `json:"MaxUploadTask"`
 	MaxDownloadTask uint32 `json:"MaxDownloadTask"`
 	MaxShareTask    uint32 `json:"MaxShareTask"`
+	DownloadFree    bool   `json:"DownloadFree"`
 }
 
 type BootstrapConfig struct {

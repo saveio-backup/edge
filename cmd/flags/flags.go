@@ -213,7 +213,7 @@ var (
 	}
 	DspUploadStoreTypeFlag = cli.Int64Flag{
 		Name:  "storeType",
-		Usage: "Store file type. [int64]",
+		Usage: "Store file type. 0, space mode, 1 advance mode.[int64]",
 	}
 	DspFileNameFlag = cli.StringFlag{
 		Name:  "fileName",
@@ -234,6 +234,10 @@ var (
 	DspBlockCountSize = cli.Int64Flag{
 		Name:  "blockCount",
 		Usage: "File block count. [int64]",
+	}
+	DspUploadFileTestCountSize = cli.Int64Flag{
+		Name:  "count",
+		Usage: "Upload test file count. [int64]",
 	}
 
 	////////////////Dsp File(delete) Setting///////////////////
