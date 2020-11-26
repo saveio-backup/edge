@@ -281,6 +281,7 @@ func (this *Endpoint) startDspService(listenHost string) error {
 	this.updateStorageNodeHost()
 	log.Debugf("update node finished")
 	if this.GetDspAccount() == nil {
+		log.Debugf("account is nil")
 		return errors.New("account is nil")
 	}
 	// setup filter block range before start
@@ -301,8 +302,10 @@ func (this *Endpoint) startDspService(listenHost string) error {
 		}
 	}()
 	if err := this.getDsp().Start(); err != nil {
+		log.Errorf("start dsp err", err)
 		return err
 	}
+	log.Debugf("start dsp success")
 	return nil
 }
 
