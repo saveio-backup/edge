@@ -38,6 +38,18 @@ var DnsCommand = cli.Command{
 			Description: "Bind url with link",
 		},
 		{
+			Action:    registerHeader,
+			Name:      "registerheader",
+			Usage:     "Register dns with header",
+			ArgsUsage: "<header>",
+			Flags: []cli.Flag{
+				flags.DnsHeaderFlag,
+				flags.DnsDescFlag,
+				flags.DnsTTLFlag,
+			},
+			Description: "Register dns with header",
+		},
+		{
 			Action:    queryLink,
 			Name:      "query",
 			Usage:     "Query link with url",
@@ -107,6 +119,26 @@ func bindUrl(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	PrintJsonData(ret)
+	return nil
+}
+
+func registerHeader(ctx *cli.Context) error {
+	if ctx.NumFlags() < 3 {
+		PrintErrorMsg("Missing argument.")
+		cli.ShowSubcommandHelp(ctx)
+		return nil
+	}
+
+	header := ctx.String(flags.GetFlagName(flags.DnsHeaderFlag))
+	desc := ctx.String(flags.GetFlagName(flags.DnsDescFlag))
+	ttl := ctx.Uint64(flags.GetFlagName(flags.DnsTTLFlag))
+	ret, err := utils.RegisterDnsHeader(header, desc, ttl)
+	if err != nil {
+		return err
+	}
+	// result := make(map[string]interface{})
+	// result["Tx"] = string(ret)
 	PrintJsonData(ret)
 	return nil
 }

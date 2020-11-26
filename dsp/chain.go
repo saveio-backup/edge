@@ -1017,3 +1017,17 @@ func (this *Endpoint) PreExecNativeContract(version byte, contractAddr, method s
 	str := hex.EncodeToString(data)
 	return str, nil
 }
+
+func (this *Endpoint) RegisterHeader(header, desc string, ttl uint64) (interface{}, *DspErr) {
+	dsp := this.getDsp()
+	if dsp == nil {
+		return 0, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+	tx, err := dsp.RegisterHeader(header, desc, ttl)
+	if err != nil {
+		return nil, &DspErr{Code: CONTRACT_ERROR, Error: err}
+	}
+	m := make(map[string]interface{}, 0)
+	m["Tx"] = tx
+	return m, nil
+}

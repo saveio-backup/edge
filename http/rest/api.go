@@ -651,3 +651,25 @@ func RemoveDBDir(cmd map[string]interface{}) map[string]interface{} {
 
 	return resp
 }
+
+func RegisterHeader(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	header, ok := cmd["Header"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	desc, ok := cmd["Desc"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	ttl, ok := cmd["Ttl"].(float64)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	ret, derr := dsp.DspService.RegisterHeader(header, desc, uint64(ttl))
+	if derr != nil {
+		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
+	}
+	resp["Result"] = ret
+	return resp
+}

@@ -36,6 +36,14 @@ func RegisterDns(ip, port, deposit string) ([]byte, error) {
 	return ret, nil
 }
 
+func RegisterDnsHeader(header, desc string, ttl uint64) ([]byte, error) {
+	ret, dErr := sendRpcRequest("registerheader", []interface{}{header, desc, ttl})
+	if dErr != nil {
+		return nil, dErr.Error
+	}
+	return ret, nil
+}
+
 func UnregisterDns() ([]byte, error) {
 	ret, dErr := sendRpcRequest("unregisterdns", []interface{}{})
 	if dErr != nil {

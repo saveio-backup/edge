@@ -276,6 +276,18 @@ var (
 		Name:  "dnsLink",
 		Usage: "Dns `<link>`. [string]",
 	}
+	DnsHeaderFlag = cli.StringFlag{
+		Name:  "header",
+		Usage: "`<header>` of the dns url. [string]",
+	}
+	DnsDescFlag = cli.StringFlag{
+		Name:  "desc",
+		Usage: "`<desc>` of the header. [string]",
+	}
+	DnsTTLFlag = cli.Uint64Flag{
+		Name:  "ttl",
+		Usage: "header ttl. [uint64]",
+	}
 	DnsIpFlag = cli.StringFlag{
 		Name:  "dnsIp",
 		Usage: "Dns `<ip>`. [string]",

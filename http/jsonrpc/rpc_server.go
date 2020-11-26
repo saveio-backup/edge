@@ -107,6 +107,7 @@ func StartRPCServer() error {
 	rpc.HandleFunc("queryhostinfos", rpc.QueryHostInfos)
 	rpc.HandleFunc("queryhostinfo", rpc.QueryHostInfo)
 	rpc.HandleFunc("querypublicip", rpc.QueryPublicIP)
+	rpc.HandleFunc("registerheader", rpc.RegisterHeader)
 
 	rpc.HandleFunc("createsector", rpc.CreateSector)
 	rpc.HandleFunc("deletesector", rpc.DeleteSector)

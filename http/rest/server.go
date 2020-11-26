@@ -158,6 +158,7 @@ const (
 	DNS_QUERY_HASH            = "/api/v1/dns/hash/:url"
 	DNS_UPDATE_URL            = "/api/v1/dns/url/link"
 	DNS_DELETE_URL            = "/api/v1/dns/url/delete"
+	DNS_REG_HEADER_URL        = "/api/v1/dns/header/register"
 
 	NETWORK_STATE           = "/api/v1/network/state"
 	MODULE_STATE            = "/api/v1/module/state"
@@ -360,8 +361,9 @@ func (this *restServer) registryMethod() {
 		SWITCH_CHAINID:          {name: "switchchainid", handler: SwitchChain},
 		RECONNECT_CHANNEL_PEERS: {name: "channelreconnectpeers", handler: ReconnectChannelPeers},
 
-		DNS_UPDATE_URL: {name: "updatefileurllink", handler: UpdateFileUrlLink},
-		DNS_DELETE_URL: {name: "deletefileurl", handler: DeleteUrl},
+		DNS_UPDATE_URL:     {name: "updatefileurllink", handler: UpdateFileUrlLink},
+		DNS_DELETE_URL:     {name: "deletefileurl", handler: DeleteUrl},
+		DNS_REG_HEADER_URL: {name: "registerheader", handler: RegisterHeader},
 	}
 	this.postMap = postMethodMap
 }
