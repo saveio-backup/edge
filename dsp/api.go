@@ -143,7 +143,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		MaxUploadTask:        config.Parameters.DspConfig.MaxUploadTask,
 		MaxDownloadTask:      config.Parameters.DspConfig.MaxDownloadTask,
 		MaxShareTask:         config.Parameters.DspConfig.MaxShareTask,
-		DownloadFree:         config.Parameters.DspConfig.DownloadFree,
+		// DownloadFree:         config.Parameters.DspConfig.DownloadFree,
 	}
 	log.Debugf("dspConfig.dbPath %v, repo: %s, channelDB: %s, wallet: %s, enable backup: %t",
 		dspConfig.DBPath, dspConfig.FsRepoRoot, dspConfig.ChannelDBPath, config.WalletDatFilePath(),
