@@ -397,7 +397,6 @@ func (this *Endpoint) startTrackerP2P(hostAddr *common.HostAddr, acc *account.Ac
 		return nil
 	})
 	return utils.DoWithTimeout(f, time.Duration(common.START_P2P_TIMEOUT)*time.Second)
-	return nil
 }
 
 func (this *Endpoint) updateStorageNodeHost() {

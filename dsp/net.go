@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/saveio/scan/common/config"
 	"github.com/saveio/themis/common/log"
 )
 
@@ -82,6 +83,11 @@ func (this *Endpoint) GetNetworkState() (*NetworkStateResp, *DspErr) {
 		} else {
 			state.DNS.State = networkStateUnReachable
 		}
+	}
+
+	if len(config.Parameters.Base.NATProxyServerAddr) == 0 {
+		state.DspProxy.State = networkStateReachable
+		return state, nil
 	}
 	if this.dspNet != nil {
 		log.Debugf("this.dspNet.GetProxyServer().PeerID +++ %s", this.dspNet.GetProxyServer().PeerID)
