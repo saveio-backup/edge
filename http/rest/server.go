@@ -73,9 +73,10 @@ const (
 	EXPORT_WIFPRIVATEKEY           = "/api/v1/account/export/privatekey/:password"
 	ACCOUNT_PASSWORD_CHECK         = "/api/v1/account/password/check"
 
-	ASSET_TRANSFER_DIRECT = "/api/v1/asset/transfer/direct"
-	INVOKE_SMARTCONTRACT  = "/api/v1/smartcontract/invoke"
-	PREEXEC_SMARTCONTRACT = "/api/v1/smartcontract/preexec"
+	ASSET_TRANSFER_DIRECT         = "/api/v1/asset/transfer/direct"
+	INVOKE_SMARTCONTRACT          = "/api/v1/smartcontract/invoke"
+	PREEXEC_SMARTCONTRACT         = "/api/v1/smartcontract/preexec"
+	PREEXEC_SMARTCONTRACT_TO_JSON = "/api/v1/smartcontract/preexec/json"
 
 	GET_CONFIG = "/api/v1/config"
 	SET_CONFIG = "/api/v1/config"
@@ -310,9 +311,10 @@ func (this *restServer) registryMethod() {
 	this.getMap = getMethodMap
 
 	postMethodMap := map[string]Action{
-		ASSET_TRANSFER_DIRECT: {name: "assettransferdirect", handler: AssetTransferDirect},
-		INVOKE_SMARTCONTRACT:  {name: "invokesmartcontract", handler: InvokeSmartContract},
-		PREEXEC_SMARTCONTRACT: {name: "preexecsmartcontract", handler: PreExecSmartContract},
+		ASSET_TRANSFER_DIRECT:         {name: "assettransferdirect", handler: AssetTransferDirect},
+		INVOKE_SMARTCONTRACT:          {name: "invokesmartcontract", handler: InvokeSmartContract},
+		PREEXEC_SMARTCONTRACT:         {name: "preexecsmartcontract", handler: PreExecSmartContract},
+		PREEXEC_SMARTCONTRACT_TO_JSON: {name: "preexecsmartcontracttojson", handler: PreExecSmartContractToJSON},
 
 		NEW_ACCOUNT:                    {name: "newaccount", handler: NewAccount},
 		LOGIN_ACCOUNT:                  {name: "login", handler: Login},

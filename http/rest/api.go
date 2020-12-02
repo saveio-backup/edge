@@ -2,6 +2,7 @@ package rest
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"strconv"
 	"strings"
 
@@ -559,6 +560,42 @@ func PreExecSmartContract(cmd map[string]interface{}) map[string]interface{} {
 	m := make(map[string]interface{}, 0)
 	m["Data"] = ret
 	resp["Result"] = m
+	return resp
+}
+
+func PreExecSmartContractToJSON(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	version, ok := cmd["Version"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	verBufs, err := hex.DecodeString(version)
+	if err != nil || len(verBufs) == 0 {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+
+	contractAddr, ok := cmd["Contract"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	method, ok := cmd["Method"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	params, _ := cmd["Params"].([]interface{})
+	ret, derr := dsp.DspService.PreExecNativeContract(verBufs[0], contractAddr, method, params)
+	// fmt.Println("ret===", ret, derr)
+	if derr != nil {
+		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
+	}
+	origData, _ := hex.DecodeString(ret.(string))
+	// fmt.Println("origData", origData)
+	var nm interface{}
+	if err := json.Unmarshal(origData, &nm); err != nil {
+		// fmt.Printf("err %v", err)
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	resp["Result"] = nm
 	return resp
 }
 
