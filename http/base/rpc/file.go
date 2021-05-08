@@ -155,6 +155,16 @@ func GetFileWhiteList(cmd []interface{}) map[string]interface{} {
 	return responseSuccess(ret)
 }
 
+func GetUploadFileProveDetail(cmd []interface{}) map[string]interface{} {
+	params := convertSliceToMap(cmd, []string{"FileHash"})
+	v := rest.GetUploadFileProveDetail(params)
+	ret, err := parseRestResult(v)
+	if err != nil {
+		return responsePackError(err.Code, err.Error.Error())
+	}
+	return responseSuccess(ret)
+}
+
 func GetUserSpace(cmd []interface{}) map[string]interface{} {
 	params := convertSliceToMap(cmd, []string{"Addr"})
 	v := rest.GetUserSpace(params)

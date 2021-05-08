@@ -90,6 +90,7 @@ func StartRPCServer() error {
 	rpc.HandleFunc("getfilesharerevenue", rpc.GetFileShareRevenue)
 	rpc.HandleFunc("whitelistoperate", rpc.WhiteListOperate)
 	rpc.HandleFunc("getfilewhitelist", rpc.GetFileWhiteList)
+	rpc.HandleFunc("getprovedetail", rpc.GetUploadFileProveDetail)
 	rpc.HandleFunc("getuserspace", rpc.GetUserSpace)
 	rpc.HandleFunc("setuserspace", rpc.SetUserSpace)
 	rpc.HandleFunc("getuserspacerecords", rpc.GetUserSpaceRecords)

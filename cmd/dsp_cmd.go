@@ -128,6 +128,16 @@ var FileCommand = cli.Command{
 			},
 			Description: "Decrypt file",
 		},
+		{
+			Action:    getProveDeatil,
+			Name:      "provedetail",
+			Usage:     "Get uploaded file prove detail",
+			ArgsUsage: "[arguments...]",
+			Flags: []cli.Flag{
+				flags.DspFileHashFlag,
+			},
+			Description: "Get uploaded file prove detail",
+		},
 	},
 	Description: `./edge file --help command to view help information.`,
 }
@@ -405,5 +415,23 @@ func decryptFile(ctx *cli.Context) error {
 	}
 	PrintInfoMsg("Decrypt file success")
 	PrintJsonData(ret)
+	return nil
+}
+
+func getProveDeatil(ctx *cli.Context) error {
+	if !ctx.IsSet(flags.GetFlagName(flags.DspFileHashFlag)) {
+		PrintErrorMsg("Missing file path. --fileHash")
+		cli.ShowSubcommandHelp(ctx)
+		return nil
+	}
+
+	fileHash := ctx.String(flags.GetFlagName(flags.DspFileHashFlag))
+	ret, err := utils.GetFileProveDetail(fileHash)
+	if err != nil {
+		PrintErrorMsg("encrypt file err %s", err)
+		return err
+	}
+	PrintJsonData(ret)
+
 	return nil
 }

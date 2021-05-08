@@ -132,6 +132,13 @@ func GetFileWhiteList(fileHash string) ([]byte, error) {
 	}
 	return ret, nil
 }
+func GetFileProveDetail(fileHash string) ([]byte, error) {
+	ret, dErr := sendRpcRequest("getprovedetail", []interface{}{fileHash})
+	if dErr != nil {
+		return nil, dErr.Error
+	}
+	return ret, nil
+}
 func GetUserSpace(addr string) ([]byte, error) {
 	ret, dErr := sendRpcRequest("getuserspace", []interface{}{addr})
 	if dErr != nil {
