@@ -131,6 +131,7 @@ type FileResp struct {
 	UpdatedAt     uint64
 	Profit        uint64
 	Privilege     uint64
+	ProveLevel    uint64
 	CurrentHeight uint64
 	ExpiredHeight uint64
 	StoreType     fs.FileStoreType
@@ -290,12 +291,14 @@ func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, proveLe
 	}
 	switch proveLevel {
 	case fs.PROVE_LEVEL_HIGH:
+		proveLevel = float64(fs.PROVE_LEVEL_HIGH)
 	case fs.PROVE_LEVEL_MEDIEUM:
+		proveLevel = float64(fs.PROVE_LEVEL_MEDIEUM)
 	case fs.PROVE_LEVEL_LOW:
+		proveLevel = float64(fs.PROVE_LEVEL_LOW)
 	default:
 		return nil, &DspErr{Code: FS_UPLOAD_INVALID_PROVE_LEVEL, Error: ErrMaps[FS_UPLOAD_INVALID_PROVE_LEVEL]}
 	}
-
 	storageType, _ := storageTypeVal.(float64)
 	realFileSize, _ := realFileSizeVal.(float64)
 	var fileSizeInKB uint64
@@ -1716,6 +1719,7 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit, cr
 				UpdatedAt:     info.UpdatedAt / 1000,
 				Profit:        profit,
 				Privilege:     info.Privilege,
+				ProveLevel:    info.ProveLevel,
 				CurrentHeight: uint64(curBlockHeight),
 				ExpiredHeight: info.ExpiredHeight,
 				StoreType:     fs.FileStoreType(info.StoreType),
