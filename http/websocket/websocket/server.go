@@ -299,6 +299,7 @@ func (self *WsServer) OnDataHandle(curSession *session.Session, bysMsg []byte, r
 
 	curSession.Send(marshalResp(resp))
 
+	log.Debugf("On data handle, actionName %s", actionName)
 	switch actionName {
 	case WS_ACTION_SUBSCRIBE:
 		self.PushToNewSubscriber()
