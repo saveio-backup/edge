@@ -1,5 +1,5 @@
 GOFMT=gofmt
-GC=GO111MODULE=off go build --tags "json1"
+GC=go build --tags "json1"
 
 EDGE_GITCOMMIT=$(shell git log -1 --pretty=format:"%H")
 PYLONS_GITCOMMIT=$(shell cd .. && cd pylons && git log -1 --pretty=format:"%H")
