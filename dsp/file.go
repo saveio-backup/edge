@@ -400,7 +400,7 @@ func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, proveLe
 		return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
 	}
 	if taskExist {
-		return nil, &DspErr{Code: DSP_UPLOAD_FILE_EXIST, Error: ErrMaps[DSP_UPLOAD_FILE_EXIST]}
+		return nil, &DspErr{Code: DSP_UPLOAD_FILE_EXIST, Error: fmt.Errorf("file %s %s", path, ErrMaps[DSP_UPLOAD_FILE_EXIST])}
 	}
 	go func() {
 		defer func() {
