@@ -209,10 +209,8 @@ func (this *Endpoint) QueryPluginVersion(url, fileHash string, platformType int)
 		}
 		if len(fileHash) == 0 {
 			if platformType == 0 || uv.Platform == 0 || platformType == uv.Platform {
-				if uv.Version >= versionStr {
-					versionStr = uv.Version
-					pluginVerRet = uv
-				}
+				versionStr = uv.Version
+				pluginVerRet = uv
 			}
 		}
 	}
@@ -237,7 +235,7 @@ func (this *Endpoint) QueryPluginsInfo() ([]utils.URLVERSION, *DspErr) {
 	for _, plugin := range pluginList.List {
 		pluginVerArr := strings.Split(string(plugin.Desc), utils.PLUGIN_URLVERSION_SPLIT)
 		var pluginVerLatest utils.URLVERSION
-		var versionStr string
+		// var versionStr string
 
 		for _, uvItem := range pluginVerArr {
 			if len(uvItem) == 0 {
@@ -248,10 +246,8 @@ func (this *Endpoint) QueryPluginsInfo() ([]utils.URLVERSION, *DspErr) {
 			if err != nil {
 				return nil, &DspErr{Code: DSP_DNS_QUERY_INFO_FAILED, Error: err}
 			}
-			if uv.Version >= versionStr {
-				versionStr = uv.Version
-				pluginVerLatest = uv
-			}
+			// versionStr = uv.Version
+			pluginVerLatest = uv
 		}
 		pluginsInfo = append(pluginsInfo, pluginVerLatest)
 	}
