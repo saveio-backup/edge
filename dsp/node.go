@@ -5,7 +5,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/saveio/dsp-go-sdk/utils"
+	dspLink "github.com/saveio/dsp-go-sdk/types/link"
 	"github.com/saveio/themis/common"
 	"github.com/saveio/themis/common/log"
 	"github.com/saveio/themis/http/base/sys"
@@ -148,12 +148,12 @@ func (this *Endpoint) DeleteFileUrl(url string) (string, *DspErr) {
 	return tx, nil
 }
 
-func (this *Endpoint) UpdatePluginVersion(url, fileHash, fileName, blocksRoot, fileOwner, version, img, title string, changeLog utils.ChangeLog, urlType, fileSize, totalCount uint64, platformType DspFileUrlPatformType) (string, *DspErr) {
+func (this *Endpoint) UpdatePluginVersion(url, fileHash, fileName, blocksRoot, fileOwner, version, img, title string, changeLog dspLink.ChangeLog, urlType, fileSize, totalCount uint64, platformType DspFileUrlPatformType) (string, *DspErr) {
 	dsp := this.getDsp()
 	if dsp == nil {
 		return "", &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
-	urlVersion := utils.URLVERSION{
+	urlVersion := dspLink.URLVERSION{
 		Type:      urlType,
 		Url:       url,
 		Version:   version,
@@ -180,25 +180,25 @@ func (this *Endpoint) UpdatePluginVersion(url, fileHash, fileName, blocksRoot, f
 	return tx, nil
 }
 
-func (this *Endpoint) QueryPluginVersion(url, fileHash string, platformType int) (*utils.URLVERSION, *DspErr) {
+func (this *Endpoint) QueryPluginVersion(url, fileHash string, platformType int) (*dspLink.URLVERSION, *DspErr) {
 	dsp := this.getDsp()
 	if dsp == nil {
 		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
 
-	var pluginVerRet utils.URLVERSION
+	var pluginVerRet dspLink.URLVERSION
 	var versionStr string
 	pluginVer := dsp.GetPluginVersionFromUrl(url)
 	if len(pluginVer) == 0 {
 		return nil, &DspErr{Code: DSP_DNS_QUERY_PLUGIN_INFO_FAILED, Error: errors.New("url version info not exist")}
 	}
-	pluginVerArr := strings.Split(pluginVer, utils.PLUGIN_URLVERSION_SPLIT)
+	pluginVerArr := strings.Split(pluginVer, dspLink.PLUGIN_URLVERSION_SPLIT)
 
 	for _, uvItem := range pluginVerArr {
 		if len(uvItem) == 0 {
 			continue
 		}
-		var uv utils.URLVERSION
+		var uv dspLink.URLVERSION
 		err := json.Unmarshal([]byte(uvItem), &uv)
 		if err != nil {
 			return nil, &DspErr{Code: DSP_DNS_QUERY_INFO_FAILED, Error: err}
@@ -221,7 +221,7 @@ func (this *Endpoint) QueryPluginVersion(url, fileHash string, platformType int)
 	return &pluginVerRet, nil
 }
 
-func (this *Endpoint) QueryPluginsInfo() ([]utils.URLVERSION, *DspErr) {
+func (this *Endpoint) QueryPluginsInfo() ([]dspLink.URLVERSION, *DspErr) {
 	dsp := this.getDsp()
 	if dsp == nil {
 		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
@@ -231,17 +231,17 @@ func (this *Endpoint) QueryPluginsInfo() ([]utils.URLVERSION, *DspErr) {
 		return nil, &DspErr{Code: DSP_DNS_QUERY_ALLPLUGININFOS_FAILED, Error: err}
 	}
 
-	var pluginsInfo []utils.URLVERSION
+	var pluginsInfo []dspLink.URLVERSION
 	for _, plugin := range pluginList.List {
-		pluginVerArr := strings.Split(string(plugin.Desc), utils.PLUGIN_URLVERSION_SPLIT)
-		var pluginVerLatest utils.URLVERSION
+		pluginVerArr := strings.Split(string(plugin.Desc), dspLink.PLUGIN_URLVERSION_SPLIT)
+		var pluginVerLatest dspLink.URLVERSION
 		// var versionStr string
 
 		for _, uvItem := range pluginVerArr {
 			if len(uvItem) == 0 {
 				continue
 			}
-			var uv utils.URLVERSION
+			var uv dspLink.URLVERSION
 			err := json.Unmarshal([]byte(uvItem), &uv)
 			if err != nil {
 				return nil, &DspErr{Code: DSP_DNS_QUERY_INFO_FAILED, Error: err}

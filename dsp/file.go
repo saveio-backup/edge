@@ -13,10 +13,13 @@ import (
 	"strings"
 	"time"
 
-	dspCom "github.com/saveio/dsp-go-sdk/common"
+	dspConsts "github.com/saveio/dsp-go-sdk/consts"
 	"github.com/saveio/dsp-go-sdk/store"
-	"github.com/saveio/dsp-go-sdk/task"
-	dspUtils "github.com/saveio/dsp-go-sdk/utils"
+	dspTypes "github.com/saveio/dsp-go-sdk/task/types"
+	dspLink "github.com/saveio/dsp-go-sdk/types/link"
+	dspPrefix "github.com/saveio/dsp-go-sdk/types/prefix"
+	"github.com/saveio/dsp-go-sdk/utils/async"
+	dspTask "github.com/saveio/dsp-go-sdk/utils/task"
 	"github.com/saveio/edge/common"
 	"github.com/saveio/edge/common/config"
 	"github.com/saveio/edge/dsp/actor/client"
@@ -39,7 +42,7 @@ const (
 )
 
 type DeleteFileResp struct {
-	dspCom.DeleteUploadFileResp
+	dspTypes.DeleteUploadFileResp
 	IsUploaded bool
 }
 
@@ -68,7 +71,7 @@ type Transfer struct {
 	Url            string
 	Type           TransferType
 	Status         store.TaskState
-	DetailStatus   task.TaskProgressState
+	DetailStatus   dspTypes.TaskProgressState
 	CopyNum        uint32
 	Path           string
 	IsUploadAction bool
@@ -357,7 +360,7 @@ func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, proveLe
 		if err != nil {
 			return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
 		}
-		url = dspCom.FILE_URL_CUSTOM_HEADER + hex.EncodeToString(b)
+		url = dspConsts.FILE_URL_CUSTOM_HEADER + hex.EncodeToString(b)
 	}
 	find, err := dsp.QueryUrl(url, dsp.Address())
 	if find != nil || err == nil {
@@ -403,11 +406,11 @@ func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, proveLe
 		return nil, &DspErr{Code: DSP_UPLOAD_FILE_EXIST, Error: fmt.Errorf("file %s %s", path, ErrMaps[DSP_UPLOAD_FILE_EXIST])}
 	}
 	go func() {
-		defer func() {
-			if e := recover(); e != nil {
-				log.Errorf("panic recover err %v", e)
-			}
-		}()
+		// defer func() {
+		// 	if e := recover(); e != nil {
+		// 		log.Errorf("panic recover err %v", e)
+		// 	}
+		// }()
 		log.Debugf("upload file path %s, this.Dsp: %t", path, dsp == nil)
 		ret, err := dsp.UploadFile(true, taskId, path, opt)
 		if err != nil {
@@ -558,13 +561,13 @@ func (this *Endpoint) CancelUploadFile(taskIds []string, gasLimit uint64) (*File
 	for _, id := range taskIds {
 		args = append(args, []interface{}{id})
 	}
-	request := func(arg []interface{}, respCh chan *dspUtils.RequestResponse) {
+	request := func(arg []interface{}, respCh chan *async.RequestResponse) {
 		taskResp := &FileTask{
 			State: int(store.TaskStateCancel),
 		}
 		if len(arg) != 1 {
 			taskResp.Code = DSP_CANCEL_TASK_FAILED
-			respCh <- &dspUtils.RequestResponse{
+			respCh <- &async.RequestResponse{
 				Result: taskResp,
 			}
 			return
@@ -572,7 +575,7 @@ func (this *Endpoint) CancelUploadFile(taskIds []string, gasLimit uint64) (*File
 		id, ok := arg[0].(string)
 		if !ok {
 			taskResp.Code = DSP_CANCEL_TASK_FAILED
-			respCh <- &dspUtils.RequestResponse{
+			respCh <- &async.RequestResponse{
 				Result: taskResp,
 			}
 			return
@@ -587,7 +590,7 @@ func (this *Endpoint) CancelUploadFile(taskIds []string, gasLimit uint64) (*File
 				taskResp.Error = err.Error()
 			}
 			log.Debugf("cancel no exist in memory task, upload file, id %s, resp %v", id, taskResp)
-			respCh <- &dspUtils.RequestResponse{
+			respCh <- &async.RequestResponse{
 				Result: taskResp,
 			}
 			return
@@ -596,7 +599,7 @@ func (this *Endpoint) CancelUploadFile(taskIds []string, gasLimit uint64) (*File
 		if err != nil {
 			taskResp.Code = DSP_CANCEL_TASK_FAILED
 			taskResp.Error = err.Error()
-			respCh <- &dspUtils.RequestResponse{
+			respCh <- &async.RequestResponse{
 				Result: taskResp,
 			}
 			return
@@ -607,11 +610,11 @@ func (this *Endpoint) CancelUploadFile(taskIds []string, gasLimit uint64) (*File
 			taskResp.Code = DSP_CANCEL_TASK_FAILED
 			taskResp.Error = err.Error()
 		}
-		respCh <- &dspUtils.RequestResponse{
+		respCh <- &async.RequestResponse{
 			Result: taskResp,
 		}
 	}
-	requestResps := dspUtils.CallRequestWithArgs(request, args)
+	requestResps := async.RequestWithArgs(request, args)
 	for _, r := range requestResps {
 		resp.Tasks = append(resp.Tasks, r.Result.(*FileTask))
 	}
@@ -723,16 +726,16 @@ func (this *Endpoint) DeleteUploadFiles(fileHashes []string, gasLimit uint64) ([
 	return resps, nil
 }
 
-func (this *Endpoint) CalculateDeleteFilesFee(fileHashes []string) (*dspCom.Gas, *DspErr) {
+func (this *Endpoint) CalculateDeleteFilesFee(fileHashes []string) (*dspTypes.Gas, *DspErr) {
 	dsp := this.getDsp()
 	if dsp == nil {
 		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
 	preExecFee, err := dsp.GetDeleteFilesStorageFee(this.getDspWalletAddr(), fileHashes)
 	if err != nil {
-		return &dspCom.Gas{GasPrice: sdkcom.GAS_PRICE, GasLimit: preExecFee}, &DspErr{Code: FS_DELETE_CALC_FEE_FAILED, Error: err}
+		return &dspTypes.Gas{GasPrice: sdkcom.GAS_PRICE, GasLimit: preExecFee}, &DspErr{Code: FS_DELETE_CALC_FEE_FAILED, Error: err}
 	}
-	return &dspCom.Gas{GasPrice: sdkcom.GAS_PRICE, GasLimit: preExecFee}, nil
+	return &dspTypes.Gas{GasPrice: sdkcom.GAS_PRICE, GasLimit: preExecFee}, nil
 }
 
 func (this *Endpoint) GetFsConfig() (*FsContractSettingResp, *DspErr) {
@@ -836,12 +839,12 @@ func (this *Endpoint) DownloadFile(taskId, fileHash, url, linkStr, password stri
 		}
 
 		go func() {
-			defer func() {
-				if e := recover(); e != nil {
-					log.Errorf("panic recover err %v", e)
-				}
-			}()
-			err := dsp.DownloadFileByUrl(taskId, url, dspCom.ASSET_USDT, inOrder, password, false, setFileName, int(max))
+			// defer func() {
+			// if e := recover(); e != nil {
+			// 	log.Errorf("panic recover err %v", e)
+			// }
+			// }()
+			err := dsp.DownloadFileByUrl(taskId, url, dspConsts.ASSET_USDT, inOrder, password, false, setFileName, int(max))
 			if err != nil {
 				log.Errorf("download task %s from url failed %s", taskId, err)
 			}
@@ -860,12 +863,12 @@ func (this *Endpoint) DownloadFile(taskId, fileHash, url, linkStr, password stri
 			return &DspErr{Code: DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH, Error: ErrMaps[DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH]}
 		}
 		go func() {
-			defer func() {
-				if e := recover(); e != nil {
-					log.Errorf("panic recover err %v", e)
-				}
-			}()
-			err := dsp.DownloadFileByHash(taskId, fileHash, dspCom.ASSET_USDT, inOrder, password, false, setFileName, int(max))
+			// defer func() {
+			// 	if e := recover(); e != nil {
+			// 		log.Errorf("panic recover err %v", e)
+			// 	}
+			// }()
+			err := dsp.DownloadFileByHash(taskId, fileHash, dspConsts.ASSET_USDT, inOrder, password, false, setFileName, int(max))
 			if err != nil {
 				log.Errorf("Downloadfile from url failed %s", err)
 			}
@@ -874,7 +877,7 @@ func (this *Endpoint) DownloadFile(taskId, fileHash, url, linkStr, password stri
 	}
 
 	if len(linkStr) > 0 {
-		link, err := dspUtils.DecodeLinkStr(linkStr)
+		link, err := dspLink.DecodeLinkStr(linkStr)
 		if err != nil {
 			return &DspErr{Code: INTERNAL_ERROR, Error: err}
 		}
@@ -891,12 +894,12 @@ func (this *Endpoint) DownloadFile(taskId, fileHash, url, linkStr, password stri
 			return &DspErr{Code: DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH, Error: ErrMaps[DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH]}
 		}
 		go func() {
-			defer func() {
-				if e := recover(); e != nil {
-					log.Errorf("panic recover err %v", e)
-				}
-			}()
-			err := dsp.DownloadFileByLink(taskId, linkStr, dspCom.ASSET_USDT, inOrder, password, false, setFileName, int(max))
+			// defer func() {
+			// 	if e := recover(); e != nil {
+			// 		log.Errorf("panic recover err %v", e)
+			// 	}
+			// }()
+			err := dsp.DownloadFileByLink(taskId, linkStr, dspConsts.ASSET_USDT, inOrder, password, false, setFileName, int(max))
 			if err != nil {
 				log.Errorf("Downloadfile from url failed %s", err)
 			}
@@ -1106,11 +1109,11 @@ func (this *Endpoint) RegisterProgressCh() {
 		select {
 		case v, ok := <-dsp.ProgressChannel():
 			// TODO: replace with list
-			if v.ProgressState == task.TaskCreate && v.Type == store.TaskTypeUpload {
+			if v.ProgressState == dspTypes.TaskCreate && v.Type == store.TaskTypeUpload {
 				log.Debugf("notify new upload task %s", v.TaskId)
 				go this.notifyNewTransferTask(transferTypeUploading, v.TaskId)
 			}
-			if v.ProgressState == task.TaskCreate && v.Type == store.TaskTypeDownload {
+			if v.ProgressState == dspTypes.TaskCreate && v.Type == store.TaskTypeDownload {
 				log.Debugf("notify new download task %s", v.TaskId)
 				go this.notifyNewTransferTask(transferTypeDownloading, v.TaskId)
 			}
@@ -1255,6 +1258,42 @@ func (this *Endpoint) GetTransferDetail(pType TransferType, id string) (*Transfe
 		return resp, &DspErr{Code: INTERNAL_ERROR, Error: ErrMaps[INTERNAL_ERROR]}
 	}
 	return pInfo, nil
+}
+
+// GetTransferList. get transfer progress list
+func (this *Endpoint) GetProgressById(id string) (*dspTypes.ProgressInfo, *DspErr) {
+	if len(id) == 0 {
+		return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
+	}
+	dsp := this.getDsp()
+	if dsp == nil {
+		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+	resp := &dspTypes.ProgressInfo{}
+	info := dsp.GetProgressInfo(id)
+	log.Debugf("get progress %v by %v", info, id)
+	if info == nil {
+		return resp, nil
+	}
+	return info, nil
+}
+
+// GetTransferList. get transfer progress list
+func (this *Endpoint) GetTaskInfoById(id string) (*store.TaskInfo, *DspErr) {
+	if len(id) == 0 {
+		return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
+	}
+	dsp := this.getDsp()
+	if dsp == nil {
+		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+	resp := &store.TaskInfo{}
+	info := dsp.GetTaskInfo(id)
+	log.Debugf("get progress %v by %v", info, id)
+	if info == nil {
+		return resp, nil
+	}
+	return info, nil
 }
 
 // GetTransferList. get transfer progress list
@@ -1404,13 +1443,13 @@ func (this *Endpoint) GetDownloadFileInfo(url string) (*DownloadFileInfo, *DspEr
 	}
 	info := &DownloadFileInfo{}
 	var fileLink string
-	if strings.HasPrefix(url, dspCom.FILE_URL_CUSTOM_HEADER) ||
-		strings.HasPrefix(url, dspCom.FILE_URL_CUSTOM_HEADER_PROTOCOL) {
+	if strings.HasPrefix(url, dspConsts.FILE_URL_CUSTOM_HEADER) ||
+		strings.HasPrefix(url, dspConsts.FILE_URL_CUSTOM_HEADER_PROTOCOL) {
 		fileLink = dsp.GetLinkFromUrl(url)
-	} else if strings.HasPrefix(url, dspCom.FILE_LINK_PREFIX) {
+	} else if strings.HasPrefix(url, dspConsts.FILE_LINK_PREFIX) {
 		fileLink = url
-	} else if strings.HasPrefix(url, dspCom.PROTO_NODE_PREFIX) ||
-		strings.HasPrefix(url, dspCom.RAW_NODE_PREFIX) {
+	} else if strings.HasPrefix(url, dspConsts.PROTO_NODE_PREFIX) ||
+		strings.HasPrefix(url, dspConsts.RAW_NODE_PREFIX) {
 		// TODO support get download file info from hash
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
 	}
@@ -1423,12 +1462,12 @@ func (this *Endpoint) GetDownloadFileInfo(url string) (*DownloadFileInfo, *DspEr
 	}
 	info.Hash = link.FileHashStr
 	info.Name = link.FileName
-	info.Size = link.BlockNum * dspCom.CHUNK_SIZE / 1024
+	info.Size = link.BlockNum * dspConsts.CHUNK_SIZE / 1024
 	extParts := strings.Split(info.Name, ".")
 	if len(extParts) > 1 {
 		info.Ext = extParts[len(extParts)-1]
 	}
-	info.Fee = link.BlockNum * dspCom.CHUNK_SIZE * common.DSP_DOWNLOAD_UNIT_PRICE
+	info.Fee = link.BlockNum * dspConsts.CHUNK_SIZE * common.DSP_DOWNLOAD_UNIT_PRICE
 	info.FeeFormat = utils.FormatUsdt(info.Fee)
 	info.Path = this.getDownloadFilePath(info.Name)
 	info.DownloadDir = this.getDownloadFilePath("")
@@ -1444,7 +1483,7 @@ func (this *Endpoint) EncryptFile(path, password string) *DspErr {
 	if err != nil {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
 	}
-	prefix := dspUtils.NewEncryptPrefix(password, this.getDspWalletAddr(), uint64(stat.Size()))
+	prefix := dspPrefix.NewEncryptPrefix(password, this.getDspWalletAddr(), uint64(stat.Size()))
 	if prefix == nil {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: errors.New("prefix is nil")}
 	}
@@ -1480,11 +1519,11 @@ func (this *Endpoint) EncryptFile(path, password string) *DspErr {
 }
 
 func (this *Endpoint) DecryptFile(path, fileName, password string) (string, *DspErr) {
-	filePrefix, prefix, err := dspUtils.GetPrefixFromFile(path)
+	filePrefix, prefix, err := dspPrefix.GetPrefixFromFile(path)
 	if err != nil {
 		return "", &DspErr{Code: DSP_DECRYPTED_FILE_FAILED, Error: err}
 	}
-	if !dspUtils.VerifyEncryptPassword(password, filePrefix.EncryptSalt, filePrefix.EncryptHash) {
+	if !dspPrefix.VerifyEncryptPassword(password, filePrefix.EncryptSalt, filePrefix.EncryptHash) {
 		return "", &DspErr{Code: DSP_FILE_DECRYPTED_WRONG_PWD, Error: ErrMaps[DSP_FILE_DECRYPTED_WRONG_PWD]}
 	}
 	log.Debugf("verified %s, %s", password, prefix)
@@ -1495,9 +1534,9 @@ func (this *Endpoint) DecryptFile(path, fileName, password string) (string, *Dsp
 	if len(fileName) == 0 {
 		fileName = filePrefix.FileName
 	}
-	outPath := dspUtils.GetDecryptedFilePath(path, fileName)
+	outPath := dspTask.GetDecryptedFilePath(path, fileName)
 	err = dsp.AESDecryptFile(path, string(prefix), password, outPath)
-	log.Debugf("decrypted file output %s", dspUtils.GetDecryptedFilePath(path, fileName))
+	log.Debugf("decrypted file output %s", dspTask.GetDecryptedFilePath(path, fileName))
 	if err != nil {
 		return "", &DspErr{Code: DSP_DECRYPTED_FILE_FAILED, Error: err}
 	}
@@ -1588,24 +1627,30 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit, cr
 	if err != nil {
 		return nil, 0, &DspErr{Code: DSP_FILE_INFO_NOT_FOUND, Error: err}
 	}
+	log.Debugf("total upload task info length %v", len(taskInfos))
 	totalCount := 0
 	files := make([]*FileResp, 0, limit)
 	offsetCnt := uint64(0)
 	for _, info := range taskInfos {
 		if info == nil {
+			// log.Debugf("get upload list skip because info is nil")
 			continue
 		}
 		if info.ExpiredHeight < uint64(curBlockHeight) {
+			// log.Debugf("get upload list skip because info is expired")
 			continue
 		}
 		if createdAt != 0 && createdAtEnd != 0 && (info.CreatedAt <= createdAt || info.CreatedAt > createdAtEnd) {
+			// log.Debugf("get upload list skip because info is out of query date range")
 			continue
 		}
 		if updatedAt != 0 && updatedAtEnd != 0 && (info.UpdatedAt <= updatedAt || info.UpdatedAt > updatedAtEnd) {
+			// log.Debugf("get upload list skip because info is out of query date range")
 			continue
 		}
 		// 0: all, 1. image, 2. document. 3. video, 4. music
 		if !FileNameMatchType(fileType, info.FileName) {
+			// log.Debugf("get upload list skip because info is mismatch type")
 			continue
 		}
 		fileHashStr := info.FileHash
@@ -1660,9 +1705,11 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit, cr
 				// log.Errorf("get prove %s detail failed err %s", fileHashStr, err)
 			}
 			if filterType == UploadFileFilterTypeDoing && len(primaryNodeM) == 0 {
+				log.Debugf("get upload list skip because info no primary node")
 				continue
 			}
 			if filterType == UploadFileFilterTypeDone && len(primaryNodeM) > 0 {
+				log.Debugf("get upload list skip because primary node bigger than zero")
 				continue
 			}
 			if proveDetail != nil && len(primaryNodeM) > 0 {
@@ -1672,6 +1719,7 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit, cr
 				}
 				hostAddrs, err := dsp.GetNodeHostAddrListByWallets(unprovedNodeWallets)
 				if err != nil {
+					log.Debugf("get upload list skip because info wrong unprovedNodeWallets %v, err %v", unprovedNodeWallets, err)
 					continue
 				}
 				for i, wallet := range unprovedNodeWallets {
@@ -1870,16 +1918,16 @@ func (this *Endpoint) GetDownloadFiles(fileType DspFileListType, offset, limit u
 		lastSharedAt, _ := dsp.FindLastShareTime(file)
 		owner := info.FileOwner
 		privilege := uint64(info.Privilege)
-		filePrefix := &dspUtils.FilePrefix{}
+		filePrefix := &dspPrefix.FilePrefix{}
 		filePrefix.Deserialize(info.Prefix)
 		fileInfos = append(fileInfos, &DownloadFilesInfo{
 			Hash:          file,
 			Name:          fileNameFromPath,
 			OwnerAddress:  owner,
 			Url:           url,
-			Size:          uint64(info.TotalBlockCount * dspCom.CHUNK_SIZE / 1024),
+			Size:          uint64(info.TotalBlockCount * dspConsts.CHUNK_SIZE / 1024),
 			DownloadCount: downloadedCount,
-			DownloadAt:    info.CreatedAt / dspCom.MILLISECOND_PER_SECOND,
+			DownloadAt:    info.CreatedAt / dspConsts.MILLISECOND_PER_SECOND,
 			LastShareAt:   lastSharedAt,
 			Profit:        profit,
 			ProfitFormat:  utils.FormatUsdt(profit),
@@ -2212,7 +2260,7 @@ func (this *Endpoint) GetPeerCountOfHash(fileHashStr string) (interface{}, *DspE
 	if dsp == nil {
 		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
-	return len(dsp.GetPeerFromTracker(fileHashStr, dsp.GetTrackerList())), nil
+	return len(dsp.DNS.GetPeerFromTracker(fileHashStr)), nil
 }
 
 func (this *Endpoint) GetFileHashFromUrl(url string) (string, *DspErr) {
@@ -2238,7 +2286,7 @@ func (this *Endpoint) UpdateFileUrlLink(url, hash, fileName string, fileSize, to
 			fileOwner = info.FileOwner.ToBase58()
 			blocksRoot = string(info.BlocksRoot)
 		} else {
-			totalCount = fileSize * 1024 / dspCom.CHUNK_SIZE
+			totalCount = fileSize * 1024 / dspConsts.CHUNK_SIZE
 		}
 	}
 	link := dsp.GenLink(hash, fileName, blocksRoot, fileOwner, uint64(fileSize), totalCount)
@@ -2252,7 +2300,7 @@ func (this *Endpoint) UpdateFileUrlLink(url, hash, fileName string, fileSize, to
 	return tx, nil
 }
 
-func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressInfo) *Transfer {
+func (this *Endpoint) getTransferDetail(pType TransferType, info *dspTypes.ProgressInfo) *Transfer {
 	dsp := this.getDsp()
 	if dsp == nil {
 		return nil
@@ -2277,10 +2325,10 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 			Speed:    avgSpeed,
 		}
 		if info.Type == store.TaskTypeUpload {
-			pros.UploadSize = uint64(cnt.Progress) * dspCom.CHUNK_SIZE / 1024
+			pros.UploadSize = uint64(cnt.Progress) * dspConsts.CHUNK_SIZE / 1024
 			pros.RealUploadSize = uint64(float64(cnt.Progress) / float64(info.Total) * float64(info.RealFileSize))
 		} else if info.Type == store.TaskTypeDownload {
-			pros.DownloadSize = uint64(cnt.Progress) * dspCom.CHUNK_SIZE / 1024
+			pros.DownloadSize = uint64(cnt.Progress) * dspConsts.CHUNK_SIZE / 1024
 			pros.RealDownloadSize = uint64(float64(cnt.Progress) / float64(info.Total) * float64(info.RealFileSize))
 		}
 		nPros = append(nPros, pros)
@@ -2311,7 +2359,7 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 		if info.Total > 0 && sum >= uint64(info.Total) && info.Result != nil && len(info.ErrorMsg) == 0 {
 			return nil
 		}
-		pInfo.UploadSize = sum * dspCom.CHUNK_SIZE / 1024
+		pInfo.UploadSize = sum * dspConsts.CHUNK_SIZE / 1024
 		if len(pInfo.Nodes) > 0 && pInfo.FileSize > 0 {
 			pInfo.Progress = (float64(pInfo.UploadSize) / float64(pInfo.FileSize))
 		}
@@ -2329,7 +2377,7 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 		if info.TaskState == store.TaskStateDone {
 			return nil
 		}
-		pInfo.DownloadSize = sum * dspCom.CHUNK_SIZE / 1024
+		pInfo.DownloadSize = sum * dspConsts.CHUNK_SIZE / 1024
 		if pInfo.FileSize > 0 {
 			pInfo.Progress = float64(pInfo.DownloadSize) / float64(pInfo.FileSize)
 		}
@@ -2344,7 +2392,7 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 			if info.Result == nil {
 				return nil
 			}
-			pInfo.UploadSize = sum * dspCom.CHUNK_SIZE / 1024
+			pInfo.UploadSize = sum * dspConsts.CHUNK_SIZE / 1024
 			if pInfo.UploadSize == 0 {
 				return nil
 			}
@@ -2356,7 +2404,7 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 				pInfo.Progress = (float64(pInfo.UploadSize) / float64(pInfo.FileSize))
 			}
 		} else if info.Type == store.TaskTypeDownload {
-			pInfo.DownloadSize = sum * dspCom.CHUNK_SIZE / 1024
+			pInfo.DownloadSize = sum * dspConsts.CHUNK_SIZE / 1024
 			if pInfo.DownloadSize == 0 {
 				return nil
 			}
@@ -2371,7 +2419,7 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 		}
 	case transferTypeAll:
 		if info.Type == store.TaskTypeUpload {
-			pInfo.UploadSize = sum * dspCom.CHUNK_SIZE / 1024
+			pInfo.UploadSize = sum * dspConsts.CHUNK_SIZE / 1024
 			if pInfo.Status != store.TaskStateDone && pInfo.FileSize > 0 && pInfo.UploadSize == pInfo.FileSize {
 				log.Warnf("task:%s taskstate is %d, status:%d, but it has done",
 					info.TaskId, info.TaskState, pInfo.Status)
@@ -2381,7 +2429,7 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *task.ProgressI
 				pInfo.Progress = (float64(pInfo.UploadSize) / float64(pInfo.FileSize))
 			}
 		} else if info.Type == store.TaskTypeDownload {
-			pInfo.DownloadSize = sum * dspCom.CHUNK_SIZE / 1024
+			pInfo.DownloadSize = sum * dspConsts.CHUNK_SIZE / 1024
 			if pInfo.Status != store.TaskStateDone && pInfo.FileSize > 0 && pInfo.DownloadSize == pInfo.FileSize {
 				pInfo.Status = store.TaskStateDone
 				log.Warnf("task:%s taskstate is %d, but it has done", info.TaskId, info.TaskState)

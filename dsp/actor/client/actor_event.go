@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/ontio/ontology-eventbus/actor"
-	"github.com/saveio/dsp-go-sdk/utils"
+	"github.com/saveio/dsp-go-sdk/utils/async"
 	"github.com/saveio/edge/common"
 	sdkCom "github.com/saveio/themis-go-sdk/common"
 )
@@ -86,7 +86,7 @@ func EventNotifyAll() error {
 	req := &NotifyAll{
 		Response: make(chan *NotifyResp, 1),
 	}
-	f := utils.TimeoutFunc(func() error {
+	f := async.TimeoutFunc(func() error {
 		EventServerPid.Tell(req)
 		resp := <-req.Response
 		if resp != nil {
@@ -94,7 +94,7 @@ func EventNotifyAll() error {
 		}
 		return nil
 	})
-	return utils.DoWithTimeout(f, time.Duration(common.EVENT_ACTOR_TIMEOUT)*time.Second)
+	return async.DoWithTimeout(f, time.Duration(common.EVENT_ACTOR_TIMEOUT)*time.Second)
 }
 
 func EventNotifyChannels() error {
@@ -104,7 +104,7 @@ func EventNotifyChannels() error {
 	req := &NotifyChannels{
 		Response: make(chan *NotifyResp, 1),
 	}
-	f := utils.TimeoutFunc(func() error {
+	f := async.TimeoutFunc(func() error {
 		EventServerPid.Tell(req)
 		resp := <-req.Response
 		if resp != nil {
@@ -112,7 +112,7 @@ func EventNotifyChannels() error {
 		}
 		return nil
 	})
-	return utils.DoWithTimeout(f, time.Duration(common.EVENT_ACTOR_TIMEOUT)*time.Second)
+	return async.DoWithTimeout(f, time.Duration(common.EVENT_ACTOR_TIMEOUT)*time.Second)
 }
 
 func EventNotifyInvolvedSmartContract(events []*sdkCom.SmartContactEvent) error {
@@ -123,7 +123,7 @@ func EventNotifyInvolvedSmartContract(events []*sdkCom.SmartContactEvent) error 
 		Response: make(chan *NotifyResp, 1),
 		Events:   events,
 	}
-	f := utils.TimeoutFunc(func() error {
+	f := async.TimeoutFunc(func() error {
 		EventServerPid.Tell(req)
 		resp := <-req.Response
 		if resp != nil {
@@ -131,7 +131,7 @@ func EventNotifyInvolvedSmartContract(events []*sdkCom.SmartContactEvent) error 
 		}
 		return nil
 	})
-	return utils.DoWithTimeout(f, time.Duration(common.EVENT_ACTOR_TIMEOUT)*time.Second)
+	return async.DoWithTimeout(f, time.Duration(common.EVENT_ACTOR_TIMEOUT)*time.Second)
 }
 
 func EventNotifyRevenue() error {
@@ -141,7 +141,7 @@ func EventNotifyRevenue() error {
 	req := &NotifyRevenue{
 		Response: make(chan *NotifyResp, 1),
 	}
-	f := utils.TimeoutFunc(func() error {
+	f := async.TimeoutFunc(func() error {
 		EventServerPid.Tell(req)
 		resp := <-req.Response
 		if resp != nil {
@@ -149,7 +149,7 @@ func EventNotifyRevenue() error {
 		}
 		return nil
 	})
-	return utils.DoWithTimeout(f, time.Duration(common.EVENT_ACTOR_TIMEOUT)*time.Second)
+	return async.DoWithTimeout(f, time.Duration(common.EVENT_ACTOR_TIMEOUT)*time.Second)
 }
 
 func EventNotifyAccount() error {
@@ -159,7 +159,7 @@ func EventNotifyAccount() error {
 	req := &NotifyAccount{
 		Response: make(chan *NotifyResp, 1),
 	}
-	f := utils.TimeoutFunc(func() error {
+	f := async.TimeoutFunc(func() error {
 		EventServerPid.Tell(req)
 		resp := <-req.Response
 		if resp != nil {
@@ -167,7 +167,7 @@ func EventNotifyAccount() error {
 		}
 		return nil
 	})
-	return utils.DoWithTimeout(f, time.Duration(common.EVENT_ACTOR_TIMEOUT)*time.Second)
+	return async.DoWithTimeout(f, time.Duration(common.EVENT_ACTOR_TIMEOUT)*time.Second)
 }
 
 func EventNotifySwitchChannel() error {
@@ -177,7 +177,7 @@ func EventNotifySwitchChannel() error {
 	req := &NotifySwitchChannel{
 		Response: make(chan *NotifyResp, 1),
 	}
-	f := utils.TimeoutFunc(func() error {
+	f := async.TimeoutFunc(func() error {
 		EventServerPid.Tell(req)
 		resp := <-req.Response
 		if resp != nil {
@@ -185,7 +185,7 @@ func EventNotifySwitchChannel() error {
 		}
 		return nil
 	})
-	return utils.DoWithTimeout(f, time.Duration(common.EVENT_ACTOR_TIMEOUT)*time.Second)
+	return async.DoWithTimeout(f, time.Duration(common.EVENT_ACTOR_TIMEOUT)*time.Second)
 }
 
 func EventNotifyChannelSyncing() error {
@@ -195,7 +195,7 @@ func EventNotifyChannelSyncing() error {
 	req := &NotifyChannelSyncing{
 		Response: make(chan *NotifyResp, 1),
 	}
-	f := utils.TimeoutFunc(func() error {
+	f := async.TimeoutFunc(func() error {
 		EventServerPid.Tell(req)
 		resp := <-req.Response
 		if resp != nil {
@@ -203,7 +203,7 @@ func EventNotifyChannelSyncing() error {
 		}
 		return nil
 	})
-	return utils.DoWithTimeout(f, time.Duration(common.EVENT_ACTOR_TIMEOUT)*time.Second)
+	return async.DoWithTimeout(f, time.Duration(common.EVENT_ACTOR_TIMEOUT)*time.Second)
 }
 
 func EventNotifyChannelProgress() error {
@@ -213,7 +213,7 @@ func EventNotifyChannelProgress() error {
 	req := &NotifyChannelProgress{
 		Response: make(chan *NotifyResp, 1),
 	}
-	f := utils.TimeoutFunc(func() error {
+	f := async.TimeoutFunc(func() error {
 		EventServerPid.Tell(req)
 		resp := <-req.Response
 		if resp != nil {
@@ -221,7 +221,7 @@ func EventNotifyChannelProgress() error {
 		}
 		return nil
 	})
-	return utils.DoWithTimeout(f, time.Duration(common.EVENT_ACTOR_TIMEOUT)*time.Second)
+	return async.DoWithTimeout(f, time.Duration(common.EVENT_ACTOR_TIMEOUT)*time.Second)
 }
 
 func EventNotifyUploadTransferList() error {
@@ -231,7 +231,7 @@ func EventNotifyUploadTransferList() error {
 	req := &NotifyUploadTransferList{
 		Response: make(chan *NotifyResp, 1),
 	}
-	f := utils.TimeoutFunc(func() error {
+	f := async.TimeoutFunc(func() error {
 		EventServerPid.Tell(req)
 		resp := <-req.Response
 		if resp != nil {
@@ -239,7 +239,7 @@ func EventNotifyUploadTransferList() error {
 		}
 		return nil
 	})
-	return utils.DoWithTimeout(f, time.Duration(common.EVENT_ACTOR_TIMEOUT)*time.Second)
+	return async.DoWithTimeout(f, time.Duration(common.EVENT_ACTOR_TIMEOUT)*time.Second)
 }
 
 func EventNotifyDownloadTransferList() error {
@@ -249,7 +249,7 @@ func EventNotifyDownloadTransferList() error {
 	req := &NotifyDownloadTransferList{
 		Response: make(chan *NotifyResp, 1),
 	}
-	f := utils.TimeoutFunc(func() error {
+	f := async.TimeoutFunc(func() error {
 		EventServerPid.Tell(req)
 		resp := <-req.Response
 		if resp != nil {
@@ -257,7 +257,7 @@ func EventNotifyDownloadTransferList() error {
 		}
 		return nil
 	})
-	return utils.DoWithTimeout(f, time.Duration(common.EVENT_ACTOR_TIMEOUT)*time.Second)
+	return async.DoWithTimeout(f, time.Duration(common.EVENT_ACTOR_TIMEOUT)*time.Second)
 }
 
 func EventNotifyCompleteTransferList() error {
@@ -267,7 +267,7 @@ func EventNotifyCompleteTransferList() error {
 	req := &NotifyCompleteTransferList{
 		Response: make(chan *NotifyResp, 1),
 	}
-	f := utils.TimeoutFunc(func() error {
+	f := async.TimeoutFunc(func() error {
 		EventServerPid.Tell(req)
 		resp := <-req.Response
 		if resp != nil {
@@ -275,7 +275,7 @@ func EventNotifyCompleteTransferList() error {
 		}
 		return nil
 	})
-	return utils.DoWithTimeout(f, time.Duration(common.EVENT_ACTOR_TIMEOUT)*time.Second)
+	return async.DoWithTimeout(f, time.Duration(common.EVENT_ACTOR_TIMEOUT)*time.Second)
 }
 
 func EventNotifyNetworkState() error {
@@ -285,7 +285,7 @@ func EventNotifyNetworkState() error {
 	req := &NotifyNetworkState{
 		Response: make(chan *NotifyResp, 1),
 	}
-	f := utils.TimeoutFunc(func() error {
+	f := async.TimeoutFunc(func() error {
 		EventServerPid.Tell(req)
 		resp := <-req.Response
 		if resp != nil {
@@ -293,7 +293,7 @@ func EventNotifyNetworkState() error {
 		}
 		return nil
 	})
-	return utils.DoWithTimeout(f, time.Duration(common.EVENT_ACTOR_TIMEOUT)*time.Second)
+	return async.DoWithTimeout(f, time.Duration(common.EVENT_ACTOR_TIMEOUT)*time.Second)
 }
 
 func EventNotifyModuleState() error {
@@ -303,7 +303,7 @@ func EventNotifyModuleState() error {
 	req := &NotifyModuleState{
 		Response: make(chan *NotifyResp, 1),
 	}
-	f := utils.TimeoutFunc(func() error {
+	f := async.TimeoutFunc(func() error {
 		EventServerPid.Tell(req)
 		resp := <-req.Response
 		if resp != nil {
@@ -311,7 +311,7 @@ func EventNotifyModuleState() error {
 		}
 		return nil
 	})
-	return utils.DoWithTimeout(f, time.Duration(common.EVENT_ACTOR_TIMEOUT)*time.Second)
+	return async.DoWithTimeout(f, time.Duration(common.EVENT_ACTOR_TIMEOUT)*time.Second)
 }
 
 func EventNotifyNewTask(taskType int, id string) error {
@@ -323,7 +323,7 @@ func EventNotifyNewTask(taskType int, id string) error {
 		Id:       id,
 		Response: make(chan *NotifyResp, 1),
 	}
-	f := utils.TimeoutFunc(func() error {
+	f := async.TimeoutFunc(func() error {
 		EventServerPid.Tell(req)
 		resp := <-req.Response
 		if resp != nil {
@@ -331,5 +331,5 @@ func EventNotifyNewTask(taskType int, id string) error {
 		}
 		return nil
 	})
-	return utils.DoWithTimeout(f, time.Duration(common.EVENT_ACTOR_TIMEOUT)*time.Second)
+	return async.DoWithTimeout(f, time.Duration(common.EVENT_ACTOR_TIMEOUT)*time.Second)
 }

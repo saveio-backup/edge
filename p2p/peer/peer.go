@@ -11,7 +11,8 @@ import (
 	"github.com/gogo/protobuf/proto"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/saveio/carrier/network"
-	"github.com/saveio/dsp-go-sdk/utils"
+	dspMsg "github.com/saveio/dsp-go-sdk/network/message"
+	uTime "github.com/saveio/dsp-go-sdk/utils/time"
 	"github.com/saveio/edge/common"
 	"github.com/saveio/themis/common/log"
 )
@@ -196,7 +197,7 @@ func (p *Peer) Send(msgId string, msg proto.Message) error {
 		return fmt.Errorf("peer is nil")
 	}
 	if len(msgId) == 0 {
-		msgId = utils.GenIdByTimestamp(rand.New(rand.NewSource(time.Now().UnixNano())))
+		msgId = dspMsg.GenIdByTimestamp(rand.New(rand.NewSource(time.Now().UnixNano())))
 	}
 	ch := make(chan MsgReply, 1)
 	log.Debugf("send msg %s to %s", msgId, p.addr)
@@ -233,7 +234,7 @@ func (p *Peer) SendAndWaitReply(msgId string, msg proto.Message) (proto.Message,
 		return nil, fmt.Errorf("peer is nil")
 	}
 	if len(msgId) == 0 {
-		msgId = utils.GenIdByTimestamp(rand.New(rand.NewSource(time.Now().UnixNano())))
+		msgId = dspMsg.GenIdByTimestamp(rand.New(rand.NewSource(time.Now().UnixNano())))
 	}
 	ch := make(chan MsgReply, 1)
 	log.Debugf("send msg %s and wait for reply to %s", msgId, p.addr)
@@ -269,10 +270,10 @@ func (p *Peer) StreamSend(sessionId, msgId string, msg proto.Message, sendTimeou
 		return fmt.Errorf("peer is nil")
 	}
 	if len(msgId) == 0 {
-		msgId = utils.GenIdByTimestamp(rand.New(rand.NewSource(time.Now().UnixNano())))
+		msgId = dspMsg.GenIdByTimestamp(rand.New(rand.NewSource(time.Now().UnixNano())))
 	}
 	if len(sessionId) == 0 {
-		sessionId = utils.GenIdByTimestamp(rand.New(rand.NewSource(time.Now().UnixNano())))
+		sessionId = dspMsg.GenIdByTimestamp(rand.New(rand.NewSource(time.Now().UnixNano())))
 	}
 	ch := make(chan MsgReply, 1)
 	streamMsg := &MsgWrap{
@@ -312,10 +313,10 @@ func (p *Peer) StreamSendAndWaitReply(sessionId, msgId string, msg proto.Message
 		return nil, fmt.Errorf("peer is nil")
 	}
 	if len(msgId) == 0 {
-		msgId = utils.GenIdByTimestamp(rand.New(rand.NewSource(time.Now().UnixNano())))
+		msgId = dspMsg.GenIdByTimestamp(rand.New(rand.NewSource(time.Now().UnixNano())))
 	}
 	if len(sessionId) == 0 {
-		sessionId = utils.GenIdByTimestamp(rand.New(rand.NewSource(time.Now().UnixNano())))
+		sessionId = dspMsg.GenIdByTimestamp(rand.New(rand.NewSource(time.Now().UnixNano())))
 	}
 	ch := make(chan MsgReply, 1)
 	log.Debugf("send msg %s and wait for reply to %s", msgId, p.addr)
@@ -547,7 +548,7 @@ func (p *Peer) addMsg(msgId string, msg *MsgWrap) error {
 	if _, ok := p.retry[msgId]; ok {
 		return fmt.Errorf("add a duplicated msg %s", msgId)
 	}
-	msg.createdAt = utils.GetMilliSecTimestamp()
+	msg.createdAt = uTime.GetMilliSecTimestamp()
 	p.mq.PushBack(msg)
 	log.Debugf("add msg %v, need reply %t, len %d", msgId, msg.needReply, p.mq.Len())
 	p.retry[msgId] = 0
@@ -576,7 +577,7 @@ func (p *Peer) getMsgToRetry() (*MsgWrap, []*list.Element) {
 			fails = append(fails, e)
 			continue
 		}
-		nowTimestamp := utils.GetMilliSecTimestamp()
+		nowTimestamp := uTime.GetMilliSecTimestamp()
 		// just created, delay it
 		if nowTimestamp < msgWrap.createdAt+(common.ACK_MSG_CHECK_INTERVAL*1000) {
 			log.Debugf("msg %s just send, delay retry it", msgWrap.id)
@@ -742,5 +743,5 @@ func (p *Peer) streamAsyncSendAndWaitAck(msg proto.Message, sessionId, msgId str
 
 func calcTimeout(ratio uint32, timeout time.Duration) uint64 {
 	result := float64(1+float64(ratio)*0.2) * float64(timeout)
-	return utils.GetMilliSecTimestamp() + uint64(time.Duration(result)/time.Second)*1000
+	return uTime.GetMilliSecTimestamp() + uint64(time.Duration(result)/time.Second)*1000
 }

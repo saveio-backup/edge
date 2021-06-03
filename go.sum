@@ -784,6 +784,8 @@ github.com/satori/go.uuid v1.2.0/go.mod h1:dA0hQrYB0VpLJoorglMZABFdXlWrHn1NEOzdh
 github.com/saveio/edge v1.0.250/go.mod h1:MUXnIPiiNPZXlaUK5gD1MT9b6aocS/9hqp0KitStIh8=
 github.com/saveio/max v0.0.0-20210519082655-a93c17773d75 h1:v+0vC+IC1DriIohaJzUJ8PeDYFLK9TvPJX25QLfe64E=
 github.com/saveio/max v0.0.0-20210519082655-a93c17773d75/go.mod h1:rHfsOHYt9fK7mpJ+ZkhCECEQKAApvy3pOtUu95b7ZEY=
+github.com/saveio/max v0.0.0-20210527102235-47792b3dd60f h1:e0GQYkqoXSKW86HytqGWSs8wyEmoV/XER1+lnIoAEsg=
+github.com/saveio/max v0.0.0-20210527102235-47792b3dd60f/go.mod h1:rHfsOHYt9fK7mpJ+ZkhCECEQKAApvy3pOtUu95b7ZEY=
 github.com/saveio/themis v1.0.115-0.20210519080341-422d494ad86e h1:lZTHPWqt6FY6h6I8rhWFGcRq84T8hGWPeT0cZ1c2r68=
 github.com/saveio/themis v1.0.115-0.20210519080341-422d494ad86e/go.mod h1:jYYsWkS3Y7nsQXZCzr+AHcqPRcn20Oim1WytAIalYRg=
 github.com/saveio/themis v1.0.115-0.20210519082201-29f8330c44d9 h1:ScDLg4H6d9SEXgHQilzKHJ0E0q41Z6JxQ4VaDZxsfUw=

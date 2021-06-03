@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/saveio/dsp-go-sdk/utils"
+	uTime "github.com/saveio/dsp-go-sdk/utils/time"
 	"github.com/saveio/edge/cmd"
 	"github.com/saveio/edge/cmd/flags"
 	"github.com/saveio/edge/common"
@@ -132,7 +132,7 @@ func initLog(ctx *cli.Context) {
 	logFullPath := filepath.Join(baseDir, logPath) + extra + "/"
 	_, err := log.FileOpen(logFullPath)
 	if err != nil {
-		extra = strconv.FormatUint(utils.GetMilliSecTimestamp(), 10)
+		extra = strconv.FormatUint(uTime.GetMilliSecTimestamp(), 10)
 	}
 	logFullPath = filepath.Join(baseDir, logPath) + extra + "/"
 	log.InitLog(logLevel, logFullPath, log.Stdout)

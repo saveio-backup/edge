@@ -15,13 +15,15 @@ import (
 	carNet "github.com/saveio/carrier/network"
 	"github.com/saveio/carrier/types/opcode"
 	dspActorClient "github.com/saveio/dsp-go-sdk/actor/client"
-	dspCom "github.com/saveio/dsp-go-sdk/common"
 	dspCfg "github.com/saveio/dsp-go-sdk/config"
 	"github.com/saveio/dsp-go-sdk/dsp"
 	dspSdk "github.com/saveio/dsp-go-sdk/dsp"
 	dspNetCom "github.com/saveio/dsp-go-sdk/network/common"
 	"github.com/saveio/dsp-go-sdk/network/message/pb"
-	"github.com/saveio/dsp-go-sdk/utils"
+	"github.com/saveio/dsp-go-sdk/utils/async"
+	"github.com/saveio/dsp-go-sdk/utils/crypto"
+	dspOS "github.com/saveio/dsp-go-sdk/utils/os"
+	uTime "github.com/saveio/dsp-go-sdk/utils/time"
 	"github.com/saveio/edge/common"
 	"github.com/saveio/edge/common/config"
 	"github.com/saveio/edge/dsp/cache"
@@ -118,7 +120,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		DBPath:               config.DspDBPath(),
 		FsRepoRoot:           config.FsRepoRootPath(),
 		FsFileRoot:           config.FsFileRootPath(),
-		FsType:               dspCfg.FSType(config.Parameters.FsConfig.FsType),
+		FsType:               int(config.Parameters.FsConfig.FsType),
 		FsGcPeriod:           config.Parameters.FsConfig.FsGCPeriod,
 		FsMaxStorage:         config.Parameters.FsConfig.FsMaxStorage,
 		EnableBackup:         config.Parameters.FsConfig.EnableBackup,
@@ -148,7 +150,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 	log.Debugf("dspConfig.dbPath %v, repo: %s, channelDB: %s, wallet: %s, enable backup: %t",
 		dspConfig.DBPath, dspConfig.FsRepoRoot, dspConfig.ChannelDBPath, config.WalletDatFilePath(),
 		config.Parameters.FsConfig.EnableBackup)
-	if err := dspCom.CreateDirIfNeed(config.ClientSqliteDBPath()); err != nil {
+	if err := dspOS.CreateDirIfNeed(config.ClientSqliteDBPath()); err != nil {
 		return err
 	}
 	// Skip init fs if Dsp doesn't start listen
@@ -310,7 +312,7 @@ func (this *Endpoint) startDspService(listenHost string) error {
 }
 
 func (this *Endpoint) startDspP2P(hostAddr *common.HostAddr, acc *account.Account) error {
-	networkKey := utils.NewNetworkKeyPairWithAccount(acc)
+	networkKey := crypto.NewNetworkKeyPairWithAccount(acc)
 
 	codes := make(map[opcode.Opcode]proto.Message)
 	codes[dspNetCom.MSG_OP_CODE] = &pb.Message{}
@@ -318,7 +320,7 @@ func (this *Endpoint) startDspP2P(hostAddr *common.HostAddr, acc *account.Accoun
 		network.WithKeys(networkKey),
 		network.WithMsgHandler(this.getDsp().Receive),
 		network.WithNetworkId(config.Parameters.BaseConfig.NetworkId),
-		network.WithWalletAddrFromPeerId(utils.AddressFromPubkeyHex),
+		network.WithWalletAddrFromPeerId(crypto.AddressFromPubkeyHex),
 		network.WithOpcodes(codes),
 	}
 	if len(config.Parameters.BaseConfig.IntranetIP) > 0 {
@@ -328,10 +330,10 @@ func (this *Endpoint) startDspP2P(hostAddr *common.HostAddr, acc *account.Accoun
 		opts = append(opts, network.WithProxyAddrs(strings.Split(config.Parameters.BaseConfig.NATProxyServerAddrs, ",")))
 	}
 	dspNetwork := network.NewP2P(opts...)
-	f := utils.TimeoutFunc(func() error {
+	f := async.TimeoutFunc(func() error {
 		return dspNetwork.Start(hostAddr.Protocol, hostAddr.Address, hostAddr.Port)
 	})
-	err := utils.DoWithTimeout(f, time.Duration(common.START_P2P_TIMEOUT)*time.Second)
+	err := async.DoWithTimeout(f, time.Duration(common.START_P2P_TIMEOUT)*time.Second)
 	if err != nil {
 		return err
 	}
@@ -342,12 +344,12 @@ func (this *Endpoint) startDspP2P(hostAddr *common.HostAddr, acc *account.Accoun
 }
 
 func (this *Endpoint) startChannelP2P(hostAddr *common.HostAddr, acc *account.Account) error {
-	networkKey := utils.NewNetworkKeyPairWithAccount(acc)
+	networkKey := crypto.NewNetworkKeyPairWithAccount(acc)
 	opts := []network.NetworkOption{
 		network.WithKeys(networkKey),
 		network.WithAsyncRecvMsgDisabled(true),
 		network.WithNetworkId(config.Parameters.BaseConfig.NetworkId),
-		network.WithWalletAddrFromPeerId(utils.AddressFromPubkeyHex),
+		network.WithWalletAddrFromPeerId(crypto.AddressFromPubkeyHex),
 		network.WithOpcodes(msg_opcode.OpCodes),
 	}
 	dsp := this.getDsp()
@@ -359,10 +361,10 @@ func (this *Endpoint) startChannelP2P(hostAddr *common.HostAddr, acc *account.Ac
 		opts = append(opts, network.WithIntranetIP(config.Parameters.BaseConfig.IntranetIP))
 	}
 	channelNetwork := network.NewP2P(opts...)
-	f := utils.TimeoutFunc(func() error {
+	f := async.TimeoutFunc(func() error {
 		return channelNetwork.Start(hostAddr.Protocol, hostAddr.Address, hostAddr.Port)
 	})
-	err := utils.DoWithTimeout(f, time.Duration(common.START_P2P_TIMEOUT)*time.Second)
+	err := async.DoWithTimeout(f, time.Duration(common.START_P2P_TIMEOUT)*time.Second)
 	if err != nil {
 		return err
 	}
@@ -381,9 +383,9 @@ func (this *Endpoint) startTrackerP2P(hostAddr *common.HostAddr, acc *account.Ac
 		return err
 	}
 	opts := []tk_net.NetworkOption{
-		tk_net.WithKeys(utils.NewNetworkKeyPairWithAccount(acc)),
+		tk_net.WithKeys(crypto.NewNetworkKeyPairWithAccount(acc)),
 		tk_net.WithPid(tkActServer.GetLocalPID()),
-		tk_net.WithWalletAddrFromPeerId(utils.AddressFromPubkeyHex),
+		tk_net.WithWalletAddrFromPeerId(crypto.AddressFromPubkeyHex),
 		tk_net.WithNetworkId(config.Parameters.BaseConfig.TrackerNetworkId),
 		tk_net.WithOpcodes(tk_net.TrackerOpCodes),
 	}
@@ -392,7 +394,7 @@ func (this *Endpoint) startTrackerP2P(hostAddr *common.HostAddr, acc *account.Ac
 	tkActServer.SetNetwork(tkNet)
 	tkActClient.SetTrackerServerPid(tkActServer.GetLocalPID())
 	this.p2pActor.SetTrackerNet(tkActServer)
-	f := utils.TimeoutFunc(func() error {
+	f := async.TimeoutFunc(func() error {
 		err := tkNet.Start(hostAddr.Protocol, hostAddr.Address, hostAddr.Port)
 		if err != nil {
 			return err
@@ -400,7 +402,7 @@ func (this *Endpoint) startTrackerP2P(hostAddr *common.HostAddr, acc *account.Ac
 		log.Debugf("tk network started, public ip %s", tkNet.PublicAddr())
 		return nil
 	})
-	return utils.DoWithTimeout(f, time.Duration(common.START_P2P_TIMEOUT)*time.Second)
+	return async.DoWithTimeout(f, time.Duration(common.START_P2P_TIMEOUT)*time.Second)
 }
 
 func (this *Endpoint) updateStorageNodeHost() {
@@ -412,7 +414,7 @@ func (this *Endpoint) updateStorageNodeHost() {
 	if err != nil || nodeInfo == nil {
 		return
 	}
-	publicAddr := dspActorClient.P2pGetPublicAddr()
+	publicAddr := dspActorClient.P2PGetPublicAddr()
 	log.Debugf("update node info %s %s", string(nodeInfo.NodeAddr), publicAddr)
 	if string(nodeInfo.NodeAddr) == publicAddr {
 		log.Debugf("no need to update")
@@ -427,12 +429,10 @@ func (this *Endpoint) updateStorageNodeHost() {
 
 func (this *Endpoint) startShareService() {
 	// TODO: price needed to be discuss
-	this.getDsp().SetUnitPriceForAllFile(dspCom.ASSET_USDT, common.DSP_DOWNLOAD_UNIT_PRICE)
 	_, files, err := this.getDsp().AllDownloadFiles()
 	if err == nil {
 		this.getDsp().PushFilesToTrackers(files)
 	}
-	this.getDsp().StartShareServices()
 }
 
 // SetupDNSNodeBackground. setup a dns node background when received first payments.
@@ -455,11 +455,11 @@ func (this *Endpoint) setupDNSNodeBackground() {
 		}
 
 		if len(allChannels) > 0 {
-			err := this.getDsp().SetupDNSChannels()
-			if err != nil {
-				log.Errorf("SetupDNSChannels err %s", err)
-				return false
-			}
+			// err := this.getDsp().SetupDNSChannels()
+			// if err != nil {
+			// 	log.Errorf("SetupDNSChannels err %s", err)
+			// 	return false
+			// }
 			return true
 		}
 		address, err := chainCom.AddressFromBase58(this.getDsp().WalletAddress())
@@ -476,11 +476,11 @@ func (this *Endpoint) setupDNSNodeBackground() {
 			log.Errorf("setup dns failed balance not enough %d", bal)
 			return false
 		}
-		err = this.getDsp().SetupDNSChannels()
-		if err != nil {
-			log.Errorf("setup dns channel err %s", err)
-			return false
-		}
+		// err = this.getDsp().SetupDNSChannels()
+		// if err != nil {
+		// 	log.Errorf("setup dns channel err %s", err)
+		// 	return false
+		// }
 		return true
 	}
 	if setup() {
@@ -548,7 +548,7 @@ func (this *Endpoint) initLog() {
 	logFullPath := filepath.Join(baseDir, logPath) + extra + "/"
 	_, err := log.FileOpen(logFullPath)
 	if err != nil {
-		extra = strconv.FormatUint(utils.GetMilliSecTimestamp(), 10)
+		extra = strconv.FormatUint(uTime.GetMilliSecTimestamp(), 10)
 	}
 	logFullPath = filepath.Join(baseDir, logPath) + extra + "/"
 	log.Debugf("log new path %s", logFullPath)

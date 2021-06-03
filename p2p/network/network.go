@@ -20,7 +20,7 @@ import (
 	"github.com/saveio/carrier/network/components/keepalive/proxyKeepalive"
 	"github.com/saveio/carrier/network/components/proxy"
 	"github.com/saveio/carrier/types/opcode"
-	dspCom "github.com/saveio/dsp-go-sdk/common"
+	dspConsts "github.com/saveio/dsp-go-sdk/consts"
 	dspNetCom "github.com/saveio/dsp-go-sdk/network/common"
 	dspMsg "github.com/saveio/dsp-go-sdk/network/message/pb"
 	"github.com/saveio/edge/common"
@@ -114,7 +114,7 @@ func (this *Network) GetPID() *actor.PID {
 func (this *Network) Start(protocol, addr, port string) error {
 	builderOpt := []network.BuilderOption{
 		network.WriteFlushLatency(1 * time.Millisecond),
-		network.WriteTimeout(dspCom.NETWORK_STREAM_WRITE_TIMEOUT),
+		network.WriteTimeout(dspConsts.NETWORK_STREAM_WRITE_TIMEOUT),
 		// network.WriteBufferSize(common.MAX_WRITE_BUFFER_SIZE),
 	}
 	builder := network.NewBuilderWithOptions(builderOpt...)
@@ -600,6 +600,7 @@ func (this *Network) Broadcast(addrs []string, msg proto.Message, sessionId, msg
 	dispatch := make(chan *broadcastReq, 0)
 	done := make(chan *broadcastResp, 0)
 	stop := int32(0)
+	defer close(dispatch)
 	for i := 0; i < maxRoutines; i++ {
 		go func() {
 			for {

@@ -99,6 +99,8 @@ const (
 	DSP_GET_FILE_TRANSFERLIST    = "/api/v1/dsp/file/transferlist/:type/:offset/:limit/:createdAt/:createdAtEnd/:updatedAt/:updatedAtEnd"
 	DSP_DELETE_TRANSFER_RECORD   = "/api/v1/dsp/file/transferlist/delete"
 	DSP_GET_FILE_TRANSFER_DETAIL = "/api/v1/dsp/file/transfer/detail/:type/:id"
+	DSP_GET_FILE_PROGRESS        = "/api/v1/dsp/file/transfer/progress"
+	DSP_GET_TASK_INFO            = "/api/v1/dsp/file/transfer/task"
 	DSP_FILE_UPLOAD              = "/api/v1/dsp/file/upload"
 	DSP_FILE_UPLOAD_PAUSE        = "/api/v1/dsp/file/upload/pause"
 	DSP_FILE_UPLOAD_RESUME       = "/api/v1/dsp/file/upload/resume"
@@ -209,12 +211,6 @@ func (this *restServer) Start() error {
 	this.server = &http.Server{Handler: this.router}
 	err := this.server.Serve(this.listener)
 
-	// r.HandleFunc("/debug/pprof/", pprof.Index)
-	// r.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
-	// r.HandleFunc("/debug/pprof/profile", pprof.Profile)
-	// r.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
-	// r.HandleFunc("/debug/pprof/trace", pprof.Trace)
-
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err.Error())
 		return err
@@ -269,15 +265,16 @@ func (this *restServer) registryMethod() {
 		DSP_GET_DOWNLOAD_FILELIST:    {name: "getdownloadfilelist", handler: GetDownloadFiles},
 		DSP_GET_FILE_TRANSFERLIST:    {name: "gettransferlist", handler: GetTransferList},
 		DSP_GET_FILE_TRANSFER_DETAIL: {name: "gettransferdetail", handler: GetTransferDetail},
-		DSP_FILE_UPLOAD_FEE:          {name: "uploadfilefee", handler: CalculateUploadFee},
-		DSP_FILE_DOWNLOAD_INFO:       {name: "getdownloadinfo", handler: GetDownloadFileInfo},
-		DSP_FILE_SHARE_INCOME:        {name: "getfileshareincome", handler: GetFileShareIncome},
-		DSP_FILE_SHARE_REVENUE:       {name: "getfilesharerevenue", handler: GetFileShareRevenue},
-		DSP_GET_FILE_WHITELIST:       {name: "getwhitelist", handler: GetFileWhiteList},
-		DSP_FILE_UPLOAD_INFO:         {name: "getuploadfileinfo", handler: GetUploadFileInfo},
-		DSP_FILE_PROVE_DETAIL:        {name: "getuploadfileprovedetail", handler: GetUploadFileProveDetail},
-		DSP_FILE_PEER_COUNT:          {name: "getfilepeercount", handler: GetPeerCountOfHash},
-		DSP_FILES_DELETE_FEE:         {name: "deletefilesfee", handler: CalculateDeleteFilesFee},
+
+		DSP_FILE_UPLOAD_FEE:    {name: "uploadfilefee", handler: CalculateUploadFee},
+		DSP_FILE_DOWNLOAD_INFO: {name: "getdownloadinfo", handler: GetDownloadFileInfo},
+		DSP_FILE_SHARE_INCOME:  {name: "getfileshareincome", handler: GetFileShareIncome},
+		DSP_FILE_SHARE_REVENUE: {name: "getfilesharerevenue", handler: GetFileShareRevenue},
+		DSP_GET_FILE_WHITELIST: {name: "getwhitelist", handler: GetFileWhiteList},
+		DSP_FILE_UPLOAD_INFO:   {name: "getuploadfileinfo", handler: GetUploadFileInfo},
+		DSP_FILE_PROVE_DETAIL:  {name: "getuploadfileprovedetail", handler: GetUploadFileProveDetail},
+		DSP_FILE_PEER_COUNT:    {name: "getfilepeercount", handler: GetPeerCountOfHash},
+		DSP_FILES_DELETE_FEE:   {name: "deletefilesfee", handler: CalculateDeleteFilesFee},
 
 		GET_CHANNEL_INIT_PROGRESS: {name: "channelinitprogress", handler: GetChannelInitProgress},
 		GET_ALL_CHANNEL:           {name: "getallchannels", handler: GetAllChannels},
@@ -366,6 +363,9 @@ func (this *restServer) registryMethod() {
 		DNS_UPDATE_URL:     {name: "updatefileurllink", handler: UpdateFileUrlLink},
 		DNS_DELETE_URL:     {name: "deletefileurl", handler: DeleteUrl},
 		DNS_REG_HEADER_URL: {name: "registerheader", handler: RegisterHeader},
+
+		DSP_GET_FILE_PROGRESS: {name: "getprogressbyid", handler: GetProgressById},
+		DSP_GET_TASK_INFO:     {name: "gettaskinfobyid", handler: GetTaskInfoById},
 	}
 	this.postMap = postMethodMap
 }

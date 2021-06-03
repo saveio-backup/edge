@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	dspActorClient "github.com/saveio/dsp-go-sdk/actor/client"
-	dUtils "github.com/saveio/dsp-go-sdk/utils"
+	dspLink "github.com/saveio/dsp-go-sdk/types/link"
 	"github.com/saveio/edge/dsp"
 	"github.com/saveio/edge/utils"
 	"github.com/saveio/themis/common/log"
@@ -16,7 +16,7 @@ func RegisterNode(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	addr, ok := cmd["NodeAddr"].(string)
 	if !ok || len(addr) == 0 {
-		addr = dspActorClient.P2pGetPublicAddr()
+		addr = dspActorClient.P2PGetPublicAddr()
 	}
 	log.Debugf("register node addr %s", addr)
 	volumeStr, ok := cmd["Volume"].(string)
@@ -269,7 +269,7 @@ func UpdatePluginVersion(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
-	changeLog := dUtils.ChangeLog{
+	changeLog := dspLink.ChangeLog{
 		ZH: changeLogCN,
 		EN: changeLogEN,
 	}

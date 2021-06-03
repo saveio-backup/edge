@@ -931,6 +931,40 @@ func GetTransferDetail(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
+func GetProgressById(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	id, ok := cmd["Id"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+
+	log.Debugf("get progress by id %s", id)
+	progress, dspErr := dsp.DspService.GetProgressById(id)
+
+	if dspErr != nil {
+		return ResponsePackWithErrMsg(dspErr.Code, dspErr.Error.Error())
+	}
+	resp["Result"] = progress
+	return resp
+}
+
+func GetTaskInfoById(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	id, ok := cmd["Id"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+
+	log.Debugf("get taskInfo by id %s", id)
+	progress, dspErr := dsp.DspService.GetTaskInfoById(id)
+
+	if dspErr != nil {
+		return ResponsePackWithErrMsg(dspErr.Code, dspErr.Error.Error())
+	}
+	resp["Result"] = progress
+	return resp
+}
+
 func GetUploadFileProveDetail(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	hash, ok := cmd["FileHash"].(string)

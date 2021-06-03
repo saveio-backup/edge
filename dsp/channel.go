@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	dspCom "github.com/saveio/dsp-go-sdk/common"
+	dspConsts "github.com/saveio/dsp-go-sdk/consts"
 	"github.com/saveio/edge/common"
 	chanCom "github.com/saveio/pylons/common"
 	pylons_transfer "github.com/saveio/pylons/transfer"
@@ -166,16 +166,16 @@ func (this *Endpoint) GetAllChannels() (*ChannelInfosResp, *DspErr) {
 			newCh.IsParticipant1Closer = chInfo.Participant1.IsCloser
 			newCh.IsParticipant2Closer = chInfo.Participant2.IsCloser
 		}
-		infoFromDB, _ := dsp.GetChannelInfoFromDB(ch.Address)
+		infoFromDB, _ := dsp.Channel.GetChannelInfoFromDB(ch.Address)
 		if infoFromDB != nil {
-			newCh.CreatedAt = infoFromDB.CreatedAt / dspCom.MILLISECOND_PER_SECOND
+			newCh.CreatedAt = infoFromDB.CreatedAt / dspConsts.MILLISECOND_PER_SECOND
 			newCh.IsDNS = infoFromDB.IsDNS
 		} else {
-			dsp.AddChannelInfo(uint64(ch.ChannelId), ch.Address)
+			dsp.Channel.AddChannelInfo(uint64(ch.ChannelId), ch.Address)
 			address, _ := chainCom.AddressFromBase58(ch.Address)
 			info, _ := dsp.GetDnsNodeByAddr(address)
 			if info != nil {
-				dsp.SetChannelIsDNS(ch.Address, true)
+				dsp.Channel.SetChannelIsDNS(ch.Address, true)
 				newCh.IsDNS = true
 			}
 			newCh.CreatedAt = uint64(time.Now().Unix())
@@ -317,7 +317,7 @@ func (this *Endpoint) OpenPaymentChannel(partnerAddr string, amount uint64) (cha
 	}
 	hostAddr, _ := dsp.GetExternalIP(partnerAddr)
 	dsp.UpdateDNS(partnerAddr, hostAddr, false)
-	dsp.SetChannelIsDNS(partnerAddr, true)
+	dsp.Channel.SetChannelIsDNS(partnerAddr, true)
 	return id, nil
 }
 
@@ -327,6 +327,7 @@ func (this *Endpoint) OpenToAllDNSChannel(amount uint64) *DspErr {
 		return &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
 	onlineDNS := dsp.GetAllOnlineDNS()
+	log.Debugf("open to all online dns %v", onlineDNS)
 	for walletAddr, _ := range onlineDNS {
 		_, err := this.OpenPaymentChannel(walletAddr, amount)
 		if err != nil {
@@ -353,7 +354,7 @@ func (this *Endpoint) CloseAllChannel() *DspErr {
 		return &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
 	for _, ch := range channels.Channels {
-		err := dsp.ChannelClose(ch.Address)
+		err := dsp.CloseChannel(ch.Address)
 		log.Debugf("closing channel of %s", ch.Address)
 		if err != nil {
 			return &DspErr{Code: DSP_CHANNEL_CLOSE_FAILED, Error: err}
@@ -385,7 +386,7 @@ func (this *Endpoint) ClosePaymentChannel(partnerAddr string) *DspErr {
 		return &DspErr{Code: DSP_EXIST_ACTIVE_DOWNLOAD_TASK, Error: ErrMaps[DSP_EXIST_ACTIVE_DOWNLOAD_TASK]}
 	}
 	closeCurDNS := dsp.CurrentDNSWallet() == partnerAddr
-	if err := dsp.ChannelClose(partnerAddr); err != nil {
+	if err := dsp.CloseChannel(partnerAddr); err != nil {
 		return &DspErr{Code: DSP_CHANNEL_CLOSE_FAILED, Error: err}
 	}
 	if !closeCurDNS {
@@ -443,7 +444,7 @@ func (this *Endpoint) MediaTransfer(paymentId int32, amount uint64, to string) *
 		return &DspErr{Code: NO_DNS, Error: ErrMaps[NO_DNS]}
 	}
 	err := dsp.WaitForConnected(dsp.CurrentDNSWallet(),
-		time.Duration(dspCom.WAIT_CHANNEL_CONNECT_TIMEOUT)*time.Second)
+		time.Duration(dspConsts.WAIT_CHANNEL_CONNECT_TIMEOUT)*time.Second)
 	if err != nil {
 		log.Errorf("wait channel connected err %s %s", to, err)
 		return &DspErr{Code: DSP_CHANNEL_INTERNAL_ERROR, Error: err}
