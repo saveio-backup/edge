@@ -429,10 +429,16 @@ func (this *restServer) getPath(url string) string {
 	} else if strings.Contains(url, strings.TrimSuffix(DSP_GET_UPLOAD_FILELIST,
 		":type/:offset/:limit/:filter/:createdAt/:createdAtEnd/:updatedAt/:updatedAtEnd")) {
 		return DSP_GET_UPLOAD_FILELIST
+	} else if strings.Contains(url, strings.TrimSuffix(DSP_GET_UPLOAD_FILELIST,
+		":type/:offset/:limit/:filter")) {
+		return DSP_GET_UPLOAD_FILELIST
 	} else if strings.Contains(url, strings.TrimSuffix(DSP_GET_DOWNLOAD_FILELIST, ":type/:offset/:limit")) {
 		return DSP_GET_DOWNLOAD_FILELIST
 	} else if strings.Contains(url,
 		strings.TrimSuffix(DSP_GET_FILE_TRANSFERLIST, ":type/:offset/:limit/:createdAt/:createdAtEnd/:updatedAt/:updatedAtEnd")) {
+		return DSP_GET_FILE_TRANSFERLIST
+	} else if strings.Contains(url,
+		strings.TrimSuffix(DSP_GET_FILE_TRANSFERLIST, ":type/:offset/:limit")) {
 		return DSP_GET_FILE_TRANSFERLIST
 	} else if strings.Contains(url, strings.TrimSuffix(DSP_FILE_UPLOAD_FEE, ":file")) {
 		return DSP_FILE_UPLOAD_FEE
