@@ -599,8 +599,9 @@ func (this *Network) Broadcast(addrs []string, msg proto.Message, sessionId, msg
 	}
 	dispatch := make(chan *broadcastReq, 0)
 	done := make(chan *broadcastResp, 0)
+	exitCh := make(chan bool)
 	stop := int32(0)
-	defer close(dispatch)
+	defer close(exitCh)
 	for i := 0; i < maxRoutines; i++ {
 		go func() {
 			for {
@@ -663,12 +664,18 @@ func (this *Network) Broadcast(addrs []string, msg proto.Message, sessionId, msg
 		}()
 	}
 	go func() {
+		defer close(dispatch)
 		for _, addr := range addrs {
-			dispatch <- &broadcastReq{
-				addr: addr,
-			}
-			if atomic.LoadInt32(&stop) > 0 {
+			select {
+			case <-exitCh:
 				return
+			default:
+				if atomic.LoadInt32(&stop) > 0 {
+					return
+				}
+				dispatch <- &broadcastReq{
+					addr: addr,
+				}
 			}
 		}
 	}()
