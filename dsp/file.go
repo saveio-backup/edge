@@ -285,7 +285,7 @@ func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, proveLe
 		return nil, &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
 	}
 	if bal == 0 {
-		return nil, &DspErr{Code: INSUFFICIENT_BALANCE, Error: err}
+		return nil, &DspErr{Code: INSUFFICIENT_BALANCE, Error: ErrMaps[INSUFFICIENT_BALANCE]}
 	}
 
 	proveLevel, _ := proveLevelVal.(float64)
