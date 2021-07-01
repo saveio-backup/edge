@@ -106,8 +106,8 @@ func (this *Endpoint) GetBlockByHash(hash, raw string) (interface{}, *DspErr) {
 		return nil, &DspErr{Code: CHAIN_UNKNOWN_BLOCK, Error: ErrMaps[CHAIN_UNKNOWN_BLOCK]}
 	}
 	if getTxBytes {
-		w := bytes.NewBuffer(nil)
-		block.Serialize(w)
+		w := common.ZeroCopySink{}
+		block.Serialization(&w)
 		return common.ToHexString(w.Bytes()), nil
 	}
 	return bCom.GetBlockInfo(block), nil
@@ -158,8 +158,8 @@ func (this *Endpoint) GetBlockByHeight(height uint32, raw string) (interface{}, 
 		return nil, &DspErr{Code: CHAIN_UNKNOWN_BLOCK, Error: ErrMaps[CHAIN_UNKNOWN_BLOCK]}
 	}
 	if getTxBytes {
-		w := bytes.NewBuffer(nil)
-		block.Serialize(w)
+		w := common.ZeroCopySink{}
+		block.Serialization(&w)
 		return common.ToHexString(w.Bytes()), nil
 	} else {
 		return bCom.GetBlockInfo(block), nil
@@ -180,8 +180,8 @@ func (this *Endpoint) GetTransactionByHash(hash, raw string) (interface{}, *DspE
 		return nil, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
 	if raw == "1" {
-		w := bytes.NewBuffer(nil)
-		tx.Serialize(w)
+		w := common.ZeroCopySink{}
+		tx.Serialization(&w)
 		return common.ToHexString(w.Bytes()), nil
 	}
 	tran := bCom.TransArryByteToHexString(tx)

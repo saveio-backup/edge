@@ -2,6 +2,7 @@ package rest
 
 import (
 	"encoding/hex"
+	"os"
 	"strconv"
 	"strings"
 
@@ -594,6 +595,8 @@ func SetUserSpace(cmd map[string]interface{}) map[string]interface{} {
 	if checkErr := dsp.DspService.CheckPassword(password); checkErr != nil {
 		return ResponsePackWithErrMsg(checkErr.Code, checkErr.Error.Error())
 	}
+	log.Debugf("size %v, size %v, second %v, second %v", uint64(size), uint64(sizeOp), uint64(second), uint64(secondOp))
+	os.Exit(1)
 	tx, err := dsp.DspService.SetUserSpace(addr, uint64(size), uint64(sizeOp), uint64(second), uint64(secondOp))
 	if err != nil {
 		log.Errorf("add user space err %s", err)

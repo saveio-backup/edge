@@ -553,7 +553,7 @@ func (this *Endpoint) initLog() {
 	logFullPath = filepath.Join(baseDir, logPath) + extra + "/"
 	log.Debugf("log new path %s", logFullPath)
 	log.InitLog(int(config.Parameters.BaseConfig.LogLevel), logFullPath, log.Stdout)
-	log.SetProcName("saveio")
+	// log.SetProcName("saveio")
 	go edgeUtils.CleanOldestLogs(logFullPath, config.Parameters.BaseConfig.LogMaxSize)
 }
 

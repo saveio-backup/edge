@@ -136,7 +136,7 @@ func initLog(ctx *cli.Context) {
 	}
 	logFullPath = filepath.Join(baseDir, logPath) + extra + "/"
 	log.InitLog(logLevel, logFullPath, log.Stdout)
-	log.SetProcName("saveio")
+	// log.SetProcName("saveio")
 	log.Infof("start logging at %s", logFullPath)
 	go edgeUtils.CleanOldestLogs(logFullPath, config.Parameters.BaseConfig.LogMaxSize)
 }
