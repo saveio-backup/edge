@@ -220,7 +220,7 @@ func (this *Endpoint) CurrentPaymentChannel() (*ChannelInfo, *DspErr) {
 	}
 
 	curChannel, err := dsp.GetChannelInfo(dsp.CurrentDNSWallet())
-	if err != nil {
+	if err != nil || curChannel == nil {
 		return nil, &DspErr{Code: DSP_CHANNEL_GET_ALL_FAILED, Error: ErrMaps[DSP_CHANNEL_GET_ALL_FAILED]}
 	}
 
