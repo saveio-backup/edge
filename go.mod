@@ -7,8 +7,8 @@ replace (
 	github.com/saveio/dsp-go-sdk => ../dsp-go-sdk
 	github.com/saveio/pylons => ../pylons
 	github.com/saveio/scan => ../scan
-	github.com/saveio/themis-go-sdk => ../themis-go-sdk
 	github.com/saveio/themis => ../themis
+	github.com/saveio/themis-go-sdk => ../themis-go-sdk
 )
 
 require (
@@ -21,9 +21,9 @@ require (
 	github.com/saveio/dsp-go-sdk v0.0.0-20210527074313-4b3d6afed755
 	github.com/saveio/max v0.0.0-20210624072549-139def04befb
 	github.com/saveio/pylons v0.0.0-20210519083005-78a1ef20d8a0
-	github.com/saveio/scan v1.0.71-0.20210519081147-e9c67b4caba0
-	github.com/saveio/themis v1.0.115-0.20210519082201-29f8330c44d9
-	github.com/saveio/themis-go-sdk v0.0.0-20210519082257-3f5361282350
+	github.com/saveio/scan v0.0.0-00010101000000-000000000000
+	github.com/saveio/themis v1.0.121
+	github.com/saveio/themis-go-sdk v0.0.0-20210702081903-52a40e927ed8
 	github.com/tjfoc/gmtls v1.2.1 // indirect
 	github.com/urfave/cli v1.22.5
 )
