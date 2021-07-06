@@ -375,12 +375,7 @@ func (this *Endpoint) Logout() *DspErr {
 	if syncing || (dsp != nil && dsp.HasChannelInstance() && dsp.ChannelFirstSyncing()) {
 		return &DspErr{Code: DSP_CHANNEL_SYNCING, Error: ErrMaps[DSP_CHANNEL_SYNCING]}
 	}
-	if isExists {
-		err := os.Remove(config.WalletDatFilePath())
-		if err != nil {
-			return &DspErr{Code: INTERNAL_ERROR, Error: err}
-		}
-	}
+
 	// TODO: justify whether account exists
 	err := this.Stop()
 	if err != nil {
@@ -390,6 +385,13 @@ func (this *Endpoint) Logout() *DspErr {
 	this.notifyAccountLogout()
 	log.Debugf("notify user logout")
 	DspService = &Endpoint{}
+
+	if isExists {
+		err := os.Remove(config.WalletDatFilePath())
+		if err != nil {
+			return &DspErr{Code: INTERNAL_ERROR, Error: err}
+		}
+	}
 	return nil
 }
 
