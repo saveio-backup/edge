@@ -74,6 +74,7 @@ const (
 	ACCOUNT_PASSWORD_CHECK         = "/api/v1/account/password/check"
 
 	ASSET_TRANSFER_DIRECT         = "/api/v1/asset/transfer/direct"
+	BATCH_ASSET_TRANSFER_DIRECT   = "/api/v1/asset/batchtransfer/direct"
 	INVOKE_SMARTCONTRACT          = "/api/v1/smartcontract/invoke"
 	PREEXEC_SMARTCONTRACT         = "/api/v1/smartcontract/preexec"
 	PREEXEC_SMARTCONTRACT_TO_JSON = "/api/v1/smartcontract/preexec/json"
@@ -313,6 +314,7 @@ func (this *restServer) registryMethod() {
 
 	postMethodMap := map[string]Action{
 		ASSET_TRANSFER_DIRECT:         {name: "assettransferdirect", handler: AssetTransferDirect},
+		BATCH_ASSET_TRANSFER_DIRECT:   {name: "batchassettransferdirect", handler: BatchAssetTransferDirect},
 		INVOKE_SMARTCONTRACT:          {name: "invokesmartcontract", handler: InvokeSmartContract},
 		PREEXEC_SMARTCONTRACT:         {name: "preexecsmartcontract", handler: PreExecSmartContract},
 		PREEXEC_SMARTCONTRACT_TO_JSON: {name: "preexecsmartcontracttojson", handler: PreExecSmartContractToJSON},

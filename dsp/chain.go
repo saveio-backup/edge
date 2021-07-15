@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	sdkCom "github.com/saveio/themis-go-sdk/common"
@@ -882,6 +883,60 @@ func (this *Endpoint) AssetTransferDirect(to, asset, amountStr string) (string, 
 		return tx, nil
 	}
 	return "", &DspErr{Code: CHAIN_UNKNOWN_ASSET, Error: ErrMaps[CHAIN_UNKNOWN_ASSET]}
+}
+
+//asset transfer direct
+func (this *Endpoint) BatchAssetTransferDirect(to, asset, amountStr string, times int) ([]string, *DspErr) {
+	acc, derr := this.GetAccount(config.WalletDatFilePath(), this.getDspPassword())
+	if derr != nil {
+		return nil, derr
+	}
+	if strings.ToLower(asset) == "save" {
+		asset = "usdt"
+	}
+	var amount float64
+	temp, err := strconv.ParseFloat(amountStr, 64)
+	if err != nil {
+		return nil, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
+	}
+	amount = temp
+	realAmount := uint64(amount * 1000000000)
+	log.Debugf("transfer amount :%v", realAmount)
+	dsp := this.getDsp()
+	if dsp == nil {
+		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+	allTxs := make([]string, 0)
+	if asset == "usdt" {
+		toAddr, err := common.AddressFromBase58(to)
+		if err != nil {
+			return nil, &DspErr{Code: INVALID_WALLET_ADDRESS, Error: err}
+		}
+		balance, err := dsp.BalanceOf(acc.Address)
+		if err != nil {
+			return nil, &DspErr{Code: CHAIN_TRANSFER_ERROR, Error: err}
+		}
+		if balance < realAmount*uint64(times)+chainCfg.DEFAULT_GAS_PRICE*chainCfg.DEFAULT_GAS_LIMIT {
+			return nil, &DspErr{Code: INSUFFICIENT_BALANCE, Error: ErrMaps[INSUFFICIENT_BALANCE]}
+		}
+		wg := new(sync.WaitGroup)
+		for i := 0; i < times; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				tx, err := dsp.Transfer(chainCfg.DEFAULT_GAS_PRICE, chainCfg.DEFAULT_GAS_LIMIT, acc, toAddr, realAmount)
+				if err != nil {
+					log.Errorf("transfer err %s", err)
+					return
+				}
+				allTxs = append(allTxs, tx)
+			}()
+		}
+		wg.Wait()
+
+		return allTxs, nil
+	}
+	return nil, &DspErr{Code: CHAIN_UNKNOWN_ASSET, Error: ErrMaps[CHAIN_UNKNOWN_ASSET]}
 }
 
 func (this *Endpoint) SwitchChain(chainId, configFileName string) *DspErr {
