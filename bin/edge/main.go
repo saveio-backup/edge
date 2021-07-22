@@ -44,6 +44,7 @@ func initAPP() *cli.App {
 		cmd.SectorCommand,
 		cmd.DnsCommand,
 		cmd.ChannelCommand,
+		cmd.PlotCommand,
 		cmd.VersionCommand,
 	}
 	app.Flags = []cli.Flag{

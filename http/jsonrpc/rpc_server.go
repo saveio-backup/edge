@@ -115,6 +115,8 @@ func StartRPCServer() error {
 	rpc.HandleFunc("getsectorinfo", rpc.GetSectorInfo)
 	rpc.HandleFunc("getsectorinfosfornode", rpc.GetSectorInfosForNode)
 
+	rpc.HandleFunc("generateplotfile", rpc.GeneratePlotFile)
+
 	err := http.ListenAndServe(":"+strconv.Itoa(int(config.Parameters.BaseConfig.PortBase+uint32(config.Parameters.BaseConfig.JsonRpcPortOffset))), nil)
 	if err != nil {
 		return fmt.Errorf("ListenAndServe error:%s", err)

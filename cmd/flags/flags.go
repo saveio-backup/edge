@@ -394,6 +394,29 @@ var (
 		Usage: "Sector size. (KB). Minimum sector size is 1GB. [uint64]",
 		Value: 1048576,
 	}
+
+	////////////////Dsp Plot Setting///////////////////
+	PlotSystemFlag = cli.StringFlag{
+		Name:  "system",
+		Usage: "On which system to run the plot tool.\"win\" for windows, \"linux\" for linux",
+	}
+	PlotNumericIDFlag = cli.StringFlag{
+		Name:  "numericID",
+		Usage: "Numeric Account ID",
+	}
+	PlotStartNonceFlag = cli.Uint64Flag{
+		Name:  "startNonce",
+		Usage: "Where you want to start plotting",
+	}
+	PlotNoncesFlag = cli.Uint64Flag{
+		Name:  "nonces",
+		Usage: "How many nonces you want to plot",
+	}
+	PlotPathFlag = cli.StringFlag{
+		Name:  "path",
+		Usage: "Target path for plotfile",
+		Value: "./",
+	}
 )
 
 //GetFlagName deal with short flag, and return the flag name whether flag name have short name
