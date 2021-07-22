@@ -1,6 +1,6 @@
 module github.com/saveio/edge
 
-go 1.14
+go 1.16
 
 replace (
 	github.com/saveio/carrier => ../carrier

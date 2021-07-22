@@ -288,22 +288,19 @@ func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, proveLe
 		return nil, &DspErr{Code: INSUFFICIENT_BALANCE, Error: ErrMaps[INSUFFICIENT_BALANCE]}
 	}
 
-	proveLevel, _ := proveLevelVal.(float64)
+	proveLevel, _ := ToUint64(proveLevelVal)
 	if proveLevel == 0 {
-		proveLevel = float64(fsSetting.DefaultProveLevel)
+		proveLevel = fsSetting.DefaultProveLevel
 	}
 	switch proveLevel {
 	case fs.PROVE_LEVEL_HIGH:
-		proveLevel = float64(fs.PROVE_LEVEL_HIGH)
 	case fs.PROVE_LEVEL_MEDIEUM:
-		proveLevel = float64(fs.PROVE_LEVEL_MEDIEUM)
 	case fs.PROVE_LEVEL_LOW:
-		proveLevel = float64(fs.PROVE_LEVEL_LOW)
 	default:
 		return nil, &DspErr{Code: FS_UPLOAD_INVALID_PROVE_LEVEL, Error: ErrMaps[FS_UPLOAD_INVALID_PROVE_LEVEL]}
 	}
-	storageType, _ := storageTypeVal.(float64)
-	realFileSize, _ := realFileSizeVal.(float64)
+	storageType, _ := ToUint64(storageTypeVal)
+	realFileSize, _ := ToUint64(realFileSizeVal)
 	var fileSizeInKB uint64
 	if uint64(realFileSize) > 0 {
 		fileSizeInKB = uint64(realFileSize)
@@ -335,22 +332,23 @@ func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, proveLe
 		}
 		opt.ExpiredHeight = userspace.ExpireHeight
 	} else {
-		duration, _ := durationVal.(float64)
-		opt.ExpiredHeight = uint64(currentHeight + uint32(duration/float64(config.BlockTime())))
+		duration, _ := ToUint64(durationVal)
+		opt.ExpiredHeight = uint64(currentHeight + uint32(duration/config.BlockTime()))
 	}
 	log.Debugf("opt.ExpiredHeight :%d, opt.Interval :%d, current: %d",
 		opt.ExpiredHeight, opt.ProveInterval, currentHeight)
 	if opt.ExpiredHeight < opt.ProveInterval+uint64(currentHeight) {
 		return nil, &DspErr{Code: DSP_CUSTOM_EXPIRED_NOT_ENOUGH, Error: ErrMaps[DSP_CUSTOM_EXPIRED_NOT_ENOUGH]}
 	}
-	privilege, ok := privilegeVal.(float64)
-	if !ok {
+	privilege, err := ToUint64(privilegeVal)
+	if err != nil {
 		privilege = fs.PUBLIC
 	}
 	opt.Privilege = uint64(privilege)
-	copyNum, ok := copyNumVal.(float64)
-	if !ok {
-		copyNum = float64(fsSetting.DefaultCopyNum)
+	copyNum, err := ToUint64(copyNumVal)
+	if err != nil {
+		return nil, &DspErr{Code: FS_UPLOAD_FILEPATH_ERROR,
+			Error: fmt.Errorf("invalid copyNum %v error: %s", copyNumVal, err.Error())}
 	}
 	opt.CopyNum = uint64(copyNum)
 	if len(url) == 0 {
@@ -374,7 +372,7 @@ func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, proveLe
 		Num:  uint64(len(whitelist)),
 		List: make([]fs.Rule, 0, uint64(len(whitelist))),
 	}
-	whitelistM := make(map[string]struct{}, 0)
+	whitelistM := make(map[string]struct{})
 	log.Debugf("whitelist :%v, len: %d %d", whitelist, len(whitelistObj.List), cap(whitelistObj.List))
 	for i, whitelistAddr := range whitelist {
 		addr, err := chainCom.AddressFromBase58(whitelistAddr)

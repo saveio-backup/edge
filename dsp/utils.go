@@ -2,6 +2,7 @@ package dsp
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -93,6 +94,35 @@ func OptionStrToFloat64(in interface{}, def float64) (float64, error) {
 		return 0, err
 	}
 	return ret, nil
+}
+
+func ToUint64(in interface{}) (uint64, error) {
+	str, ok := in.(string)
+	if ok {
+		return strconv.ParseUint(str, 0, 64)
+	}
+
+	flo, ok := in.(float64)
+	if ok {
+		if flo < 0 {
+			return 0, fmt.Errorf("value is negative")
+		}
+
+		return uint64(flo), nil
+	}
+
+	u64, ok := in.(uint64)
+	if ok {
+		return u64, nil
+	}
+
+	i, ok := in.(int)
+	if ok {
+		return uint64(i), nil
+	}
+
+	return 0, fmt.Errorf("unknown type of %v is %T", in, in)
+
 }
 
 func ParseContractError(err error) *DspErr {
