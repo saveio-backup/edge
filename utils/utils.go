@@ -9,6 +9,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -117,4 +118,11 @@ func CleanOldestLogs(path string, maxSizeInKB uint64) {
 			break
 		}
 	}
+}
+
+func WalletAddressToId(addr []byte) int64 {
+	bigInteger := big.NewInt(1)
+	bigInteger.SetBytes([]byte{addr[7], addr[6], addr[5], addr[4], addr[3], addr[2], addr[1], addr[0]})
+
+	return bigInteger.Int64()
 }

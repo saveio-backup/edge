@@ -404,6 +404,16 @@ var (
 		Name:  "numericID",
 		Usage: "Numeric Account ID",
 	}
+	PlotSizeFlag = cli.Uint64Flag{
+		Name:  "size",
+		Usage: "Plot file size",
+		Value: 131072,
+	}
+	PlotNumFlag = cli.Uint64Flag{
+		Name:  "num",
+		Usage: "Plot file num",
+		Value: 1,
+	}
 	PlotStartNonceFlag = cli.Uint64Flag{
 		Name:  "startNonce",
 		Usage: "Where you want to start plotting",

@@ -27,6 +27,7 @@ import (
 
 	"github.com/saveio/edge/common/config"
 	"github.com/saveio/edge/http/base/rpc"
+	"github.com/saveio/themis/common/log"
 )
 
 func StartRPCServer() error {
@@ -116,6 +117,8 @@ func StartRPCServer() error {
 	rpc.HandleFunc("getsectorinfosfornode", rpc.GetSectorInfosForNode)
 
 	rpc.HandleFunc("generateplotfile", rpc.GeneratePlotFile)
+	log.Debugf("start json rpc at port base %v, offset %v",
+		config.Parameters.BaseConfig.PortBase, config.Parameters.BaseConfig.JsonRpcPortOffset)
 
 	err := http.ListenAndServe(":"+strconv.Itoa(int(config.Parameters.BaseConfig.PortBase+uint32(config.Parameters.BaseConfig.JsonRpcPortOffset))), nil)
 	if err != nil {
