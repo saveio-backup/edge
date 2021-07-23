@@ -24,7 +24,12 @@ func CreateSector(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 
-	tx, derr := dsp.DspService.CreateSector(uint64(sectorId), uint64(proveLevel), uint64(size))
+	isPlot, ok := cmd["IsPlot"].(bool)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+
+	tx, derr := dsp.DspService.CreateSector(uint64(sectorId), uint64(proveLevel), uint64(size), isPlot)
 	if derr != nil {
 		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
 	}

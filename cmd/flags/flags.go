@@ -394,6 +394,10 @@ var (
 		Usage: "Sector size. (KB). Minimum sector size is 1GB. [uint64]",
 		Value: 1048576,
 	}
+	DspSectorPlotFlag = cli.BoolFlag{
+		Name:  "isPlot",
+		Usage: "Set if the sector is used to store plot files",
+	}
 
 	////////////////Dsp Plot Setting///////////////////
 	PlotSystemFlag = cli.StringFlag{

@@ -1,7 +1,7 @@
 package utils
 
-func CreateSector(sectorId string, proveLevel uint64, size uint64) ([]byte, error) {
-	ret, dErr := sendRpcRequest("createsector", []interface{}{sectorId, proveLevel, size})
+func CreateSector(sectorId string, proveLevel uint64, size uint64, isPlot bool) ([]byte, error) {
+	ret, dErr := sendRpcRequest("createsector", []interface{}{sectorId, proveLevel, size, isPlot})
 	if dErr != nil {
 		return nil, dErr.Error
 	}

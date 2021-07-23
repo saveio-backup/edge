@@ -21,6 +21,7 @@ var SectorCommand = cli.Command{
 				flags.DspSectorIdFlag,
 				flags.DspSectorProveLevelFlag,
 				flags.DspSectorSizeFlag,
+				flags.DspSectorPlotFlag,
 			},
 			Description: "Create sector",
 		},
@@ -62,7 +63,8 @@ var SectorCommand = cli.Command{
 //node command
 func createSector(ctx *cli.Context) error {
 	if !ctx.IsSet(flags.GetFlagName(flags.DspSectorIdFlag)) ||
-		!ctx.IsSet(flags.GetFlagName(flags.DspSectorSizeFlag)) {
+		!ctx.IsSet(flags.GetFlagName(flags.DspSectorSizeFlag)) ||
+		!ctx.IsSet(flags.GetFlagName(flags.DspSectorPlotFlag)) {
 		PrintErrorMsg("Missing argument.")
 		cli.ShowSubcommandHelp(ctx)
 		return nil
@@ -71,7 +73,8 @@ func createSector(ctx *cli.Context) error {
 	sectorId := ctx.String(flags.GetFlagName(flags.DspSectorIdFlag))
 	proveLevel := ctx.Uint64(flags.GetFlagName(flags.DspSectorProveLevelFlag))
 	size := ctx.Uint64(flags.GetFlagName(flags.DspSectorSizeFlag))
-	ret, err := utils.CreateSector(sectorId, proveLevel, size)
+	isPlot := ctx.Bool(flags.GetFlagName(flags.DspSectorPlotFlag))
+	ret, err := utils.CreateSector(sectorId, proveLevel, size, isPlot)
 	if err != nil {
 		return err
 	}

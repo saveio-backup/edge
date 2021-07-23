@@ -6,10 +6,10 @@ import (
 )
 
 func CreateSector(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 3 {
+	if len(cmd) < 4 {
 		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
-	params := convertSliceToMap(cmd, []string{"SectorId", "ProveLevel", "Size"})
+	params := convertSliceToMap(cmd, []string{"SectorId", "ProveLevel", "Size", "IsPlot"})
 	v := rest.CreateSector(params)
 	ret, err := parseRestResult(v)
 	if err != nil {

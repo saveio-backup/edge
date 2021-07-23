@@ -6,12 +6,12 @@ import (
 )
 
 //Dsp api
-func (this *Endpoint) CreateSector(sectorId uint64, proveLevel uint64, size uint64) (string, *DspErr) {
+func (this *Endpoint) CreateSector(sectorId uint64, proveLevel uint64, size uint64, isPlots bool) (string, *DspErr) {
 	dsp := this.getDsp()
 	if dsp == nil {
 		return "", &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
-	tx, err := dsp.CreateSector(sectorId, proveLevel, size)
+	tx, err := dsp.CreateSector(sectorId, proveLevel, size, isPlots)
 	if err != nil {
 		log.Errorf("create sector err:%s", err)
 		return "", &DspErr{Code: DSP_NODE_REGISTER_FAILED, Error: err}
