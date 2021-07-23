@@ -60,7 +60,7 @@ func generatePlotFile(ctx *cli.Context) error {
 	nonces := ctx.Uint64(flags.GetFlagName(flags.PlotNoncesFlag))
 	size := ctx.Uint64(flags.GetFlagName(flags.PlotSizeFlag))
 	if nonces == 0 {
-		nonces = size / 256
+		nonces = size / plot.DEFAULT_PLOT_SIZEKB
 		var err error
 		start, err = plot.GetMinStartNonce(numericId, path)
 		if err != nil {
@@ -75,6 +75,7 @@ func generatePlotFile(ctx *cli.Context) error {
 			return err
 		}
 		PrintJsonData(ret)
+		start += nonces
 	}
 
 	return nil

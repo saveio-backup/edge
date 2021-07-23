@@ -171,7 +171,8 @@ const (
 	RECONNECT_CHANNEL_PEERS = "/api/v1/network/channel/reconnect"
 	SYSTEM_STATE            = "/api/v1/system/state"
 
-	GOROUTINE_LIST = "/api/v1/goroutine"
+	GOROUTINE_LIST     = "/api/v1/goroutine"
+	GENERATE_PLOT_FILE = "/api/v1/plot/generate"
 )
 
 //init restful server
@@ -372,6 +373,7 @@ func (this *restServer) registryMethod() {
 
 		DSP_GET_FILE_PROGRESS: {name: "getprogressbyid", handler: GetProgressById},
 		DSP_GET_TASK_INFO:     {name: "gettaskinfobyid", handler: GetTaskInfoById},
+		GENERATE_PLOT_FILE:    {name: "generateplotfile", handler: GeneratePlotFile},
 	}
 	this.postMap = postMethodMap
 }

@@ -3,13 +3,14 @@ package plot
 import (
 	"embed"
 	"fmt"
-	"github.com/saveio/themis/common/log"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
 	"strconv"
 	"strings"
+
+	"github.com/saveio/themis/common/log"
 )
 
 // executables are embedded
@@ -25,6 +26,8 @@ const (
 	FLAG_NONCES      = "-n"
 
 	DEFAULT_PLOT_TOOL_NAME = "engraver_cpu"
+
+	DEFAULT_PLOT_SIZEKB = 256
 )
 
 type PlotConfig struct {
