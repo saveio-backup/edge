@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/hex"
 	"fmt"
 
 	"github.com/saveio/edge/cmd/flags"
@@ -30,6 +31,16 @@ var PlotCommand = cli.Command{
 				flags.PlotPathFlag,
 			},
 			Description: "Generate plotfile",
+		},
+		{
+			Action:    listPlotFile,
+			Name:      "list",
+			Usage:     "list plotfile",
+			ArgsUsage: "[arguments...]",
+			Flags: []cli.Flag{
+				flags.PlotPathFlag,
+			},
+			Description: "list plotfile",
 		},
 	},
 	Description: `./dsp plot --help command to view help information.`,
@@ -78,6 +89,23 @@ func generatePlotFile(ctx *cli.Context) error {
 		start += nonces
 	}
 
+	return nil
+}
+
+func listPlotFile(ctx *cli.Context) error {
+	if !ctx.IsSet(flags.GetFlagName(flags.PlotPathFlag)) {
+		PrintErrorMsg("Missing argument --path.")
+		cli.ShowSubcommandHelp(ctx)
+		return nil
+	}
+
+	path := ctx.String(flags.GetFlagName(flags.PlotPathFlag))
+	hexPath := hex.EncodeToString([]byte(path))
+	ret, err := utils.GetAllPlotFile(string(hexPath))
+	if err != nil {
+		return err
+	}
+	PrintJsonData(ret)
 	return nil
 }
 

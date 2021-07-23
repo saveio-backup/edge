@@ -173,6 +173,7 @@ const (
 
 	GOROUTINE_LIST     = "/api/v1/goroutine"
 	GENERATE_PLOT_FILE = "/api/v1/plot/generate"
+	GET_ALL_PLOT_FILES = "/api/v1/plots/:path"
 )
 
 //init restful server
@@ -310,6 +311,8 @@ func (this *restServer) registryMethod() {
 		DNS_QUERY_HASH: {name: "getfilehashbyurl", handler: GetHashFromUrl},
 		MODULE_STATE:   {name: "getmodulestate", handler: GetModuleState},
 		SYSTEM_STATE:   {name: "systemstate", handler: GetSysUsedPercent},
+
+		GET_ALL_PLOT_FILES: {name: "getallplotfiles", handler: GetAllPlotFiles},
 	}
 	this.getMap = getMethodMap
 
@@ -510,6 +513,10 @@ func (this *restServer) getPath(url string) string {
 	} else if strings.Contains(url, DNS_DELETE_URL) {
 		return DNS_DELETE_URL
 	}
+
+	if strings.Contains(url, strings.TrimSuffix(GET_ALL_PLOT_FILES, ":path")) {
+		return GET_ALL_PLOT_FILES
+	}
 	return url
 }
 
@@ -651,6 +658,13 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 		req["Pubkey"] = getParam(r, "pubkey")
 	case DNS_QUERY_HOST_INFO:
 		req["Addr"] = getParam(r, "addr")
+	default:
+	}
+
+	// params for poc
+	switch url {
+	case GET_ALL_PLOT_FILES:
+		req["Path"] = getParam(r, "path")
 	default:
 	}
 

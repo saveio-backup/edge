@@ -1,11 +1,16 @@
 package rest
 
 import (
+	"encoding/hex"
 	"fmt"
+	"io/ioutil"
+	"strconv"
+	"strings"
 
 	"github.com/saveio/edge/dsp"
 	"github.com/saveio/edge/utils"
 	"github.com/saveio/edge/utils/plot"
+	"github.com/saveio/themis/common/log"
 )
 
 func GeneratePlotFile(cmd map[string]interface{}) map[string]interface{} {
@@ -75,10 +80,12 @@ func GeneratePlotFile(cmd map[string]interface{}) map[string]interface{} {
 			Path:       path,
 		}
 
-		err := plot.Plot(cfg)
-		if err != nil {
-			return ResponsePackWithErrMsg(dsp.INTERNAL_ERROR, err.Error())
-		}
+		go func() {
+			err := plot.Plot(cfg)
+			if err != nil {
+				log.Errorf("create plot err %s", err)
+			}
+		}()
 
 		m := make(map[string]interface{})
 		m["NumericID"] = numericID
@@ -94,4 +101,80 @@ func GeneratePlotFile(cmd map[string]interface{}) map[string]interface{} {
 	resp["Result"] = ms
 	return resp
 
+}
+
+type PlotFile struct {
+	Name       string
+	Path       string
+	NumericID  string
+	Nonce      uint64
+	StartNonce uint64
+	Size       uint64
+	SplitSize  uint64
+}
+
+func GetAllPlotFiles(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+
+	acc, derr := dsp.DspService.GetCurrentAccount()
+	if derr != nil {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, derr.Error.Error())
+	}
+	numericID := fmt.Sprintf("%v", utils.WalletAddressToId([]byte(acc.Address)))
+
+	pathHex, ok := cmd["Path"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+
+	pathBuf, err := hex.DecodeString(pathHex)
+	if err != nil {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, err.Error())
+	}
+	path := string(pathBuf)
+
+	files, err := ioutil.ReadDir(path)
+	if err != nil {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, err.Error())
+	}
+
+	list := make([]PlotFile, 0)
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+
+		if !strings.HasPrefix(file.Name(), numericID) {
+			continue
+		}
+
+		file := PlotFile{
+			Name:      file.Name(),
+			Path:      path,
+			NumericID: numericID,
+			SplitSize: uint64(file.Size()),
+		}
+
+		parts := strings.Split(file.Name, "_")
+		if len(parts) != 3 {
+			continue
+		}
+
+		startNonce, err := strconv.ParseUint(parts[1], 10, 64)
+		if err != nil {
+			continue
+		}
+		nonce, err := strconv.ParseUint(parts[2], 10, 64)
+		if err != nil {
+			continue
+		}
+		file.Nonce = nonce
+		file.StartNonce = startNonce
+		file.Size = nonce * plot.DEFAULT_PLOT_SIZEKB
+
+		list = append(list, file)
+	}
+
+	resp["Result"] = list
+	return resp
 }

@@ -7,3 +7,11 @@ func GeneratePlotFile(system, ID, path string, start, nonces uint64) ([]byte, er
 	}
 	return ret, nil
 }
+
+func GetAllPlotFile(path string) ([]byte, error) {
+	ret, dErr := sendRpcRequest("getallplotfiles", []interface{}{path})
+	if dErr != nil {
+		return nil, dErr.Error
+	}
+	return ret, nil
+}
