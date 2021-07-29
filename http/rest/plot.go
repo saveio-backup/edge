@@ -4,9 +4,10 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
-	"strconv"
 	"strings"
 
+	"github.com/saveio/dsp-go-sdk/task/poc"
+	"github.com/saveio/edge/common/config"
 	"github.com/saveio/edge/dsp"
 	"github.com/saveio/edge/utils"
 	"github.com/saveio/edge/utils/plot"
@@ -36,6 +37,12 @@ func GeneratePlotFile(cmd map[string]interface{}) map[string]interface{} {
 	path, ok := cmd["Path"].(string)
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	if len(path) > 0 {
+		config.Parameters.BaseConfig.PlotPath = path
+		if err := config.Save(); err != nil {
+			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+		}
 	}
 
 	size, _ := utils.ToUint64(cmd["Size"])
@@ -155,19 +162,11 @@ func GetAllPlotFiles(cmd map[string]interface{}) map[string]interface{} {
 			SplitSize: uint64(file.Size()),
 		}
 
-		parts := strings.Split(file.Name, "_")
-		if len(parts) != 3 {
+		startNonce, nonce := poc.GetNonceFromName(file.Name)
+		if nonce == 0 {
 			continue
 		}
 
-		startNonce, err := strconv.ParseUint(parts[1], 10, 64)
-		if err != nil {
-			continue
-		}
-		nonce, err := strconv.ParseUint(parts[2], 10, 64)
-		if err != nil {
-			continue
-		}
 		file.Nonce = nonce
 		file.StartNonce = startNonce
 		file.Size = nonce * plot.DEFAULT_PLOT_SIZEKB
@@ -176,5 +175,27 @@ func GetAllPlotFiles(cmd map[string]interface{}) map[string]interface{} {
 	}
 
 	resp["Result"] = list
+	return resp
+}
+
+func AddPlotFileToMine(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+
+	fileName, ok := cmd["FileName"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+
+	createSector, ok := cmd["CreateSector"].(bool)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+
+	result, err := dsp.DspService.AddPlotFile(fileName, createSector)
+	if err != nil {
+		return ResponsePackWithErrMsg(dsp.INTERNAL_ERROR, err.Error.Error())
+	}
+
+	resp["Result"] = result
 	return resp
 }

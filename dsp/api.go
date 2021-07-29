@@ -115,11 +115,15 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 	}
 	channelListenAddr := fmt.Sprintf("%s:%d", listenHost,
 		int(config.Parameters.BaseConfig.PortBase+uint32(config.Parameters.BaseConfig.ChannelPortOffset)))
+	dspListenAddr := fmt.Sprintf("%s:%d", listenHost,
+		int(config.Parameters.BaseConfig.PortBase+uint32(config.Parameters.BaseConfig.DspPortOffset)))
 	log.Debugf("config.Parameters.BaseConfig.ChainRpcAddrs: %v", config.Parameters.BaseConfig.ChainRpcAddrs)
 	dspConfig := &dspCfg.DspConfig{
 		DBPath:               config.DspDBPath(),
 		FsRepoRoot:           config.FsRepoRootPath(),
 		FsFileRoot:           config.FsFileRootPath(),
+		DspListenAddr:        dspListenAddr,
+		DspProtocol:          config.Parameters.BaseConfig.DspProtocol,
 		FsType:               int(config.Parameters.FsConfig.FsType),
 		FsGcPeriod:           config.Parameters.FsConfig.FsGCPeriod,
 		FsMaxStorage:         config.Parameters.FsConfig.FsMaxStorage,
@@ -151,6 +155,10 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		dspConfig.DBPath, dspConfig.FsRepoRoot, dspConfig.ChannelDBPath, config.WalletDatFilePath(),
 		config.Parameters.FsConfig.EnableBackup)
 	if err := dspOS.CreateDirIfNeed(config.ClientSqliteDBPath()); err != nil {
+		return err
+	}
+
+	if err := dspOS.CreateDirIfNeed(config.PlotPath()); err != nil {
 		return err
 	}
 	// Skip init fs if Dsp doesn't start listen

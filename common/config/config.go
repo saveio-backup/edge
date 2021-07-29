@@ -62,6 +62,7 @@ type BaseConfig struct {
 	ProfilePortOffset int `json:"ProfilePortOffset"`
 
 	WalletDir string `json:"WalletDir"`
+	PlotPath  string `json:"PlotPath"`
 }
 
 type FsConfig struct {
@@ -372,6 +373,9 @@ func SetDefaultFieldForConfig(cfg *EdgeConfig) {
 	if cfg.BaseConfig.ProfilePortOffset == 0 {
 		cfg.BaseConfig.ProfilePortOffset = 332
 	}
+	if len(cfg.BaseConfig.PlotPath) == 0 {
+		cfg.BaseConfig.PlotPath = "./plots"
+	}
 }
 
 func GetConfigFromFile(cfgFileName string) *EdgeConfig {
@@ -470,4 +474,8 @@ func WsEnabled() bool {
 		return false
 	}
 	return true
+}
+
+func PlotPath() string {
+	return filepath.Join(BaseDataDirPath(), Parameters.BaseConfig.PlotPath, curUsrWalAddr)
 }
