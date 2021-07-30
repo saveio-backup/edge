@@ -199,3 +199,25 @@ func AddPlotFileToMine(cmd map[string]interface{}) map[string]interface{} {
 	resp["Result"] = result
 	return resp
 }
+
+func AddPlotFolderToMine(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+
+	directory, ok := cmd["Directory"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+
+	createSector, ok := cmd["CreateSector"].(bool)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+
+	result, err := dsp.DspService.AddPlotFiles(directory, createSector)
+	if err != nil {
+		return ResponsePackWithErrMsg(dsp.INTERNAL_ERROR, err.Error.Error())
+	}
+
+	resp["Result"] = result
+	return resp
+}

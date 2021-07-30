@@ -2,6 +2,7 @@ package dsp
 
 import (
 	"fmt"
+	"io/ioutil"
 	"runtime"
 	"strings"
 
@@ -14,7 +15,6 @@ import (
 
 func (this *Endpoint) AddPlotFile(fileName string, createSector bool) (interface{}, *DspErr) {
 	system := runtime.GOOS
-	log.Infof("system %s", system)
 	if strings.Contains(system, plot.SYS_WIN) {
 		system = plot.SYS_WIN
 	} else if !strings.Contains(system, "darwin") {
@@ -26,6 +26,10 @@ func (this *Endpoint) AddPlotFile(fileName string, createSector bool) (interface
 		return nil, derr
 	}
 	numericID := fmt.Sprintf("%v", utils.WalletAddressToId([]byte(acc.Address)))
+
+	if !strings.HasPrefix(fileName, numericID) {
+		return nil, &DspErr{Code: DSP_TASK_POC_ERROR, Error: fmt.Errorf("wrong plot file")}
+	}
 
 	startNonce, nonce := poc.GetNonceFromName(fileName)
 	if nonce == 0 {
@@ -50,4 +54,82 @@ func (this *Endpoint) AddPlotFile(fileName string, createSector bool) (interface
 
 	}
 	return resp, nil
+}
+
+func (this *Endpoint) AddPlotFiles(directory string, createSector bool) (interface{}, *DspErr) {
+	system := runtime.GOOS
+	if strings.Contains(system, plot.SYS_WIN) {
+		system = plot.SYS_WIN
+	} else if !strings.Contains(system, "darwin") {
+		system = plot.SYS_LINUX
+	}
+
+	acc, derr := this.GetCurrentAccount()
+	if derr != nil {
+		return nil, derr
+	}
+	numericID := fmt.Sprintf("%v", utils.WalletAddressToId([]byte(acc.Address)))
+
+	fileInfos, err := ioutil.ReadDir(directory)
+	if err != nil {
+		return nil, &DspErr{Code: DSP_TASK_POC_ERROR, Error: err}
+	}
+
+	dsp := this.getDsp()
+	if dsp == nil {
+		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+
+	resps := make([]interface{}, 0)
+
+	type errResp struct {
+		FileName string
+		Err      *DspErr
+	}
+
+	log.Infof("fileInfos %v len %v", fileInfos, len(fileInfos))
+	for _, fi := range fileInfos {
+
+		if fi.IsDir() {
+			continue
+		}
+
+		fileName := fi.Name()
+
+		if !strings.HasPrefix(fileName, numericID) {
+			continue
+		}
+
+		startNonce, nonce := poc.GetNonceFromName(fileName)
+		if nonce == 0 {
+
+			resps = append(resps, &errResp{
+				FileName: fileName,
+				Err:      &DspErr{Code: DSP_TASK_POC_WRONG_NONCE, Error: fmt.Errorf("wrong start nonce or nonces")},
+			})
+			continue
+		}
+
+		cfg := &poc.PlotConfig{
+			Sys:        system,
+			NumericID:  numericID,
+			StartNonce: startNonce,
+			Nonces:     nonce,
+			Path:       config.PlotPath(),
+		}
+
+		resp, err := dsp.AddNewPlotFile("", createSector, cfg)
+		if err != nil {
+
+			resps = append(resps, &errResp{
+				FileName: fileName,
+				Err:      &DspErr{Code: DSP_TASK_POC_ERROR, Error: err},
+			})
+			continue
+
+		}
+		resps = append(resps, resp)
+	}
+
+	return resps, nil
 }

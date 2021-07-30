@@ -171,10 +171,11 @@ const (
 	RECONNECT_CHANNEL_PEERS = "/api/v1/network/channel/reconnect"
 	SYSTEM_STATE            = "/api/v1/system/state"
 
-	GOROUTINE_LIST        = "/api/v1/goroutine"
-	GENERATE_PLOT_FILE    = "/api/v1/plot/generate"
-	GET_ALL_PLOT_FILES    = "/api/v1/plots/:path"
-	ADD_PLOT_FILE_TO_MINE = "/api/v1/plots/mine/file"
+	GOROUTINE_LIST          = "/api/v1/goroutine"
+	GENERATE_PLOT_FILE      = "/api/v1/plot/generate"
+	GET_ALL_PLOT_FILES      = "/api/v1/plots/:path"
+	ADD_PLOT_FILE_TO_MINE   = "/api/v1/plots/mine/file"
+	ADD_PLOT_FOLDER_TO_MINE = "/api/v1/plots/mine/directory"
 )
 
 //init restful server
@@ -379,7 +380,8 @@ func (this *restServer) registryMethod() {
 		DSP_GET_TASK_INFO:     {name: "gettaskinfobyid", handler: GetTaskInfoById},
 		GENERATE_PLOT_FILE:    {name: "generateplotfile", handler: GeneratePlotFile},
 
-		ADD_PLOT_FILE_TO_MINE: {name: "addplotfiletomine", handler: AddPlotFileToMine},
+		ADD_PLOT_FILE_TO_MINE:   {name: "addplotfiletomine", handler: AddPlotFileToMine},
+		ADD_PLOT_FOLDER_TO_MINE: {name: "addplotfoldertomine", handler: AddPlotFolderToMine},
 	}
 	this.postMap = postMethodMap
 }
