@@ -31,3 +31,11 @@ func AddPlotFiles(directory string, createSector bool) ([]byte, error) {
 	}
 	return ret, nil
 }
+
+func GetAllProvedPlotFile() ([]byte, error) {
+	ret, dErr := sendRpcRequest("getallprovedplotfile", []interface{}{})
+	if dErr != nil {
+		return nil, dErr.Error
+	}
+	return ret, nil
+}

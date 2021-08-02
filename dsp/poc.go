@@ -133,3 +133,16 @@ func (this *Endpoint) AddPlotFiles(directory string, createSector bool) (interfa
 
 	return resps, nil
 }
+
+func (this *Endpoint) GetAllProvedPlotFile() (interface{}, *DspErr) {
+	dsp := this.getDsp()
+	if dsp == nil {
+		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+	resp, err := dsp.GetAllProvedPlotFile()
+	if err != nil {
+		return nil, &DspErr{Code: DSP_TASK_POC_ERROR, Error: err}
+
+	}
+	return resp, nil
+}

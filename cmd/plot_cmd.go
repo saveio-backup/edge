@@ -54,6 +54,14 @@ var PlotCommand = cli.Command{
 			},
 			Description: "add plotfile to mine",
 		},
+		{
+			Action:      getAllProvedPlotFile,
+			Name:        "list-all-proved",
+			Usage:       "List all proved plots",
+			ArgsUsage:   "[arguments...]",
+			Flags:       []cli.Flag{},
+			Description: "List all proved plots",
+		},
 	},
 	Description: `./dsp plot --help command to view help information.`,
 }
@@ -162,5 +170,15 @@ func addPlotFile(ctx *cli.Context) error {
 		}
 		PrintJsonData(ret)
 	}
+	return nil
+}
+
+func getAllProvedPlotFile(ctx *cli.Context) error {
+
+	ret, err := utils.GetAllProvedPlotFile()
+	if err != nil {
+		return err
+	}
+	PrintJsonData(ret)
 	return nil
 }

@@ -60,3 +60,12 @@ func AddPlotFiles(cmd []interface{}) map[string]interface{} {
 	}
 	return responseSuccess(ret)
 }
+
+func GetAllProvedPlotFile(cmd []interface{}) map[string]interface{} {
+	v := rest.GetAllProvedPlotFile(nil)
+	ret, err := parseRestResult(v)
+	if err != nil {
+		return responsePackError(err.Code, err.Error.Error())
+	}
+	return responseSuccess(ret)
+}

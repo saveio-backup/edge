@@ -221,3 +221,15 @@ func AddPlotFolderToMine(cmd map[string]interface{}) map[string]interface{} {
 	resp["Result"] = result
 	return resp
 }
+
+func GetAllProvedPlotFile(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+
+	result, err := dsp.DspService.GetAllProvedPlotFile()
+	if err != nil {
+		return ResponsePackWithErrMsg(dsp.INTERNAL_ERROR, err.Error.Error())
+	}
+
+	resp["Result"] = result
+	return resp
+}

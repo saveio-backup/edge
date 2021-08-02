@@ -176,6 +176,7 @@ const (
 	GET_ALL_PLOT_FILES      = "/api/v1/plots/:path"
 	ADD_PLOT_FILE_TO_MINE   = "/api/v1/plots/mine/file"
 	ADD_PLOT_FOLDER_TO_MINE = "/api/v1/plots/mine/directory"
+	ALL_PROVED_PLOTS        = "/api/v1/provedplots"
 )
 
 //init restful server
@@ -315,6 +316,7 @@ func (this *restServer) registryMethod() {
 		SYSTEM_STATE:   {name: "systemstate", handler: GetSysUsedPercent},
 
 		GET_ALL_PLOT_FILES: {name: "getallplotfiles", handler: GetAllPlotFiles},
+		ALL_PROVED_PLOTS:   {name: "getallprovedplotfiles", handler: GetAllProvedPlotFile},
 	}
 	this.getMap = getMethodMap
 
@@ -521,6 +523,10 @@ func (this *restServer) getPath(url string) string {
 
 	if strings.Contains(url, strings.TrimSuffix(GET_ALL_PLOT_FILES, ":path")) {
 		return GET_ALL_PLOT_FILES
+	}
+
+	if strings.Contains(url, ALL_PROVED_PLOTS) {
+		return ALL_PROVED_PLOTS
 	}
 	return url
 }
