@@ -73,13 +73,6 @@ func generatePlotFile(ctx *cli.Context) error {
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
-	if !ctx.IsSet(flags.GetFlagName(flags.PlotStartNonceFlag)) &&
-		!ctx.IsSet(flags.GetFlagName(flags.PlotNoncesFlag)) &&
-		!ctx.IsSet(flags.GetFlagName(flags.PlotSizeFlag)) {
-		PrintErrorMsg("Missing argument. --size or --nonce --startNonce")
-		cli.ShowSubcommandHelp(ctx)
-		return nil
-	}
 
 	system := ctx.String(flags.GetFlagName(flags.PlotSystemFlag))
 	numericId := ctx.String(flags.GetFlagName(flags.PlotNumericIDFlag))
@@ -97,6 +90,13 @@ func generatePlotFile(ctx *cli.Context) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if !ctx.IsSet(flags.GetFlagName(flags.PlotStartNonceFlag)) &&
+		!ctx.IsSet(flags.GetFlagName(flags.PlotNoncesFlag)) {
+		PrintErrorMsg("Missing argument. --nonce --startNonce")
+		cli.ShowSubcommandHelp(ctx)
+		return nil
 	}
 
 	num := ctx.Uint64(flags.GetFlagName(flags.PlotNumFlag))

@@ -19,14 +19,14 @@ func GeneratePlotFile(cmd map[string]interface{}) map[string]interface{} {
 
 	system, ok := cmd["System"].(string)
 	if !ok {
-		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, "invalid param system")
 	}
 
 	numericID, _ := cmd["NumericID"].(string)
 	if len(numericID) == 0 {
 		acc, err := dsp.DspService.GetCurrentAccount()
 		if err != nil {
-			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, err.Error.Error())
+			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, "invalid params numericID")
 		}
 		numericID = fmt.Sprintf("%v", utils.WalletAddressToId([]byte(acc.Address)))
 	}
@@ -36,13 +36,15 @@ func GeneratePlotFile(cmd map[string]interface{}) map[string]interface{} {
 
 	path, ok := cmd["Path"].(string)
 	if !ok {
-		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, "invalid params path")
 	}
 	if len(path) > 0 {
 		config.Parameters.BaseConfig.PlotPath = path
 		if err := config.Save(); err != nil {
-			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, "invalid params path")
 		}
+	} else {
+		path = config.Parameters.BaseConfig.PlotPath
 	}
 
 	size, _ := utils.ToUint64(cmd["Size"])
