@@ -15,3 +15,19 @@ func GetAllPlotFile(path string) ([]byte, error) {
 	}
 	return ret, nil
 }
+
+func AddPlotFile(path string, createSector bool) ([]byte, error) {
+	ret, dErr := sendRpcRequest("addplotfile", []interface{}{path, createSector})
+	if dErr != nil {
+		return nil, dErr.Error
+	}
+	return ret, nil
+}
+
+func AddPlotFiles(directory string, createSector bool) ([]byte, error) {
+	ret, dErr := sendRpcRequest("addplotfiles", []interface{}{directory, createSector})
+	if dErr != nil {
+		return nil, dErr.Error
+	}
+	return ret, nil
+}

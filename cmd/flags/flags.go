@@ -431,6 +431,11 @@ var (
 		Usage: "Target path for plotfile",
 		Value: "./",
 	}
+
+	CreateSectorFlag = cli.BoolFlag{
+		Name:  "create-sector",
+		Usage: "Auto create sectors if space not enough",
+	}
 )
 
 //GetFlagName deal with short flag, and return the flag name whether flag name have short name

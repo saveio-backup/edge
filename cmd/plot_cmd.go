@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/hex"
 	"fmt"
+	"os"
 
 	"github.com/saveio/edge/cmd/flags"
 	"github.com/saveio/edge/cmd/utils"
@@ -41,6 +42,17 @@ var PlotCommand = cli.Command{
 				flags.PlotPathFlag,
 			},
 			Description: "list plotfile",
+		},
+		{
+			Action:    addPlotFile,
+			Name:      "mine",
+			Usage:     "add plot file to mine",
+			ArgsUsage: "[arguments...]",
+			Flags: []cli.Flag{
+				flags.PlotPathFlag,
+				flags.CreateSectorFlag,
+			},
+			Description: "add plotfile to mine",
 		},
 	},
 	Description: `./dsp plot --help command to view help information.`,
@@ -121,4 +133,34 @@ func numericdFromDefaultWallet(ctx *cli.Context) (string, error) {
 	}
 	accMeta := wallet.GetAccountMetadataByIndex(1)
 	return fmt.Sprintf("%v", eUtils.WalletAddressToId([]byte(accMeta.Address))), nil
+}
+
+func addPlotFile(ctx *cli.Context) error {
+	if !ctx.IsSet(flags.GetFlagName(flags.PlotPathFlag)) {
+		PrintErrorMsg("Missing argument --path.")
+		cli.ShowSubcommandHelp(ctx)
+		return nil
+	}
+
+	path := ctx.String(flags.GetFlagName(flags.PlotPathFlag))
+	createSector := ctx.Bool(flags.GetFlagName(flags.CreateSectorFlag))
+
+	info, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+	if info.IsDir() {
+		ret, err := utils.AddPlotFiles(path, createSector)
+		if err != nil {
+			return err
+		}
+		PrintJsonData(ret)
+	} else {
+		ret, err := utils.AddPlotFile(path, createSector)
+		if err != nil {
+			return err
+		}
+		PrintJsonData(ret)
+	}
+	return nil
 }
