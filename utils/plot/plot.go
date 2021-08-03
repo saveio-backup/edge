@@ -111,28 +111,10 @@ func loadPlotTool(cfg *PlotConfig) error {
 		return fmt.Errorf("read ptool error %s", err)
 	}
 
-	tmpDir, err := ioutil.TempDir("", "ptool")
+	fileName := "./" + getPlotToolName(cfg)
+	err = ioutil.WriteFile(fileName, data, 0777)
 	if err != nil {
-		return fmt.Errorf("create tmp dir error %s", err)
-	}
-
-	defer os.RemoveAll(tmpDir)
-
-	f, err := ioutil.TempFile(tmpDir, "")
-	if err != nil {
-		return fmt.Errorf("create tmp file error %s", err)
-	}
-
-	_, err = f.Write(data)
-	if err != nil {
-		return fmt.Errorf("write tmp file error %s", err)
-	}
-	f.Close()
-
-	// move plot tool to current dir
-	err = os.Rename(f.Name(), "./"+getPlotToolName(cfg))
-	if err != nil {
-		return fmt.Errorf("rename file error %s", err)
+		return fmt.Errorf("write tool file error %s", err)
 	}
 	return nil
 }
