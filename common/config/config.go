@@ -19,6 +19,7 @@ const (
 	VERSION                 = "0.1"
 	DEFAULT_MAX_LOG_SIZE    = 20 * 1024 * 1024 //MB
 	DEFAULT_CONFIG_FILENAME = "config.json"
+	DEFAULT_PLOT_PATH       = "./plots"
 )
 
 type BaseConfig struct {

@@ -42,10 +42,10 @@ func GeneratePlotFile(cmd map[string]interface{}) map[string]interface{} {
 	if len(path) > 0 {
 		config.Parameters.BaseConfig.PlotPath = path
 		if err := config.Save(); err != nil {
-			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, "save config error")
+			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, fmt.Sprintf("save config error %v", err))
 		}
 	} else {
-		path = config.Parameters.BaseConfig.PlotPath
+		path = config.PlotPath()
 	}
 
 	size, _ := utils.ToUint64(cmd["Size"])
