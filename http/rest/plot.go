@@ -39,12 +39,7 @@ func GeneratePlotFile(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, "invalid params path")
 	}
-	if len(path) > 0 {
-		config.Parameters.BaseConfig.PlotPath = path
-		if err := config.Save(); err != nil {
-			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, fmt.Sprintf("save config error %v", err))
-		}
-	} else {
+	if len(path) == 0 || path == config.DEFAULT_PLOT_PATH {
 		path = config.PlotPath()
 	}
 
