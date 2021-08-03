@@ -7,6 +7,7 @@ import (
 
 	"github.com/saveio/edge/cmd/flags"
 	"github.com/saveio/edge/cmd/utils"
+	"github.com/saveio/edge/common/config"
 	eUtils "github.com/saveio/edge/utils"
 	"github.com/saveio/edge/utils/plot"
 	"github.com/saveio/themis/account"
@@ -89,6 +90,9 @@ func generatePlotFile(ctx *cli.Context) error {
 	start := ctx.Uint64(flags.GetFlagName(flags.PlotStartNonceFlag))
 	nonces := ctx.Uint64(flags.GetFlagName(flags.PlotNoncesFlag))
 	size := ctx.Uint64(flags.GetFlagName(flags.PlotSizeFlag))
+	if len(path) == 0 {
+		path = config.PlotPath()
+	}
 	if nonces == 0 {
 		nonces = size / plot.DEFAULT_PLOT_SIZEKB
 		var err error

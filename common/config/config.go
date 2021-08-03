@@ -3,13 +3,13 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/saveio/edge/cmd/flags"
+	"github.com/saveio/edge/common"
+	"github.com/saveio/themis/common/log"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/saveio/edge/cmd/flags"
-	"github.com/saveio/edge/common"
 
 	"github.com/urfave/cli"
 )
@@ -408,10 +408,12 @@ func Save() error {
 	if err != nil {
 		return err
 	}
+	log.Infof("configDir %v", configDir)
 	err = os.Remove(configDir)
 	if err != nil {
 		return err
 	}
+
 	return ioutil.WriteFile(configDir, data, 0666)
 }
 

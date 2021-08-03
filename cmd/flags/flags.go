@@ -429,7 +429,6 @@ var (
 	PlotPathFlag = cli.StringFlag{
 		Name:  "path",
 		Usage: "Target path for plotfile",
-		Value: "./plots",
 	}
 
 	CreateSectorFlag = cli.BoolFlag{

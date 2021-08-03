@@ -42,6 +42,11 @@ func GeneratePlotFile(cmd map[string]interface{}) map[string]interface{} {
 	if len(path) == 0 || path == config.DEFAULT_PLOT_PATH {
 		path = config.PlotPath()
 	}
+	if path != config.PlotPath() {
+		if err := config.Save(); err != nil {
+			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, fmt.Sprintf("save config err %s", err))
+		}
+	}
 
 	size, _ := utils.ToUint64(cmd["Size"])
 	num, _ := utils.ToUint64(cmd["Num"])
