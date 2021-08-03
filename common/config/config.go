@@ -3,13 +3,14 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/saveio/edge/cmd/flags"
-	"github.com/saveio/edge/common"
-	"github.com/saveio/themis/common/log"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/saveio/edge/cmd/flags"
+	"github.com/saveio/edge/common"
+	"github.com/saveio/themis/common/log"
 
 	"github.com/urfave/cli"
 )
@@ -285,7 +286,7 @@ func Init(ctx *cli.Context) {
 		if strings.Contains(path, ".json") {
 			configDir = path
 		} else {
-			configDir = filepath.Join(flags.GetFlagName(flags.ConfigFlag), "/", DEFAULT_CONFIG_FILENAME)
+			configDir = filepath.Join(path, "/", DEFAULT_CONFIG_FILENAME)
 		}
 	} else {
 		configDir = filepath.Join(".", DEFAULT_CONFIG_FILENAME)
