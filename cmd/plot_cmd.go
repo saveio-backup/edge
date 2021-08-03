@@ -10,6 +10,7 @@ import (
 	eUtils "github.com/saveio/edge/utils"
 	"github.com/saveio/edge/utils/plot"
 	"github.com/saveio/themis/account"
+	"github.com/saveio/themis/common/log"
 	"github.com/urfave/cli"
 )
 
@@ -78,6 +79,11 @@ func generatePlotFile(ctx *cli.Context) error {
 	numericId := ctx.String(flags.GetFlagName(flags.PlotNumericIDFlag))
 	if len(numericId) == 0 {
 		numericId, _ = numericdFromDefaultWallet(ctx)
+		if len(numericId) == 0 {
+			PrintErrorMsg("Missing argument. --numericId or wallet not found")
+			cli.ShowSubcommandHelp(ctx)
+			return nil
+		}
 	}
 	path := ctx.String(flags.GetFlagName(flags.PlotPathFlag))
 	start := ctx.Uint64(flags.GetFlagName(flags.PlotStartNonceFlag))
@@ -93,7 +99,8 @@ func generatePlotFile(ctx *cli.Context) error {
 	}
 
 	if !ctx.IsSet(flags.GetFlagName(flags.PlotStartNonceFlag)) &&
-		!ctx.IsSet(flags.GetFlagName(flags.PlotNoncesFlag)) {
+		!ctx.IsSet(flags.GetFlagName(flags.PlotNoncesFlag)) &&
+		size == 0 {
 		PrintErrorMsg("Missing argument. --nonce --startNonce")
 		cli.ShowSubcommandHelp(ctx)
 		return nil
@@ -101,6 +108,7 @@ func generatePlotFile(ctx *cli.Context) error {
 
 	num := ctx.Uint64(flags.GetFlagName(flags.PlotNumFlag))
 	for i := uint64(0); i < num; i++ {
+		log.Infof("system %v, numericId %v, path %v, start %v, nonces %v", system, numericId, path, start, nonces)
 		ret, err := utils.GeneratePlotFile(system, numericId, path, start, nonces)
 		if err != nil {
 			return err
