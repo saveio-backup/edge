@@ -3,7 +3,6 @@ package flags
 import (
 	"strings"
 
-	"github.com/saveio/edge/common/config"
 	"github.com/urfave/cli"
 )
 
@@ -430,7 +429,7 @@ var (
 	PlotPathFlag = cli.StringFlag{
 		Name:  "path",
 		Usage: "Target path for plotfile",
-		Value: config.DEFAULT_PLOT_PATH,
+		Value: "./plots",
 	}
 
 	CreateSectorFlag = cli.BoolFlag{
