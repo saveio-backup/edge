@@ -99,7 +99,7 @@ func Init(walletDir, pwd string) (*Endpoint, error) {
 	}
 	e.setDspAccount(acc, accData.Label, pwd)
 	config.SetCurrentUserWalletAddress(e.getDspWalletAddress())
-	log.Debug("Endpoint init success")
+	log.Debug("Endpoint init success %s", e.getDspWalletAddress())
 	return e, nil
 }
 

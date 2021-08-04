@@ -10,6 +10,7 @@ import (
 
 	"github.com/saveio/edge/cmd/flags"
 	"github.com/saveio/edge/common"
+	"github.com/saveio/themis-go-sdk/wallet"
 	"github.com/saveio/themis/common/log"
 
 	"github.com/urfave/cli"
@@ -20,7 +21,7 @@ const (
 	VERSION                 = "0.1"
 	DEFAULT_MAX_LOG_SIZE    = 20 * 1024 * 1024 //MB
 	DEFAULT_CONFIG_FILENAME = "config.json"
-	DEFAULT_PLOT_PATH       = "./plots"
+	DEFAULT_PLOT_PATH       = "./plots/"
 )
 
 type BaseConfig struct {
@@ -481,5 +482,22 @@ func WsEnabled() bool {
 }
 
 func PlotPath() string {
-	return filepath.Join(BaseDataDirPath(), Parameters.BaseConfig.PlotPath, curUsrWalAddr)
+	addr := curUsrWalAddr
+	if len(curUsrWalAddr) == 0 {
+		addr = GetDefaultAddressFromWallet(Parameters.BaseConfig.WalletDir)
+	}
+	return filepath.Join(BaseDataDirPath(), Parameters.BaseConfig.PlotPath, addr)
+}
+
+func GetDefaultAddressFromWallet(walletDir string) string {
+	wallet, err := wallet.OpenWallet(walletDir)
+	if err != nil {
+		log.Error("Client open wallet Error, msg:", err)
+		return ""
+	}
+	defData, err := wallet.GetDefaultAccountData()
+	if err != nil {
+		return ""
+	}
+	return defData.Address
 }

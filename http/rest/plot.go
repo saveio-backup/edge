@@ -2,6 +2,7 @@ package rest
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"strings"
@@ -50,8 +51,13 @@ func GeneratePlotFile(cmd map[string]interface{}) map[string]interface{} {
 
 	size, _ := utils.ToUint64(cmd["Size"])
 	num, _ := utils.ToUint64(cmd["Num"])
-
+	ms := make([]interface{}, 0)
 	if size == 0 {
+
+		if nonces%8 != 0 || nonces == 0 {
+			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, "invalid params nonces, nonces should be an integer multiple of 8")
+		}
+
 		cfg := &plot.PlotConfig{
 			Sys:        system,
 			NumericID:  numericID,
@@ -59,6 +65,8 @@ func GeneratePlotFile(cmd map[string]interface{}) map[string]interface{} {
 			Nonces:     uint64(nonces),
 			Path:       path,
 		}
+		cfgData, _ := json.Marshal(cfg)
+		log.Infof("plot config cfg with no size %s", cfgData)
 		err := plot.Plot(cfg)
 		if err != nil {
 			return ResponsePackWithErrMsg(dsp.INTERNAL_ERROR, err.Error())
@@ -71,6 +79,9 @@ func GeneratePlotFile(cmd map[string]interface{}) map[string]interface{} {
 		m["Path"] = path
 		m["PlotFileName"] = plot.GetPlotFileName(cfg)
 
+		ms = append(ms, m)
+		resp["Result"] = ms
+		return resp
 	}
 	var err error
 	startNonce, err = plot.GetMinStartNonce(numericID, path)
@@ -79,7 +90,10 @@ func GeneratePlotFile(cmd map[string]interface{}) map[string]interface{} {
 	}
 	nonces = size / plot.DEFAULT_PLOT_SIZEKB
 
-	ms := make([]interface{}, 0)
+	if nonces%8 != 0 || nonces == 0 {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, "invalid params size, size should be an integer multiple of 8")
+	}
+
 	for i := uint64(0); i < uint64(num); i++ {
 
 		cfg := &plot.PlotConfig{
@@ -89,6 +103,8 @@ func GeneratePlotFile(cmd map[string]interface{}) map[string]interface{} {
 			Nonces:     uint64(nonces),
 			Path:       path,
 		}
+		cfgData, _ := json.Marshal(cfg)
+		log.Infof("plot config cfg %s", cfgData)
 
 		go func() {
 			err := plot.Plot(cfg)

@@ -95,6 +95,11 @@ func generatePlotFile(ctx *cli.Context) error {
 	}
 	if nonces == 0 {
 		nonces = size / plot.DEFAULT_PLOT_SIZEKB
+		if nonces == 0 || nonces%8 != 0 {
+			PrintErrorMsg("Invalid argument. size should be an integer multiple of 2048")
+			cli.ShowSubcommandHelp(ctx)
+			return nil
+		}
 		var err error
 		start, err = plot.GetMinStartNonce(numericId, path)
 		if err != nil {
@@ -106,6 +111,12 @@ func generatePlotFile(ctx *cli.Context) error {
 		!ctx.IsSet(flags.GetFlagName(flags.PlotNoncesFlag)) &&
 		size == 0 {
 		PrintErrorMsg("Missing argument. --nonce --startNonce")
+		cli.ShowSubcommandHelp(ctx)
+		return nil
+	}
+
+	if nonces == 0 || nonces%8 != 0 {
+		PrintErrorMsg("Invalid argument. nonces should be an integer multiple of 8")
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
