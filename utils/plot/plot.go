@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	dspOS "github.com/saveio/dsp-go-sdk/utils/os"
 	"github.com/saveio/themis/common/log"
 )
 
@@ -24,6 +25,7 @@ const (
 	FLAG_NUMERIC_ID  = "-i"
 	FLAG_START_NONCE = "-s"
 	FLAG_NONCES      = "-n"
+	FLAG_PATH        = "-p"
 
 	DEFAULT_PLOT_TOOL_NAME = "engraver_cpu"
 
@@ -52,6 +54,10 @@ func Plot(cfg *PlotConfig) error {
 		if err := loadPlotTool(cfg); err != nil {
 			return fmt.Errorf("loadPlotTool error %s", err)
 		}
+	}
+
+	if err := dspOS.CreateDirIfNeed(cfg.Path); err != nil {
+		return fmt.Errorf("create dir in path %s errror %s", cfg.Path, err)
 	}
 
 	if err := runPlotCmd(cfg, toolPath); err != nil {
@@ -84,19 +90,25 @@ func checkPlotConfig(cfg *PlotConfig) error {
 	if err != nil {
 		return fmt.Errorf("invalid numeric id")
 	}
+
 	return nil
 }
 
 // the config should have been checked already
 func runPlotCmd(cfg *PlotConfig, cmdPath string) error {
-	cmd := exec.Command(cmdPath, FLAG_NUMERIC_ID, cfg.NumericID, FLAG_START_NONCE, strconv.Itoa(int(cfg.StartNonce)),
-		FLAG_NONCES, strconv.Itoa(int(cfg.Nonces)))
+	var cmd *exec.Cmd
 
+	if cfg.Path == "" {
+		cmd = exec.Command(cmdPath, FLAG_NUMERIC_ID, cfg.NumericID, FLAG_START_NONCE, strconv.Itoa(int(cfg.StartNonce)),
+			FLAG_NONCES, strconv.Itoa(int(cfg.Nonces)))
+	} else {
+		cmd = exec.Command(cmdPath, FLAG_NUMERIC_ID, cfg.NumericID, FLAG_START_NONCE, strconv.Itoa(int(cfg.StartNonce)),
+			FLAG_NONCES, strconv.Itoa(int(cfg.Nonces)), FLAG_PATH, cfg.Path)
+	}
 	// dont check error here, it returns error even run successfully
 	cmd.Run()
 
-	fileName := GetPlotFileName(cfg)
-	fullPath := path.Join(cfg.Path, fileName)
+	fullPath := GetPlotFileFullPath(cfg)
 	if !fileExists(fullPath) {
 		return fmt.Errorf("plot file %s not found", fullPath)
 	}
@@ -121,8 +133,15 @@ func loadPlotTool(cfg *PlotConfig) error {
 
 func GetPlotFileName(cfg *PlotConfig) string {
 	startStr := strconv.Itoa(int(cfg.StartNonce))
-	noncesStr := strconv.Itoa(int(cfg.Nonces))
+	// nonces should be multiplied by 8
+	nonces := cfg.Nonces - cfg.Nonces%8
+	noncesStr := strconv.Itoa(int(nonces))
 	return strings.Join([]string{cfg.NumericID, startStr, noncesStr}, "_")
+}
+
+func GetPlotFileFullPath(cfg *PlotConfig) string {
+	fileName := GetPlotFileName(cfg)
+	return path.Join(cfg.Path, fileName)
 }
 
 func getPlotToolName(cfg *PlotConfig) string {
