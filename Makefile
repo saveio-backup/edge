@@ -1,6 +1,12 @@
 GOFMT=gofmt
 GC=go build --tags "json1"
-
+LAST_VERSION := $(shell git describe --match "v*" --always --tags)
+VERSION_PARTS      := $(subst ., ,$(LAST_VERSION))
+MAJOR              := $(word 1,$(VERSION_PARTS))
+MINOR              := $(word 2,$(VERSION_PARTS))
+MICRO              := $(word 3,$(VERSION_PARTS))
+NEXT_MICRO         := $(shell echo $$(($(MICRO)+1)))
+VERSION := $(MAJOR).$(MINOR).$(NEXT_MICRO)
 EDGE_GITCOMMIT=$(shell git log -1 --pretty=format:"%H")
 PYLONS_GITCOMMIT=$(shell cd .. && cd pylons && git log -1 --pretty=format:"%H")
 CARRIER_GITCOMMIT=$(shell cd .. && cd carrier && git log -1 --pretty=format:"%H")
@@ -8,7 +14,7 @@ MAX_GITCOMMIT=$(shell cd .. && cd max && git log -1 --pretty=format:"%H")
 DSP_GITCOMMIT=$(shell cd .. && cd dsp-go-sdk && git log -1 --pretty=format:"%H")
 SCAN_GITCOMMIT=$(shell cd .. && cd scan && git log -1 --pretty=format:"%H")
 ARM64_CC=/home/dasein/toolchain-aarch64_cortex-a53_gcc-8.2.0_glibc/bin/aarch64-openwrt-linux-gnu-gcc
-BUILD_EDGE_PAR =-v -ldflags "-s -w -X github.com/saveio/edge/dsp.Version=$(EDGE_GITCOMMIT) -X github.com/saveio/pylons.Version=${PYLONS_GITCOMMIT} -X github.com/saveio/carrier/network.Version=${CARRIER_GITCOMMIT} -X github.com/saveio/max/max.Version=${MAX_GITCOMMIT} -X github.com/saveio/dsp-go-sdk/dsp.Version=${DSP_GITCOMMIT} -X github.com/saveio/scan/common/config.VERSION=$(SCAN_GITCOMMIT)"
+BUILD_EDGE_PAR =-v -ldflags "-s -w -X github.com/saveio/edge/dsp.Version=$(VERSION) -X github.com/saveio/pylons.Version=${PYLONS_GITCOMMIT} -X github.com/saveio/carrier/network.Version=${CARRIER_GITCOMMIT} -X github.com/saveio/max/max.Version=${MAX_GITCOMMIT} -X github.com/saveio/dsp-go-sdk/dsp.Version=${DSP_GITCOMMIT} -X github.com/saveio/scan/common/config.VERSION=$(SCAN_GITCOMMIT)"
 
 all: client
 
