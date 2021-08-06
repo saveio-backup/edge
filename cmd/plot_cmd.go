@@ -103,7 +103,8 @@ func generatePlotFile(ctx *cli.Context) error {
 		var err error
 		start, err = plot.GetMinStartNonce(numericId, path)
 		if err != nil {
-			return err
+			PrintErrorMsg(err.Error())
+			return nil
 		}
 	}
 
@@ -126,7 +127,8 @@ func generatePlotFile(ctx *cli.Context) error {
 		log.Infof("system %v, numericId %v, path %v, start %v, nonces %v", system, numericId, path, start, nonces)
 		ret, err := utils.GeneratePlotFile(system, numericId, path, start, nonces)
 		if err != nil {
-			return err
+			PrintErrorMsg(err.Error())
+			return nil
 		}
 		PrintJsonData(ret)
 		start += nonces
@@ -144,7 +146,8 @@ func listPlotFile(ctx *cli.Context) error {
 	hexPath := hex.EncodeToString([]byte(path))
 	ret, err := utils.GetAllPlotFile(string(hexPath))
 	if err != nil {
-		return err
+		PrintErrorMsg(err.Error())
+		return nil
 	}
 	PrintJsonData(ret)
 	return nil
@@ -176,18 +179,21 @@ func addPlotFile(ctx *cli.Context) error {
 
 	info, err := os.Stat(path)
 	if err != nil {
-		return err
+		PrintErrorMsg(err.Error())
+		return nil
 	}
 	if info.IsDir() {
 		ret, err := utils.AddPlotFiles(path, createSector)
 		if err != nil {
-			return err
+			PrintErrorMsg(err.Error())
+			return nil
 		}
 		PrintJsonData(ret)
 	} else {
 		ret, err := utils.AddPlotFile(path, createSector)
 		if err != nil {
-			return err
+			PrintErrorMsg(err.Error())
+			return nil
 		}
 		PrintJsonData(ret)
 	}
@@ -198,7 +204,8 @@ func getAllProvedPlotFile(ctx *cli.Context) error {
 
 	ret, err := utils.GetAllProvedPlotFile()
 	if err != nil {
-		return err
+		PrintErrorMsg(err.Error())
+		return nil
 	}
 	PrintJsonData(ret)
 	return nil

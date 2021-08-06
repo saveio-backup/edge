@@ -410,7 +410,7 @@ var (
 	}
 	PlotSizeFlag = cli.Uint64Flag{
 		Name:  "size",
-		Usage: "Plot file size, should be an integer multiple of 2048",
+		Usage: "Plot file size(KB), should be an integer multiple of 2048",
 		Value: 131072,
 	}
 	PlotNumFlag = cli.Uint64Flag{
@@ -424,7 +424,7 @@ var (
 	}
 	PlotNoncesFlag = cli.Uint64Flag{
 		Name:  "nonces",
-		Usage: "How many nonces you want to plot, should be an integer multiple of 8",
+		Usage: "How many nonces you want to plot, should be an integer multiple of 8. 1 nonces = 256KB",
 	}
 	PlotPathFlag = cli.StringFlag{
 		Name:  "path",

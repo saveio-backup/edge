@@ -3,6 +3,7 @@ package dsp
 import (
 	"fmt"
 	"io/ioutil"
+	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -27,8 +28,9 @@ func (this *Endpoint) AddPlotFile(fileName string, createSector bool) (interface
 	}
 	numericID := fmt.Sprintf("%v", utils.WalletAddressToId([]byte(acc.Address)))
 
-	if !strings.HasPrefix(fileName, numericID) {
-		return nil, &DspErr{Code: DSP_TASK_POC_ERROR, Error: fmt.Errorf("wrong plot file")}
+	fileBaseName := filepath.Base(fileName)
+	if !strings.HasPrefix(fileBaseName, numericID) {
+		return nil, &DspErr{Code: DSP_TASK_POC_ERROR, Error: fmt.Errorf("wrong plot file %s", fileName)}
 	}
 
 	startNonce, nonce := poc.GetNonceFromName(fileName)
