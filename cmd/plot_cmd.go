@@ -136,13 +136,11 @@ func generatePlotFile(ctx *cli.Context) error {
 }
 
 func listPlotFile(ctx *cli.Context) error {
-	if !ctx.IsSet(flags.GetFlagName(flags.PlotPathFlag)) {
-		PrintErrorMsg("Missing argument --path.")
-		cli.ShowSubcommandHelp(ctx)
-		return nil
-	}
 
 	path := ctx.String(flags.GetFlagName(flags.PlotPathFlag))
+	if len(path) == 0 {
+		path = config.PlotPath()
+	}
 	hexPath := hex.EncodeToString([]byte(path))
 	ret, err := utils.GetAllPlotFile(string(hexPath))
 	if err != nil {
