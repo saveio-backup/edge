@@ -411,7 +411,7 @@ var (
 	PlotSizeFlag = cli.Uint64Flag{
 		Name:  "size",
 		Usage: "Plot file size(KB), should be an integer multiple of 2048",
-		Value: 131072,
+		Value: 31457280,
 	}
 	PlotNumFlag = cli.Uint64Flag{
 		Name:  "num",
