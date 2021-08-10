@@ -154,6 +154,8 @@ type SectorInfo struct {
 	NextProveHeight  uint64
 	TotalBlockNum    uint64
 	FileNum          uint64
+	GroupNum         uint64
+	IsPlots          bool
 	FileList         []string
 }
 
@@ -166,6 +168,8 @@ func formatSectorInfo(sectorInfo *fs.SectorInfo) *SectorInfo {
 		FirstProveHeight: sectorInfo.FirstProveHeight,
 		NextProveHeight:  sectorInfo.NextProveHeight,
 		TotalBlockNum:    sectorInfo.TotalBlockNum,
+		GroupNum:         sectorInfo.GroupNum,
+		IsPlots:          sectorInfo.IsPlots,
 		FileList:         nil,
 	}
 
