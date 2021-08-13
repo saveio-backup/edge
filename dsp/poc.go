@@ -52,6 +52,7 @@ func (this *Endpoint) AddPlotFile(fileName string, createSector bool) (interface
 	}
 	resp, err := dsp.AddNewPlotFile("", createSector, cfg)
 	if err != nil {
+		log.Errorf("add new plot file err %s", err)
 		return nil, &DspErr{Code: DSP_TASK_POC_ERROR, Error: err}
 
 	}
@@ -122,7 +123,7 @@ func (this *Endpoint) AddPlotFiles(directory string, createSector bool) (interfa
 
 		resp, err := dsp.AddNewPlotFile("", createSector, cfg)
 		if err != nil {
-
+			log.Errorf("add new plot files err %s", err)
 			resps = append(resps, &errResp{
 				FileName: fileName,
 				Err:      &DspErr{Code: DSP_TASK_POC_ERROR, Error: err},
