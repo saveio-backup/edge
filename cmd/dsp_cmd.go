@@ -3,6 +3,7 @@ package cmd
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -14,6 +15,7 @@ import (
 	eUtils "github.com/saveio/edge/utils"
 	"github.com/saveio/themis/common/log"
 	"github.com/saveio/themis/common/password"
+	fs "github.com/saveio/themis/smartcontract/service/native/savefs"
 
 	"github.com/urfave/cli"
 )
@@ -431,7 +433,48 @@ func getProveDeatil(ctx *cli.Context) error {
 		PrintErrorMsg("encrypt file err %s", err)
 		return err
 	}
-	PrintJsonData(ret)
 
+	details := new(fs.FsProveDetails)
+	err = json.Unmarshal(ret, details)
+	if err != nil {
+		return err
+	}
+
+	PrintJsonObject(formatProveDetails(details))
 	return nil
+}
+
+type ProveDetail struct {
+	NodeAddr    string
+	WalletAddr  string
+	ProveTimes  uint64
+	BlockHeight uint64
+	Finished    bool
+}
+
+type ProveDetails struct {
+	CopyNum        uint64
+	ProveDetailNum uint64
+	ProveDetails   []ProveDetail
+}
+
+func formatProveDetails(details *fs.FsProveDetails) *ProveDetails {
+	proveDetails := &ProveDetails{
+		CopyNum:        details.CopyNum,
+		ProveDetailNum: details.ProveDetailNum,
+		ProveDetails:   make([]ProveDetail, 0),
+	}
+
+	for _, detail := range details.ProveDetails {
+		proveDetail := ProveDetail{
+			NodeAddr:    string(detail.NodeAddr),
+			WalletAddr:  detail.WalletAddr.ToBase58(),
+			ProveTimes:  detail.ProveTimes,
+			BlockHeight: detail.BlockHeight,
+			Finished:    detail.Finished,
+		}
+
+		proveDetails.ProveDetails = append(proveDetails.ProveDetails, proveDetail)
+	}
+	return proveDetails
 }
