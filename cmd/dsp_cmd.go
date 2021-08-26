@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"os"
 	"path/filepath"
 
 	"github.com/saveio/edge/cmd/flags"
@@ -227,10 +228,18 @@ func fileUpload(ctx *cli.Context) error {
 	share := ctx.Bool(flags.GetFlagName(flags.DspUploadShareFlag))
 	storeType := ctx.Int64(flags.GetFlagName(flags.DspUploadStoreTypeFlag))
 
-	realFileSize := ctx.Uint64(flags.GetFlagName(flags.DspSizeFlag))
+	realFileSize := uint64(0)
+	if ctx.IsSet(flags.GetFlagName(flags.DspSizeFlag)) {
+		realFileSize = ctx.Uint64(flags.GetFlagName(flags.DspSizeFlag))
+	} else {
+		stat, err := os.Stat(fileName)
+		if err != nil {
+			return err
+		}
+		realFileSize = uint64(stat.Size())
+	}
 	test := ctx.Bool(flags.GetFlagName(flags.TestFlag))
 	testCount := ctx.Int64(flags.GetFlagName(flags.DspUploadFileTestCountSize))
-	fmt.Println("testCount++++++", testCount)
 	if !test {
 		_, err = utils.UploadFile(fileName, pwdHash, fileDesc, nil, encryptPwd, uploadUrl, share, duration, proveLevel, uploadPrivilege, copyNum, storeType, realFileSize)
 		if err != nil {

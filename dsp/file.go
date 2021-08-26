@@ -310,6 +310,7 @@ func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, proveLe
 			fileSizeInKB = 1
 		}
 	}
+	log.Debugf("fileSizeInKB %v, readlFileSizeVal %v", fileSizeInKB, realFileSizeVal)
 	opt := &fs.UploadOption{
 		FileDesc:    []byte(desc),
 		ProveLevel:  uint64(proveLevel),

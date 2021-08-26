@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
+
 	"github.com/saveio/edge/cmd/flags"
 	"github.com/saveio/edge/cmd/utils"
 	fs "github.com/saveio/themis/smartcontract/service/native/savefs"
@@ -63,8 +64,7 @@ var SectorCommand = cli.Command{
 //node command
 func createSector(ctx *cli.Context) error {
 	if !ctx.IsSet(flags.GetFlagName(flags.DspSectorIdFlag)) ||
-		!ctx.IsSet(flags.GetFlagName(flags.DspSectorSizeFlag)) ||
-		!ctx.IsSet(flags.GetFlagName(flags.DspSectorPlotFlag)) {
+		!ctx.IsSet(flags.GetFlagName(flags.DspSectorSizeFlag)) {
 		PrintErrorMsg("Missing argument.")
 		cli.ShowSubcommandHelp(ctx)
 		return nil
