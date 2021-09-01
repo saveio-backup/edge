@@ -2,11 +2,6 @@ module github.com/saveio/edge
 
 go 1.16
 
-replace (
-	github.com/saveio/dsp-go-sdk => ../dsp-go-sdk
-	github.com/saveio/themis => ../themis
-)
-
 require (
 	github.com/gogo/protobuf v1.3.2
 	github.com/gorilla/websocket v1.4.2
