@@ -16,8 +16,8 @@ func GetAllPlotFile(path string) ([]byte, error) {
 	return ret, nil
 }
 
-func AddPlotFile(path string, createSector bool) ([]byte, error) {
-	ret, dErr := sendRpcRequest("addplotfile", []interface{}{path, createSector})
+func AddPlotFile(taskId, path string, createSector bool) ([]byte, error) {
+	ret, dErr := sendRpcRequest("addplotfile", []interface{}{taskId, path, createSector})
 	if dErr != nil {
 		return nil, dErr.Error
 	}
@@ -34,6 +34,14 @@ func AddPlotFiles(directory string, createSector bool) ([]byte, error) {
 
 func GetAllProvedPlotFile() ([]byte, error) {
 	ret, dErr := sendRpcRequest("getallprovedplotfile", []interface{}{})
+	if dErr != nil {
+		return nil, dErr.Error
+	}
+	return ret, nil
+}
+
+func GetAllPlotTasks() ([]byte, error) {
+	ret, dErr := sendRpcRequest("getallpoctasks", []interface{}{})
 	if dErr != nil {
 		return nil, dErr.Error
 	}

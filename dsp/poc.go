@@ -1,20 +1,75 @@
 package dsp
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
 
 	"github.com/saveio/dsp-go-sdk/task/poc"
+	tskUtils "github.com/saveio/dsp-go-sdk/utils/task"
 	"github.com/saveio/edge/common/config"
 	"github.com/saveio/edge/utils"
 	"github.com/saveio/edge/utils/plot"
 	"github.com/saveio/themis/common/log"
 )
 
-func (this *Endpoint) AddPlotFile(fileName string, createSector bool) (interface{}, *DspErr) {
+func (this *Endpoint) NewPocTask(cfg *plot.PlotConfig) (string, *DspErr) {
+
+	dsp := this.getDsp()
+	if dsp == nil {
+		return "", NewDspErr(NO_DSP)
+	}
+
+	fileName := tskUtils.GetPlotFileName(cfg.Nonces, cfg.StartNonce, cfg.NumericID)
+	fileName = path.Join(cfg.Path, fileName)
+
+	existId, _ := dsp.GetPocTaskIdByFileName(fileName)
+	if len(existId) > 0 {
+		log.Debugf("file name %s, exist taskId %v", fileName, existId)
+		return existId, nil
+	}
+
+	taskId, err := dsp.NewPocTask("")
+	if err != nil {
+		return "", NewDspErr(DSP_TASK_POC_ERROR, err)
+	}
+	return taskId, nil
+}
+
+func (this *Endpoint) GenPlotPDPData(taskId string, cfg *plot.PlotConfig) *DspErr {
+
+	dsp := this.getDsp()
+	if dsp == nil {
+		return NewDspErr(NO_DSP)
+	}
+	cfgData, _ := json.Marshal(cfg)
+	log.Infof("plot config cfg with no size %s", cfgData)
+	// var err error
+	err := plot.Plot(cfg)
+	if err != nil {
+		return NewDspErr(DSP_TASK_POC_ERROR)
+	}
+
+	err = dsp.GenPlotPDPData(taskId, &poc.PlotConfig{
+		Sys:        cfg.Sys,
+		NumericID:  cfg.NumericID,
+		StartNonce: cfg.StartNonce,
+		Nonces:     cfg.Nonces,
+		Path:       cfg.Path,
+	})
+	if err != nil {
+		log.Errorf("generate new plot file err %s", err)
+		return NewDspErr(DSP_TASK_POC_ERROR, err)
+	}
+
+	return nil
+}
+
+func (this *Endpoint) AddPlotFile(taskId, fileName string, createSector bool) (interface{}, *DspErr) {
 	system := runtime.GOOS
 	if strings.Contains(system, plot.SYS_WIN) {
 		system = plot.SYS_WIN
@@ -50,7 +105,7 @@ func (this *Endpoint) AddPlotFile(fileName string, createSector bool) (interface
 	if dsp == nil {
 		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
-	resp, err := dsp.AddNewPlotFile("", createSector, cfg)
+	resp, err := dsp.AddNewPlotFile(taskId, createSector, cfg)
 	if err != nil {
 		log.Errorf("add new plot file err %s", err)
 		return nil, &DspErr{Code: DSP_TASK_POC_ERROR, Error: err}
@@ -143,6 +198,20 @@ func (this *Endpoint) GetAllProvedPlotFile() (interface{}, *DspErr) {
 		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
 	resp, err := dsp.GetAllProvedPlotFile()
+	if err != nil {
+		return nil, &DspErr{Code: DSP_TASK_POC_ERROR, Error: err}
+
+	}
+	return resp, nil
+}
+
+func (this *Endpoint) GetAllPocTasks() (interface{}, *DspErr) {
+	dsp := this.getDsp()
+	if dsp == nil {
+		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+	resp, err := dsp.GetAllPocTasks()
+	log.Infof("resp+++ %v", resp)
 	if err != nil {
 		return nil, &DspErr{Code: DSP_TASK_POC_ERROR, Error: err}
 

@@ -177,6 +177,7 @@ const (
 	ADD_PLOT_FILE_TO_MINE   = "/api/v1/plots/mine/file"
 	ADD_PLOT_FOLDER_TO_MINE = "/api/v1/plots/mine/directory"
 	ALL_PROVED_PLOTS        = "/api/v1/provedplots"
+	ALL_PLOT_TASK           = "/api/v1/plottasks"
 )
 
 //init restful server
@@ -317,6 +318,7 @@ func (this *restServer) registryMethod() {
 
 		GET_ALL_PLOT_FILES: {name: "getallplotfiles", handler: GetAllPlotFiles},
 		ALL_PROVED_PLOTS:   {name: "getallprovedplotfiles", handler: GetAllProvedPlotFile},
+		ALL_PLOT_TASK:      {name: "getallpolttasks", handler: GetAllPocTasks},
 	}
 	this.getMap = getMethodMap
 

@@ -431,6 +431,11 @@ var (
 		Usage: "Target path for plotfile",
 	}
 
+	PlotTaskIdFlag = cli.StringFlag{
+		Name:  "taskId",
+		Usage: "Target taskId for plot task",
+	}
+
 	CreateSectorFlag = cli.BoolFlag{
 		Name:  "create-sector",
 		Usage: "Auto create sectors if space not enough",

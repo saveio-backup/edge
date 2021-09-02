@@ -121,6 +121,7 @@ func StartRPCServer() error {
 	rpc.HandleFunc("addplotfile", rpc.AddPlotFile)
 	rpc.HandleFunc("addplotfiles", rpc.AddPlotFiles)
 	rpc.HandleFunc("getallprovedplotfile", rpc.GetAllProvedPlotFile)
+	rpc.HandleFunc("getallpoctasks", rpc.GetAllPocTasks)
 	log.Debugf("start json rpc at port base %v, offset %v",
 		config.Parameters.BaseConfig.PortBase, config.Parameters.BaseConfig.JsonRpcPortOffset)
 

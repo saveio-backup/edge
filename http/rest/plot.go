@@ -67,12 +67,19 @@ func GeneratePlotFile(cmd map[string]interface{}) map[string]interface{} {
 		}
 		cfgData, _ := json.Marshal(cfg)
 		log.Infof("plot config cfg with no size %s", cfgData)
-		err := plot.Plot(cfg)
+		taskId, err := dsp.DspService.NewPocTask(cfg)
 		if err != nil {
-			return ResponsePackWithErrMsg(dsp.INTERNAL_ERROR, err.Error())
+			return ResponsePackWithErrMsg(dsp.INTERNAL_ERROR, err.ErrorMsg())
 		}
 
+		go func() {
+			if err := dsp.DspService.GenPlotPDPData(taskId, cfg); err != nil {
+				log.Errorf("generate plot pdp data err %s", err)
+			}
+		}()
+
 		m := make(map[string]interface{})
+		m["TaskId"] = taskId
 		m["NumericID"] = numericID
 		m["StartNonce"] = startNonce
 		m["Nonces"] = nonces
@@ -106,14 +113,17 @@ func GeneratePlotFile(cmd map[string]interface{}) map[string]interface{} {
 		cfgData, _ := json.Marshal(cfg)
 		log.Infof("plot config cfg %s", cfgData)
 
+		taskId, err := dsp.DspService.NewPocTask(cfg)
+		if err != nil {
+			return ResponsePackWithErrMsg(dsp.INTERNAL_ERROR, err.ErrorMsg())
+		}
 		go func() {
-			err := plot.Plot(cfg)
-			if err != nil {
-				log.Errorf("create plot err %s", err)
+			if err := dsp.DspService.GenPlotPDPData(taskId, cfg); err != nil {
+				log.Errorf("generate plot pdp data err %s", err)
 			}
 		}()
-
 		m := make(map[string]interface{})
+		m["TaskId"] = taskId
 		m["NumericID"] = numericID
 		m["StartNonce"] = startNonce
 		m["Nonces"] = nonces
@@ -199,6 +209,7 @@ func GetAllPlotFiles(cmd map[string]interface{}) map[string]interface{} {
 
 func AddPlotFileToMine(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
+	taskId, _ := cmd["TaskId"].(string)
 
 	fileName, ok := cmd["FileName"].(string)
 	if !ok {
@@ -210,7 +221,7 @@ func AddPlotFileToMine(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 
-	result, err := dsp.DspService.AddPlotFile(fileName, createSector)
+	result, err := dsp.DspService.AddPlotFile(taskId, fileName, createSector)
 	if err != nil {
 		return ResponsePackWithErrMsg(dsp.INTERNAL_ERROR, err.Error.Error())
 	}
@@ -245,6 +256,18 @@ func GetAllProvedPlotFile(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 
 	result, err := dsp.DspService.GetAllProvedPlotFile()
+	if err != nil {
+		return ResponsePackWithErrMsg(dsp.INTERNAL_ERROR, err.Error.Error())
+	}
+
+	resp["Result"] = result
+	return resp
+}
+
+func GetAllPocTasks(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+
+	result, err := dsp.DspService.GetAllPocTasks()
 	if err != nil {
 		return ResponsePackWithErrMsg(dsp.INTERNAL_ERROR, err.Error.Error())
 	}

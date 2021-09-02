@@ -7,6 +7,27 @@ type DspErr struct {
 	Error error
 }
 
+func NewDspErr(code int64, errs ...error) *DspErr {
+	e := &DspErr{
+		Code: code,
+	}
+
+	if errs != nil && len(errs) > 0 {
+		e.Error = errs[0]
+		return e
+	}
+
+	err, _ := ErrMaps[code]
+	if err != nil {
+		e.Error = err
+	}
+	return e
+}
+
+func (d DspErr) ErrorMsg() string {
+	return d.Error.Error()
+}
+
 const (
 	SUCCESS                = 0
 	INTERNAL_ERROR         = 40001

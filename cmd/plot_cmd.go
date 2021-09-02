@@ -51,6 +51,7 @@ var PlotCommand = cli.Command{
 			Usage:     "add plot file to mine",
 			ArgsUsage: "[arguments...]",
 			Flags: []cli.Flag{
+				flags.PlotTaskIdFlag,
 				flags.PlotPathFlag,
 				flags.CreateSectorFlag,
 			},
@@ -63,6 +64,15 @@ var PlotCommand = cli.Command{
 			ArgsUsage:   "[arguments...]",
 			Flags:       []cli.Flag{},
 			Description: "List all proved plots",
+		},
+
+		{
+			Action:      getAllPlotTasks,
+			Name:        "list-tasks",
+			Usage:       "List all plot tasks",
+			ArgsUsage:   "[arguments...]",
+			Flags:       []cli.Flag{},
+			Description: "List all plot tasks",
 		},
 	},
 	Description: `./dsp plot --help command to view help information.`,
@@ -175,6 +185,7 @@ func addPlotFile(ctx *cli.Context) error {
 	}
 
 	path := ctx.String(flags.GetFlagName(flags.PlotPathFlag))
+	taskId := ctx.String(flags.GetFlagName(flags.PlotTaskIdFlag))
 	createSector := ctx.Bool(flags.GetFlagName(flags.CreateSectorFlag))
 
 	info, err := os.Stat(path)
@@ -190,7 +201,7 @@ func addPlotFile(ctx *cli.Context) error {
 		}
 		PrintJsonData(ret)
 	} else {
-		ret, err := utils.AddPlotFile(path, createSector)
+		ret, err := utils.AddPlotFile(taskId, path, createSector)
 		if err != nil {
 			PrintErrorMsg(err.Error())
 			return nil
@@ -203,6 +214,17 @@ func addPlotFile(ctx *cli.Context) error {
 func getAllProvedPlotFile(ctx *cli.Context) error {
 
 	ret, err := utils.GetAllProvedPlotFile()
+	if err != nil {
+		PrintErrorMsg(err.Error())
+		return nil
+	}
+	PrintJsonData(ret)
+	return nil
+}
+
+func getAllPlotTasks(ctx *cli.Context) error {
+
+	ret, err := utils.GetAllPlotTasks()
 	if err != nil {
 		PrintErrorMsg(err.Error())
 		return nil

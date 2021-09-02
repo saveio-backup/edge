@@ -34,11 +34,11 @@ func GetAllPlotFiles(cmd []interface{}) map[string]interface{} {
 }
 
 func AddPlotFile(cmd []interface{}) map[string]interface{} {
-	if len(cmd) < 2 {
+	if len(cmd) < 3 {
 		return responsePackError(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 
-	params := convertSliceToMap(cmd, []string{"FileName", "CreateSector"})
+	params := convertSliceToMap(cmd, []string{"TaskId", "FileName", "CreateSector"})
 	v := rest.AddPlotFileToMine(params)
 	ret, err := parseRestResult(v)
 	if err != nil {
@@ -63,6 +63,15 @@ func AddPlotFiles(cmd []interface{}) map[string]interface{} {
 
 func GetAllProvedPlotFile(cmd []interface{}) map[string]interface{} {
 	v := rest.GetAllProvedPlotFile(nil)
+	ret, err := parseRestResult(v)
+	if err != nil {
+		return responsePackError(err.Code, err.Error.Error())
+	}
+	return responseSuccess(ret)
+}
+
+func GetAllPocTasks(cmd []interface{}) map[string]interface{} {
+	v := rest.GetAllPocTasks(nil)
 	ret, err := parseRestResult(v)
 	if err != nil {
 		return responsePackError(err.Code, err.Error.Error())
