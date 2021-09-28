@@ -248,6 +248,20 @@ const (
 	UploadFileFilterTypeDone
 )
 
+// UploadFile: use dsp-go-sdk to create a upload task and upload the file
+// taskId (string, optional): if it is not's specified, the sdk will create a random uuid string as taskId
+// path   (string, required): file path
+// dec    (string, optional): some description for the file, usually used as file name
+// durationVal (uint64, required): duration for storing the file, uint second
+// proveLevelVal (uint64, required): pdp prove level for file
+// privilegeVal (uint64, required): privilege for file
+// copyNumVal (uint64, required): copyNum of the file
+// storageTypeVal (uint64, required): storage type, usespace mode or advance mode
+// realFileSizeVal (uint64, required): real size for the file uint KiB
+// encryptPwd (string, optional): encrypted password for the file
+// url (string, optional): share url for the file
+// whitelist ([]string, optional): if the file can only read by whitelist, here the wallet addresses
+// share (bool, optional): reserved flag
 func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, proveLevelVal, privilegeVal, copyNumVal,
 	storageTypeVal, realFileSizeVal interface{}, encryptPwd, url string,
 	whitelist []string, share bool) (*fs.UploadOption, *DspErr) {
@@ -1783,23 +1797,24 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit, cr
 }
 
 type fileInfoResp struct {
-	FileHash      string
-	CreatedAt     uint64
-	CopyNum       uint64
-	Interval      uint64
-	ProveLevel    uint64
-	ProveTimes    uint64
-	ExpiredHeight uint64
-	Privilege     uint64
-	OwnerAddress  string
-	Whitelist     []string
-	ExpiredAt     uint64
-	CurrentHeight uint64
-	Size          uint64
-	RealFileSize  uint64
-	StoreType     uint64
-	BlocksRoot    string
-	Encrypt       bool
+	FileHash        string
+	CreatedAt       uint64
+	CopyNum         uint64
+	Interval        uint64
+	ProveLevel      uint64
+	ProveTimes      uint64
+	ExpiredHeight   uint64
+	Privilege       uint64
+	OwnerAddress    string
+	Whitelist       []string
+	ExpiredAt       uint64
+	CurrentHeight   uint64
+	Size            uint64
+	RealFileSize    uint64
+	StoreType       uint64
+	BlocksRoot      string
+	TotalBlockCount uint64
+	Encrypt         bool
 }
 
 func (this *Endpoint) GetFileInfo(fileHashStr string) (*fileInfoResp, *DspErr) {
@@ -1826,22 +1841,23 @@ func (this *Endpoint) GetFileInfo(fileHashStr string) (*fileInfoResp, *DspErr) {
 		encrypt = tsk.Encrypt
 	}
 	result := &fileInfoResp{
-		FileHash:      string(info.FileHash),
-		CopyNum:       info.CopyNum,
-		Interval:      info.ProveInterval * config.BlockTime(),
-		ProveLevel:    info.ProveLevel,
-		ProveTimes:    info.ProveTimes,
-		ExpiredHeight: info.ExpiredHeight,
-		Privilege:     info.Privilege,
-		OwnerAddress:  info.FileOwner.ToBase58(),
-		Whitelist:     []string{},
-		ExpiredAt:     expiredAt,
-		CurrentHeight: uint64(now),
-		Size:          info.FileBlockNum * info.FileBlockSize,
-		RealFileSize:  info.RealFileSize,
-		StoreType:     info.StorageType,
-		BlocksRoot:    string(info.BlocksRoot),
-		Encrypt:       encrypt,
+		FileHash:        string(info.FileHash),
+		CopyNum:         info.CopyNum,
+		Interval:        info.ProveInterval * config.BlockTime(),
+		ProveLevel:      info.ProveLevel,
+		ProveTimes:      info.ProveTimes,
+		ExpiredHeight:   info.ExpiredHeight,
+		Privilege:       info.Privilege,
+		OwnerAddress:    info.FileOwner.ToBase58(),
+		Whitelist:       []string{},
+		ExpiredAt:       expiredAt,
+		CurrentHeight:   uint64(now),
+		Size:            info.FileBlockNum * info.FileBlockSize,
+		RealFileSize:    info.RealFileSize,
+		StoreType:       info.StorageType,
+		BlocksRoot:      string(info.BlocksRoot),
+		Encrypt:         encrypt,
+		TotalBlockCount: info.FileBlockNum,
 	}
 	block, _ := dsp.GetBlockByHeight(uint32(info.BlockHeight))
 	if block == nil {
