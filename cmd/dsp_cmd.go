@@ -236,7 +236,10 @@ func fileUpload(ctx *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		realFileSize = uint64(stat.Size())
+		realFileSize = uint64(stat.Size() / 1024)
+		if realFileSize == 0 {
+			realFileSize = 1
+		}
 	}
 	test := ctx.Bool(flags.GetFlagName(flags.TestFlag))
 	testCount := ctx.Int64(flags.GetFlagName(flags.DspUploadFileTestCountSize))

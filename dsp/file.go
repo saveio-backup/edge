@@ -303,7 +303,7 @@ func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, proveLe
 	realFileSize, _ := ToUint64(realFileSizeVal)
 	var fileSizeInKB uint64
 	if uint64(realFileSize) > 0 {
-		fileSizeInKB = uint64(realFileSize) / 1024
+		fileSizeInKB = uint64(realFileSize)
 	} else {
 		fileSizeInKB = uint64(f.Size() / 1024)
 		if fileSizeInKB == 0 {

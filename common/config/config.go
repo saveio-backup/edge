@@ -306,6 +306,7 @@ func Init(ctx *cli.Context) {
 func ParseConfigFromFile(file string) *EdgeConfig {
 	cfg := &EdgeConfig{}
 	if err := common.GetJsonObjectFromFile(file, cfg); err != nil {
+		log.Errorf("parse config file err %s", err)
 		panic(err)
 	}
 	SetDefaultFieldForConfig(cfg)
