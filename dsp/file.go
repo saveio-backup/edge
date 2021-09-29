@@ -1481,6 +1481,9 @@ func (this *Endpoint) GetDownloadFileInfo(url string) (*DownloadFileInfo, *DspEr
 		info.Ext = extParts[len(extParts)-1]
 	}
 	info.Fee = link.BlockNum * dspConsts.CHUNK_SIZE * common.DSP_DOWNLOAD_UNIT_PRICE
+	if link.FileSize != 0 {
+		info.Fee = link.FileSize * 1024 * common.DSP_DOWNLOAD_UNIT_PRICE
+	}
 	info.FeeFormat = utils.FormatUsdt(info.Fee)
 	info.Path = this.getDownloadFilePath(info.Name)
 	info.DownloadDir = this.getDownloadFilePath("")
