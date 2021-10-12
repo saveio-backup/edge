@@ -32,6 +32,10 @@ l-dsp:
 
 d-dsp:
 	CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 $(GC) $(BUILD_EDGE_PAR) -o edge-darwin-amd64 ./bin/edge/main.go
+
+d-dsp-arm64:
+	CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 $(GC) $(BUILD_EDGE_PAR) -o edge-darwin-arm64 ./bin/edge/main.go
+
 arm64-dsp:
 	CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CC=${ARM64_CC} $(GC) $(BUILD_EDGE_PAR) -o edge-linux-arm64 ./bin/edge/main.go
 format:
