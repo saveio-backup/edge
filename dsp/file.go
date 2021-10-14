@@ -360,6 +360,10 @@ func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, proveLe
 		privilege = fs.PUBLIC
 	}
 	opt.Privilege = uint64(privilege)
+	if copyNumVal == nil {
+		copyNumVal = fsSetting.DefaultCopyNum
+	}
+	log.Infof("copyNumVal+++ %v", copyNumVal)
 	copyNum, err := ToUint64(copyNumVal)
 	if err != nil {
 		return nil, &DspErr{Code: FS_UPLOAD_FILEPATH_ERROR,
