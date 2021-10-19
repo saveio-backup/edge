@@ -150,6 +150,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		MaxDownloadTask:      config.Parameters.DspConfig.MaxDownloadTask,
 		MaxShareTask:         config.Parameters.DspConfig.MaxShareTask,
 		EnableLayer2:         config.Parameters.DspConfig.EnableLayer2,
+		AllowLocalNode:       config.Parameters.DspConfig.AllowLocalNode,
 	}
 	log.Debugf("dspConfig.dbPath %v, repo: %s, channelDB: %s, wallet: %s, enable backup: %t",
 		dspConfig.DBPath, dspConfig.FsRepoRoot, dspConfig.ChannelDBPath, config.WalletDatFilePath(),
@@ -228,6 +229,13 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 	log.Infof("max version: %s", max.Version)
 	log.Infof("carrier version: %s", carNet.Version)
 	return nil
+}
+
+func (this *Endpoint) SetDsp(d *dspSdk.Dsp) {
+	this.dsp = d
+	if this.dspAccLock == nil {
+		this.dspAccLock = &sync.Mutex{}
+	}
 }
 
 // Stop. stop endpoint instance

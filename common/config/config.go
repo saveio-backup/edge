@@ -99,6 +99,7 @@ type DspConfig struct {
 	MaxShareTask    uint32 `json:"MaxShareTask"`
 	DownloadFree    bool   `json:"DownloadFree"`
 	EnableLayer2    bool   `json:"EnableLayer2"`
+	AllowLocalNode  bool   `json:"AllowLocalNode"`
 }
 
 type BootstrapConfig struct {
