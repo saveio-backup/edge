@@ -158,16 +158,16 @@ func GetAllPlotFiles(cmd map[string]interface{}) map[string]interface{} {
 	}
 	numericID := fmt.Sprintf("%v", utils.WalletAddressToId([]byte(acc.Address)))
 
-	pathHex, ok := cmd["Path"].(string)
-	if !ok {
-		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	path := config.PlotPath()
+	log.Debugf("GetAllPlotFiles path %s", path)
+	pathHex, _ := cmd["Path"].(string)
+	if len(pathHex) > 0 {
+		pathBuf, err := hex.DecodeString(pathHex)
+		if err != nil {
+			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, err.Error())
+		}
+		path = string(pathBuf)
 	}
-
-	pathBuf, err := hex.DecodeString(pathHex)
-	if err != nil {
-		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, err.Error())
-	}
-	path := string(pathBuf)
 
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
