@@ -55,6 +55,7 @@ const (
 	transferTypeAll
 )
 
+// Upload or download progress of a remote peer
 type NodeProgress struct {
 	HostAddr         string
 	UploadSize       uint64
@@ -64,30 +65,33 @@ type NodeProgress struct {
 	Speed            uint64
 }
 
+// Transfer detail
 type Transfer struct {
-	Id             string
-	FileHash       string
-	FileName       string
-	Url            string
-	Type           TransferType
-	Status         store.TaskState
-	DetailStatus   dspTypes.TaskProgressState
-	CopyNum        uint32
-	Path           string
-	IsUploadAction bool
-	UploadSize     uint64
-	DownloadSize   uint64
-	FileSize       uint64
-	RealFileSize   uint64
-	Nodes          []*NodeProgress
-	Progress       float64
-	CreatedAt      uint64
-	UpdatedAt      uint64
-	Result         interface{} `json:",omitempty"`
-	ErrorCode      uint32
-	ErrMsg         string `json:",omitempty"`
-	StoreType      uint32
-	Encrypted      bool
+	Id             string                     // task id
+	FileHash       string                     // file hash
+	FileName       string                     // file name
+	Url            string                     // file download url
+	Type           TransferType               // transfer type (uploading, downloading or complete)
+	Status         store.TaskState            // task state
+	DetailStatus   dspTypes.TaskProgressState // detail status of a task
+	CopyNum        uint32                     // file copy number
+	Path           string                     // file upload or download path
+	IsUploadAction bool                       // is upload action or not
+	UploadSize     uint64                     // upload size
+	DownloadSize   uint64                     // download size
+	FileSize       uint64                     // file size (block count * 256KiB)
+	RealFileSize   uint64                     // file real size
+	Fee            uint64                     // file download fee
+	FeeFormat      string                     // file download fee with format
+	Nodes          []*NodeProgress            // remote peer transfer progress
+	Progress       float64                    // total task progress
+	CreatedAt      uint64                     // task createdAt timestamp
+	UpdatedAt      uint64                     // task updatedAt timestamp
+	Result         interface{}                `json:",omitempty"` // transfer result
+	ErrorCode      uint32                     // transfer error code
+	ErrMsg         string                     `json:",omitempty"` // transfer error message
+	StoreType      uint32                     // upload task store type
+	Encrypted      bool                       // is encrypted or not
 }
 
 type TransferlistResp struct {
@@ -366,7 +370,7 @@ func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, proveLe
 	log.Infof("copyNumVal+++ %v", copyNumVal)
 	copyNum, err := ToUint64(copyNumVal)
 	if err != nil {
-		return nil, &DspErr{Code: FS_UPLOAD_FILEPATH_ERROR,
+		return nil, &DspErr{Code: INTERNAL_ERROR,
 			Error: fmt.Errorf("invalid copyNum %v error: %s", copyNumVal, err.Error())}
 	}
 	opt.CopyNum = uint64(copyNum)
@@ -2373,6 +2377,13 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *dspTypes.Progr
 		CreatedAt:    info.CreatedAt,
 		UpdatedAt:    info.UpdatedAt,
 	}
+	fee := info.FileSize * dspConsts.CHUNK_SIZE
+	if pInfo.RealFileSize > 0 {
+		fee = info.RealFileSize * dspConsts.CHUNK_SIZE
+	}
+	feeFormat := utils.FormatUsdt(fee)
+	pInfo.Fee = fee
+	pInfo.FeeFormat = feeFormat
 	pInfo.IsUploadAction = (info.Type == store.TaskTypeUpload)
 	pInfo.Progress = 0
 	// log.Debugf("get transfer %s detail total %d sum %d ret %v err %s info.type %d", info.TaskKey, info.Total, sum, info.Result, info.ErrorMsg, info.Type)
