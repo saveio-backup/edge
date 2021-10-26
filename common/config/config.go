@@ -380,7 +380,7 @@ func SetDefaultFieldForConfig(cfg *EdgeConfig) {
 		cfg.BaseConfig.ProfilePortOffset = 332
 	}
 	if len(cfg.BaseConfig.PlotPath) == 0 {
-		cfg.BaseConfig.PlotPath = "./plots"
+		cfg.BaseConfig.PlotPath = common.DEFAULT_PLOT_PATH
 	}
 }
 
@@ -485,6 +485,9 @@ func WsEnabled() bool {
 }
 
 func PlotPath() string {
+	if Parameters.BaseConfig.PlotPath != common.DEFAULT_PLOT_PATH {
+		return Parameters.BaseConfig.PlotPath
+	}
 	addr := curUsrWalAddr
 	if len(curUsrWalAddr) == 0 {
 		addr = GetDefaultAddressFromWallet(Parameters.BaseConfig.WalletDir)

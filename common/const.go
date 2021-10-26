@@ -29,6 +29,7 @@ const (
 	DEFAULT_TRACKER_PROTOCOL      = "tcp"           // default tracker protocol
 	DEFAULT_TRACKER_PORT_OFFSET   = 337             // tracker port offset
 	DEFAULT_WS_PORT_OFFSET        = 339             // tracker port offset
+	DEFAULT_PLOT_PATH             = "./plots"       // default plot path
 )
 
 // network common
