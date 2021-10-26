@@ -350,15 +350,21 @@ func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, proveLe
 			return nil, &DspErr{Code: DSP_USER_SPACE_NOT_ENOUGH, Error: ErrMaps[DSP_USER_SPACE_NOT_ENOUGH]}
 		}
 		opt.ExpiredHeight = userspace.ExpireHeight
+		log.Debugf("opt.ExpiredHeight :%d, opt.Interval :%d, current: %d",
+			opt.ExpiredHeight, opt.ProveInterval, currentHeight)
+		if opt.ExpiredHeight < opt.ProveInterval+uint64(currentHeight) {
+			return nil, &DspErr{Code: DSP_CUSTOM_EXPIRED_NOT_ENOUGH, Error: ErrMaps[DSP_CUSTOM_EXPIRED_NOT_ENOUGH]}
+		}
 	} else {
 		duration, _ := ToUint64(durationVal)
 		opt.ExpiredHeight = uint64(currentHeight + uint32(duration/config.BlockTime()))
+		log.Debugf("opt.ExpiredHeight :%d, opt.Interval :%d, current: %d",
+			opt.ExpiredHeight, opt.ProveInterval, currentHeight)
+		if opt.ExpiredHeight < opt.ProveInterval+uint64(currentHeight) {
+			return nil, &DspErr{Code: DSP_USER_SPACE_PERIOD_NOT_ENOUGH, Error: ErrMaps[DSP_USER_SPACE_PERIOD_NOT_ENOUGH]}
+		}
 	}
-	log.Debugf("opt.ExpiredHeight :%d, opt.Interval :%d, current: %d",
-		opt.ExpiredHeight, opt.ProveInterval, currentHeight)
-	if opt.ExpiredHeight < opt.ProveInterval+uint64(currentHeight) {
-		return nil, &DspErr{Code: DSP_CUSTOM_EXPIRED_NOT_ENOUGH, Error: ErrMaps[DSP_CUSTOM_EXPIRED_NOT_ENOUGH]}
-	}
+
 	privilege, err := ToUint64(privilegeVal)
 	if err != nil {
 		privilege = fs.PUBLIC
