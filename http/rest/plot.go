@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"strconv"
 	"strings"
 
 	"github.com/saveio/dsp-go-sdk/task/poc"
@@ -58,7 +59,7 @@ func GeneratePlotFile(cmd map[string]interface{}) map[string]interface{} {
 	if size == 0 {
 
 		if nonces%8 != 0 || nonces == 0 {
-			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, "invalid params nonces, nonces should be an integer multiple of 8")
+			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, "invalid params nonces, nonces should be an integer multiple of 2048")
 		}
 
 		cfg := &plot.PlotConfig{
@@ -101,7 +102,7 @@ func GeneratePlotFile(cmd map[string]interface{}) map[string]interface{} {
 	nonces = size / plot.DEFAULT_PLOT_SIZEKB
 
 	if nonces%8 != 0 || nonces == 0 {
-		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, "invalid params size, size should be an integer multiple of 8")
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, "invalid params size, size should be an integer multiple of 2048")
 	}
 
 	for i := uint64(0); i < uint64(num); i++ {
@@ -271,6 +272,40 @@ func GetAllPocTasks(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 
 	result, err := dsp.DspService.GetAllPocTasks()
+	if err != nil {
+		return ResponsePackWithErrMsg(dsp.INTERNAL_ERROR, err.Error.Error())
+	}
+
+	resp["Result"] = result
+	return resp
+}
+
+func DeletePlotFile(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	fileHash, ok := cmd["Hash"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	password, ok := cmd["Password"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	gl, _ := cmd["GasLimit"].(string)
+	gasLimit := uint64(0)
+	if len(gl) > 0 {
+		var err error
+		gasLimit, err = strconv.ParseUint(gl, 10, 64)
+		if err != nil {
+			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, err.Error())
+		}
+	}
+	if dsp.DspService == nil {
+		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
+	}
+	if checkErr := dsp.DspService.CheckPassword(password); checkErr != nil {
+		return ResponsePackWithErrMsg(checkErr.Code, checkErr.Error.Error())
+	}
+	result, err := dsp.DspService.DeletePlotFile(fileHash, gasLimit)
 	if err != nil {
 		return ResponsePackWithErrMsg(dsp.INTERNAL_ERROR, err.Error.Error())
 	}

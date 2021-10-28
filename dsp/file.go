@@ -43,7 +43,7 @@ const (
 
 type DeleteFileResp struct {
 	dspTypes.DeleteUploadFileResp
-	IsUploaded bool
+	IsUploaded bool `json:"IsUploaded,omitempty"`
 }
 
 type TransferType int

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path"
 	"path/filepath"
 	"runtime"
@@ -217,4 +218,38 @@ func (this *Endpoint) GetAllPocTasks() (interface{}, *DspErr) {
 
 	}
 	return resp, nil
+}
+
+func (this *Endpoint) DeletePlotFile(fileHash string, gasLimit uint64) (*DeleteFileResp, *DspErr) {
+	dsp := this.getDsp()
+	if dsp == nil {
+		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+
+	fi, err := dsp.GetFileInfo(fileHash)
+	if fi == nil && dsp.IsFileInfoDeleted(err) {
+		log.Debugf("file info is deleted: %v, %s", fi, err)
+		return nil, nil
+	}
+	if fi != nil && err == nil && fi.FileOwner.ToBase58() == dsp.WalletAddress() {
+		baseFileName := filepath.Base(string(fi.FileDesc))
+		fullFileName := path.Join(config.PlotPath(), baseFileName)
+		log.Infof("fullFileName %v, basefilename %s %s", fullFileName, baseFileName)
+
+		taskId := dsp.GetPlotTaskId(fileHash)
+		tx, _, _ := dsp.DeleteUploadFilesFromChain([]string{fileHash}, gasLimit)
+		resp := &DeleteFileResp{}
+		resp.Tx = tx
+		resp.FileHash = fileHash
+
+		cleanTaskErr := dsp.DeletePocTask(taskId)
+		if cleanTaskErr != nil {
+			return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: cleanTaskErr}
+		}
+		os.Remove(fullFileName)
+
+		return resp, nil
+	}
+	log.Debugf("fi :%v, err :%v", fi, err)
+	return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: err}
 }

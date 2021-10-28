@@ -5,6 +5,7 @@ go 1.16
 replace (
 	github.com/saveio/themis => ../themis
 	github.com/saveio/dsp-go-sdk => ../dsp-go-sdk
+	github.com/saveio/max => ../max
 )
 
 require (

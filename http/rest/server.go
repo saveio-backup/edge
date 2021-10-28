@@ -178,6 +178,7 @@ const (
 	ADD_PLOT_FOLDER_TO_MINE = "/api/v1/plots/mine/directory"
 	ALL_PROVED_PLOTS        = "/api/v1/provedplots"
 	ALL_PLOT_TASK           = "/api/v1/plottasks"
+	DELETE_PLOT_TASK        = "/api/v1/plottask/delete"
 )
 
 //init restful server
@@ -386,6 +387,7 @@ func (this *restServer) registryMethod() {
 
 		ADD_PLOT_FILE_TO_MINE:   {name: "addplotfiletomine", handler: AddPlotFileToMine},
 		ADD_PLOT_FOLDER_TO_MINE: {name: "addplotfoldertomine", handler: AddPlotFolderToMine},
+		DELETE_PLOT_TASK:        {name: "deleteplotfile", handler: DeletePlotFile},
 	}
 	this.postMap = postMethodMap
 }
