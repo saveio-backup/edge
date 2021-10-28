@@ -15,6 +15,7 @@ type ConfigResponse struct {
 	LogMaxSize   int
 	BlockConfirm int
 	SeedInterval int
+	PlotPath     string
 }
 
 func (this *Endpoint) GetConfigs() *ConfigResponse {
@@ -26,6 +27,7 @@ func (this *Endpoint) GetConfigs() *ConfigResponse {
 		LogMaxSize:   int(config.Parameters.BaseConfig.LogMaxSize),
 		BlockConfirm: int(config.Parameters.DspConfig.BlockConfirm),
 		SeedInterval: config.Parameters.DspConfig.SeedInterval,
+		PlotPath:     config.PlotPath(),
 	}
 	return newResp
 }

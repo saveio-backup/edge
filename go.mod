@@ -3,9 +3,9 @@ module github.com/saveio/edge
 go 1.16
 
 replace (
-	github.com/saveio/themis => ../themis
 	github.com/saveio/dsp-go-sdk => ../dsp-go-sdk
 	github.com/saveio/max => ../max
+	github.com/saveio/themis => ../themis
 )
 
 require (
@@ -16,7 +16,7 @@ require (
 	github.com/pborman/uuid v1.2.1
 	github.com/saveio/carrier v0.0.0-20210802055929-7567cc29dfc9
 	github.com/saveio/dsp-go-sdk v0.0.0-20210930063117-13691f30c286
-	github.com/saveio/max v0.0.0-20210825101853-a279f7982519
+	github.com/saveio/max v0.0.0-20211028065147-9634b553b277
 	github.com/saveio/pylons v0.0.0-20210802062637-12c41e6d9ba7
 	github.com/saveio/scan v1.0.78
 	github.com/saveio/themis v1.0.158
