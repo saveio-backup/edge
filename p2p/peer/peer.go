@@ -42,6 +42,7 @@ type MsgWrap struct {
 	timeout      uint64        // msg send timeout
 	retry        uint32        // msg retry times
 	retryAt      uint64        // retry msg time stamp
+
 }
 
 type FailedCount struct {
@@ -62,19 +63,20 @@ const (
 )
 
 type Peer struct {
-	id          string              // peer id
-	addr        string              // peer host address
-	client      *network.PeerClient // network overlay peer client instance
-	mq          *list.List          // message queue list
-	lock        *sync.RWMutex       // lock for sync operation
-	retry       map[string]int      // count recorder for retry send msg
-	retrying    bool                // flag of service is retrying
-	closeTime   time.Time           // peer closed time
-	failedCount *FailedCount        // peer QoS failed count
-	state       ConnectState        // connect state
-	receivedMsg *lru.ARCCache       // received msg cache
-	sessions    map[string]*Session // session map, session id <=> session struct
-	waiting     bool                // waiting peer reconnect
+	id           string              // peer id
+	addr         string              // peer host address
+	client       *network.PeerClient // network overlay peer client instance
+	mq           *list.List          // message queue list
+	lock         *sync.RWMutex       // lock for sync operation
+	retry        map[string]int      // count recorder for retry send msg
+	retrying     bool                // flag of service is retrying
+	closeTime    time.Time           // peer closed time
+	failedCount  *FailedCount        // peer QoS failed count
+	state        ConnectState        // connect state
+	receivedMsg  *lru.ARCCache       // received msg cache
+	sessions     map[string]*Session // session map, session id <=> session struct
+	waiting      bool                // waiting peer reconnect
+	isBadQuality bool                // is bad quality once
 }
 
 func New(addr string) *Peer {
@@ -115,6 +117,10 @@ func (p *Peer) ClientIsEmpty() bool {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	return p.client == nil
+}
+
+func (p *Peer) IsBadQuality() bool {
+	return p.isBadQuality
 }
 
 // SetClient. set peer client.
@@ -428,6 +434,7 @@ func (p *Peer) retryMsg() {
 			msgWrap, fails := p.getMsgToRetry()
 			if fails != nil {
 				p.lock.Lock()
+				p.isBadQuality = true
 				p.replyMsgs(fails, MsgReply{err: fmt.Errorf("bad network quality with %s", p.addr)})
 				p.lock.Unlock()
 			}
@@ -526,6 +533,7 @@ func (p *Peer) lostConn() {
 		}
 		msgs = append(msgs, e)
 	}
+	p.isBadQuality = true
 	p.replyMsgs(msgs, MsgReply{err: fmt.Errorf("bad network quality with %s", p.addr)})
 }
 
@@ -659,6 +667,7 @@ func (p *Peer) receiveMsgNotify(notify network.AckStatus) {
 		p.replyMsgs([]*list.Element{e}, MsgReply{err: fmt.Errorf("bad network quality with %s", p.addr)})
 		log.Debugf("remove %s msg which retry too much, left %d msg", msgWrap.id, p.mq.Len())
 		p.failedCount.Recv++
+		p.isBadQuality = true
 		return
 	}
 	p.retry[msgWrap.id]++

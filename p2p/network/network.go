@@ -799,6 +799,7 @@ func (this *Network) IsPeerNetQualityBad(walletAddr string) bool {
 	totalFailed := &peer.FailedCount{}
 	peerCnt := 0
 	var peerFailed *peer.FailedCount
+	var isBadQuality bool
 	this.peers.Range(func(key, value interface{}) bool {
 		peerCnt++
 		peerWalletAddr, _ := key.(string)
@@ -810,9 +811,13 @@ func (this *Network) IsPeerNetQualityBad(walletAddr string) bool {
 		totalFailed.Disconnect += cnt.Disconnect
 		if peerWalletAddr == walletAddr {
 			peerFailed = cnt
+			isBadQuality = pr.IsBadQuality()
 		}
 		return false
 	})
+	if isBadQuality {
+		return isBadQuality
+	}
 	if peerFailed == nil {
 		return false
 	}
