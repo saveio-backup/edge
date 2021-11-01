@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -26,7 +25,7 @@ func (this *Endpoint) NewPocTask(cfg *plot.PlotConfig) (string, *DspErr) {
 	}
 
 	fileName := tskUtils.GetPlotFileName(cfg.Nonces, cfg.StartNonce, cfg.NumericID)
-	fileName = path.Join(cfg.Path, fileName)
+	fileName = filepath.Join(cfg.Path, fileName)
 
 	existId, _ := dsp.GetPocTaskIdByFileName(fileName)
 	if len(existId) > 0 {
@@ -233,7 +232,7 @@ func (this *Endpoint) DeletePlotFile(fileHash string, gasLimit uint64) (*DeleteF
 	}
 	if fi != nil && err == nil && fi.FileOwner.ToBase58() == dsp.WalletAddress() {
 		baseFileName := filepath.Base(string(fi.FileDesc))
-		fullFileName := path.Join(config.PlotPath(), baseFileName)
+		fullFileName := filepath.Join(config.PlotPath(), baseFileName)
 		log.Infof("fullFileName %v, basefilename %s %s", fullFileName, baseFileName)
 
 		taskId := dsp.GetPlotTaskId(fileHash)

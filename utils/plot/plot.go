@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -141,7 +141,7 @@ func GetPlotFileName(cfg *PlotConfig) string {
 
 func GetPlotFileFullPath(cfg *PlotConfig) string {
 	fileName := GetPlotFileName(cfg)
-	return path.Join(cfg.Path, fileName)
+	return filepath.Join(cfg.Path, fileName)
 }
 
 func getPlotToolName(cfg *PlotConfig) string {
