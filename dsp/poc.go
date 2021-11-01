@@ -227,6 +227,24 @@ func (this *Endpoint) DeletePlotFile(fileHash string, gasLimit uint64) (*DeleteF
 
 	fi, err := dsp.GetFileInfo(fileHash)
 	if fi == nil && dsp.IsFileInfoDeleted(err) {
+		taskId := dsp.GetPlotTaskId(fileHash)
+		if len(taskId) == 0 {
+			log.Debugf("file info is deleted: %v, %s, taskId is null", fi, err)
+			return nil, nil
+		}
+		fileName := dsp.GetPlotTaskFileName(fileHash)
+		if len(fileName) == 0 {
+			log.Debugf("file info is deleted: %v, %s, filename is null", fi, err)
+			return nil, nil
+		}
+		fullFileName := filepath.Join(config.PlotPath(), fileName)
+		log.Infof("fullFileName %v, basefilename %s %s", fullFileName, fileName)
+
+		cleanTaskErr := dsp.DeletePocTask(taskId)
+		if cleanTaskErr != nil {
+			return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: cleanTaskErr}
+		}
+		os.Remove(fullFileName)
 		log.Debugf("file info is deleted: %v, %s", fi, err)
 		return nil, nil
 	}
