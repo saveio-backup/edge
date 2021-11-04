@@ -1787,6 +1787,7 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit, cr
 			fileUrl := ""
 			if fileHasUploaded && info.TaskState == store.TaskStateDone {
 				fileUrl = info.Url
+				totalCount++
 			}
 			log.Debugf("fileHasUploaded %t, state %d", fileHasUploaded, info.TaskState)
 			fr := &FileResp{
@@ -1809,8 +1810,10 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit, cr
 				Nodes:         nodesDetail,
 			}
 			files = append(files, fr)
+		} else {
+			totalCount++
 		}
-		totalCount++
+
 	}
 	log.Debugf("files num %d %d", len(files), totalCount)
 
