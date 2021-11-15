@@ -162,6 +162,7 @@ func (this *Endpoint) GetAllChannels() (*ChannelInfosResp, *DspErr) {
 			HostAddr:      hostAddr,
 			TokenAddr:     ch.TokenAddr,
 		}
+		log.Debugf("get channel %v balance %v format %v", newCh.ChannelId, newCh.Balance, newCh.BalanceFormat)
 		if chInfo != nil {
 			newCh.IsParticipant1Closer = chInfo.Participant1.IsCloser
 			newCh.IsParticipant2Closer = chInfo.Participant2.IsCloser

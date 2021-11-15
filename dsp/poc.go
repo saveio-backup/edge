@@ -51,6 +51,8 @@ func (this *Endpoint) GenPlotPDPData(taskId string, cfg *plot.PlotConfig) *DspEr
 	// var err error
 	err := plot.Plot(cfg)
 	if err != nil {
+		dsp.SetPocTaskFailed(taskId, err.Error())
+		log.Errorf("plot task %s with cfg %v err %s", taskId, cfg, err)
 		return NewDspErr(DSP_TASK_POC_ERROR)
 	}
 
