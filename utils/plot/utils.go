@@ -16,6 +16,7 @@ func GetMinStartNonce(numericId, path string) (uint64, error) {
 	type noncePair struct {
 		startNonce uint64
 		nonce      uint64
+		sum        uint64
 	}
 
 	pairs := make([]noncePair, 0)
@@ -41,25 +42,17 @@ func GetMinStartNonce(numericId, path string) (uint64, error) {
 		pairs = append(pairs, noncePair{
 			startNonce: startNonce,
 			nonce:      nonce,
+			sum:        startNonce + nonce,
 		})
 	}
+
 	sort.Slice(pairs, func(i, j int) bool {
-		return pairs[i].startNonce < pairs[j].startNonce
+		return pairs[i].sum < pairs[j].sum
 	})
-
 	startNonce := uint64(0)
-	for i, p := range pairs {
-		if i == 0 {
-			startNonce = p.startNonce + p.nonce
-			continue
-		}
-		if startNonce == p.startNonce {
-			startNonce = p.startNonce + p.nonce
-			continue
-		}
-		break
-
+	if len(pairs) > 0 {
+		lastPlotFile := pairs[len(pairs)-1]
+		startNonce = lastPlotFile.startNonce + lastPlotFile.nonce
 	}
-
 	return startNonce, nil
 }
