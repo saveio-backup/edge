@@ -227,6 +227,9 @@ func AddPlotFileToMine(cmd map[string]interface{}) map[string]interface{} {
 
 	result, err := dsp.DspService.AddPlotFile(taskId, fileName, createSector)
 	if err != nil {
+		if strings.Contains(strings.ToLower(err.Error.Error()), "insufficient balance") {
+			return ResponsePackWithErrMsg(dsp.INSUFFICIENT_BALANCE, err.Error.Error())
+		}
 		return ResponsePackWithErrMsg(dsp.INTERNAL_ERROR, err.Error.Error())
 	}
 
@@ -249,6 +252,9 @@ func AddPlotFolderToMine(cmd map[string]interface{}) map[string]interface{} {
 
 	result, err := dsp.DspService.AddPlotFiles(directory, createSector)
 	if err != nil {
+		if strings.Contains(strings.ToLower(err.Error.Error()), "insufficient balance") {
+			return ResponsePackWithErrMsg(dsp.INSUFFICIENT_BALANCE, err.Error.Error())
+		}
 		return ResponsePackWithErrMsg(dsp.INTERNAL_ERROR, err.Error.Error())
 	}
 
