@@ -179,6 +179,7 @@ const (
 	ALL_PROVED_PLOTS        = "/api/v1/provedplots"
 	ALL_PLOT_TASK           = "/api/v1/plottasks"
 	DELETE_PLOT_TASK        = "/api/v1/plottask/delete"
+	DELETE_PLOT_TASKS       = "/api/v1/plottask/batchdelete"
 )
 
 //init restful server
@@ -388,6 +389,7 @@ func (this *restServer) registryMethod() {
 		ADD_PLOT_FILE_TO_MINE:   {name: "addplotfiletomine", handler: AddPlotFileToMine},
 		ADD_PLOT_FOLDER_TO_MINE: {name: "addplotfoldertomine", handler: AddPlotFolderToMine},
 		DELETE_PLOT_TASK:        {name: "deleteplotfile", handler: DeletePlotFile},
+		DELETE_PLOT_TASKS:       {name: "deleteplotfiles", handler: DeletePlotFiles},
 	}
 	this.postMap = postMethodMap
 }

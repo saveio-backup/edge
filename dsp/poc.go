@@ -273,3 +273,71 @@ func (this *Endpoint) DeletePlotFile(fileHash string, gasLimit uint64) (*DeleteF
 	log.Debugf("fi :%v, err :%v", fi, err)
 	return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: err}
 }
+
+func (this *Endpoint) BatchDeletePlotFiles(taskIds []string, gasLimit uint64) ([]*DeleteFileResp, *DspErr) {
+	dsp := this.getDsp()
+	if dsp == nil {
+		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+
+	deleteResp := make([]*DeleteFileResp, 0)
+	for _, taskId := range taskIds {
+		resp := &DeleteFileResp{}
+		resp.TaskId = taskId
+		fileHash := dsp.GetTaskFileHash(taskId)
+		if len(fileHash) == 0 {
+			cleanTaskErr := dsp.DeletePocTask(taskId)
+			if cleanTaskErr != nil {
+				return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: cleanTaskErr}
+			}
+			deleteResp = append(deleteResp, resp)
+			continue
+		}
+		fileName := dsp.GetPlotTaskFileName(fileHash)
+		fi, err := dsp.GetFileInfo(fileHash)
+		if fi == nil && dsp.IsFileInfoDeleted(err) {
+			if len(fileName) == 0 {
+				cleanTaskErr := dsp.DeletePocTask(taskId)
+				if cleanTaskErr != nil {
+					return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: cleanTaskErr}
+				}
+				deleteResp = append(deleteResp, resp)
+				continue
+			}
+			baseFileName := filepath.Base(string(fileName))
+			fullFileName := filepath.Join(config.PlotPath(), baseFileName)
+			log.Infof("fullFileName %v, basefilename %s %s", fullFileName, fileName, baseFileName)
+			cleanTaskErr := dsp.DeletePocTask(taskId)
+			if cleanTaskErr != nil {
+				return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: cleanTaskErr}
+			}
+			os.Remove(fullFileName)
+			deleteResp = append(deleteResp, resp)
+			continue
+		}
+
+		if fi != nil && err == nil && fi.FileOwner.ToBase58() == dsp.WalletAddress() {
+			baseFileName := filepath.Base(string(fi.FileDesc))
+			fullFileName := filepath.Join(config.PlotPath(), baseFileName)
+			log.Infof("fullFileName %v, basefilename %s %s", fullFileName, baseFileName)
+
+			tx, _, _ := dsp.DeleteUploadFilesFromChain([]string{fileHash}, gasLimit)
+			resp.Tx = tx
+			resp.FileHash = fileHash
+			cleanTaskErr := dsp.DeletePocTask(taskId)
+			if cleanTaskErr != nil {
+				return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: cleanTaskErr}
+			}
+			os.Remove(fullFileName)
+			deleteResp = append(deleteResp, resp)
+			continue
+		}
+		cleanTaskErr := dsp.DeletePocTask(taskId)
+		if cleanTaskErr != nil {
+			return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: cleanTaskErr}
+		}
+		deleteResp = append(deleteResp, resp)
+	}
+
+	return deleteResp, nil
+}
