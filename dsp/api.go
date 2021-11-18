@@ -245,19 +245,27 @@ func (this *Endpoint) Stop() error {
 		log.Warnf("exist running task, cant stop")
 		return fmt.Errorf("exist running task, cant stop")
 	}
+	log.Debugf("stop dsp without running task")
 	if err := this.state.Stop(); err != nil {
+		log.Errorf("stop dsp state err %s", err)
 		return err
 	}
 	defer this.state.Terminate()
 	if this.p2pActor != nil {
+		log.Debugf("stop edge p2p module")
 		err := this.p2pActor.Stop()
 		if err != nil {
+			log.Errorf("stop edge p2p err %s", err)
 			return err
 		}
+		log.Debugf("stop edge p2p success")
 	}
+
 	if this.closeCh != nil {
+		log.Debugf("stop edge with closing channel")
 		close(this.closeCh)
 	}
+	log.Debugf("stop edge with closing channel success")
 	this.ResetChannelProgress()
 	return this.getDsp().Stop()
 }

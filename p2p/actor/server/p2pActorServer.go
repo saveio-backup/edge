@@ -71,16 +71,19 @@ func (this *P2PActor) Start() (*actor.PID, error) {
 func (this *P2PActor) Stop() error {
 	if this.localPID != nil {
 		this.localPID.Stop()
+		log.Debugf("stop local p2p pid success")
 	}
 	if this.dspNet != nil {
 		this.dspNet.Stop()
+		log.Debugf("stop dsp p2p pid success")
 	}
 	if this.channelNet != nil {
 		this.channelNet.Stop()
+		log.Debugf("stop channel p2p pid success")
 	}
 	if this.tkActSvr != nil {
 		this.tkActSvr.Stop()
-		log.Debugf("")
+		log.Debugf("stop tracker p2p pid success")
 	}
 	return nil
 }
