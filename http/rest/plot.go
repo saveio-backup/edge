@@ -322,9 +322,18 @@ func DeletePlotFile(cmd map[string]interface{}) map[string]interface{} {
 
 func DeletePlotFiles(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
-	taskIds, ok := cmd["TaskIds"].([]string)
+	taskIds, ok := cmd["TaskIds"].([]interface{})
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+
+	allTaskIds := make([]string, 0, len(taskIds))
+	for _, str := range taskIds {
+		taskId, ok := str.(string)
+		if !ok {
+			continue
+		}
+		allTaskIds = append(allTaskIds, taskId)
 	}
 	password, ok := cmd["Password"].(string)
 	if !ok {
@@ -345,7 +354,7 @@ func DeletePlotFiles(cmd map[string]interface{}) map[string]interface{} {
 	if checkErr := dsp.DspService.CheckPassword(password); checkErr != nil {
 		return ResponsePackWithErrMsg(checkErr.Code, checkErr.Error.Error())
 	}
-	result, err := dsp.DspService.BatchDeletePlotFiles(taskIds, gasLimit)
+	result, err := dsp.DspService.BatchDeletePlotFiles(allTaskIds, gasLimit)
 	if err != nil {
 		return ResponsePackWithErrMsg(dsp.INTERNAL_ERROR, err.Error.Error())
 	}

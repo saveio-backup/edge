@@ -463,6 +463,8 @@ github.com/saveio/themis v1.0.158/go.mod h1:XLy1mm8cvii9bqd1xd2WzFGuXmI6QRnoFG6I
 github.com/saveio/themis v1.0.161/go.mod h1:XLy1mm8cvii9bqd1xd2WzFGuXmI6QRnoFG6IbTyKwFM=
 github.com/saveio/themis v1.0.163 h1:riSCU9WU2jS60jOIjfaQHjT3pj3cNi6VhqQYa02uzvs=
 github.com/saveio/themis v1.0.163/go.mod h1:XLy1mm8cvii9bqd1xd2WzFGuXmI6QRnoFG6IbTyKwFM=
+github.com/saveio/themis v1.0.164 h1:4ZrVeUDYHQQvjgavmbMFmzH/F/iSMzfgFGNOpI7beV4=
+github.com/saveio/themis v1.0.164/go.mod h1:XLy1mm8cvii9bqd1xd2WzFGuXmI6QRnoFG6IbTyKwFM=
 github.com/saveio/themis-go-sdk v0.0.0-20210802052239-10a9844e20d5 h1:rXP+YSZ/qyGH3YlAGl3BvT7AjMiRNSyY1NsIR4em3ak=
 github.com/saveio/themis-go-sdk v0.0.0-20210802052239-10a9844e20d5/go.mod h1:NVIcg/hrgwL+lHnyK58Yb74Q3Nu6WNtYQJ80vxHlaW0=
 github.com/saveio/themis-go-sdk v0.0.0-20210909064643-325bf09f3e3a h1:4QOLQe4fa3cS+zd+6fFeWAUvJX1aEOZNLJWLbu04yJY=
