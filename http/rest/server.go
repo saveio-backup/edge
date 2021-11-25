@@ -488,10 +488,6 @@ func (this *restServer) getPath(url string) string {
 	//path for channel
 	if strings.Contains(url, strings.TrimRight(QUERY_CHANNEL, ":partneraddr")) {
 		return QUERY_CHANNEL
-		// } else if strings.Contains(url, strings.TrimRight(DEPOSIT_CHANNEL, ":partneraddr/:amount")) {
-		// 	return DEPOSIT_CHANNEL
-	//} else if strings.Contains(url, strings.TrimRight(TRANSFER_BY_CHANNEL, ":toaddr/:amount/:paymentid")) {
-	//	return TRANSFER_BY_CHANNEL
 	} else if strings.Contains(url, strings.TrimRight(QUERY_CHANNEL_DEPOSIT, ":partneraddr")) {
 		return QUERY_CHANNEL_DEPOSIT
 	} else if strings.Contains(url, strings.TrimRight(QUERY_CHANNEL_BY_ID, ":id")) {
@@ -649,9 +645,6 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 
 	//params for channel
 	switch url {
-	//case TRANSFER_BY_CHANNEL:
-	//	req["Amount"] = getParam(r, "amount")
-	//	req["To"], req["PaymentId"] = getParam(r, "toaddr"), getParam(r, "paymentid")
 	case QUERY_CHANNEL_DEPOSIT:
 		req["Partner"] = getParam(r, "partneraddr")
 	case QUERY_CHANNEL:

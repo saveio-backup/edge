@@ -304,8 +304,10 @@ func TransferByChannel(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
 	amount, err := strconv.ParseFloat(amountstr, 10)
-	if err != nil {
-		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	if err != nil || amount < 0 {
+		errMsg := dsp.ErrMaps[dsp.INVALID_PARAMS].Error()
+		errMsg += "; Amount range [0, Infinity)"
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, errMsg)
 	}
 	realAmount := uint64(amount * math.Pow10(constants.USDT_DECIMALS))
 
