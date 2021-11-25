@@ -303,10 +303,12 @@ func TransferByChannel(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
-	amount, err := strconv.ParseUint(amountstr, 10, 64)
+	amount, err := strconv.ParseFloat(amountstr, 10)
 	if err != nil {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
+	realAmount := uint64(amount * math.Pow10(constants.USDT_DECIMALS))
+
 	idStr, ok := cmd["PaymentId"].(string)
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
@@ -325,7 +327,7 @@ func TransferByChannel(cmd map[string]interface{}) map[string]interface{} {
 	if checkErr := dsp.DspService.CheckPassword(password); checkErr != nil {
 		return ResponsePackWithErrMsg(checkErr.Code, checkErr.Error.Error())
 	}
-	derr := dsp.DspService.MediaTransfer(int32(paymentId), amount, toAddrstr)
+	derr := dsp.DspService.MediaTransfer(int32(paymentId), realAmount, toAddrstr)
 	if derr != nil {
 		return ResponsePackWithErrMsg(derr.Code, derr.Error.Error())
 	}

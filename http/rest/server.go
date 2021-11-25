@@ -137,7 +137,7 @@ const (
 	CLOSE_ALL_CHANNEL         = "/api/v1/channel/closeall"
 	DEPOSIT_CHANNEL           = "/api/v1/channel/deposit"
 	WITHDRAW_CHANNEL          = "/api/v1/channel/withdraw"
-	TRANSFER_BY_CHANNEL       = "/api/v1/channel/transfer/:toaddr/:amount/:paymentid"
+	TRANSFER_BY_CHANNEL       = "/api/v1/channel/transfer"
 	QUERY_CHANNEL_DEPOSIT     = "/api/v1/channel/query/deposit/:partneraddr"
 	QUERY_CHANNEL             = "/api/v1/channel/query/detail/:partneraddr"
 	QUERY_CHANNEL_BY_ID       = "/api/v1/channel/query/:id"
@@ -292,7 +292,6 @@ func (this *restServer) registryMethod() {
 		GET_CHANNEL_INIT_PROGRESS: {name: "channelinitprogress", handler: GetChannelInitProgress},
 		GET_ALL_CHANNEL:           {name: "getallchannels", handler: GetAllChannels},
 
-		TRANSFER_BY_CHANNEL:   {name: "transferbychannel", handler: TransferByChannel},
 		QUERY_CHANNEL_DEPOSIT: {name: "querydeposit", handler: QueryChannelDeposit},
 		QUERY_CHANNEL:         {name: "querychannel", handler: QueryChannel},
 		QUERY_CHANNEL_BY_ID:   {name: "querychannelbyid", handler: QueryChannelByID},
@@ -360,6 +359,7 @@ func (this *restServer) registryMethod() {
 		DSP_UPDATE_FILE_WHITELIST:      {name: "updatewhitelist", handler: WhiteListOperate},
 		DSP_DELETE_TRANSFER_RECORD:     {name: "deletetransnferlist", handler: DeleteTransferRecord},
 
+		TRANSFER_BY_CHANNEL: {name: "transferbychannel", handler: TransferByChannel},
 		DEPOSIT_CHANNEL:   {name: "depositchannel", handler: DepositChannel},
 		WITHDRAW_CHANNEL:  {name: "withdrawchannel", handler: WithdrawChannel},
 		OPEN_CHANNEL:      {name: "openchannel", handler: OpenChannel},
@@ -490,8 +490,8 @@ func (this *restServer) getPath(url string) string {
 		return QUERY_CHANNEL
 		// } else if strings.Contains(url, strings.TrimRight(DEPOSIT_CHANNEL, ":partneraddr/:amount")) {
 		// 	return DEPOSIT_CHANNEL
-	} else if strings.Contains(url, strings.TrimRight(TRANSFER_BY_CHANNEL, ":toaddr/:amount/:paymentid")) {
-		return TRANSFER_BY_CHANNEL
+	//} else if strings.Contains(url, strings.TrimRight(TRANSFER_BY_CHANNEL, ":toaddr/:amount/:paymentid")) {
+	//	return TRANSFER_BY_CHANNEL
 	} else if strings.Contains(url, strings.TrimRight(QUERY_CHANNEL_DEPOSIT, ":partneraddr")) {
 		return QUERY_CHANNEL_DEPOSIT
 	} else if strings.Contains(url, strings.TrimRight(QUERY_CHANNEL_BY_ID, ":id")) {
@@ -649,9 +649,9 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 
 	//params for channel
 	switch url {
-	case TRANSFER_BY_CHANNEL:
-		req["Amount"] = getParam(r, "amount")
-		req["To"], req["PaymentId"] = getParam(r, "toaddr"), getParam(r, "paymentid")
+	//case TRANSFER_BY_CHANNEL:
+	//	req["Amount"] = getParam(r, "amount")
+	//	req["To"], req["PaymentId"] = getParam(r, "toaddr"), getParam(r, "paymentid")
 	case QUERY_CHANNEL_DEPOSIT:
 		req["Partner"] = getParam(r, "partneraddr")
 	case QUERY_CHANNEL:
