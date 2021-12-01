@@ -17,7 +17,7 @@ require (
 	github.com/saveio/dsp-go-sdk v0.0.0-20211108093939-5c1746d53b4b
 	github.com/saveio/max v0.0.0-20211028065147-9634b553b277
 	github.com/saveio/pylons v0.0.0-20211109032939-13c30c056ead
-	github.com/saveio/scan v1.0.82
+	github.com/saveio/scan v1.0.91
 	github.com/saveio/themis v1.0.164
 	github.com/saveio/themis-go-sdk v0.0.0-20211105080535-6ccfe8eedbe9
 	github.com/tjfoc/gmtls v1.2.1 // indirect

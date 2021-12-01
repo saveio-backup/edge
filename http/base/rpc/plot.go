@@ -3,6 +3,7 @@ package rpc
 import (
 	"github.com/saveio/edge/dsp"
 	"github.com/saveio/edge/http/rest"
+	"github.com/saveio/themis/common/log"
 )
 
 func GeneratePlotFile(cmd []interface{}) map[string]interface{} {
@@ -63,7 +64,9 @@ func AddPlotFiles(cmd []interface{}) map[string]interface{} {
 
 func GetAllProvedPlotFile(cmd []interface{}) map[string]interface{} {
 	v := rest.GetAllProvedPlotFile(nil)
+	log.Infof("GetAllProvedPlotFile task v %v", v)
 	ret, err := parseRestResult(v)
+	log.Infof("parse Rest Result %v", ret, err)
 	if err != nil {
 		return responsePackError(err.Code, err.Error.Error())
 	}
@@ -72,7 +75,9 @@ func GetAllProvedPlotFile(cmd []interface{}) map[string]interface{} {
 
 func GetAllPocTasks(cmd []interface{}) map[string]interface{} {
 	v := rest.GetAllPocTasks(nil)
+	log.Infof("get all task v %v", v)
 	ret, err := parseRestResult(v)
+	log.Infof("parse Rest Result %v", ret, err)
 	if err != nil {
 		return responsePackError(err.Code, err.Error.Error())
 	}

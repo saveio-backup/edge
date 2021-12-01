@@ -1,5 +1,7 @@
 package utils
 
+import "github.com/saveio/themis/common/log"
+
 func GeneratePlotFile(system, ID, path string, start, nonces uint64) ([]byte, error) {
 	ret, dErr := sendRpcRequest("generateplotfile", []interface{}{system, ID, start, nonces, path})
 	if dErr != nil {
@@ -42,6 +44,7 @@ func GetAllProvedPlotFile() ([]byte, error) {
 
 func GetAllPlotTasks() ([]byte, error) {
 	ret, dErr := sendRpcRequest("getallpoctasks", []interface{}{})
+	log.Infof("ret +++ %v, dErr %v", ret, dErr)
 	if dErr != nil {
 		return nil, dErr.Error
 	}

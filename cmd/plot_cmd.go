@@ -214,6 +214,7 @@ func addPlotFile(ctx *cli.Context) error {
 func getAllProvedPlotFile(ctx *cli.Context) error {
 
 	ret, err := utils.GetAllProvedPlotFile()
+	log.Infof("getAllProvedPlotFile cmd %v, err %v", ret, err)
 	if err != nil {
 		PrintErrorMsg(err.Error())
 		return nil
@@ -225,6 +226,7 @@ func getAllProvedPlotFile(ctx *cli.Context) error {
 func getAllPlotTasks(ctx *cli.Context) error {
 
 	ret, err := utils.GetAllPlotTasks()
+	log.Infof("GetAllPlotTasks cmd %v, err %v", ret, err)
 	if err != nil {
 		PrintErrorMsg(err.Error())
 		return nil
