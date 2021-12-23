@@ -286,6 +286,13 @@ func (this *Endpoint) BatchDeletePlotFiles(taskIds []string, gasLimit uint64) ([
 		resp.TaskId = taskId
 		fileHash := dsp.GetTaskFileHash(taskId)
 		if len(fileHash) == 0 {
+			fileName := dsp.GetPlotTaskFileNameById(taskId)
+			log.Debugf("poc task %s has null filehash its name %s", taskId, fileName)
+			if len(fileName) > 0 {
+				baseFileName := filepath.Base(string(fileName))
+				fullFileName := filepath.Join(config.PlotPath(), baseFileName)
+				os.Remove(fullFileName)
+			}
 			cleanTaskErr := dsp.DeletePocTask(taskId)
 			if cleanTaskErr != nil {
 				return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: cleanTaskErr}
@@ -309,6 +316,7 @@ func (this *Endpoint) BatchDeletePlotFiles(taskIds []string, gasLimit uint64) ([
 			log.Infof("fullFileName %v, basefilename %s %s", fullFileName, fileName, baseFileName)
 			cleanTaskErr := dsp.DeletePocTask(taskId)
 			if cleanTaskErr != nil {
+				os.Remove(fullFileName)
 				return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: cleanTaskErr}
 			}
 			os.Remove(fullFileName)
@@ -326,6 +334,7 @@ func (this *Endpoint) BatchDeletePlotFiles(taskIds []string, gasLimit uint64) ([
 			resp.FileHash = fileHash
 			cleanTaskErr := dsp.DeletePocTask(taskId)
 			if cleanTaskErr != nil {
+				os.Remove(fullFileName)
 				return nil, &DspErr{Code: DSP_DELETE_FILE_FAILED, Error: cleanTaskErr}
 			}
 			os.Remove(fullFileName)
