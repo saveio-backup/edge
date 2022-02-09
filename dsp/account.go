@@ -2,9 +2,11 @@ package dsp
 
 import (
 	"encoding/hex"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/saveio/dsp-go-sdk/dsp"
 	"github.com/saveio/edge/common"
@@ -14,7 +16,6 @@ import (
 	"github.com/saveio/themis/account"
 	chainCom "github.com/saveio/themis/common"
 	"github.com/saveio/themis/common/log"
-	"github.com/saveio/themis/core/types"
 	"github.com/saveio/themis/crypto/keypair"
 	"github.com/saveio/themis/crypto/signature"
 	s "github.com/saveio/themis/crypto/signature"
@@ -24,6 +25,7 @@ type AccountResp struct {
 	PrivateKey string
 	PublicKey  string
 	Address    string
+	EthAddress string
 	SigScheme  s.SignatureScheme
 	Label      string
 	Wallet     string
@@ -65,10 +67,11 @@ func (this *Endpoint) GetCurrentAccount() (*AccountResp, *DspErr) {
 			return nil, &DspErr{Code: ACCOUNT_NOT_LOGIN, Error: ErrMaps[ACCOUNT_NOT_LOGIN]}
 		}
 		return &AccountResp{
-			PublicKey: hex.EncodeToString(keypair.SerializePublicKey(account.PublicKey)),
-			Address:   account.Address.ToBase58(),
-			SigScheme: account.SigScheme,
-			Label:     this.getDspAccountLabel(),
+			PublicKey:  hex.EncodeToString(keypair.SerializePublicKey(account.PublicKey)),
+			Address:    account.Address.ToBase58(),
+			EthAddress: account.EthAddress.String(),
+			SigScheme:  account.SigScheme,
+			Label:      this.getDspAccountLabel(),
 		}, nil
 	}
 	if common.FileExisted(config.WalletDatFilePath()) {
@@ -99,10 +102,11 @@ func (this *Endpoint) Login(password string) (*AccountResp, *DspErr) {
 			return nil, &DspErr{Code: ACCOUNT_NOT_LOGIN, Error: ErrMaps[ACCOUNT_NOT_LOGIN]}
 		}
 		return &AccountResp{
-			PublicKey: hex.EncodeToString(keypair.SerializePublicKey(account.PublicKey)),
-			Address:   account.Address.ToBase58(),
-			SigScheme: account.SigScheme,
-			Label:     this.getDspAccountLabel(),
+			PublicKey:  hex.EncodeToString(keypair.SerializePublicKey(account.PublicKey)),
+			Address:    account.Address.ToBase58(),
+			EthAddress: account.EthAddress.String(),
+			SigScheme:  account.SigScheme,
+			Label:      this.getDspAccountLabel(),
 		}, nil
 	}
 	service, err := Init(config.WalletDatFilePath(), password)
@@ -121,10 +125,11 @@ func (this *Endpoint) Login(password string) (*AccountResp, *DspErr) {
 		return nil, &DspErr{Code: DSP_INIT_FAILED, Error: ErrMaps[DSP_INIT_FAILED]}
 	}
 	return &AccountResp{
-		PublicKey: hex.EncodeToString(keypair.SerializePublicKey(account.PublicKey)),
-		Address:   account.Address.ToBase58(),
-		SigScheme: account.SigScheme,
-		Label:     service.getDspAccountLabel(),
+		PublicKey:  hex.EncodeToString(keypair.SerializePublicKey(account.PublicKey)),
+		Address:    account.Address.ToBase58(),
+		EthAddress: account.EthAddress.String(),
+		SigScheme:  account.SigScheme,
+		Label:      service.getDspAccountLabel(),
 	}, nil
 }
 
@@ -147,12 +152,11 @@ func (this *Endpoint) NewAccount(label string, typeCode keypair.KeyType, curveCo
 		log.Debugf("err %v", err)
 		return nil, &DspErr{Code: CREATE_ACCOUNT_FAILED, Error: err}
 	}
-	key, err := keypair.Key2WIF(acc.PrivateKey)
-	if err != nil {
-		return nil, &DspErr{Code: CREATE_ACCOUNT_FAILED, Error: err}
-	}
+
+	accPrivateKey := acc.GetPrivateKey()
+
 	acc2 := &AccountResp{
-		PrivateKey: string(key),
+		PrivateKey: fmt.Sprintf("%x", accPrivateKey),
 		Label:      label,
 	}
 	if createOnly {
@@ -166,10 +170,11 @@ func (this *Endpoint) NewAccount(label string, typeCode keypair.KeyType, curveCo
 		return acc2, nil
 	}
 	acc2 = &AccountResp{
-		PublicKey: hex.EncodeToString(keypair.SerializePublicKey(acc.PublicKey)),
-		Address:   acc.Address.ToBase58(),
-		SigScheme: acc.SigScheme,
-		Label:     label,
+		PublicKey:  hex.EncodeToString(keypair.SerializePublicKey(acc.PublicKey)),
+		Address:    acc.Address.ToBase58(),
+		EthAddress: acc.EthAddress.String(),
+		SigScheme:  acc.SigScheme,
+		Label:      label,
 	}
 	service, err := Init(config.WalletDatFilePath(), string(pwd))
 	log.Debugf("ini DspService at new account:%v\n", service)
@@ -185,13 +190,12 @@ func (this *Endpoint) NewAccount(label string, typeCode keypair.KeyType, curveCo
 }
 
 func (this *Endpoint) ImportWithPrivateKey(wif, label, password string) (*AccountResp, *DspErr) {
-	privateKey, err := keypair.WIF2Key([]byte(wif))
+	privateKey, err := hex.DecodeString(strings.TrimPrefix(wif, "0x"))
 	if err != nil {
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: err}
 	}
-	publicKey := privateKey.Public()
-	addr := types.AddressFromPubKey(publicKey)
-	k, err := keypair.EncryptPrivateKey(privateKey, addr.ToBase58(), []byte(password))
+	acc := account.NewAccountWithPrivateKey(privateKey)
+	k, err := keypair.EncryptPrivateKey(acc.PrivKey(), acc.Address.ToBase58(), []byte(password))
 	if err != nil {
 		return nil, &DspErr{Code: ACCOUNT_PASSWORD_WRONG, Error: err}
 	}
@@ -213,21 +217,18 @@ func (this *Endpoint) ImportWithPrivateKey(wif, label, password string) (*Accoun
 	accMeta.Curve = k.Param["curve"]
 	accMeta.Salt = k.Salt
 	accMeta.Label = label
-	accMeta.PubKey = hex.EncodeToString(keypair.SerializePublicKey(privateKey.Public()))
+	accMeta.PubKey = hex.EncodeToString(keypair.SerializePublicKey(acc.PubKey))
 	accMeta.SigSch = signature.SHA256withECDSA.Name()
 	err = wallet.ImportAccount(&accMeta)
 	if err != nil {
 		return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
 	}
-	acc := &account.Account{
-		PrivateKey: privateKey,
-		PublicKey:  publicKey,
-		Address:    addr,
-	}
+
 	acc2 := &AccountResp{
 		PrivateKey: wif,
 		PublicKey:  hex.EncodeToString(keypair.SerializePublicKey(acc.PublicKey)),
 		Address:    acc.Address.ToBase58(),
+		EthAddress: acc.EthAddress.String(),
 		SigScheme:  signature.SHA256withECDSA,
 		Label:      label,
 	}
@@ -269,10 +270,11 @@ func (this *Endpoint) ImportWithWalletData(walletStr, password, walletPath strin
 		return nil, &DspErr{Code: ACCOUNT_PASSWORD_WRONG, Error: err}
 	}
 	acc2 := &AccountResp{
-		PublicKey: hex.EncodeToString(keypair.SerializePublicKey(acc.PublicKey)),
-		Address:   acc.Address.ToBase58(),
-		SigScheme: acc.SigScheme,
-		Label:     accData.Label,
+		PublicKey:  hex.EncodeToString(keypair.SerializePublicKey(acc.PublicKey)),
+		Address:    acc.Address.ToBase58(),
+		EthAddress: acc.EthAddress.String(),
+		SigScheme:  acc.SigScheme,
+		Label:      accData.Label,
 	}
 	if len(walletPath) > 0 {
 		if common.IsAbsPath(walletPath) {
@@ -336,11 +338,8 @@ func (this *Endpoint) ExportWIFPrivateKey() (*WIFKeyResp, *DspErr) {
 	if derr != nil {
 		return nil, derr
 	}
-	key, err := keypair.Key2WIF(acc.PrivateKey)
-	if err != nil {
-		return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
-	}
-	return &WIFKeyResp{PrivateKey: string(key)}, nil
+
+	return &WIFKeyResp{PrivateKey: fmt.Sprintf("%x", acc.GetPrivateKey())}, nil
 }
 
 func (this *Endpoint) ExportWalletFile() (*WalletfileResp, *DspErr) {

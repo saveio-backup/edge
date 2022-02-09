@@ -200,6 +200,7 @@ func accountCreate(ctx *cli.Context) error {
 		PrintInfoMsg("Index:%d", wallet.GetAccountNum())
 		PrintInfoMsg("Label:%s", label)
 		PrintInfoMsg("Address:%s", acc.Address.ToBase58())
+		PrintInfoMsg("EthAddress:%s", acc.EthAddress.String())
 		PrintInfoMsg("Id(For PoC):%d", eUtils.WalletAddressToId([]byte(acc.Address.ToBase58())))
 		PrintInfoMsg("Public key:%s", hex.EncodeToString(keypair.SerializePublicKey(acc.PublicKey)))
 		PrintInfoMsg("Signature scheme:%s", acc.SigScheme.Name())
