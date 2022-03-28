@@ -276,10 +276,10 @@ func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, proveLe
 			Error: fmt.Errorf("os stat file %s error: %s", path, err.Error())}
 	}
 	log.Debugf("path: %v, isDir: %t", path, f.IsDir())
-	if f.IsDir() {
-		return nil, &DspErr{Code: FS_UPLOAD_FILEPATH_ERROR,
-			Error: fmt.Errorf("uploadFile error: %s is a directory", path)}
-	}
+	//if f.IsDir() {
+	//	return nil, &DspErr{Code: FS_UPLOAD_FILEPATH_ERROR,
+	//		Error: fmt.Errorf("uploadFile error: %s is a directory", path)}
+	//}
 	if len(this.dspNet.GetProxyServer().PeerID) > 0 &&
 		!this.dspNet.IsConnReachable(this.dspNet.WalletAddrFromPeerId(this.dspNet.GetProxyServer().PeerID)) {
 		return nil, &DspErr{Code: NET_PROXY_DISCONNECTED,
@@ -897,7 +897,7 @@ func (this *Endpoint) DownloadFile(taskId, fileHash, url, linkStr, password stri
 			// }()
 			err := dsp.DownloadFileByHash(taskId, fileHash, dspConsts.ASSET_USDT, inOrder, password, false, setFileName, int(max))
 			if err != nil {
-				log.Errorf("Downloadfile from url failed %s", err)
+				log.Errorf("Download file from file hash failed %s", err)
 			}
 		}()
 		return nil
