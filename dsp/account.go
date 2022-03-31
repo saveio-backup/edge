@@ -153,7 +153,7 @@ func (this *Endpoint) NewAccount(label string, typeCode keypair.KeyType, curveCo
 		return nil, &DspErr{Code: CREATE_ACCOUNT_FAILED, Error: err}
 	}
 
-	accPrivateKey := acc.GetPrivateKey()
+	accPrivateKey := acc.GetEthPrivateKey()
 
 	acc2 := &AccountResp{
 		PrivateKey: fmt.Sprintf("%x", accPrivateKey),
@@ -195,6 +195,7 @@ func (this *Endpoint) ImportWithPrivateKey(wif, label, password string) (*Accoun
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: err}
 	}
 	acc := account.NewAccountWithPrivateKey(privateKey)
+	log.Infof("Import account %s, eth address %s", acc.Address.ToBase58(), acc.EthAddress.String())
 	k, err := keypair.EncryptPrivateKey(acc.PrivKey(), acc.Address.ToBase58(), []byte(password))
 	if err != nil {
 		return nil, &DspErr{Code: ACCOUNT_PASSWORD_WRONG, Error: err}
@@ -214,10 +215,12 @@ func (this *Endpoint) ImportWithPrivateKey(wif, label, password string) (*Accoun
 	accMeta.EncAlg = k.EncAlg
 	accMeta.Hash = k.Hash
 	accMeta.Key = k.Key
+	accMeta.EthAddress = k.EthAddress
+	accMeta.EthKey = k.EthKey
 	accMeta.Curve = k.Param["curve"]
 	accMeta.Salt = k.Salt
 	accMeta.Label = label
-	accMeta.PubKey = hex.EncodeToString(keypair.SerializePublicKey(acc.PubKey))
+	accMeta.PubKey = hex.EncodeToString(keypair.SerializePublicKey(acc.PubKey()))
 	accMeta.SigSch = signature.SHA256withECDSA.Name()
 	err = wallet.ImportAccount(&accMeta)
 	if err != nil {
@@ -339,7 +342,7 @@ func (this *Endpoint) ExportWIFPrivateKey() (*WIFKeyResp, *DspErr) {
 		return nil, derr
 	}
 
-	return &WIFKeyResp{PrivateKey: fmt.Sprintf("%x", acc.GetPrivateKey())}, nil
+	return &WIFKeyResp{PrivateKey: fmt.Sprintf("%x", acc.GetEthPrivateKey())}, nil
 }
 
 func (this *Endpoint) ExportWalletFile() (*WalletfileResp, *DspErr) {

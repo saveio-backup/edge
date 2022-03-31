@@ -256,6 +256,7 @@ func accountList(ctx *cli.Context) error {
 			PrintInfoMsg("%v\t%v", i, accMeta.Address)
 		}
 		PrintInfoMsg("	Label: %v", accMeta.Label)
+		PrintInfoMsg("  EthAddress: %v", accMeta.EthAddress)
 		PrintInfoMsg("	Signature algorithm: %v", accMeta.KeyType)
 		PrintInfoMsg("	Curve: %v", accMeta.Curve)
 		PrintInfoMsg("	Key length: %v bits", len(accMeta.Key)*8)
