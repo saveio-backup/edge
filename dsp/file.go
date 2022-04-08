@@ -276,9 +276,6 @@ func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, proveLe
 			Error: fmt.Errorf("os stat file %s error: %s", path, err.Error())}
 	}
 	log.Debugf("path: %v, isDir: %t", path, f.IsDir())
-	if f.IsDir() {
-		desc += "/"
-	}
 	if len(this.dspNet.GetProxyServer().PeerID) > 0 &&
 		!this.dspNet.IsConnReachable(this.dspNet.WalletAddrFromPeerId(this.dspNet.GetProxyServer().PeerID)) {
 		return nil, &DspErr{Code: NET_PROXY_DISCONNECTED,
