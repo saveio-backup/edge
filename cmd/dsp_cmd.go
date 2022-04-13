@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
-	"os"
 	"path/filepath"
 
 	"github.com/saveio/edge/cmd/flags"
@@ -232,11 +231,11 @@ func fileUpload(ctx *cli.Context) error {
 	if ctx.IsSet(flags.GetFlagName(flags.DspSizeFlag)) {
 		realFileSize = ctx.Uint64(flags.GetFlagName(flags.DspSizeFlag))
 	} else {
-		stat, err := os.Stat(fileName)
+		realFileSize, err = eUtils.GetFileRealSize(fileName)
 		if err != nil {
 			return err
 		}
-		realFileSize = uint64(stat.Size() / 1024)
+		realFileSize = realFileSize / 1024
 		if realFileSize == 0 {
 			realFileSize = 1
 		}

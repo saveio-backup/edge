@@ -9,6 +9,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"io/ioutil"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -154,4 +155,30 @@ func ToUint64(in interface{}) (uint64, error) {
 
 	return 0, fmt.Errorf("unknown type of %v is %T", in, in)
 
+}
+
+func GetFileRealSize(path string) (uint64, error) {
+	stat, err := os.Stat(path)
+	if err != nil {
+		return 0, err
+	}
+	if !stat.IsDir() {
+		return uint64(stat.Size()), nil
+	}
+	files, err := ioutil.ReadDir(path)
+	if err != nil {
+		return 0, err
+	}
+	var size uint64
+	for _, file := range files {
+		if file.IsDir() {
+			realSize, err := GetFileRealSize(filepath.Join(path, file.Name()))
+			if err != nil {
+				return 0, err
+			}
+			size += realSize
+		}
+		size += uint64(file.Size())
+	}
+	return size, nil
 }
