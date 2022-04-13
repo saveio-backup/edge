@@ -7,18 +7,20 @@ import (
 )
 
 type UploadFile struct {
-	Id         string
 	WalletAddr string
 	FileId     string
-	FileName   string
-	FileSize   string
-	FileType   string
-	NodeList   []string
-	SliceSize  int64
-	SliceArr   []int64 //文件已经上传后的下标合集
-	Payment    int64
-	Status     int64 // 0 上传中 1 上传完成 2 已经删除
 	CreateTime time.Time
+	SliceArr   []int64 //文件已经上传后的下标合集
+	// Id         string //本次上传id
+	// FileName   string
+	// FileSize   string
+	// FileType   string
+	// NodeList   []string
+	// SliceSize  int64
+
+	// Status     int64 // 0 上传中 1 上传完成 2 已经删除
+	// Payment    int64
+
 }
 
 func (uploadFile *UploadFile) Serialize() []byte {

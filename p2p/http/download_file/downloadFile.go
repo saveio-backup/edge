@@ -7,18 +7,20 @@ import (
 )
 
 type DownLoadFile struct {
-	Id         string
+	Id         string //本次下载id
 	WalletAddr string
 	FileId     string
-	FileName   string
-	FileSize   string
-	FileType   string
-	NodeList   []string
-	SliceSize  int64
+	Payment    float64
 	SliceArr   []int64 //文件已经下载后的下标合集
-	Payment    int64
-	Status     int64 //0 下载中 1下载完成 2 已删除
 	CreateTime time.Time
+	// FileName   string
+	// FileSize   string
+	// FileType   string
+	// NodeList   []string
+	// SliceSize  int64
+	// SliceArr   []int64 //文件已经下载后的下标合集
+	// Status     int64 //0 下载中 1下载完成 2 已删除
+
 }
 
 func (downloadFile *DownLoadFile) Serialize() []byte {

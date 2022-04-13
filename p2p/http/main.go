@@ -16,16 +16,21 @@ type DownloadResultData struct {
 	FileId string `json:"fileId"`
 	Data   string `json:"data"`
 }
+
+type UploadResultData struct {
+	Index  int64  `json:"index"`
+	FileId string `json:"fileId"`
+}
 type JsonResult struct {
-	Code int                `json:"code"`
-	Msg  string             `json:"msg"`
-	Data DownloadResultData `json:"data"`
+	Code int         `json:"code"`
+	Msg  string      `json:"msg"`
+	Data interface{} `json:"data"`
 }
 
 var DB *leveldb.DB
 
 func init() {
-	db, err := leveldb.Opile("./p2p_http_file.db", nil)
+	db, err := leveldb.OpenFile("./p2p_http_file.db", nil)
 	if err != nil {
 		panic(err)
 	}
@@ -40,8 +45,9 @@ func FileUpload(w http.ResponseWriter, r *http.Request) {
 	//walletAddr fileId sliceSize index data
 	walletAddr := r.PostFormValue("walletAddr")
 	fileId := r.PostFormValue("fileId")
-	sliceSize, _ := strconv.ParseInt(r.PostFormValue("scliceSize"), 10, 64)
 	index, _ := strconv.ParseInt(r.PostFormValue("index"), 10, 64)
+	// payment, _ := strconv.ParseInt(r.PostFormValue("index"), 10, 64) //只有支付成功才能到上传这里
+
 	//data := r.PostFormValue("data") //将数据上传到fs模块 walletaddr fileId index
 
 	//查询levelDb中是否含有该文件
@@ -52,15 +58,18 @@ func FileUpload(w http.ResponseWriter, r *http.Request) {
 			uploadfile := uploadfile.UploadFile{
 				WalletAddr: walletAddr,
 				FileId:     fileId,
-				SliceSize:  sliceSize,
-				SliceArr:   make([]int64, 100),
 				CreateTime: time.Now(),
 			}
 			uploadfile.SliceArr = append(uploadfile.SliceArr, index)
 			w.WriteHeader(200)
+			uploadResultData:=UploadResultData{
+				Index:index,
+				FileId:fileId,
+			}
 			res, _ := json.Marshal(JsonResult{
 				Code: 200,
 				Msg:  "success",
+				Data:uploadResultData,
 			})
 			w.Write(res)
 		} else {
@@ -69,28 +78,25 @@ func FileUpload(w http.ResponseWriter, r *http.Request) {
 	}
 	//加入已经存在
 	file := uploadfile.DeserializeUploadFile(fileByte)
-	isHave := false
-	for _, v := range file.SliceArr {
-		if v == index {
-			isHave = true
-		}
+
+	file.SliceArr = append(file.SliceArr, index)
+	fileByte = file.Serialize()
+	err = DB.Put([]byte("up_"+walletAddr+fileId), fileByte, nil)
+	if err != nil {
+		panic(err)
 	}
-	if !isHave {
-		file.SliceArr = append(file.SliceArr, index)
-		fileByte = file.Serialize()
-		err = DB.Put([]byte("up_"+walletAddr+fileId), fileByte, nil)
-		w.WriteHeader(200)
-		if err != nil {
-			panic(err)
-		}
-	} else {
-		w.WriteHeader(200)
-		res, _ := json.Marshal(JsonResult{
-			Code: 200,
-			Msg:  "uploaded",
-		})
-		w.Write(res)
+	w.WriteHeader(200)
+	uploadResultData:=UploadResultData{
+		Index:index,
+		FileId:fileId,
 	}
+	res, _ := json.Marshal(JsonResult{
+		Code: 200,
+		Msg:  "success",
+		Data:uploadResultData,
+	})
+	w.Write(res)
+
 }
 
 func FileDownload(w http.ResponseWriter, r *http.Request) {
@@ -106,60 +112,55 @@ func FileDownload(w http.ResponseWriter, r *http.Request) {
 	if walletAddr == "" || fileId == "" || err != nil {
 		w.WriteHeader(400)
 	} else {
-		//从fs模块获取数据 walletAddr fileId index
+		//1.扣费
+
+		//2.fs模块获取数据 walletAddr fileId index
+
 		//查询levelDb中是否含有该文件
 		fileByte, err := DB.Get([]byte("down_"+walletAddr+id), nil)
 		if err != nil {
 			if err.Error() == "leveldb: not found" {
 				//查询数据不存在 进行创建
 				downloadFile := downloadfile.DownLoadFile{
-					WalletAddr: walletAddr,
-					FileId:     fileId,
-					Id:         "45646", //测试id
+					WalletAddr : walletAddr,
+					FileId : fileId,
+					Payment : 0.01,//测试费用
+					Id : "45646", //测试id
 					CreateTime: time.Now(),
 				}
 				downloadFile.SliceArr = append(downloadFile.SliceArr, index)
-				w.WriteHeader(200)
-				res, _ := json.Marshal(JsonResult{
-					Code: 200,
-					Msg:  "success",
-				})
+
+				downloadResultData := DownloadResultData{
+					Data:   "返回的文件数据",
+					Index:  index,
+					FileId: fileId,
+				}
+
+				w.Header().Set("content-type", "application/json;charset=utf-8")
+				res, _ := json.Marshal(JsonResult{Code: 200, Msg: "success", Data: downloadResultData})
 				w.Write(res)
 
 			} else {
 				panic(err)
 			}
 		}
-		//加入已经存在
+		//假如已经存在
 		file := downloadfile.DeserializeDownLoadFile(fileByte)
-		isHave := false
-		for _, v := range file.SliceArr {
-			if v == index {
-				isHave = true
-			}
+		file.Payment += 0.01//加上扣除的费用
+		file.SliceArr = append(file.SliceArr, index)
+		fileByte = file.Serialize()
+		err = DB.Put([]byte("down_"+walletAddr+id), fileByte, nil)
+		if err != nil {
+			panic(err)
 		}
-		if !isHave {
-			file.SliceArr = append(file.SliceArr, index)
-			fileByte = file.Serialize()
-			err = DB.Put([]byte("down_"+walletAddr+id), fileByte, nil)
-			res, _ := json.Marshal(JsonResult{
-				Code: 200,
-				Msg:  "downloaded",
-			})
-			w.Write(res)
-			if err != nil {
-				panic(err)
-			}
-		} else {
-			downloadResultData := DownloadResultData{
-				Data:   "返回的文件数据",
-				Index:  index,
-				FileId: fileId,
-			}
-			w.Header().Set("content-type", "application/json;charset=utf-8")
-			result, _ := json.Marshal(JsonResult{Code: 200, Msg: "success", Data: downloadResultData})
-			w.Write(result)
+		downloadResultData := DownloadResultData{
+			Data:   "返回的文件数据",
+			Index:  index,
+			FileId: fileId,
 		}
+		w.Header().Set("content-type", "application/json;charset=utf-8")
+		res, _ := json.Marshal(JsonResult{Code: 200, Msg: "success", Data: downloadResultData})
+		w.Write(res)	
 	}
 }
 
