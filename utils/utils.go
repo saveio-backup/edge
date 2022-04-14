@@ -170,6 +170,7 @@ func GetFileRealSize(path string) (uint64, error) {
 		return 0, err
 	}
 	var size uint64
+	size += uint64(stat.Size())
 	for _, file := range files {
 		if file.IsDir() {
 			realSize, err := GetFileRealSize(filepath.Join(path, file.Name()))

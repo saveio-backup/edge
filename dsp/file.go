@@ -319,7 +319,7 @@ func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, proveLe
 	if uint64(realFileSize) > 0 {
 		fileSizeInKB = uint64(realFileSize)
 	} else {
-		fileSizeInKB = uint64(f.Size() / 1024)
+		fileSizeInKB = uint64(f.Size() / 1000)
 		if fileSizeInKB == 0 {
 			fileSizeInKB = 1
 		}
@@ -354,8 +354,8 @@ func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, proveLe
 	} else {
 		duration, _ := ToUint64(durationVal)
 		opt.ExpiredHeight = uint64(currentHeight + uint32(duration/config.BlockTime()))
-		log.Debugf("opt.ExpiredHeight :%d, opt.Interval :%d, current: %d",
-			opt.ExpiredHeight, opt.ProveInterval, currentHeight)
+		log.Debugf("opt.ExpiredHeight: %d, opt.Interval: %d, current: %d，duration: %d, blockTime: %d",
+			opt.ExpiredHeight, opt.ProveInterval, currentHeight, duration, config.BlockTime())
 		if opt.ExpiredHeight < opt.ProveInterval+uint64(currentHeight) {
 			return nil, &DspErr{Code: DSP_USER_SPACE_PERIOD_NOT_ENOUGH, Error: ErrMaps[DSP_USER_SPACE_PERIOD_NOT_ENOUGH]}
 		}
