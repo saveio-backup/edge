@@ -876,14 +876,19 @@ func (this *Endpoint) DownloadFile(taskId, fileHash, url, linkStr, password stri
 	}
 
 	if len(fileHash) > 0 {
+		if len(fileHash) != dspConsts.PROTO_NODE_FILE_HASH_LEN {
+			return &DspErr{Code: INVALID_PARAMS, Error: fmt.Errorf("invalid file hash")}
+		}
 		info, _ := dsp.GetFileInfo(fileHash)
 		if info != nil && !dsp.CheckFilePrivilege(info, fileHash, dsp.WalletAddress()) {
 			return &DspErr{Code: DSP_NO_PRIVILEGE_TO_DOWNLOAD,
 				Error: fmt.Errorf("user %s has no privilege to download this file", dsp.WalletAddress())}
 		}
-		fmt.Printf("info.FileBlockNum*info.FileBlockSize %v\n", info.FileBlockNum*info.FileBlockSize)
-		if info != nil && info.FileBlockNum*info.FileBlockSize*1024 > minChannelBalance {
-			return &DspErr{Code: DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH, Error: ErrMaps[DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH]}
+		if info != nil {
+			fmt.Printf("info.FileBlockNum*info.FileBlockSize %v\n", info.FileBlockNum*info.FileBlockSize)
+			if info.FileBlockNum*info.FileBlockSize*1024 > minChannelBalance {
+				return &DspErr{Code: DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH, Error: ErrMaps[DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH]}
+			}
 		}
 		go func() {
 			// defer func() {
@@ -1513,7 +1518,7 @@ func (this *Endpoint) EncryptFile(path, password string) *DspErr {
 	if err != nil {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
 	}
-	prefix := dspPrefix.NewEncryptPrefix(password, this.getDspWalletAddr(), uint64(stat.Size()))
+	prefix := dspPrefix.NewEncryptPrefix(password, this.getDspWalletAddr(), uint64(stat.Size()), stat.IsDir())
 	if prefix == nil {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: errors.New("prefix is nil")}
 	}
