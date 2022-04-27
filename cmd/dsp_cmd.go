@@ -235,7 +235,6 @@ func fileUpload(ctx *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		// https://en.wikipedia.org/wiki/File_size#:~:text=Bytes%20are%20the%20typical%20base,how%20large%20the%20file%20is.
 		realFileSize = realFileSize / 1000
 		if realFileSize == 0 {
 			realFileSize = 1

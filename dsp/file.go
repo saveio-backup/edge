@@ -275,6 +275,17 @@ func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, proveLe
 		return nil, &DspErr{Code: FS_UPLOAD_FILEPATH_ERROR,
 			Error: fmt.Errorf("os stat file %s error: %s", path, err.Error())}
 	}
+	if f.IsDir() {
+		empty, err := IsDirEmpty(path)
+		if err != nil {
+			return nil, &DspErr{Code: FS_UPLOAD_FILEPATH_ERROR,
+				Error: fmt.Errorf("check dir %s empty error: %s", path, err.Error())}
+		}
+		if empty {
+			return nil, &DspErr{Code: FS_UPLOAD_FILEPATH_ERROR,
+				Error: fmt.Errorf("dir %s is empty", path)}
+		}
+	}
 	log.Debugf("path: %v, isDir: %t", path, f.IsDir())
 	if len(this.dspNet.GetProxyServer().PeerID) > 0 &&
 		!this.dspNet.IsConnReachable(this.dspNet.WalletAddrFromPeerId(this.dspNet.GetProxyServer().PeerID)) {
