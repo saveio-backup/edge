@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -1585,6 +1586,48 @@ func (this *Endpoint) DecryptFile(path, fileName, password string) (string, *Dsp
 	log.Debugf("decrypted file output %s", dspTask.GetDecryptedFilePath(path, fileName))
 	if err != nil {
 		return "", &DspErr{Code: DSP_DECRYPTED_FILE_FAILED, Error: err}
+	}
+	return outPath, nil
+}
+
+func (this *Endpoint) DecryptFileInDir(path string, fileName, password string) (string, *DspErr) {
+	files, err := ioutil.ReadDir(path)
+	if err != nil {
+		return "", &DspErr{Code: DSP_DECRYPTED_FILE_FAILED, Error: err}
+	}
+	outPath := path
+	for _, v := range files {
+		if v.IsDir() {
+			_, err := this.DecryptFileInDir(filepath.Join(path, v.Name()), v.Name(), password)
+			if err != nil {
+				log.Errorf("decrypt file in dir %s failed %v", path, err)
+				return "", &DspErr{Code: DSP_DECRYPTED_FILE_FAILED, Error: err}
+			}
+		} else {
+			filePath := filepath.Join(path, v.Name())
+			filePrefix, prefix, err := dspPrefix.GetPrefixFromFile(filePath)
+			if len(fileName) == 0 {
+				fileName = filePrefix.FileName
+			}
+			if err != nil {
+				return "", &DspErr{Code: DSP_DECRYPTED_FILE_FAILED, Error: err}
+			}
+			if !dspPrefix.VerifyEncryptPassword(password, filePrefix.EncryptSalt, filePrefix.EncryptHash) {
+				return "", &DspErr{Code: DSP_DECRYPTED_FILE_FAILED, Error: errors.New("wrong password")}
+			}
+			newFilePath := filePath[:len(filePath)-4]
+			outPath = newFilePath
+			getDsp := this.getDsp()
+			if getDsp == nil {
+				return "", &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+			}
+			err = getDsp.AESDecryptFile(filePath, string(prefix), password, newFilePath)
+			if err != nil {
+				return "", &DspErr{Code: DSP_DECRYPTED_FILE_FAILED, Error: err}
+			}
+			_ = os.Remove(filePath)
+			log.Debugf("decrypt file in dir success %s", newFilePath)
+		}
 	}
 	return outPath, nil
 }
