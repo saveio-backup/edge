@@ -2,6 +2,7 @@ package rest
 
 import (
 	"encoding/hex"
+	"os"
 	"strconv"
 	"strings"
 
@@ -409,12 +410,24 @@ func DecryptFile(cmd map[string]interface{}) map[string]interface{} {
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
-	path, err := dsp.DspService.DecryptFile(path, fileName, password)
-	if err != nil {
-		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
+	stat, pErr := os.Stat(path)
+	if pErr != nil {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, pErr.Error())
 	}
+	outPath := ""
+	var dErr *dsp.DspErr
+	if stat.IsDir() {
+		outPath, dErr = dsp.DspService.DecryptFileInDir(path, fileName, password)
+	} else {
+		outPath, dErr = dsp.DspService.DecryptFile(path, fileName, password)
+	}
+	if dErr != nil {
+		return ResponsePackWithErrMsg(dErr.Code, dErr.Error.Error())
+	}
+
 	m := make(map[string]interface{})
-	m["Path"] = path
+	m["Path"] = outPath
+	m["IsDir"] = stat.IsDir()
 	resp["Result"] = m
 	return resp
 }

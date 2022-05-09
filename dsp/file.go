@@ -1595,17 +1595,19 @@ func (this *Endpoint) DecryptFileInDir(path string, fileName, password string) (
 	if err != nil {
 		return "", &DspErr{Code: DSP_DECRYPTED_FILE_FAILED, Error: err}
 	}
-	outPath := path
 	for _, v := range files {
 		if v.IsDir() {
 			_, err := this.DecryptFileInDir(filepath.Join(path, v.Name()), v.Name(), password)
 			if err != nil {
 				log.Errorf("decrypt file in dir %s failed %v", path, err)
-				return "", &DspErr{Code: DSP_DECRYPTED_FILE_FAILED, Error: err}
+				return "", &DspErr{Code: DSP_DECRYPTED_FILE_FAILED, Error: err.Error}
 			}
 		} else {
 			filePath := filepath.Join(path, v.Name())
 			filePrefix, prefix, err := dspPrefix.GetPrefixFromFile(filePath)
+			if filePrefix == nil {
+				continue
+			}
 			if len(fileName) == 0 {
 				fileName = filePrefix.FileName
 			}
@@ -1616,7 +1618,6 @@ func (this *Endpoint) DecryptFileInDir(path string, fileName, password string) (
 				return "", &DspErr{Code: DSP_DECRYPTED_FILE_FAILED, Error: errors.New("wrong password")}
 			}
 			newFilePath := filePath[:len(filePath)-4]
-			outPath = newFilePath
 			getDsp := this.getDsp()
 			if getDsp == nil {
 				return "", &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
@@ -1629,7 +1630,7 @@ func (this *Endpoint) DecryptFileInDir(path string, fileName, password string) (
 			log.Debugf("decrypt file in dir success %s", newFilePath)
 		}
 	}
-	return outPath, nil
+	return path, nil
 }
 
 func (this *Endpoint) GetFileRevene() (uint64, *DspErr) {
