@@ -122,6 +122,8 @@ const (
 	DSP_FILE_DOWNLOAD_DELETE       = "/api/v1/dsp/file/download/delete"
 	DSP_FILE_ENCRYPT               = "/api/v1/dsp/file/encrypt"
 	DSP_FILE_DECRYPT               = "/api/v1/dsp/file/decrypt"
+	DSP_FILE_ENCRYPT_A             = "/api/v1/dsp/file/encrypta"
+	DSP_FILE_DECRYPT_A             = "/api/v1/dsp/file/decrypta"
 	DSP_FILE_SHARE_INCOME          = "/api/v1/dsp/file/share/income/:begin/:end/:offset/:limit"
 	DSP_FILE_SHARE_REVENUE         = "/api/v1/dsp/file/share/revenue"
 	DSP_GET_FILE_WHITELIST         = "/api/v1/dsp/file/whitelist/:hash"
@@ -356,16 +358,18 @@ func (this *restServer) registryMethod() {
 		DSP_FILE_DOWNLOAD_DELETE:       {name: "deletedownloadfile", handler: DeleteDownloadFile},
 		DSP_FILE_ENCRYPT:               {name: "encryptfile", handler: EncryptFile},
 		DSP_FILE_DECRYPT:               {name: "decryptfile", handler: DecryptFile},
-		DSP_UPDATE_FILE_WHITELIST:      {name: "updatewhitelist", handler: WhiteListOperate},
-		DSP_DELETE_TRANSFER_RECORD:     {name: "deletetransnferlist", handler: DeleteTransferRecord},
+		DSP_FILE_ENCRYPT_A:             {name: "encryptfile", handler: EncryptFileA},
+		//DSP_FILE_DECRYPT_A:               {name: "decryptfile", handler: DecryptFileA},
+		DSP_UPDATE_FILE_WHITELIST:  {name: "updatewhitelist", handler: WhiteListOperate},
+		DSP_DELETE_TRANSFER_RECORD: {name: "deletetransnferlist", handler: DeleteTransferRecord},
 
 		TRANSFER_BY_CHANNEL: {name: "transferbychannel", handler: TransferByChannel},
-		DEPOSIT_CHANNEL:   {name: "depositchannel", handler: DepositChannel},
-		WITHDRAW_CHANNEL:  {name: "withdrawchannel", handler: WithdrawChannel},
-		OPEN_CHANNEL:      {name: "openchannel", handler: OpenChannel},
-		CLOSE_CHANNEL:     {name: "closechannel", handler: CloseChannel},
-		CLOSE_ALL_CHANNEL: {name: "closechannel", handler: CloseAllChannel},
-		SWITCH_CHANNEL:    {name: "switchchannel", handler: SwitchChannel},
+		DEPOSIT_CHANNEL:     {name: "depositchannel", handler: DepositChannel},
+		WITHDRAW_CHANNEL:    {name: "withdrawchannel", handler: WithdrawChannel},
+		OPEN_CHANNEL:        {name: "openchannel", handler: OpenChannel},
+		CLOSE_CHANNEL:       {name: "closechannel", handler: CloseChannel},
+		CLOSE_ALL_CHANNEL:   {name: "closechannel", handler: CloseAllChannel},
+		SWITCH_CHANNEL:      {name: "switchchannel", handler: SwitchChannel},
 
 		DNS_REGISTER:              {name: "registerurl", handler: RegisterUrl},
 		DNS_BIND:                  {name: "bindurl", handler: BindUrl},

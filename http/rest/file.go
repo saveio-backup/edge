@@ -385,7 +385,7 @@ func EncryptFile(cmd map[string]interface{}) map[string]interface{} {
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
-	err := dsp.DspService.EncryptFile(string(path), password)
+	err := dsp.DspService.EncryptFile(path, password)
 	if err != nil {
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
 	}
@@ -431,6 +431,68 @@ func DecryptFile(cmd map[string]interface{}) map[string]interface{} {
 	resp["Result"] = m
 	return resp
 }
+
+func EncryptFileA(cmd map[string]interface{}) map[string]interface{} {
+	log.Debugf("EncryptFileA cmd:%v", cmd)
+	resp := ResponsePack(dsp.SUCCESS)
+	path, ok := cmd["Path"].(string)
+	if !ok || len(path) == 0 {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	address, ok := cmd["Address"].(string)
+	if !ok || len(address) == 0 {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	if dsp.DspService == nil {
+		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
+	}
+	err := dsp.DspService.EncryptFileA(path, address)
+	if err != nil {
+		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
+	}
+	return resp
+}
+
+//
+//func DecryptFileA(cmd map[string]interface{}) map[string]interface{} {
+//	log.Debugf("DecryptFileA cmd:%v", cmd)
+//	resp := ResponsePack(dsp.SUCCESS)
+//	path, ok := cmd["Path"].(string)
+//	if !ok || len(path) == 0 {
+//		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+//	}
+//	password, ok := cmd["Password"].(string)
+//	if !ok || len(password) == 0 {
+//		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+//	}
+//	fileName, ok := cmd["FileName"].(string)
+//	// if !ok || len(fileName) == 0 {
+//	// 	return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+//	// }
+//	if dsp.DspService == nil {
+//		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
+//	}
+//	stat, pErr := os.Stat(path)
+//	if pErr != nil {
+//		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, pErr.Error())
+//	}
+//	outPath := ""
+//	var dErr *dsp.DspErr
+//	if stat.IsDir() {
+//		outPath, dErr = dsp.DspService.DecryptFileInDirA(path, fileName, password)
+//	} else {
+//		outPath, dErr = dsp.DspService.DecryptFileA(path, fileName, password)
+//	}
+//	if dErr != nil {
+//		return ResponsePackWithErrMsg(dErr.Code, dErr.Error.Error())
+//	}
+//
+//	m := make(map[string]interface{})
+//	m["Path"] = outPath
+//	m["IsDir"] = stat.IsDir()
+//	resp["Result"] = m
+//	return resp
+//}
 
 func GetFileShareIncome(cmd map[string]interface{}) map[string]interface{} {
 	log.Debugf("GetFileShareIncome cmd:%v", cmd)
