@@ -359,9 +359,9 @@ func (this *restServer) registryMethod() {
 		DSP_FILE_ENCRYPT:               {name: "encryptfile", handler: EncryptFile},
 		DSP_FILE_DECRYPT:               {name: "decryptfile", handler: DecryptFile},
 		DSP_FILE_ENCRYPT_A:             {name: "encryptfile", handler: EncryptFileA},
-		//DSP_FILE_DECRYPT_A:               {name: "decryptfile", handler: DecryptFileA},
-		DSP_UPDATE_FILE_WHITELIST:  {name: "updatewhitelist", handler: WhiteListOperate},
-		DSP_DELETE_TRANSFER_RECORD: {name: "deletetransnferlist", handler: DeleteTransferRecord},
+		DSP_FILE_DECRYPT_A:             {name: "decryptfile", handler: DecryptFileA},
+		DSP_UPDATE_FILE_WHITELIST:      {name: "updatewhitelist", handler: WhiteListOperate},
+		DSP_DELETE_TRANSFER_RECORD:     {name: "deletetransnferlist", handler: DeleteTransferRecord},
 
 		TRANSFER_BY_CHANNEL: {name: "transferbychannel", handler: TransferByChannel},
 		DEPOSIT_CHANNEL:     {name: "depositchannel", handler: DepositChannel},
