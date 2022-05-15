@@ -1642,14 +1642,13 @@ func (this *Endpoint) EncryptFileA(path, address string) *DspErr {
 	if err != nil {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
 	}
-
 	pubKey, err := this.dsp.DNS.GetNodePubKey(address)
 	if err != nil {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
 	}
-	tempOutput := path + ".temp"
+	encryptedFile := path + ".temp"
 	output := path + ".epta"
-	eKey, err := dsp.ECIESEncryptFile(path, "abc", tempOutput, pubKey)
+	eKey, err := dsp.ECIESEncryptFile(path, "abc", encryptedFile, pubKey)
 	if err != nil {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
 	}
@@ -1660,26 +1659,8 @@ func (this *Endpoint) EncryptFileA(path, address string) *DspErr {
 	}
 	prefixBuf := prefix.Serialize()
 	// write prefix to file after file encrypted
-	log.Debugf("+++++ prefix %s", prefixBuf)
-	outputFile, err := os.OpenFile(output, os.O_CREATE|os.O_RDWR, 0666)
+	err = AddPrefixToFile(prefixBuf, output, encryptedFile)
 	if err != nil {
-		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
-	}
-	defer outputFile.Close()
-	if _, err := outputFile.Write(prefixBuf); err != nil {
-		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
-	}
-	remain, err := os.Open(tempOutput)
-	if err != nil {
-		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
-	}
-	if _, err := outputFile.Seek(int64(len(prefixBuf)), io.SeekStart); err != nil {
-		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
-	}
-	if _, err := io.Copy(outputFile, remain); err != nil {
-		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
-	}
-	if err := os.Remove(tempOutput); err != nil {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
 	}
 	return nil

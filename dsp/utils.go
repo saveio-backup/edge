@@ -181,3 +181,28 @@ func IsDirEmpty(name string) (bool, error) {
 	}
 	return false, err // Either not empty or error, suits both cases
 }
+
+func AddPrefixToFile(prefixBuf []byte, output string, origin string) error {
+	outputFile, err := os.OpenFile(output, os.O_CREATE|os.O_RDWR, 0666)
+	if err != nil {
+		return err
+	}
+	defer outputFile.Close()
+	if _, err := outputFile.Write(prefixBuf); err != nil {
+		return err
+	}
+	remain, err := os.Open(origin)
+	if err != nil {
+		return err
+	}
+	if _, err := outputFile.Seek(int64(len(prefixBuf)), io.SeekStart); err != nil {
+		return err
+	}
+	if _, err := io.Copy(outputFile, remain); err != nil {
+		return err
+	}
+	if err := os.Remove(origin); err != nil {
+		return err
+	}
+	return nil
+}

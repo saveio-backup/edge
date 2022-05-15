@@ -34,3 +34,14 @@ func TestIsDirEmpty(t *testing.T) {
 		})
 	}
 }
+
+func TestAddPrefixToFile(t *testing.T) {
+	prefix := "test"
+	prefixBuf := []byte(prefix)
+	output := "/Users/smallyu/work/test/file/aaa.test"
+	origin := "/Users/smallyu/work/test/file/aaa"
+	err := AddPrefixToFile(prefixBuf, output, origin)
+	if err != nil {
+		t.Error(err)
+	}
+}
