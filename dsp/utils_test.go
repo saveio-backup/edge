@@ -1,6 +1,8 @@
 package dsp
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestIsDirEmpty(t *testing.T) {
 	type args struct {
@@ -38,9 +40,26 @@ func TestIsDirEmpty(t *testing.T) {
 func TestAddPrefixToFile(t *testing.T) {
 	prefix := "test"
 	prefixBuf := []byte(prefix)
+	input := "/Users/smallyu/work/test/file/aaa"
 	output := "/Users/smallyu/work/test/file/aaa.test"
-	origin := "/Users/smallyu/work/test/file/aaa"
-	err := AddPrefixToFile(prefixBuf, output, origin)
+	err := AddPrefixToFile(input, output, prefixBuf)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestGenerateRandomPassword(t *testing.T) {
+	randomPassword, err := GenerateRandomPassword()
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(randomPassword)
+}
+
+func TestAddSuffixToFile(t *testing.T) {
+	input := "/Users/smallyu/work/test/file/aaa"
+	suffix := []byte("test")
+	err := AddSuffixToFile(input, suffix)
 	if err != nil {
 		t.Error(err)
 	}

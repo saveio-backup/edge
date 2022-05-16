@@ -1,6 +1,7 @@
 package dsp
 
 import (
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"io"
@@ -182,27 +183,59 @@ func IsDirEmpty(name string) (bool, error) {
 	return false, err // Either not empty or error, suits both cases
 }
 
-func AddPrefixToFile(prefixBuf []byte, output string, origin string) error {
+func AddPrefixToFile(input, output string, prefix []byte) error {
 	outputFile, err := os.OpenFile(output, os.O_CREATE|os.O_RDWR, 0666)
 	if err != nil {
 		return err
 	}
-	defer outputFile.Close()
-	if _, err := outputFile.Write(prefixBuf); err != nil {
+	defer func(outputFile *os.File) {
+		err := outputFile.Close()
+		if err != nil {
+			log.Error("close output file failed, err:", err)
+		}
+	}(outputFile)
+	if _, err := outputFile.Write(prefix); err != nil {
 		return err
 	}
-	remain, err := os.Open(origin)
+	remain, err := os.Open(input)
 	if err != nil {
 		return err
 	}
-	if _, err := outputFile.Seek(int64(len(prefixBuf)), io.SeekStart); err != nil {
+	if _, err := outputFile.Seek(int64(len(prefix)), io.SeekStart); err != nil {
 		return err
 	}
 	if _, err := io.Copy(outputFile, remain); err != nil {
 		return err
 	}
-	if err := os.Remove(origin); err != nil {
+	if err := os.Remove(input); err != nil {
 		return err
 	}
 	return nil
+}
+
+func AddSuffixToFile(input string, suffix []byte) error {
+	outputFile, err := os.OpenFile(input, os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer func(outputFile *os.File) {
+		err := outputFile.Close()
+		if err != nil {
+			log.Error("close output file failed, err:", err)
+		}
+	}(outputFile)
+	_, err = outputFile.Write(suffix)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func GenerateRandomPassword() ([]byte, error) {
+	var password [8]byte
+	_, err := rand.Read(password[:])
+	if err != nil {
+		return nil, err
+	}
+	return password[:], nil
 }

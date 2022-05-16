@@ -1642,27 +1642,34 @@ func (this *Endpoint) EncryptFileA(path, address string) *DspErr {
 	if err != nil {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
 	}
+	prefix := dspPrefix.NewEncryptAPrefix(this.getDspWalletAddr(), uint64(stat.Size()), stat.IsDir())
+	if prefix == nil {
+		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: errors.New("prefix is nil")}
+	}
+	prefixBuf := prefix.Serialize()
+	// encrypt file use public key
 	pubKey, err := this.dsp.DNS.GetNodePubKey(address)
 	if err != nil {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
 	}
 	encryptedFile := path + ".temp"
 	output := path + ".epta"
-	eKey, err := dsp.ECIESEncryptFile(path, "abc", encryptedFile, pubKey)
+	password, err := GenerateRandomPassword()
 	if err != nil {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
 	}
-	// TODO wangyu write eKey to file prefix
-	prefix := dspPrefix.NewEncryptPrefix(eKey, this.getDspWalletAddr(), uint64(stat.Size()), stat.IsDir())
-	if prefix == nil {
-		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: errors.New("prefix is nil")}
+	eKey, err := dsp.ECIESEncryptFile(path, string(password), encryptedFile, pubKey)
+	if err != nil {
+		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
 	}
-	prefixBuf := prefix.Serialize()
 	// write prefix to file after file encrypted
-	err = AddPrefixToFile(prefixBuf, output, encryptedFile)
+	err = AddPrefixToFile(encryptedFile, output, prefixBuf)
 	if err != nil {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
 	}
+	// write eKey as suffix after file encrypted
+	// TODO wangyu
+	log.Info(eKey)
 	return nil
 }
 
