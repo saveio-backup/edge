@@ -1646,30 +1646,24 @@ func (this *Endpoint) EncryptFileA(path, address string) *DspErr {
 	if prefix == nil {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: errors.New("prefix is nil")}
 	}
-	prefixBuf := prefix.Serialize()
 	// encrypt file use public key
 	pubKey, err := this.dsp.DNS.GetNodePubKey(address)
 	if err != nil {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
 	}
-	encryptedFile := path + ".temp"
-	output := path + ".epta"
-	password, err := GenerateRandomPassword()
+	encryptedFile := path + ".epta"
 	if err != nil {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
 	}
-	eKey, err := dsp.ECIESEncryptFile(path, string(password), encryptedFile, pubKey)
+	err = dsp.ECIESEncryptFile(path, encryptedFile, pubKey)
 	if err != nil {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
 	}
 	// write prefix to file after file encrypted
-	err = AddPrefixToFile(encryptedFile, output, prefixBuf)
+	err = dspPrefix.AddPrefixToFile(prefix, encryptedFile)
 	if err != nil {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
 	}
-	// write eKey as suffix after file encrypted
-	// TODO wangyu
-	log.Info(eKey)
 	return nil
 }
 
@@ -1686,7 +1680,7 @@ func (this *Endpoint) DecryptFileA(path, fileName, privKey string) (string, *Dsp
 		fileName = filePrefix.FileName
 	}
 	outPath := dspTask.GetDecryptedFilePath(path, fileName)
-	err = dsp.ECIESDecryptFile(path, string(prefix), string(filePrefix.EncryptHash[:]), outPath, privKey)
+	err = dsp.ECIESDecryptFile(path, string(prefix), outPath, privKey)
 	log.Debugf("decrypted file output %s", dspTask.GetDecryptedFilePath(path, fileName))
 	if err != nil {
 		return "", &DspErr{Code: DSP_DECRYPTED_FILE_FAILED, Error: err}
@@ -1729,7 +1723,7 @@ func (this *Endpoint) DecryptFileInDirA(path string, fileName, privKey string) (
 			if err != nil {
 				return "", &DspErr{Code: DSP_DECRYPTED_FILE_FAILED, Error: err}
 			}
-			err = getDsp.ECIESDecryptFile(filePath, string(prefix), filePrefix.EncryptPwd, newFilePath, privKey)
+			err = getDsp.ECIESDecryptFile(filePath, string(prefix), newFilePath, privKey)
 			if err != nil {
 				return "", &DspErr{Code: DSP_DECRYPTED_FILE_FAILED, Error: err}
 			}

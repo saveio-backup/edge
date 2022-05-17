@@ -427,7 +427,8 @@ func DecryptFile(cmd map[string]interface{}) map[string]interface{} {
 
 	m := make(map[string]interface{})
 	m["Path"] = outPath
-	m["IsDir"] = stat.IsDir()
+	m["Dir"] = stat.IsDir()
+	m["Type"] = "RSA"
 	resp["Result"] = m
 	return resp
 }
@@ -488,7 +489,8 @@ func DecryptFileA(cmd map[string]interface{}) map[string]interface{} {
 
 	m := make(map[string]interface{})
 	m["Path"] = outPath
-	m["IsDir"] = stat.IsDir()
+	m["Dir"] = stat.IsDir()
+	m["Type"] = "ECIES"
 	resp["Result"] = m
 	return resp
 }
