@@ -1538,6 +1538,10 @@ func (this *Endpoint) EncryptFile(path, password string) *DspErr {
 	if err := dsp.AESEncryptFile(path, password, tempOutput); err != nil {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
 	}
+	err = os.Remove(tempOutput)
+	if err != nil {
+		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
+	}
 	outputFile, err := os.OpenFile(output, os.O_CREATE|os.O_RDWR, 0666)
 	if err != nil {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
@@ -1546,6 +1550,58 @@ func (this *Endpoint) EncryptFile(path, password string) *DspErr {
 	err = dspPrefix.AddPrefixToFile(prefix, output)
 	if err != nil {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
+	}
+	return nil
+}
+
+func (this *Endpoint) EncryptFileInDir(path, password string) *DspErr {
+	files, err := ioutil.ReadDir(path)
+	if err != nil {
+		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
+	}
+	for _, v := range files {
+		if v.IsDir() {
+			err := this.EncryptFileInDir(filepath.Join(path, v.Name()), password)
+			if err != nil {
+				log.Errorf("encrypt file in dir %s failed %v", path, err)
+				return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err.Error}
+			}
+		} else {
+			if strings.HasPrefix(v.Name(), ".") {
+				continue
+			}
+			dsp := this.getDsp()
+			if dsp == nil {
+				return &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+			}
+			stat, err := os.Stat(path)
+			if err != nil {
+				return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
+			}
+			prefix := dspPrefix.NewEncryptPrefix(password, this.getDspWalletAddr(), uint64(stat.Size()), stat.IsDir())
+			if prefix == nil {
+				return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: errors.New("prefix is nil")}
+			}
+			filePath := filepath.Join(path, v.Name())
+			tempOutput := filePath + ".temp"
+			output := filePath + ".ept"
+			if err := dsp.AESEncryptFile(filePath, password, tempOutput); err != nil {
+				return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
+			}
+			err = os.Remove(tempOutput)
+			if err != nil {
+				return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
+			}
+			outputFile, err := os.OpenFile(output, os.O_CREATE|os.O_RDWR, 0666)
+			if err != nil {
+				return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
+			}
+			defer outputFile.Close()
+			err = dspPrefix.AddPrefixToFile(prefix, output)
+			if err != nil {
+				return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
+			}
+		}
 	}
 	return nil
 }

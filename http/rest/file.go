@@ -385,9 +385,18 @@ func EncryptFile(cmd map[string]interface{}) map[string]interface{} {
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
-	err := dsp.DspService.EncryptFile(path, password)
-	if err != nil {
-		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
+	stat, pErr := os.Stat(path)
+	if pErr != nil {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, pErr.Error())
+	}
+	var dErr *dsp.DspErr
+	if stat.IsDir() {
+		dErr = dsp.DspService.EncryptFileInDir(path, password)
+	} else {
+		dErr = dsp.DspService.EncryptFile(path, password)
+	}
+	if dErr != nil {
+		return ResponsePackWithErrMsg(dErr.Code, dErr.Error.Error())
 	}
 	return resp
 }
@@ -423,7 +432,7 @@ func DecryptFile(cmd map[string]interface{}) map[string]interface{} {
 	}
 	m := make(map[string]interface{})
 	m["Path"] = outPath
-	m["Dir"] = stat.IsDir()
+	m["Directory"] = stat.IsDir()
 	m["Type"] = "RSA"
 	resp["Result"] = m
 	return resp
