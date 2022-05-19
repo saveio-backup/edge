@@ -403,10 +403,7 @@ func DecryptFile(cmd map[string]interface{}) map[string]interface{} {
 	if !ok || len(password) == 0 {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
-	fileName, ok := cmd["FileName"].(string)
-	// if !ok || len(fileName) == 0 {
-	// 	return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	// }
+	fileName, _ := cmd["FileName"].(string)
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
@@ -424,7 +421,6 @@ func DecryptFile(cmd map[string]interface{}) map[string]interface{} {
 	if dErr != nil {
 		return ResponsePackWithErrMsg(dErr.Code, dErr.Error.Error())
 	}
-
 	m := make(map[string]interface{})
 	m["Path"] = outPath
 	m["Dir"] = stat.IsDir()
@@ -465,10 +461,7 @@ func DecryptFileA(cmd map[string]interface{}) map[string]interface{} {
 	if !ok || len(privKey) == 0 {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
 	}
-	fileName, ok := cmd["FileName"].(string)
-	// if !ok || len(fileName) == 0 {
-	// 	return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
-	// }
+	fileName, _ := cmd["FileName"].(string)
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
@@ -486,7 +479,6 @@ func DecryptFileA(cmd map[string]interface{}) map[string]interface{} {
 	if dErr != nil {
 		return ResponsePackWithErrMsg(dErr.Code, dErr.Error.Error())
 	}
-
 	m := make(map[string]interface{})
 	m["Path"] = outPath
 	m["Dir"] = stat.IsDir()

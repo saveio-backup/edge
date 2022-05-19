@@ -115,6 +115,26 @@ func DecryptFile(cmd []interface{}) map[string]interface{} {
 	return responseSuccess(ret)
 }
 
+func EncryptFileA(cmd []interface{}) map[string]interface{} {
+	params := convertSliceToMap(cmd, []string{"Path", "Address"})
+	v := rest.EncryptFileA(params)
+	ret, err := parseRestResult(v)
+	if err != nil {
+		return responsePackError(err.Code, err.Error.Error())
+	}
+	return responseSuccess(ret)
+}
+
+func DecryptFileA(cmd []interface{}) map[string]interface{} {
+	params := convertSliceToMap(cmd, []string{"Path", "PrivateKey"})
+	v := rest.DecryptFileA(params)
+	ret, err := parseRestResult(v)
+	if err != nil {
+		return responsePackError(err.Code, err.Error.Error())
+	}
+	return responseSuccess(ret)
+}
+
 func GetFileShareIncome(cmd []interface{}) map[string]interface{} {
 	params := convertSliceToMap(cmd, []string{"Begin", "End", "Offset", "Limit"})
 	v := rest.GetFileShareIncome(params)

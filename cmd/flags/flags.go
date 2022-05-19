@@ -85,6 +85,10 @@ var (
 		Name:  "dspRestAddr",
 		Usage: "DSP restful sever address. [string]",
 	}
+	DspPrivateKeyFlag = cli.StringFlag{
+		Name:  "privateKey, pk",
+		Usage: "Decrypt file by private key (WIF). [string]",
+	}
 
 	////////////////Dsp Node Setting///////////////////
 	DspNodeAddrFlag = cli.StringFlag{

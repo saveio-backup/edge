@@ -131,6 +131,28 @@ var FileCommand = cli.Command{
 			Description: "Decrypt file",
 		},
 		{
+			Action:    encryptFileA,
+			Name:      "encrypta",
+			Usage:     "Encrypt file asymmetrically",
+			ArgsUsage: "[arguments...]",
+			Flags: []cli.Flag{
+				flags.DspFilePathFlag,
+				flags.DspWalletAddrFlag,
+			},
+			Description: "Encrypt file asymmetrically",
+		},
+		{
+			Action:    decryptFileA,
+			Name:      "decrypta",
+			Usage:     "Decrypt file asymmetrically",
+			ArgsUsage: "[arguments...]",
+			Flags: []cli.Flag{
+				flags.DspFilePathFlag,
+				flags.DspPrivateKeyFlag,
+			},
+			Description: "Decrypt file asymmetrically",
+		},
+		{
 			Action:    getProveDeatil,
 			Name:      "provedetail",
 			Usage:     "Get uploaded file prove detail",
@@ -452,6 +474,53 @@ func getProveDeatil(ctx *cli.Context) error {
 	}
 
 	PrintJsonObject(formatProveDetails(details))
+	return nil
+}
+
+func encryptFileA(ctx *cli.Context) error {
+	if !ctx.IsSet(flags.GetFlagName(flags.DspFilePathFlag)) {
+		PrintErrorMsg("Missing file path. --filePath")
+		cli.ShowSubcommandHelp(ctx)
+		return nil
+	}
+	if !ctx.IsSet(flags.GetFlagName(flags.DspWalletAddrFlag)) {
+		PrintErrorMsg("Missing encrypt wallet address. --walletAddr")
+		cli.ShowSubcommandHelp(ctx)
+		return nil
+	}
+	filePath := ctx.String(flags.GetFlagName(flags.DspFilePathFlag))
+	wa := ctx.String(flags.GetFlagName(flags.DspWalletAddrFlag))
+	_, err := utils.EncryptFileA(filePath, wa)
+	if err != nil {
+		PrintErrorMsg("encrypt file asymmetrically err %s", err)
+		return err
+	}
+	PrintInfoMsg("Encrypt file asymmetrically success. See %s.ept for detail", filePath)
+
+	return nil
+}
+
+func decryptFileA(ctx *cli.Context) error {
+	if !ctx.IsSet(flags.GetFlagName(flags.DspFilePathFlag)) {
+		PrintErrorMsg("Missing file path. --filePath")
+		cli.ShowSubcommandHelp(ctx)
+		return nil
+	}
+	if !ctx.IsSet(flags.GetFlagName(flags.DspPrivateKeyFlag)) {
+		PrintErrorMsg("Missing decrypt private key. --privateKey")
+		cli.ShowSubcommandHelp(ctx)
+		return nil
+	}
+
+	filePath := ctx.String(flags.GetFlagName(flags.DspFilePathFlag))
+	pk := ctx.String(flags.GetFlagName(flags.DspPrivateKeyFlag))
+	ret, err := utils.DecryptFileA(filePath, pk)
+	if err != nil {
+		PrintErrorMsg("decrypt file asymmetrically err %s", err)
+		return err
+	}
+	PrintInfoMsg("Decrypt file asymmetrically success")
+	PrintJsonData(ret)
 	return nil
 }
 

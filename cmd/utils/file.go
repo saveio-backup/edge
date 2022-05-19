@@ -104,6 +104,20 @@ func DecryptFile(path, password string) ([]byte, error) {
 	}
 	return ret, nil
 }
+func EncryptFileA(path, walletAddress string) ([]byte, error) {
+	ret, dErr := sendRpcRequest("encryptfilea", []interface{}{path, walletAddress})
+	if dErr != nil {
+		return nil, dErr.Error
+	}
+	return ret, nil
+}
+func DecryptFileA(path, privateKey string) ([]byte, error) {
+	ret, dErr := sendRpcRequest("decryptfilea", []interface{}{path, privateKey})
+	if dErr != nil {
+		return nil, dErr.Error
+	}
+	return ret, nil
+}
 func GetFileShareIncome(begin, end, offset, limit string) ([]byte, error) {
 	ret, dErr := sendRpcRequest("getfileshareincome", []interface{}{begin, end, offset, limit})
 	if dErr != nil {

@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -1535,31 +1534,17 @@ func (this *Endpoint) EncryptFile(path, password string) *DspErr {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: errors.New("prefix is nil")}
 	}
 	tempOutput := path + ".temp"
-	prefixBuf := prefix.Serialize()
 	output := path + ".ept"
 	if err := dsp.AESEncryptFile(path, password, tempOutput); err != nil {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
 	}
-	log.Debugf("+++++ prefix %s", prefixBuf)
 	outputFile, err := os.OpenFile(output, os.O_CREATE|os.O_RDWR, 0666)
 	if err != nil {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
 	}
 	defer outputFile.Close()
-	if _, err := outputFile.Write(prefixBuf); err != nil {
-		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
-	}
-	remain, err := os.Open(tempOutput)
+	err = dspPrefix.AddPrefixToFile(prefix, output)
 	if err != nil {
-		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
-	}
-	if _, err := outputFile.Seek(int64(len(prefixBuf)), io.SeekStart); err != nil {
-		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
-	}
-	if _, err := io.Copy(outputFile, remain); err != nil {
-		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
-	}
-	if err := os.Remove(tempOutput); err != nil {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
 	}
 	return nil

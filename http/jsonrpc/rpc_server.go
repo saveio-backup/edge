@@ -87,6 +87,8 @@ func StartRPCServer() error {
 	rpc.HandleFunc("getdownloadfileinfo", rpc.GetDownloadFileInfo)
 	rpc.HandleFunc("encryptfile", rpc.EncryptFile)
 	rpc.HandleFunc("decryptfile", rpc.DecryptFile)
+	rpc.HandleFunc("encryptfilea", rpc.EncryptFileA)
+	rpc.HandleFunc("decryptfilea", rpc.DecryptFileA)
 	rpc.HandleFunc("getfileshareincome", rpc.GetFileShareIncome)
 	rpc.HandleFunc("getfilesharerevenue", rpc.GetFileShareRevenue)
 	rpc.HandleFunc("whitelistoperate", rpc.WhiteListOperate)
