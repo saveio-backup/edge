@@ -1529,7 +1529,8 @@ func (this *Endpoint) EncryptFile(path, password string) *DspErr {
 	if err != nil {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
 	}
-	prefix := dspPrefix.NewEncryptPrefix(password, this.getDspWalletAddr(), uint64(stat.Size()), stat.IsDir())
+	prefix := dspPrefix.NewEncryptPrefix(password, this.getDspWalletAddr(), uint64(stat.Size()),
+		stat.IsDir(), dspPrefix.ENCRYPTTYPE_AES)
 	if prefix == nil {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: errors.New("prefix is nil")}
 	}
@@ -1578,7 +1579,8 @@ func (this *Endpoint) EncryptFileInDir(path, password string) *DspErr {
 			if err != nil {
 				return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
 			}
-			prefix := dspPrefix.NewEncryptPrefix(password, this.getDspWalletAddr(), uint64(stat.Size()), stat.IsDir())
+			prefix := dspPrefix.NewEncryptPrefix(password, this.getDspWalletAddr(), uint64(stat.Size()),
+				stat.IsDir(), dspPrefix.ENCRYPTTYPE_AES)
 			if prefix == nil {
 				return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: errors.New("prefix is nil")}
 			}
@@ -1683,7 +1685,8 @@ func (this *Endpoint) EncryptFileA(path, address string) *DspErr {
 	if err != nil {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
 	}
-	prefix := dspPrefix.NewEncryptAPrefix(this.getDspWalletAddr(), uint64(stat.Size()), stat.IsDir())
+	prefix := dspPrefix.NewEncryptAPrefix(this.getDspWalletAddr(), uint64(stat.Size()),
+		stat.IsDir(), dspPrefix.ENCRYPTTYPE_ECIES)
 	if prefix == nil {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: errors.New("prefix is nil")}
 	}
