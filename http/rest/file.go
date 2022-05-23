@@ -452,9 +452,18 @@ func EncryptFileA(cmd map[string]interface{}) map[string]interface{} {
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
-	err := dsp.DspService.EncryptFileA(path, address)
-	if err != nil {
-		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
+	stat, pErr := os.Stat(path)
+	if pErr != nil {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, pErr.Error())
+	}
+	var dErr *dsp.DspErr
+	if stat.IsDir() {
+		dErr = dsp.DspService.EncryptFileAInDIr(path, address)
+	} else {
+		dErr = dsp.DspService.EncryptFileA(path, address)
+	}
+	if dErr != nil {
+		return ResponsePackWithErrMsg(dErr.Code, dErr.Error.Error())
 	}
 	return resp
 }

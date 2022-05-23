@@ -1711,6 +1711,56 @@ func (this *Endpoint) EncryptFileA(path, address string) *DspErr {
 	return nil
 }
 
+func (this *Endpoint) EncryptFileAInDIr(path, address string) *DspErr {
+	files, err := ioutil.ReadDir(path)
+	if err != nil {
+		return &DspErr{Code: DSP_DECRYPTED_FILE_FAILED, Error: err}
+	}
+	for _, v := range files {
+		if v.IsDir() {
+			_, err := this.DecryptFileInDir(filepath.Join(path, v.Name()), v.Name(), address)
+			if err != nil {
+				log.Errorf("decrypt file in dir %s failed %v", path, err)
+				return &DspErr{Code: DSP_DECRYPTED_FILE_FAILED, Error: err.Error}
+			}
+		} else {
+			filePath := filepath.Join(path, v.Name())
+			dsp := this.getDsp()
+			if dsp == nil {
+				return &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+			}
+			stat, err := os.Stat(filePath)
+			if err != nil {
+				return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
+			}
+			prefix := dspPrefix.NewEncryptAPrefix(this.getDspWalletAddr(), uint64(stat.Size()),
+				stat.IsDir(), dspPrefix.ENCRYPTTYPE_ECIES)
+			if prefix == nil {
+				return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: errors.New("prefix is nil")}
+			}
+			// encrypt file use public key
+			pubKey, err := this.dsp.DNS.GetNodePubKey(address)
+			if err != nil {
+				return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
+			}
+			encryptedFile := filePath + ".epta"
+			if err != nil {
+				return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
+			}
+			err = dsp.ECIESEncryptFile(filePath, encryptedFile, pubKey)
+			if err != nil {
+				return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
+			}
+			// write prefix to file after file encrypted
+			err = dspPrefix.AddPrefixToFile(prefix, encryptedFile)
+			if err != nil {
+				return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
+			}
+		}
+	}
+	return nil
+}
+
 func (this *Endpoint) DecryptFileA(path, fileName, privKey string) (string, *DspErr) {
 	filePrefix, prefix, err := dspPrefix.GetPrefixFromFile(path)
 	if err != nil {
