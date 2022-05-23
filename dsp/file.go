@@ -267,7 +267,7 @@ const (
 // whitelist ([]string, optional): if the file can only read by whitelist, here the wallet addresses
 // share (bool, optional): reserved flag
 func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, proveLevelVal, privilegeVal, copyNumVal,
-	storageTypeVal, realFileSizeVal interface{}, encryptPwd, url string,
+	storageTypeVal, realFileSizeVal interface{}, encryptPwd, encryptNodeAddr, url string,
 	whitelist []string, share bool) (*fs.UploadOption, *DspErr) {
 	log.Debugf("upload task id %s", taskId)
 	f, err := os.Stat(path)
@@ -428,8 +428,9 @@ func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, proveLe
 	}
 	opt.WhiteList = whitelistObj
 	opt.Share = share
-	opt.Encrypt = len(encryptPwd) > 0
+	opt.Encrypt = len(encryptPwd) > 0 || len(encryptNodeAddr) > 0
 	opt.EncryptPassword = []byte(encryptPwd)
+	opt.EncryptNodeAddr = []byte(encryptNodeAddr)
 	optBuf, _ := json.Marshal(opt)
 	log.Debugf("path %s, UploadOption :%s\n", path, optBuf)
 	taskExist, err := dsp.UploadTaskExist(path)

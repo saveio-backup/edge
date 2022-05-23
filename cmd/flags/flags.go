@@ -150,7 +150,11 @@ var (
 	}
 	DspEncryptPwdFlag = cli.StringFlag{
 		Name:  "encryptPwd",
-		Usage: "Password for encrypting the file [string]",
+		Usage: "Password for encrypting the file. [string]",
+	}
+	DspEncryptNodeAddrFlag = cli.StringFlag{
+		Name:  "encryptNodeAddr, ena",
+		Usage: "Node address for encrypting the file. [string]",
 	}
 	DspUploadFileDescFlag = cli.StringFlag{
 		Name:  "desc",

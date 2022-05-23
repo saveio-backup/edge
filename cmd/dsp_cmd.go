@@ -37,6 +37,7 @@ var FileCommand = cli.Command{
 				flags.DspUploadPrivilegeFlag,
 				flags.DspUploadCopyNumFlag,
 				flags.DspUploadEncryptPasswordFlag,
+				flags.DspEncryptNodeAddrFlag,
 				flags.DspFileUrlFlag,
 				flags.DspUploadShareFlag,
 				flags.DspUploadStoreTypeFlag,
@@ -137,7 +138,7 @@ var FileCommand = cli.Command{
 			ArgsUsage: "[arguments...]",
 			Flags: []cli.Flag{
 				flags.DspFilePathFlag,
-				flags.DspWalletAddrFlag,
+				flags.DspEncryptNodeAddrFlag,
 			},
 			Description: "Encrypt file asymmetrically",
 		},
@@ -245,6 +246,7 @@ func fileUpload(ctx *cli.Context) error {
 	uploadPrivilege := ctx.Uint64(flags.GetFlagName(flags.DspUploadPrivilegeFlag))
 	copyNum := ctx.String(flags.GetFlagName(flags.DspUploadCopyNumFlag))
 	encryptPwd := ctx.String(flags.GetFlagName(flags.DspUploadEncryptPasswordFlag))
+	encryptNodeAddr := ctx.String(flags.GetFlagName(flags.DspEncryptNodeAddrFlag))
 	uploadUrl := ctx.String(flags.GetFlagName(flags.DspFileUrlFlag))
 	share := ctx.Bool(flags.GetFlagName(flags.DspUploadShareFlag))
 	storeType := ctx.Int64(flags.GetFlagName(flags.DspUploadStoreTypeFlag))
@@ -265,7 +267,8 @@ func fileUpload(ctx *cli.Context) error {
 	test := ctx.Bool(flags.GetFlagName(flags.TestFlag))
 	testCount := ctx.Int64(flags.GetFlagName(flags.DspUploadFileTestCountSize))
 	if !test {
-		_, err = utils.UploadFile(fileName, pwdHash, fileDesc, nil, encryptPwd, uploadUrl, share, duration, proveLevel, uploadPrivilege, copyNum, storeType, realFileSize)
+		_, err = utils.UploadFile(fileName, pwdHash, fileDesc, nil, encryptPwd, encryptNodeAddr,
+			uploadUrl, share, duration, proveLevel, uploadPrivilege, copyNum, storeType, realFileSize)
 		if err != nil {
 			PrintErrorMsg("upload file err %s", err)
 			return err
@@ -288,7 +291,7 @@ func fileUpload(ctx *cli.Context) error {
 		fileName = filepath.Join(config.FsFileRootPath(), "/", baseName)
 		ioutil.WriteFile(fileName, data, 0666)
 		PrintInfoMsg("filemd5 is %s", hex.EncodeToString(md5Ret[:]))
-		_, err = utils.UploadFile(fileName, pwdHash, fileDesc, nil, encryptPwd, uploadUrl, share, duration, proveLevel, uploadPrivilege, copyNum, storeType, realFileSize)
+		_, err = utils.UploadFile(fileName, pwdHash, fileDesc, nil, encryptPwd, encryptNodeAddr, uploadUrl, share, duration, proveLevel, uploadPrivilege, copyNum, storeType, realFileSize)
 		if err != nil {
 			PrintErrorMsg("upload file err %s", err)
 			return err

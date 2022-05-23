@@ -7,7 +7,7 @@ import (
 	"github.com/saveio/edge/common/config"
 )
 
-func UploadFile(path, password, desc string, WhiteList []string, encryptPassword, url string, share bool,
+func UploadFile(path, password, desc string, WhiteList []string, encryptPassword, encryptNodeAddr, url string, share bool,
 	duration, proveLevel string, privilege uint64, copyNum string, storeType int64, realFileSize uint64) ([]byte, error) {
 	var err error
 	var durationVal, proveLevelVal, copyNumVal interface{}
@@ -31,8 +31,8 @@ func UploadFile(path, password, desc string, WhiteList []string, encryptPassword
 			return nil, err
 		}
 	}
-	ret, dErr := sendRpcRequest("uploadfile", []interface{}{path, password, desc, WhiteList, encryptPassword, url,
-		share, durationVal, proveLevelVal, float64(privilege), copyNumVal, storeType, realFileSize})
+	ret, dErr := sendRpcRequest("uploadfile", []interface{}{path, password, desc, WhiteList, encryptPassword,
+		encryptNodeAddr, url, share, durationVal, proveLevelVal, float64(privilege), copyNumVal, storeType, realFileSize})
 	if dErr != nil {
 		fmt.Printf("dErr %v\n", dErr)
 		return nil, dErr.Error

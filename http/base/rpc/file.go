@@ -10,7 +10,8 @@ import (
 // file apis
 
 func UploadFile(cmd []interface{}) map[string]interface{} {
-	params := convertSliceToMap(cmd, []string{"Path", "Password", "Desc", "WhiteList", "EncryptPassword", "Url", "Share", "Duration", "ProveLevel", "Privilege", "CopyNum", "StoreType", "RealFileSize"})
+	params := convertSliceToMap(cmd, []string{"Path", "Password", "Desc", "WhiteList", "EncryptPassword",
+		"EncryptNodeAddr", "Url", "Share", "Duration", "ProveLevel", "Privilege", "CopyNum", "StoreType", "RealFileSize"})
 	v := rest.UploadFile(params)
 	ret, err := parseRestResult(v)
 	if err != nil {

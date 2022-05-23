@@ -40,13 +40,14 @@ func UploadFile(cmd map[string]interface{}) map[string]interface{} {
 		whitelist = append(whitelist, w.(string))
 	}
 	pwd, _ := cmd["EncryptPassword"].(string)
+	ena, _ := cmd["EncryptNodeAddr"].(string)
 	url, _ := cmd["Url"].(string)
 	share, _ := cmd["Share"].(bool)
 	if dsp.DspService == nil {
 		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
 	}
 	opt, err := dsp.DspService.UploadFile(taskId, path, desc, cmd["Duration"], cmd["ProveLevel"],
-		cmd["Privilege"], cmd["CopyNum"], cmd["StoreType"], cmd["RealFileSize"], pwd, url, whitelist, share)
+		cmd["Privilege"], cmd["CopyNum"], cmd["StoreType"], cmd["RealFileSize"], pwd, ena, url, whitelist, share)
 	if err != nil {
 		log.Errorf("upload file failed, err %v", err)
 		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
