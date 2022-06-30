@@ -2713,7 +2713,7 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *dspTypes.Progr
 			if pInfo.FileSize > 0 {
 				pInfo.Progress = float64(pInfo.DownloadSize) / float64(pInfo.FileSize)
 			}
-			pInfo.Encrypted = dsp.IsFileEncrypted(pInfo.Path)
+			pInfo.Encrypted = dsp.IsFileEncrypted(pInfo.Path) || dsp.IsDirEncrypted(pInfo.Path)
 		}
 	case transferTypeAll:
 		if info.Type == store.TaskTypeUpload {
@@ -2735,7 +2735,7 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *dspTypes.Progr
 			if pInfo.FileSize > 0 {
 				pInfo.Progress = float64(pInfo.DownloadSize) / float64(pInfo.FileSize)
 			}
-			pInfo.Encrypted = dsp.IsFileEncrypted(pInfo.Path)
+			pInfo.Encrypted = dsp.IsFileEncrypted(pInfo.Path) || dsp.IsDirEncrypted(pInfo.Path)
 		}
 	}
 	if info.TaskState == store.TaskStateFailed {
