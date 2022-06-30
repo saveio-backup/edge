@@ -2,6 +2,7 @@ package rest
 
 import (
 	"encoding/hex"
+	"github.com/saveio/edge/common"
 	"os"
 	"strconv"
 	"strings"
@@ -424,7 +425,12 @@ func DecryptFile(cmd map[string]interface{}) map[string]interface{} {
 	outPath := ""
 	var dErr *dsp.DspErr
 	if stat.IsDir() {
-		outPath, dErr = dsp.DspService.DecryptFileInDir(path, fileName, password)
+		newPath := path[:len(path)-4]
+		pErr := common.CopyDirectory(path, newPath)
+		if pErr != nil {
+			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, pErr.Error())
+		}
+		outPath, dErr = dsp.DspService.DecryptFileInDir(newPath, password)
 	} else {
 		outPath, dErr = dsp.DspService.DecryptFile(path, fileName, password)
 	}

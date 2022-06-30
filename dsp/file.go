@@ -1634,14 +1634,14 @@ func (this *Endpoint) DecryptFile(path, fileName, password string) (string, *Dsp
 	return outPath, nil
 }
 
-func (this *Endpoint) DecryptFileInDir(path string, fileName, password string) (string, *DspErr) {
+func (this *Endpoint) DecryptFileInDir(path string, password string) (string, *DspErr) {
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
 		return "", &DspErr{Code: DSP_DECRYPTED_FILE_FAILED, Error: err}
 	}
 	for _, v := range files {
 		if v.IsDir() {
-			_, err := this.DecryptFileInDir(filepath.Join(path, v.Name()), v.Name(), password)
+			_, err := this.DecryptFileInDir(filepath.Join(path, v.Name()), password)
 			if err != nil {
 				log.Errorf("decrypt file in dir %s failed %v", path, err)
 				return "", &DspErr{Code: DSP_DECRYPTED_FILE_FAILED, Error: err.Error}
@@ -1651,9 +1651,6 @@ func (this *Endpoint) DecryptFileInDir(path string, fileName, password string) (
 			filePrefix, prefix, err := dspPrefix.GetPrefixFromFile(filePath)
 			if filePrefix == nil {
 				continue
-			}
-			if len(fileName) == 0 {
-				fileName = filePrefix.FileName
 			}
 			if err != nil {
 				return "", &DspErr{Code: DSP_DECRYPTED_FILE_FAILED, Error: err}
@@ -1719,7 +1716,7 @@ func (this *Endpoint) EncryptFileAInDIr(path, address string) *DspErr {
 	}
 	for _, v := range files {
 		if v.IsDir() {
-			_, err := this.DecryptFileInDir(filepath.Join(path, v.Name()), v.Name(), address)
+			err := this.EncryptFileAInDIr(filepath.Join(path, v.Name()), address)
 			if err != nil {
 				log.Errorf("decrypt file in dir %s failed %v", path, err)
 				return &DspErr{Code: DSP_DECRYPTED_FILE_FAILED, Error: err.Error}
@@ -1790,7 +1787,7 @@ func (this *Endpoint) DecryptFileInDirA(path string, fileName, privKey string) (
 	}
 	for _, v := range files {
 		if v.IsDir() {
-			_, err := this.DecryptFileInDir(filepath.Join(path, v.Name()), v.Name(), privKey)
+			_, err := this.DecryptFileInDirA(filepath.Join(path, v.Name()), v.Name(), privKey)
 			if err != nil {
 				log.Errorf("decrypt file in dir %s failed %v", path, err)
 				return "", &DspErr{Code: DSP_DECRYPTED_FILE_FAILED, Error: err.Error}
