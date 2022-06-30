@@ -1661,7 +1661,7 @@ func (this *Endpoint) DecryptFileInDir(path string, fileName, password string) (
 			if !dspPrefix.VerifyEncryptPassword(password, filePrefix.EncryptSalt, filePrefix.EncryptHash) {
 				return "", &DspErr{Code: DSP_DECRYPTED_FILE_FAILED, Error: errors.New("wrong password")}
 			}
-			newFilePath := filePath[:len(filePath)-4]
+			newFilePath := dspTask.GetDecryptedFilePath(filePath, filePrefix.FileName)
 			getDsp := this.getDsp()
 			if getDsp == nil {
 				return "", &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
@@ -1810,7 +1810,7 @@ func (this *Endpoint) DecryptFileInDirA(path string, fileName, privKey string) (
 			if !dspPrefix.VerifyEncryptPassword(filePrefix.EncryptPwd, filePrefix.EncryptSalt, filePrefix.EncryptHash) {
 				return "", &DspErr{Code: DSP_DECRYPTED_FILE_FAILED, Error: errors.New("wrong password")}
 			}
-			newFilePath := filePath[:len(filePath)-4]
+			newFilePath := dspTask.GetDecryptedFilePath(filePath, filePrefix.FileName)
 			getDsp := this.getDsp()
 			if getDsp == nil {
 				return "", &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
