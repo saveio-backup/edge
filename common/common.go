@@ -10,7 +10,6 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
-	"syscall"
 )
 
 // FileExisted checks whether filename exists in filesystem
@@ -39,32 +38,24 @@ func IsAbsPath(filePath string) bool {
 }
 
 // https://stackoverflow.com/questions/51779243/copy-a-folder-in-go
-func CopyDirectory(scrDir, dest string) error {
-	err := os.MkdirAll(dest, os.ModePerm)
-	if err != nil {
-		return err
-	}
-	entries, err := ioutil.ReadDir(scrDir)
+// CopyDirectory recursively copies a src directory to a destination.
+func CopyDirectory(src, dst string) error {
+	entries, err := ioutil.ReadDir(src)
 	if err != nil {
 		return err
 	}
 	for _, entry := range entries {
-		sourcePath := filepath.Join(scrDir, entry.Name())
-		destPath := filepath.Join(dest, entry.Name())
+		sourcePath := filepath.Join(src, entry.Name())
+		destPath := filepath.Join(dst, entry.Name())
 
 		fileInfo, err := os.Stat(sourcePath)
 		if err != nil {
 			return err
 		}
 
-		stat, ok := fileInfo.Sys().(*syscall.Stat_t)
-		if !ok {
-			return fmt.Errorf("failed to get raw syscall.Stat_t data for '%s'", sourcePath)
-		}
-
 		switch fileInfo.Mode() & os.ModeType {
 		case os.ModeDir:
-			if err := CreateIfNotExists(destPath, 0755); err != nil {
+			if err := createDir(destPath, 0755); err != nil {
 				return err
 			}
 			if err := CopyDirectory(sourcePath, destPath); err != nil {
@@ -80,9 +71,20 @@ func CopyDirectory(scrDir, dest string) error {
 			}
 		}
 
-		if err := os.Lchown(destPath, int(stat.Uid), int(stat.Gid)); err != nil {
-			return err
-		}
+		// `go test` fails on Windows even with this `if` supposedly
+		// protecting the `syscall.Stat_t` and `os.Lchown` calls (not
+		// available on windows). why?
+		/*
+			if runtime.GOOS != "windows" {
+					stat, ok := fileInfo.Sys().(*syscall.Stat_t)
+					if !ok {
+						return fmt.Errorf("failed to get raw syscall.Stat_t data for '%s'", sourcePath)
+					}
+					if err := os.Lchown(destPath, int(stat.Uid), int(stat.Gid)); err != nil {
+						return err
+					}
+			}
+		*/
 
 		isSymlink := entry.Mode()&os.ModeSymlink != 0
 		if !isSymlink {
@@ -94,38 +96,42 @@ func CopyDirectory(scrDir, dest string) error {
 	return nil
 }
 
-func Copy(srcFile, dstFile string) error {
-	out, err := os.Create(dstFile)
+// Copy copies a src file to a dst file where src and dst are regular files.
+func Copy(src, dst string) error {
+	sourceFileStat, err := os.Stat(src)
 	if err != nil {
 		return err
 	}
 
-	defer out.Close()
+	if !sourceFileStat.Mode().IsRegular() {
+		return fmt.Errorf("%s is not a regular file", src)
+	}
 
-	in, err := os.Open(srcFile)
-	defer in.Close()
+	source, err := os.Open(src)
 	if err != nil {
 		return err
 	}
+	defer source.Close()
 
-	_, err = io.Copy(out, in)
+	destination, err := os.Create(dst)
 	if err != nil {
 		return err
 	}
-
-	return nil
+	defer destination.Close()
+	_, err = io.Copy(destination, source)
+	return err
 }
 
-func Exists(filePath string) bool {
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+func exists(path string) bool {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return false
 	}
 
 	return true
 }
 
-func CreateIfNotExists(dir string, perm os.FileMode) error {
-	if Exists(dir) {
+func createDir(dir string, perm os.FileMode) error {
+	if exists(dir) {
 		return nil
 	}
 
@@ -136,10 +142,11 @@ func CreateIfNotExists(dir string, perm os.FileMode) error {
 	return nil
 }
 
-func CopySymLink(source, dest string) error {
-	link, err := os.Readlink(source)
+// CopySymLink copies a symbolic link from src to dst.
+func CopySymLink(src, dst string) error {
+	link, err := os.Readlink(src)
 	if err != nil {
 		return err
 	}
-	return os.Symlink(link, dest)
+	return os.Symlink(link, dst)
 }
