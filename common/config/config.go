@@ -43,6 +43,7 @@ type BaseConfig struct {
 	HttpCertPath       string `json:"HttpCertPath"`
 	HttpKeyPath        string `json:"HttpKeyPath"`
 	RestEnable         bool   `json:"RestEnable"`
+	P2PHttpEnable         bool   `json:"P2PHttpEnable"`
 	WsPortOffset       int    `json:"WsPortOffset"`
 	WsCertPath         string `json:"WsCertPath"`
 	WsKeyPath          string `json:"WsKeyPath"`
@@ -152,6 +153,7 @@ func TestConfig() *EdgeConfig {
 			WsCertPath:         "",
 			WsKeyPath:          "",
 			RestEnable:         true,
+			P2PHttpEnable: 		true,
 			ChannelPortOffset:  3005,
 			ChannelProtocol:    "tcp",
 			DBPath:             "./DB",

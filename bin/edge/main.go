@@ -11,6 +11,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/saveio/edge/p2p"
+
 	uTime "github.com/saveio/dsp-go-sdk/utils/time"
 	"github.com/saveio/edge/cmd"
 	"github.com/saveio/edge/cmd/flags"
@@ -25,7 +27,6 @@ import (
 	"github.com/saveio/edge/http/websocket"
 	edgeUtils "github.com/saveio/edge/utils"
 	"github.com/saveio/themis/common/log"
-	"github.com/saveio/themis/common/password"
 	"github.com/urfave/cli"
 )
 
@@ -79,11 +80,12 @@ func dspInit(ctx *cli.Context) {
 		if ctx.IsSet(flags.GetFlagName(flags.WalletPasswordFlag)) {
 			walletPwd = ctx.String(flags.GetFlagName(flags.WalletPasswordFlag))
 		} else {
-			pwd, err := password.GetPassword()
-			if err != nil {
-				log.Errorf("require password: %s", err.Error())
-				os.Exit(1)
-			}
+			//pwd, err := password.GetPassword()
+			//if err != nil {
+			//	log.Errorf("require password: %s", err.Error())
+			//	os.Exit(1)
+			//}
+			pwd := "123"
 			walletPwd = string(pwd)
 		}
 	}
@@ -95,6 +97,7 @@ func dspInit(ctx *cli.Context) {
 	client.SetEventPid(eventActorServer.GetLocalPID())
 
 	initRest()
+	initP2PHttp()
 	initWebsocket()
 	initJsonRpc()
 
@@ -150,7 +153,15 @@ func initRest() {
 
 	log.Info("Restful init success")
 }
-
+func initP2PHttp() {
+	log.Info(!config.Parameters.BaseConfig.P2PHttpEnable)
+	if !config.Parameters.BaseConfig.P2PHttpEnable {
+		return
+	}
+	log.Info("p2p http init before")
+	go p2p.StartP2PHttp()
+	log.Info("p2p http init success")
+}
 func initWebsocket() {
 	if !config.WsEnabled() {
 		return

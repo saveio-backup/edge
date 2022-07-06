@@ -93,6 +93,7 @@ func (this *Endpoint) GetCurrentAccount() (*AccountResp, *DspErr) {
 }
 
 func (this *Endpoint) Login(password string) (*AccountResp, *DspErr) {
+	log.Info("into login method")
 	if this.dspExist() {
 		if this.password != password {
 			return nil, &DspErr{Code: ACCOUNT_PASSWORD_WRONG, Error: ErrMaps[ACCOUNT_PASSWORD_WRONG]}

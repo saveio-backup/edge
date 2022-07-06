@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -215,6 +216,8 @@ func (this *restServer) Start() error {
 		}
 	} else {
 		var err error
+		fmt.Println("restServerport")
+		fmt.Println(retPort)
 		this.listener, err = net.Listen("tcp", ":"+strconv.Itoa(retPort))
 		if err != nil {
 			log.Fatal("net.Listen: ", err.Error())

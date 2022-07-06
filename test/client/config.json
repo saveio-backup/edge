@@ -2,7 +2,7 @@
     "Base": {
         "BaseDir": ".",
         "LogPath": "./Log",
-        "NetworkId": 0,
+        "NetworkId": 1567651917,
         "PublicIP": "",
         "PortBase": 10000,
         "LogLevel": 0,

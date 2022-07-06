@@ -15,6 +15,7 @@ require (
 	github.com/saveio/scan v1.0.97-0.20220331091913-ea1ec535c921
 	github.com/saveio/themis v1.0.167-0.20220331070246-8c4b60bb371a
 	github.com/saveio/themis-go-sdk v0.0.0-20220331084210-7faa0e677214
+	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 	github.com/tjfoc/gmtls v1.2.1 // indirect
 	github.com/urfave/cli v1.22.5
 )

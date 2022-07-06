@@ -61,6 +61,7 @@ Config Example:
 		"HttpCertPath": "",
 		"HttpKeyPath": "",
 		"RestEnable": true,
+        "P2PHttpEnable": true,
 		"WsPortOffset": 339,
 		"WsCertPath": "",
 		"WsKeyPath": "",
