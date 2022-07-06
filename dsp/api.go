@@ -20,10 +20,14 @@ import (
 	dspSdk "github.com/saveio/dsp-go-sdk/dsp"
 	dspNetCom "github.com/saveio/dsp-go-sdk/network/common"
 	"github.com/saveio/dsp-go-sdk/network/message/pb"
+	"github.com/saveio/dsp-go-sdk/types/state"
 	"github.com/saveio/dsp-go-sdk/utils/async"
 	"github.com/saveio/dsp-go-sdk/utils/crypto"
 	dspOS "github.com/saveio/dsp-go-sdk/utils/os"
 	uTime "github.com/saveio/dsp-go-sdk/utils/time"
+
+	"github.com/saveio/dsp-go-sdk/core/chain"
+	"github.com/saveio/dsp-go-sdk/core/fs"
 	"github.com/saveio/edge/common"
 	"github.com/saveio/edge/common/config"
 	"github.com/saveio/edge/dsp/cache"
@@ -586,4 +590,15 @@ func (this *Endpoint) checkOnlineDNS() {
 		return
 	}
 	this.getDsp().BootstrapDNS()
+}
+func (this *Endpoint) GetFS() *fs.Fs {
+
+	return this.dsp.Fs
+}
+func (this *Endpoint) GetChain() *chain.Chain {
+
+	return this.dsp.Chain
+}
+func (this *Endpoint) GetNodeState() state.ModuleState {
+	return this.dsp.State()
 }
