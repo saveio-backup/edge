@@ -11,6 +11,7 @@ import (
 	"strconv"
 
 	"github.com/saveio/dsp-go-sdk/types/state"
+	"github.com/saveio/edge/common/config"
 	"github.com/saveio/edge/dsp"
 	"github.com/saveio/edge/p2p/http/transport"
 	"github.com/saveio/themis/common/log"
@@ -99,10 +100,15 @@ func CreateUploadTask(w http.ResponseWriter, r *http.Request) {
 	}
 	task := transport.NewTask()
 	err := task.CreateUploadTask(peerAddr, fileHash, prefix)
-	m := make(map[string]int32)
+
 	if err != nil {
-		panic(err)
+		m := make(map[string]string)
+		m["error"] = "create upload task error"
+		res, _ := json.Marshal(JsonResult{Code: 200, Msg: "success", Data: m})
+		w.Write(res)
+		return
 	}
+	m := make(map[string]int32)
 	m["createState"] = 1
 	res, _ := json.Marshal(JsonResult{Code: 200, Msg: "success", Data: m})
 	w.Write(res)
@@ -533,7 +539,6 @@ func FileDownload(w http.ResponseWriter, r *http.Request) {
 		event, err := dsp.DspService.GetChain().GetSmartContractEvent(resp.TxHash)
 		if err != nil {
 			log.Errorf("handle payment msg, get smart contract event err %s for tx %s", err, resp.TxHash)
-			panic(err)
 		}
 		valid := false
 		for _, n := range event.Notify {
@@ -787,8 +792,9 @@ func (hs *HttpServer) initPostHandler() {
 func (hs *HttpServer) Start() error {
 	fmt.Println("Start")
 	hs.server = &http.Server{Handler: hs.router}
+	p2pPort := strconv.Itoa(int(config.Parameters.BaseConfig.PortBase + uint32(config.Parameters.BaseConfig.HttpP2pPortOffset)))
 	var err error
-	hs.Listener, err = net.Listen("tcp", ":10601")
+	hs.Listener, err = net.Listen("tcp", p2pPort)
 	if err != nil {
 		log.Fatal("net.Listen: ", err.Error())
 		return err

@@ -27,6 +27,7 @@ import (
 	"github.com/saveio/edge/http/websocket"
 	edgeUtils "github.com/saveio/edge/utils"
 	"github.com/saveio/themis/common/log"
+	"github.com/saveio/themis/common/password"
 	"github.com/urfave/cli"
 )
 
@@ -80,12 +81,11 @@ func dspInit(ctx *cli.Context) {
 		if ctx.IsSet(flags.GetFlagName(flags.WalletPasswordFlag)) {
 			walletPwd = ctx.String(flags.GetFlagName(flags.WalletPasswordFlag))
 		} else {
-			//pwd, err := password.GetPassword()
-			//if err != nil {
-			//	log.Errorf("require password: %s", err.Error())
-			//	os.Exit(1)
-			//}
-			pwd := "123"
+			pwd, err := password.GetPassword()
+			if err != nil {
+				log.Errorf("require password: %s", err.Error())
+				os.Exit(1)
+			}
 			walletPwd = string(pwd)
 		}
 	}

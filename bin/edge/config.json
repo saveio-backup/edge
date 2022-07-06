@@ -15,6 +15,7 @@
 		"JsonRpcPortOffset": 1136,
 		"EnableJsonRpc": true,
 		"HttpRestPortOffset": 335,
+		"HttpP2pPortOffset":601,
 		"HttpCertPath": "",
 		"HttpKeyPath": "",
 		"RestEnable": true,

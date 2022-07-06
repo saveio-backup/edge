@@ -21,6 +21,7 @@ const (
 	VERSION                 = "0.1"
 	DEFAULT_MAX_LOG_SIZE    = 20 * 1024 * 1024 //MB
 	DEFAULT_CONFIG_FILENAME = "config.json"
+	DEFAULT_FILE_DB_PATH    = "./P2P/"
 	DEFAULT_PLOT_PATH       = "./plots/"
 )
 
@@ -40,10 +41,11 @@ type BaseConfig struct {
 	JsonRpcPortOffset  int    `json:"JsonRpcPortOffset"`
 	EnableJsonRpc      bool   `json:"EnableJsonRpc"`
 	HttpRestPortOffset int    `json:"HttpRestPortOffset"`
+	HttpP2pPortOffset  int    `json:"HttpP2pPortOffset"`
 	HttpCertPath       string `json:"HttpCertPath"`
 	HttpKeyPath        string `json:"HttpKeyPath"`
 	RestEnable         bool   `json:"RestEnable"`
-	P2PHttpEnable         bool   `json:"P2PHttpEnable"`
+	P2PHttpEnable      bool   `json:"P2PHttpEnable"`
 	WsPortOffset       int    `json:"WsPortOffset"`
 	WsCertPath         string `json:"WsCertPath"`
 	WsKeyPath          string `json:"WsKeyPath"`
@@ -147,13 +149,14 @@ func TestConfig() *EdgeConfig {
 			JsonRpcPortOffset:  336,
 			EnableJsonRpc:      true,
 			HttpRestPortOffset: 335,
+			HttpP2pPortOffset:  601,
 			HttpCertPath:       "",
 			HttpKeyPath:        "",
 			WsPortOffset:       339,
 			WsCertPath:         "",
 			WsKeyPath:          "",
 			RestEnable:         true,
-			P2PHttpEnable: 		true,
+			P2PHttpEnable:      true,
 			ChannelPortOffset:  3005,
 			ChannelProtocol:    "tcp",
 			DBPath:             "./DB",
@@ -222,6 +225,7 @@ func LocalConfig() *EdgeConfig {
 			JsonRpcPortOffset:   336,
 			EnableJsonRpc:       true,
 			HttpRestPortOffset:  335,
+			HttpP2pPortOffset:   601,
 			HttpCertPath:        "",
 			HttpKeyPath:         "",
 			RestEnable:          true,

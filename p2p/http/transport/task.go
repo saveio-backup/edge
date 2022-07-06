@@ -3,9 +3,11 @@ package transport
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
 	"sync"
 
 	"github.com/saveio/dsp-go-sdk/store"
+	"github.com/saveio/edge/common/config"
 	"github.com/saveio/themis/common/log"
 )
 
@@ -15,27 +17,15 @@ var LevelDBStore *store.LevelDBStore
 //保证一笔交易只能下载一次
 var LevelDBPaymedIDStore *store.LevelDBStore
 
-// const (
-//     TaskStateDoing  = iota // value --> 0
-//     TaskStateDone              // value --> 1
-//     TaskTypeUpload = iota            // value --> 0
-//     TaskTypeDownload           // value --> 1
-// )
-
 func InitDB() {
-	// db, err := leveldb.OpenFile("./p2p/http_file.db", nil)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// fmt.Println("db init success")
-	// DB = db
-	dbStore, err := store.NewLevelDBStore("./p2p/http_file.db")
+
+	dbStore, err := store.NewLevelDBStore(filepath.Join(config.DEFAULT_FILE_DB_PATH, "http_file.db"))
 	if err != nil {
 		panic(err)
 	}
 	LevelDBStore = dbStore
 	fmt.Println("db init success")
-	levelDBPaymedIDStore, err := store.NewLevelDBStore("./p2p/http_paymentId.db")
+	levelDBPaymedIDStore, err := store.NewLevelDBStore(filepath.Join(config.DEFAULT_FILE_DB_PATH, "http_paymentId.db"))
 	if err != nil {
 		panic(err)
 	}
