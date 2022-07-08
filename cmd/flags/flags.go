@@ -15,6 +15,10 @@ var (
 		Name:  "launchManual",
 		Usage: "Launch dsp manually. [bool]",
 	}
+	ModeFlag = cli.StringFlag{
+		Name:  "mode",
+		Usage: "Use `<mode>` to specifies the mode of dsp. [string]",
+	}
 	//commmon
 	LogStderrFlag = cli.BoolFlag{
 		Name:  "logstderr",

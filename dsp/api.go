@@ -155,6 +155,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		MaxShareTask:         config.Parameters.DspConfig.MaxShareTask,
 		EnableLayer2:         config.Parameters.DspConfig.EnableLayer2,
 		AllowLocalNode:       config.Parameters.DspConfig.AllowLocalNode,
+		Mode:                 config.Parameters.DspConfig.Mode,
 	}
 	log.Debugf("dspConfig.dbPath %v, repo: %s, channelDB: %s, wallet: %s, enable backup: %t",
 		dspConfig.DBPath, dspConfig.FsRepoRoot, dspConfig.ChannelDBPath, config.WalletDatFilePath(),

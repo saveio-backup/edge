@@ -54,6 +54,7 @@ func initAPP() *cli.App {
 		flags.LaunchManualFlag,
 		flags.WalletPasswordFlag,
 		flags.ProfileFlag,
+		flags.ModeFlag,
 	}
 	app.Before = func(context *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())
@@ -71,6 +72,8 @@ func main() {
 }
 
 func dspInit(ctx *cli.Context) {
+	config.Parameters.DspConfig.Mode = ctx.String(flags.GetFlagName(flags.ModeFlag))
+
 	if ctx.Bool(flags.GetFlagName(flags.ProfileFlag)) {
 		go edgeUtils.UseHttpProfile()
 	}

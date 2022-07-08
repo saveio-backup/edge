@@ -103,6 +103,8 @@ type DspConfig struct {
 	DownloadFree    bool   `json:"DownloadFree"`
 	EnableLayer2    bool   `json:"EnableLayer2"`
 	AllowLocalNode  bool   `json:"AllowLocalNode"`
+
+	Mode string `json:"Mode"`
 }
 
 type BootstrapConfig struct {

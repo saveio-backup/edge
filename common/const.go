@@ -72,3 +72,8 @@ const (
 	TESTNET_CHAIN_ID = "1"
 	MAINNET_CHAIN_ID = "2"
 )
+
+const (
+	DspModeThemis = "themis"
+	DspModeOp     = "op"
+)
