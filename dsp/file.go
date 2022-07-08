@@ -888,8 +888,13 @@ func (this *Endpoint) DownloadFile(taskId, fileHash, url, linkStr, password stri
 	}
 
 	if len(fileHash) > 0 {
-		if len(fileHash) != dspConsts.PROTO_NODE_FILE_HASH_LEN {
-			return &DspErr{Code: INVALID_PARAMS, Error: fmt.Errorf("invalid file hash")}
+		if len(fileHash) != dspConsts.PROTO_NODE_FILE_HASH_LEN && len(fileHash) != dspConsts.RAW_NODE_FILE_HASH_LEN {
+			err := fmt.Errorf("file hash length %d is not %d or %d",
+				len(fileHash), dspConsts.PROTO_NODE_FILE_HASH_LEN, dspConsts.RAW_NODE_FILE_HASH_LEN)
+			return &DspErr{
+				Code:  INVALID_PARAMS,
+				Error: err,
+			}
 		}
 		info, _ := dsp.GetFileInfo(fileHash)
 		if info != nil && !dsp.CheckFilePrivilege(info, fileHash, dsp.WalletAddress()) {
