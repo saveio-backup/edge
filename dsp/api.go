@@ -188,7 +188,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		return hostAddr
 	})
 	endpoint.p2pActor = p2pActor
-	dspSrv := dsp.NewDsp(dspConfig, endpoint.GetDspAccount(), p2pActor.GetLocalPID())
+	dspSrv := dsp.NewDsp(dspConfig, endpoint.GetDspAccount(), p2pActor.GetLocalPID(), dspConfig.Mode)
 	log.Debugf("new dsp svr %v", dspSrv)
 	if dspSrv == nil {
 		return errors.New("dsp server init failed")
