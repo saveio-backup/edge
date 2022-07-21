@@ -1642,6 +1642,7 @@ func (this *Endpoint) DecryptFile(path, fileName, password string) (string, *Dsp
 func (this *Endpoint) DecryptFileInDir(path string, password string) (string, *DspErr) {
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
+		log.Errorf("read dir %s failed %v", path, err)
 		return "", &DspErr{Code: DSP_DECRYPTED_FILE_FAILED, Error: err}
 	}
 	for _, v := range files {

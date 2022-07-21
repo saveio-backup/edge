@@ -426,8 +426,14 @@ func DecryptFile(cmd map[string]interface{}) map[string]interface{} {
 	var dErr *dsp.DspErr
 	if stat.IsDir() {
 		newPath := path[:len(path)-4]
-		pErr := common.CopyDirectory(path, newPath)
+		pErr := os.Mkdir(newPath, 0755)
 		if pErr != nil {
+			log.Errorf("DecryptFile mkdir error:%v", pErr)
+			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, pErr.Error())
+		}
+		pErr = common.CopyDirectory(path, newPath)
+		if pErr != nil {
+			log.Errorf("DecryptFile CopyDirectory error:%v", pErr)
 			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, pErr.Error())
 		}
 		outPath, dErr = dsp.DspService.DecryptFileInDir(newPath, password)
