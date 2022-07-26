@@ -303,13 +303,16 @@ func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, proveLe
 	}
 	currentHeight, err := dsp.GetCurrentBlockHeight()
 	if err != nil {
+		log.Errorf("get current block height error: %s", err.Error())
 		return nil, &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
 	}
 	bal, err := dsp.BalanceOf(dsp.Address())
 	if err != nil {
+		log.Errorf("get balance error: %s", err.Error())
 		return nil, &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
 	}
 	if bal == 0 {
+		log.Errorf("balance is 0, address: %s", dsp.Address())
 		return nil, &DspErr{Code: INSUFFICIENT_BALANCE, Error: ErrMaps[INSUFFICIENT_BALANCE]}
 	}
 
