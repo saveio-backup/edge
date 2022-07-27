@@ -71,7 +71,7 @@ func (this *Endpoint) NodeUpdate(addr string, volume, serviceTime uint64) (strin
 	}
 	tx, err := dsp.UpdateNode(addr, volume, serviceTime)
 	if err != nil {
-		log.Errorf("update node err:%s", err)
+		log.Errorf("update node err: %s", err)
 		return "", &DspErr{Code: DSP_NODE_UPDATE_FAILED, Error: err}
 	}
 	log.Infof("tx: %s", tx)

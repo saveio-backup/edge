@@ -3,6 +3,7 @@ package dsp
 import (
 	"errors"
 	"fmt"
+	"github.com/saveio/dsp-go-sdk/consts"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -160,10 +161,12 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 	log.Debugf("dspConfig.dbPath %v, repo: %s, channelDB: %s, wallet: %s, enable backup: %t",
 		dspConfig.DBPath, dspConfig.FsRepoRoot, dspConfig.ChannelDBPath, config.WalletDatFilePath(),
 		config.Parameters.FsConfig.EnableBackup)
+	if dspConfig.Mode == consts.DspModeOp {
+		startChannel = false
+	}
 	if err := dspOS.CreateDirIfNeed(config.ClientSqliteDBPath()); err != nil {
 		return err
 	}
-
 	if err := dspOS.CreateDirIfNeed(config.PlotPath()); err != nil {
 		return err
 	}
@@ -319,7 +322,9 @@ func (this *Endpoint) startDspService(listenHost string) error {
 	this.SetFilterBlockRange()
 	go func() {
 		for {
-			this.notifyChannelProgress()
+			if this.getDsp().Mode == consts.DspModeThemis {
+				this.notifyChannelProgress()
+			}
 			if this.getDsp().Running() {
 				log.Debugf("return channel progress after runing")
 				return
@@ -546,7 +551,9 @@ func (this *Endpoint) stateChangeService() {
 				go this.updateStorageNodeHost()
 			}
 			go this.checkOnlineDNS()
-			go this.notifyChannelProgress()
+			if this.getDsp().Mode == consts.DspModeThemis {
+				go this.notifyChannelProgress()
+			}
 			go this.notifyNewSmartContractEvent()
 			go this.notifyNewNetworkState()
 		case <-this.closeCh:
