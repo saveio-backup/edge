@@ -315,6 +315,14 @@ func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, proveLe
 		log.Errorf("balance is 0, address: %s", dsp.Address())
 		return nil, &DspErr{Code: INSUFFICIENT_BALANCE, Error: ErrMaps[INSUFFICIENT_BALANCE]}
 	}
+	fee, dspErr := this.CalculateUploadFee(path, durationVal, proveLevelVal, 0, copyNumVal, len(whitelist), storageTypeVal)
+	if dspErr != nil {
+		return nil, dspErr
+	}
+	if bal < fee.TxFee+fee.StorageFee+fee.ValidFee {
+		log.Errorf("insufficient balance, balance is %d, fee is %v, address: %s", bal, fee, dsp.Address())
+		return nil, &DspErr{Code: INSUFFICIENT_BALANCE, Error: ErrMaps[INSUFFICIENT_BALANCE]}
+	}
 
 	proveLevel, _ := ToUint64(proveLevelVal)
 	if proveLevel == 0 {
