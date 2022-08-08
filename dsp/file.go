@@ -1421,9 +1421,13 @@ func (this *Endpoint) CalculateUploadFee(filePath string, durationVal, proveLeve
 		Num:  uint64(wh),
 		List: make([]fs.Rule, uint64(wh)),
 	}
+	fileSize := uint64(fileStat.Size() / 1024)
+	if fileSize == 0 {
+		fileSize = 1
+	}
 	opt := &fs.UploadOption{
 		FileDesc:        []byte{},
-		FileSize:        uint64(fileStat.Size() / 1024),
+		FileSize:        fileSize,
 		ProveLevel:      uint64(proveLevel),
 		ProveInterval:   fs.GetProveIntervalByProveLevel(uint64(proveLevel)),
 		CopyNum:         uint64(copyNum),
@@ -1451,6 +1455,7 @@ func (this *Endpoint) CalculateUploadFee(filePath string, durationVal, proveLeve
 			return nil, &DspErr{Code: FS_GET_USER_SPACE_FAILED, Error: err}
 		}
 		if userspace.ExpireHeight <= uint64(currentHeight) {
+			log.Errorf("user space expired, height %d, expire height %d", currentHeight, userspace.ExpireHeight)
 			return nil, &DspErr{Code: DSP_USER_SPACE_EXPIRED, Error: ErrMaps[DSP_USER_SPACE_EXPIRED]}
 		}
 		opt.ExpiredHeight = userspace.ExpireHeight
@@ -1458,7 +1463,7 @@ func (this *Endpoint) CalculateUploadFee(filePath string, durationVal, proveLeve
 			userspace.ExpireHeight, currentHeight, opt.ProveInterval)
 		fee, err := dsp.CalculateUploadFee(opt)
 		if err != nil {
-			log.Debugf("fee :%v, err %s", fee, err)
+			log.Debugf("calculate upload file fee:%v, err %s", fee, err)
 			return nil, &DspErr{Code: FS_UPLOAD_CALC_FEE_FAILED, Error: ErrMaps[FS_UPLOAD_CALC_FEE_FAILED]}
 		}
 		return &CalculateResp{

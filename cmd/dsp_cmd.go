@@ -380,7 +380,6 @@ func getUserSpace(ctx *cli.Context) error {
 }
 
 func setUserSpace(ctx *cli.Context) error {
-
 	pwd, err := password.GetPassword()
 	if err != nil {
 		return err
@@ -399,7 +398,7 @@ func setUserSpace(ctx *cli.Context) error {
 	secondMap := make(map[string]interface{}, 0)
 	secondMap["Type"] = secondOp
 	secondMap["Value"] = second * config.Parameters.BaseConfig.BlockTime
-	log.Debugf("addr %v, size %v second %v", addr, sizeMap, secondMap)
+	log.Debugf("set userspace: addr %v, size %v second %v", addr, sizeMap, secondMap)
 	ret, err := utils.SetUserSpace(addr, pwdHash, sizeMap, secondMap)
 	if err != nil {
 		PrintErrorMsg("get upload file list err %s", err)
