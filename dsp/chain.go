@@ -378,10 +378,11 @@ func (this *Endpoint) GetBalanceHistory(address, limitStr string) ([]*BalanceHis
 	flagForRequest := true
 	filterFeeWithSameTxId := ""
 	for flagForRequest {
+		// TODO wangyu there will error
 		txs, derr := this.GetTxByHeightAndLimit(address, "save", TxTypeAll, string(heightForRequest),
 			limitForRequest, string(skipForRequest), false)
 		if derr != nil {
-			return nil, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
+			return nil, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: derr.Error}
 		}
 		if len(txs) == 0 {
 			flagForRequest = false
