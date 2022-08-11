@@ -2,6 +2,7 @@ package rest
 
 import (
 	"encoding/hex"
+	dspOs "github.com/saveio/dsp-go-sdk/utils/os"
 	"github.com/saveio/edge/common"
 	"os"
 	"strconv"
@@ -425,8 +426,8 @@ func DecryptFile(cmd map[string]interface{}) map[string]interface{} {
 	outPath := ""
 	var dErr *dsp.DspErr
 	if stat.IsDir() {
-		newPath := path[:len(path)-4]
-		pErr := os.Mkdir(newPath, 0755)
+		newPath := common.GetNewPathIfExisted(path[:len(path)-4])
+		pErr := dspOs.CreateDirIfNeed(newPath)
 		if pErr != nil {
 			log.Errorf("DecryptFile mkdir error:%v", pErr)
 			return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, pErr.Error())
@@ -441,6 +442,7 @@ func DecryptFile(cmd map[string]interface{}) map[string]interface{} {
 		outPath, dErr = dsp.DspService.DecryptFile(path, fileName, password)
 	}
 	if dErr != nil {
+		log.Errorf("DecryptFile error:%v", dErr)
 		return ResponsePackWithErrMsg(dErr.Code, dErr.Error.Error())
 	}
 	m := make(map[string]interface{})

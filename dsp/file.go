@@ -1678,7 +1678,7 @@ func (this *Endpoint) DecryptFileInDir(path string, password string) (string, *D
 				return "", &DspErr{Code: DSP_DECRYPTED_FILE_FAILED, Error: err}
 			}
 			if !dspPrefix.VerifyEncryptPassword(password, filePrefix.EncryptSalt, filePrefix.EncryptHash) {
-				return "", &DspErr{Code: DSP_DECRYPTED_FILE_FAILED, Error: errors.New("wrong password")}
+				return "", &DspErr{Code: DSP_FILE_DECRYPTED_WRONG_PWD, Error: errors.New("wrong password")}
 			}
 			newFilePath := dspTask.GetDecryptedFilePath(filePath, filePrefix.FileName)
 			getDsp := this.getDsp()

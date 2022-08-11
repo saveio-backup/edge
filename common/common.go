@@ -18,6 +18,18 @@ func FileExisted(filename string) bool {
 	return err == nil || os.IsExist(err)
 }
 
+func GetNewPathIfExisted(path string) string {
+	newPath := path
+	for i := 1; i < 1000; i++ {
+		if FileExisted(newPath) {
+			newPath = path + fmt.Sprintf(" (%d)", i)
+		} else {
+			break
+		}
+	}
+	return newPath
+}
+
 func GetJsonObjectFromFile(filePath string, jsonObject interface{}) error {
 	data, err := ioutil.ReadFile(filePath)
 	if err != nil {
