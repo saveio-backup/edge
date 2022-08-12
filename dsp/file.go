@@ -1381,12 +1381,12 @@ func (this *Endpoint) CalculateUploadFee(filePath string, durationVal, proveLeve
 		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
 	currentAccount := dsp.CurrentAccount()
-	fsSetting, err := dsp.GetFsSetting()
-	if err != nil {
-		return nil, &DspErr{Code: FS_GET_SETTING_FAILED, Error: err}
-	}
+	// fsSetting, err := dsp.GetFsSetting()
+	// if err != nil {
+	// 	return nil, &DspErr{Code: FS_GET_SETTING_FAILED, Error: err}
+	// }
 
-	proveLevel, err := OptionStrToFloat64(proveLevelVal, float64(fsSetting.DefaultProveLevel))
+	proveLevel, err := ToUint64(proveLevelVal)
 	if err != nil {
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: err}
 	}
@@ -1399,7 +1399,7 @@ func (this *Endpoint) CalculateUploadFee(filePath string, durationVal, proveLeve
 		return nil, &DspErr{Code: FS_UPLOAD_INVALID_PROVE_LEVEL, Error: ErrMaps[FS_UPLOAD_INVALID_PROVE_LEVEL]}
 	}
 
-	sType, _ := OptionStrToFloat64(storeType, 0)
+	sType, _ := ToUint64(storeType)
 
 	fi, err := os.Open(filePath)
 	if err != nil {
@@ -1409,11 +1409,11 @@ func (this *Endpoint) CalculateUploadFee(filePath string, durationVal, proveLeve
 	if err != nil {
 		return nil, &DspErr{Code: FS_UPLOAD_GET_FILESIZE_FAILED, Error: err}
 	}
-	copyNum, err := OptionStrToFloat64(copynumVal, float64(fsSetting.DefaultCopyNum))
+	copyNum, err := ToUint64(copynumVal)
 	if err != nil {
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: err}
 	}
-	wh, err := OptionStrToFloat64(whitelistVal, 0)
+	wh, err := ToUint64(whitelistVal)
 	if err != nil {
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: err}
 	}
@@ -1446,7 +1446,8 @@ func (this *Endpoint) CalculateUploadFee(filePath string, durationVal, proveLeve
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
 	}
-	log.Debugf("calculate fee storage type %v, address %v", sType, currentAccount.Address.ToBase58())
+	log.Debugf("calculate fee proveLevel %v, wh %v, copynum %v, storage type %v %v, address %v",
+		proveLevel, wh, copyNum, sType, storeType, currentAccount.Address.ToBase58())
 	if fs.FileStoreType(sType) == fs.FileStoreTypeNormal {
 		userspace, err := dsp.GetUserSpace(currentAccount.Address.ToBase58())
 		if err != nil {
@@ -1477,11 +1478,11 @@ func (this *Endpoint) CalculateUploadFee(filePath string, durationVal, proveLeve
 		}, nil
 	}
 
-	duration, err := OptionStrToFloat64(durationVal, 0)
+	duration, err := ToUint64(durationVal)
 	if err != nil {
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: err}
 	}
-	opt.ExpiredHeight = uint64(currentHeight) + uint64(duration/float64(config.BlockTime()))
+	opt.ExpiredHeight = uint64(currentHeight) + uint64(duration/config.BlockTime())
 	log.Debugf("opt :%v\n", opt)
 	fee, err := dsp.CalculateUploadFee(opt)
 	log.Debugf("fee :%v\n", fee)
