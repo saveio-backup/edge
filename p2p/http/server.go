@@ -790,11 +790,12 @@ func (hs *HttpServer) initPostHandler() {
 	hs.router.Post("/api/v1/p2p/http/file/deleteTask", DeleteTask)
 }
 func (hs *HttpServer) Start() error {
-	fmt.Println("Start")
+
 	hs.server = &http.Server{Handler: hs.router}
 	p2pPort := strconv.Itoa(int(config.Parameters.BaseConfig.PortBase + uint32(config.Parameters.BaseConfig.HttpP2pPortOffset)))
 	var err error
-	hs.Listener, err = net.Listen("tcp", p2pPort)
+	log.Infof("Start p2p http listen at %v", p2pPort)
+	hs.Listener, err = net.Listen("tcp", fmt.Sprintf(":%v", p2pPort))
 	if err != nil {
 		log.Fatal("net.Listen: ", err.Error())
 		return err
