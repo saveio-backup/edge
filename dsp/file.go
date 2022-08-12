@@ -1446,6 +1446,7 @@ func (this *Endpoint) CalculateUploadFee(filePath string, durationVal, proveLeve
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
 	}
+	log.Debugf("calculate fee storage type %v, address %v", sType, currentAccount.Address.ToBase58())
 	if fs.FileStoreType(sType) == fs.FileStoreTypeNormal {
 		userspace, err := dsp.GetUserSpace(currentAccount.Address.ToBase58())
 		if err != nil {
