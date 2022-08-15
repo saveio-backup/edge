@@ -621,6 +621,7 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 			getParam(r, "file"), r.FormValue("duration"), r.FormValue("interval"),
 			r.FormValue("copyNum"), r.FormValue("whitelistCount")
 		req["StoreType"] = r.FormValue("storeType")
+		req["ProveLevel"] = r.FormValue("proveLevel")
 	case DSP_FILES_DELETE_FEE:
 		hashList := r.URL.Query()["hash"]
 		var hashListInterface []interface{} = make([]interface{}, len(hashList))
