@@ -286,7 +286,7 @@ func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, proveLe
 				Error: fmt.Errorf("dir %s is empty", path)}
 		}
 	}
-	log.Debugf("path: %v, isDir: %t", path, f.IsDir())
+	log.Debugf("upload task file path: %v, isDir: %t", path, f.IsDir())
 	if len(this.dspNet.GetProxyServer().PeerID) > 0 &&
 		!this.dspNet.IsConnReachable(this.dspNet.WalletAddrFromPeerId(this.dspNet.GetProxyServer().PeerID)) {
 		return nil, &DspErr{Code: NET_PROXY_DISCONNECTED,
@@ -315,8 +315,14 @@ func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, proveLe
 		log.Errorf("balance is 0, address: %s", dsp.Address())
 		return nil, &DspErr{Code: INSUFFICIENT_BALANCE, Error: ErrMaps[INSUFFICIENT_BALANCE]}
 	}
+	storageType, _ := ToUint64(storageTypeVal)
+	if fs.FileStoreType(storageType) == fs.FileStoreTypeNormal {
+		proveLevelVal = 1
+		copyNumVal = fsSetting.DefaultCopyNum
+	}
 	fee, dspErr := this.CalculateUploadFee(path, durationVal, proveLevelVal, 0, copyNumVal, len(whitelist), storageTypeVal)
 	if dspErr != nil {
+		log.Errorf("calculate upload fee error: %s", dspErr.Error)
 		return nil, dspErr
 	}
 	if bal < fee.TxFee+fee.StorageFee+fee.ValidFee {
@@ -335,7 +341,6 @@ func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, proveLe
 	default:
 		return nil, &DspErr{Code: FS_UPLOAD_INVALID_PROVE_LEVEL, Error: ErrMaps[FS_UPLOAD_INVALID_PROVE_LEVEL]}
 	}
-	storageType, _ := ToUint64(storageTypeVal)
 	realFileSize, _ := ToUint64(realFileSizeVal)
 	var fileSizeInKB uint64
 	if uint64(realFileSize) > 0 {
