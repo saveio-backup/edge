@@ -322,7 +322,7 @@ func (this *Endpoint) startDspService(listenHost string) error {
 	this.SetFilterBlockRange()
 	go func() {
 		for {
-			if this.getDsp().Mode == consts.DspModeThemis {
+			if this.getDsp().Mode != consts.DspModeOp {
 				this.notifyChannelProgress()
 			}
 			if this.getDsp().Running() {
@@ -551,7 +551,7 @@ func (this *Endpoint) stateChangeService() {
 				go this.updateStorageNodeHost()
 			}
 			go this.checkOnlineDNS()
-			if this.getDsp().Mode == consts.DspModeThemis {
+			if this.getDsp().Mode != consts.DspModeOp {
 				go this.notifyChannelProgress()
 			}
 			go this.notifyNewSmartContractEvent()
