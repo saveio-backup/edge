@@ -198,7 +198,7 @@ func (this *Endpoint) GetSmartCodeEventTxsByHeight(height uint32) (interface{}, 
 	if dsp == nil {
 		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
-	eInfos, err := dsp.GetSmartContractEventByBlock(uint32(height))
+	eInfos, err := dsp.GetSmartContractEventByBlock(height)
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}

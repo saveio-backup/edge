@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net"
-
 	"github.com/gogo/protobuf/proto"
 	"github.com/ontio/ontology-eventbus/actor"
 	p2pNet "github.com/saveio/carrier/network"
@@ -16,6 +14,7 @@ import (
 	tkActClient "github.com/saveio/scan/p2p/actor/tracker/client"
 	tkActServer "github.com/saveio/scan/p2p/actor/tracker/server"
 	"github.com/saveio/themis/common/log"
+	"net"
 )
 
 type MessageHandler func(msgData interface{}, pid *actor.PID)

@@ -258,7 +258,7 @@ func (p *Peer) SendAndWaitReply(msgId string, msg proto.Message) (proto.Message,
 	}
 
 	reply := <-ch
-	log.Debugf("receive msg reply of %d from %s", msgId, p.addr)
+	log.Debugf("receive msg reply of %s from %s", msgId, p.addr)
 	if reply.err != nil {
 		p.failedCount.Send++
 	}
@@ -343,7 +343,7 @@ func (p *Peer) StreamSendAndWaitReply(sessionId, msgId string, msg proto.Message
 		log.Errorf("stream send msg %s err %s", msgId, err)
 	}
 	reply := <-ch
-	log.Debugf("receive msg reply of %d from %s", msgId, p.addr)
+	log.Debugf("stream receive msg reply of %s from %s", msgId, p.addr)
 	if reply.err != nil {
 		p.failedCount.Send++
 	}
@@ -435,7 +435,7 @@ func (p *Peer) retryMsg() {
 			if fails != nil {
 				p.lock.Lock()
 				p.isBadQuality = true
-				p.replyMsgs(fails, MsgReply{err: fmt.Errorf("bad network quality with %s", p.addr)})
+				p.replyMsgs(fails, MsgReply{err: fmt.Errorf("bad network quality with %s in retryMsg", p.addr)})
 				p.lock.Unlock()
 			}
 			if msgWrap == nil {
@@ -534,7 +534,7 @@ func (p *Peer) lostConn() {
 		msgs = append(msgs, e)
 	}
 	p.isBadQuality = true
-	p.replyMsgs(msgs, MsgReply{err: fmt.Errorf("bad network quality with %s", p.addr)})
+	p.replyMsgs(msgs, MsgReply{err: fmt.Errorf("bad network quality with %s in lostConn", p.addr)})
 }
 
 func (p *Peer) SetPeerWaiting(w bool) {
@@ -664,7 +664,7 @@ func (p *Peer) receiveMsgNotify(notify network.AckStatus) {
 		return
 	}
 	if p.retry[notify.MessageID] >= common.MAX_MSG_RETRY_FAILED {
-		p.replyMsgs([]*list.Element{e}, MsgReply{err: fmt.Errorf("bad network quality with %s", p.addr)})
+		p.replyMsgs([]*list.Element{e}, MsgReply{err: fmt.Errorf("bad network quality with %s in receiveMsgNotify", p.addr)})
 		log.Debugf("remove %s msg which retry too much, left %d msg", msgWrap.id, p.mq.Len())
 		p.failedCount.Recv++
 		p.isBadQuality = true

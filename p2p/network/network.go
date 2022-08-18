@@ -524,7 +524,7 @@ func (this *Network) SendAndWaitReply(msg proto.Message, sessionId, msgId, walle
 	} else {
 		resp, err = pr.SendAndWaitReply(msgId, msg)
 	}
-	log.Debugf("send and wait reply done  %s", err)
+	log.Debugf("send and wait reply done, msd id: %s, err: %s", msgId, err)
 	this.restartKeepAlive()
 	return resp, err
 }
