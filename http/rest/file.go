@@ -5,6 +5,7 @@ import (
 	dspOs "github.com/saveio/dsp-go-sdk/utils/os"
 	"github.com/saveio/edge/common"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -25,6 +26,9 @@ func UploadFile(cmd map[string]interface{}) map[string]interface{} {
 	desc, ok := cmd["Desc"].(string)
 	if !ok {
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	if strings.TrimSpace(desc) == "" {
+		desc = filepath.Base(path)
 	}
 	password, ok := cmd["Password"].(string)
 	if !ok {

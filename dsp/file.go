@@ -344,7 +344,7 @@ func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, proveLe
 	realFileSize, _ := ToUint64(realFileSizeVal)
 	var fileSizeInKB uint64
 	if uint64(realFileSize) > 0 {
-		fileSizeInKB = uint64(realFileSize)
+		fileSizeInKB = realFileSize
 	} else {
 		fileSizeInKB = uint64(f.Size() / 1000)
 		if fileSizeInKB == 0 {
@@ -354,9 +354,9 @@ func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, proveLe
 	log.Debugf("fileSizeInKB %v, readlFileSizeVal %v", fileSizeInKB, realFileSizeVal)
 	opt := &fs.UploadOption{
 		FileDesc:    []byte(desc),
-		ProveLevel:  uint64(proveLevel),
-		StorageType: uint64(storageType),
-		FileSize:    uint64(fileSizeInKB),
+		ProveLevel:  proveLevel,
+		StorageType: storageType,
+		FileSize:    fileSizeInKB,
 	}
 	opt.ProveInterval = fs.GetProveIntervalByProveLevel(opt.ProveLevel)
 	if fs.FileStoreType(storageType) == fs.FileStoreTypeNormal {
@@ -369,7 +369,7 @@ func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, proveLe
 		if userspace.ExpireHeight <= uint64(currentHeight) {
 			return nil, &DspErr{Code: DSP_USER_SPACE_EXPIRED, Error: ErrMaps[DSP_USER_SPACE_EXPIRED]}
 		}
-		if userspace.Remain < uint64(fileSizeInKB) {
+		if userspace.Remain < fileSizeInKB {
 			return nil, &DspErr{Code: DSP_USER_SPACE_NOT_ENOUGH, Error: ErrMaps[DSP_USER_SPACE_NOT_ENOUGH]}
 		}
 		opt.ExpiredHeight = userspace.ExpireHeight
