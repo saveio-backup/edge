@@ -2,7 +2,6 @@ package rest
 
 import (
 	"encoding/hex"
-	"github.com/saveio/dsp-go-sdk/task/download"
 	dspOs "github.com/saveio/dsp-go-sdk/utils/os"
 	"github.com/saveio/edge/common"
 	"os"
@@ -31,8 +30,7 @@ func UploadFile(cmd map[string]interface{}) map[string]interface{} {
 	if strings.TrimSpace(desc) == "" {
 		desc = filepath.Base(path)
 	}
-	desc = download.ReplaceSpecialCharacters(desc)
-	if len(desc) > 200 {
+	if len(desc) > 200 { // TODO maginc number
 		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, "file description too long")
 	}
 	password, ok := cmd["Password"].(string)
