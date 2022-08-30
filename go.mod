@@ -15,7 +15,17 @@ require (
 	github.com/saveio/scan v1.0.97-0.20220331091913-ea1ec535c921
 	github.com/saveio/themis v1.0.171
 	github.com/saveio/themis-go-sdk v0.0.0-20220808082100-56c56fa0b0b2
-	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 	github.com/tjfoc/gmtls v1.2.1 // indirect
 	github.com/urfave/cli v1.22.5
+)
+
+replace (
+	github.com/saveio/carrier => ../carrier
+	github.com/saveio/dsp-go-sdk => ../dsp-go-sdk
+	github.com/saveio/max => ../max
+	github.com/saveio/pylons => ../pylons
+	github.com/saveio/scan => ../scan
+	github.com/saveio/themis => ../themis
+	github.com/saveio/themis-go-sdk => ../themis-go-sdk
+	github.com/tjfoc/gmsm => github.com/tjfoc/gmsm v1.3.1
 )

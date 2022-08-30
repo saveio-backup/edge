@@ -2106,6 +2106,7 @@ type fileInfoResp struct {
 	BlocksRoot      string
 	TotalBlockCount uint64
 	Encrypt         bool
+	Url string
 }
 
 func (this *Endpoint) GetFileInfo(fileHashStr string) (*fileInfoResp, *DspErr) {
@@ -2149,6 +2150,7 @@ func (this *Endpoint) GetFileInfo(fileHashStr string) (*fileInfoResp, *DspErr) {
 		BlocksRoot:      string(info.BlocksRoot),
 		Encrypt:         encrypt,
 		TotalBlockCount: info.FileBlockNum,
+		Url: info.Url,
 	}
 	block, _ := dsp.GetBlockByHeight(uint32(info.BlockHeight))
 	if block == nil {
