@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -1553,21 +1554,31 @@ func (this *Endpoint) EncryptFile(path, password string) *DspErr {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: errors.New("prefix is nil")}
 	}
 	tempOutput := path + ".temp"
+	prefixBuf := prefix.Serialize()
 	output := path + ".ept"
 	if err := dsp.AESEncryptFile(path, password, tempOutput); err != nil {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
 	}
-	err = os.Remove(tempOutput)
-	if err != nil {
-		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
-	}
+	log.Debugf("+++++ prefix %s", prefixBuf)
 	outputFile, err := os.OpenFile(output, os.O_CREATE|os.O_RDWR, 0666)
 	if err != nil {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
 	}
 	defer outputFile.Close()
-	err = dspPrefix.AddPrefixToFile(prefix, output)
+	if _, err := outputFile.Write(prefixBuf); err != nil {
+		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
+	}
+	remain, err := os.Open(tempOutput)
 	if err != nil {
+		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
+	}
+	if _, err := outputFile.Seek(int64(len(prefixBuf)), io.SeekStart); err != nil {
+		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
+	}
+	if _, err := io.Copy(outputFile, remain); err != nil {
+		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
+	}
+	if err := os.Remove(tempOutput); err != nil {
 		return &DspErr{Code: DSP_ENCRYPTED_FILE_FAILED, Error: err}
 	}
 	return nil
@@ -2106,7 +2117,7 @@ type fileInfoResp struct {
 	BlocksRoot      string
 	TotalBlockCount uint64
 	Encrypt         bool
-	Url string
+	Url             string
 }
 
 func (this *Endpoint) GetFileInfo(fileHashStr string) (*fileInfoResp, *DspErr) {
@@ -2150,7 +2161,7 @@ func (this *Endpoint) GetFileInfo(fileHashStr string) (*fileInfoResp, *DspErr) {
 		BlocksRoot:      string(info.BlocksRoot),
 		Encrypt:         encrypt,
 		TotalBlockCount: info.FileBlockNum,
-		Url: info.Url,
+		Url:             info.Url,
 	}
 	block, _ := dsp.GetBlockByHeight(uint32(info.BlockHeight))
 	if block == nil {
