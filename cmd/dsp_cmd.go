@@ -401,7 +401,7 @@ func setUserSpace(ctx *cli.Context) error {
 	log.Debugf("set userspace: addr %v, size %v second %v", addr, sizeMap, secondMap)
 	ret, err := utils.SetUserSpace(addr, pwdHash, sizeMap, secondMap)
 	if err != nil {
-		PrintErrorMsg("get upload file list err %s", err)
+		PrintErrorMsg("set user space err %s", err)
 		return err
 	}
 	PrintJsonData(ret)
