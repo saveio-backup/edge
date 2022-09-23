@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math"
 	"os"
 	"path/filepath"
 	"sort"
@@ -836,12 +837,15 @@ func (this *Endpoint) DownloadFile(taskId, fileHash, url, linkStr, password stri
 		return &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
 	log.Debugf("downlaod task id %s", taskId)
-	// if balance of current channel is not enough, reject
-	if !dsp.HasDNS() {
-		return &DspErr{Code: DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST, Error: ErrMaps[DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST]}
-	}
-	if !this.channelNet.IsConnReachable(dsp.CurrentDNSWallet()) {
-		return &DspErr{Code: DSP_CHANNEL_DNS_OFFLINE, Error: ErrMaps[DSP_CHANNEL_DNS_OFFLINE]}
+
+	if this.dsp.Mode != dspConsts.DspModeOp {
+		// if balance of current channel is not enough, reject
+		if !dsp.HasDNS() {
+			return &DspErr{Code: DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST, Error: ErrMaps[DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST]}
+		}
+		if !this.channelNet.IsConnReachable(dsp.CurrentDNSWallet()) {
+			return &DspErr{Code: DSP_CHANNEL_DNS_OFFLINE, Error: ErrMaps[DSP_CHANNEL_DNS_OFFLINE]}
+		}
 	}
 
 	if len(this.dspNet.GetProxyServer().PeerID) > 0 &&
@@ -850,17 +854,24 @@ func (this *Endpoint) DownloadFile(taskId, fileHash, url, linkStr, password stri
 			Error: fmt.Errorf("proxy %s is unreachable", this.dspNet.GetProxyServer())}
 	}
 
-	syncing, syncErr := this.IsChannelProcessBlocks()
-	if syncErr != nil {
-		return syncErr
+	var minChannelBalance uint64
+	var err *DspErr
+	// TODO wangyu get current account balance
+	minChannelBalance = math.MaxUint64
+	if this.dsp.Mode != dspConsts.DspModeOp {
+		syncing, syncErr := this.IsChannelProcessBlocks()
+		if syncErr != nil {
+			return syncErr
+		}
+		if syncing {
+			return &DspErr{Code: DSP_CHANNEL_SYNCING, Error: ErrMaps[DSP_CHANNEL_SYNCING]}
+		}
+		minChannelBalance, err = this.getChannelMinBalance()
+		if err != nil {
+			return err
+		}
 	}
-	if syncing {
-		return &DspErr{Code: DSP_CHANNEL_SYNCING, Error: ErrMaps[DSP_CHANNEL_SYNCING]}
-	}
-	minChannelBalance, err := this.getChannelMinBalance()
-	if err != nil {
-		return err
-	}
+
 	if len(url) > 0 {
 		fileInfoFromUrl, err := this.GetDownloadFileInfo(url)
 		if err != nil {
@@ -908,7 +919,7 @@ func (this *Endpoint) DownloadFile(taskId, fileHash, url, linkStr, password stri
 				Error: fmt.Errorf("user %s has no privilege to download this file", dsp.WalletAddress())}
 		}
 		if info != nil {
-			fmt.Printf("info.FileBlockNum*info.FileBlockSize %v\n", info.FileBlockNum*info.FileBlockSize)
+			log.Debugf("fileBlockSize %v, minChannelBalance: %d", info.FileBlockNum*info.FileBlockSize, minChannelBalance)
 			if info.FileBlockNum*info.FileBlockSize*1024 > minChannelBalance {
 				return &DspErr{Code: DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH, Error: ErrMaps[DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH]}
 			}
