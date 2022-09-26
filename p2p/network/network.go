@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	ethCommon "github.com/ethereum/go-ethereum/common"
 	"runtime/debug"
 	"strings"
 	"sync"
@@ -495,7 +496,7 @@ func (this *Network) SendAndWaitReply(msg proto.Message, sessionId, msgId, walle
 		return nil, errors.New("no network")
 	}
 	if !this.isValidWalletAddr(walletAddr) {
-		log.Errorf("wrong wallet address [%s]", debug.Stack())
+		log.Errorf("wrong wallet address: %s [%s]", walletAddr, debug.Stack())
 	}
 	if this.P2p.ProxyModeEnable() && len(this.GetProxyServer().PeerID) > 0 {
 		if err := this.HealthCheckPeer(this.walletAddrFromPeerId(this.GetProxyServer().PeerID)); err != nil {
@@ -1101,7 +1102,14 @@ func (this *Network) isValidWalletAddr(walletAddr string) bool {
 	}
 	// proxy wallet
 	_, err := chainCom.AddressFromBase58(walletAddr)
-	return err == nil
+	if err == nil {
+		return true
+	}
+	// support eth address
+	if ethCommon.IsHexAddress(walletAddr) {
+		return true
+	}
+	return false
 }
 
 func (this *Network) newPeerConnected(peerId string, pr *peer.Peer) {
