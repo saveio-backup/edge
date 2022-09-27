@@ -162,6 +162,7 @@ func StartDspNode(endpoint *Endpoint, startListen, startShare, startChannel bool
 		dspConfig.DBPath, dspConfig.FsRepoRoot, dspConfig.ChannelDBPath, config.WalletDatFilePath(),
 		config.Parameters.FsConfig.EnableBackup)
 	if dspConfig.Mode == consts.DspModeOp {
+		dspConfig.EnableLayer2 = false
 		startChannel = false
 	}
 	if err := dspOS.CreateDirIfNeed(config.ClientSqliteDBPath()); err != nil {
