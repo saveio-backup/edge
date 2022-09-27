@@ -163,9 +163,13 @@ const (
 	DB_FIND_USER_SPACE_RECORD_FAILED = 59002
 	DB_ADD_USER_SPACE_RECORD_FAILED  = 59003
 	DB_GET_FILEINFO_FAILED           = 59004
+	DB_USER_SPACE_HAVE_FILE_NOT_CASH = 59005
+	DB_USER_SPACE_NOT_BALANCE = 59006
 
 	NET_RECONNECT_PEER_FAILED = 59100
 	NET_PROXY_DISCONNECTED    = 59101
+
+	SERVICE_DEVELOPMENT = 59200
 )
 
 var ErrMaps = map[int64]error{
@@ -287,8 +291,11 @@ var ErrMaps = map[int64]error{
 	DB_ADD_USER_SPACE_RECORD_FAILED:  errors.New("db add user space record failed"),
 	DB_GET_FILEINFO_FAILED:           errors.New("db get fileinfo failed"),
 	FS_USER_SPACE_SECOND_INVALID:     errors.New("fs user space second invalid"),
+	DB_USER_SPACE_HAVE_FILE_NOT_CASH: errors.New("db user space have file not cash"),
+	DB_USER_SPACE_NOT_BALANCE:		  errors.New("db user space not balance"),
 
 	NET_RECONNECT_PEER_FAILED:  errors.New("net reconnect peer failed"),
 	NET_PROXY_DISCONNECTED:     errors.New("proxy has disconnted"),
 	DSP_CHANNEL_OPEN_TO_NO_DNS: errors.New("dsp channel open to nodns"),
+	SERVICE_DEVELOPMENT:errors.New("service development"),
 }
