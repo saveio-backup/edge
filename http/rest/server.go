@@ -93,7 +93,7 @@ const (
 	DSP_NODES_INFO                 = "/api/v1/dsp/nodes/info"
 	DSP_SET_USER_SPACE             = "/api/v1/dsp/client/userspace/set"
 	DSP_GET_UPDATE_USER_SPACE_COST = "/api/v1/dsp/client/userspace/cost"
-	DSP_CASH_USER_SPACE 		   = "/api/v1/dsp/client/userspace/cash"
+	DSP_CASH_USER_SPACE            = "/api/v1/dsp/client/userspace/cash"
 	DSP_CLIENT_GET_USER_SPACE      = "/api/v1/dsp/client/userspace/:addr"
 	DSP_USERSPACE_RECORDS          = "/api/v1/dsp/client/userspacerecords/:addr/:offset/:limit"
 
@@ -347,7 +347,7 @@ func (this *restServer) registryMethod() {
 		DSP_NODE_UPDATE:                {name: "updatenode", handler: NodeUpdate},
 		DSP_SET_USER_SPACE:             {name: "setuserspace", handler: SetUserSpace},
 		DSP_GET_UPDATE_USER_SPACE_COST: {name: "getuserspace", handler: GetUserSpaceCost},
-		DSP_CASH_USER_SPACE: 			{name: "cashuserspace", handler: CashUserSpace},
+		DSP_CASH_USER_SPACE:            {name: "cashuserspace", handler: CashUserSpace},
 		DSP_FILE_UPLOAD:                {name: "uploadfile", handler: UploadFile},
 		DSP_FILE_UPLOAD_RESUME:         {name: "resumeuploadfile", handler: ResumeUploadFile},
 		DSP_FILE_UPLOAD_PAUSE:          {name: "pauseuploadfile", handler: PauseUploadFile},
