@@ -677,7 +677,29 @@ func GetUserSpace(cmd map[string]interface{}) map[string]interface{} {
 	resp["Result"] = userspace
 	return resp
 }
-
+func CashUserSpace(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(dsp.SUCCESS)
+	addr, _ := cmd["Addr"].(string)
+	password, ok := cmd["Password"].(string)
+	if !ok {
+		return ResponsePackWithErrMsg(dsp.INVALID_PARAMS, dsp.ErrMaps[dsp.INVALID_PARAMS].Error())
+	}
+	if dsp.DspService == nil {
+		return ResponsePackWithErrMsg(dsp.NO_ACCOUNT, dsp.ErrMaps[dsp.NO_ACCOUNT].Error())
+	}
+	if checkErr := dsp.DspService.CheckPassword(password); checkErr != nil {
+		return ResponsePackWithErrMsg(checkErr.Code, checkErr.Error.Error())
+	}
+	tx, err := dsp.DspService.CashUserSpace(addr)
+	if err != nil {
+		log.Errorf("Cash user space err %s", err)
+		return ResponsePackWithErrMsg(err.Code, err.Error.Error())
+	}
+	m := make(map[string]string, 0)
+	m["Tx"] = tx
+	resp["Result"] = m
+	return resp
+}
 func SetUserSpace(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(dsp.SUCCESS)
 	addr, _ := cmd["Addr"].(string)
