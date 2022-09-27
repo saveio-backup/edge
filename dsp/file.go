@@ -2414,27 +2414,26 @@ func (this *Endpoint) CashUserSpace(walletAddr string) (
 	if len(walletAddr) == 0 {
 		walletAddr = this.getDspWalletAddress()
 	}
-	//获取空间 看是是否有余额
-	oldUserSpace,dspErr:= this.GetUserSpace(walletAddr)
-	if  dspErr != nil {
+
+	oldUserSpace, dspErr := this.GetUserSpace(walletAddr)
+	if dspErr != nil {
 		return "", dspErr
 	}
-	if oldUserSpace.Remain<=0{
-		return "", &DspErr{Code: DB_USER_SPACE_NOT_BALANCE,Error: ErrMaps[DB_USER_SPACE_NOT_BALANCE]}
+	if oldUserSpace.Remain <= 0 {
+		return "", &DspErr{Code: DB_USER_SPACE_NOT_BALANCE, Error: ErrMaps[DB_USER_SPACE_NOT_BALANCE]}
 	}
-	
+
 	dsp := this.getDsp()
 	if dsp == nil {
 		return "", &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
-	//获取传输列表
+
 	taskInfos, err := dsp.GetUploadTaskInfos()
 	if err != nil {
-		return "",&DspErr{Code: DSP_FILE_INFO_NOT_FOUND, Error: err}
+		return "", &DspErr{Code: DSP_FILE_INFO_NOT_FOUND, Error: err}
 	}
 
-	//判断用户空间中是否存在文件
-	 userSpaceHaveFile := false
+	userSpaceHaveFile := false
 	for _, info := range taskInfos {
 		if info.StoreType == 0 {
 			userSpaceHaveFile = true
@@ -2442,13 +2441,11 @@ func (this *Endpoint) CashUserSpace(walletAddr string) (
 		}
 	}
 	if userSpaceHaveFile {
-		return "",&DspErr{Code: DB_USER_SPACE_HAVE_FILE_NOT_CASH,Error: ErrMaps[DB_USER_SPACE_HAVE_FILE_NOT_CASH]}
+		return "", &DspErr{Code: DB_USER_SPACE_HAVE_FILE_NOT_CASH, Error: ErrMaps[DB_USER_SPACE_HAVE_FILE_NOT_CASH]}
 	}
 
+	currentBlockHeight, _ := dsp.GetCurrentBlockHeight()
 
-
-	currentBlockHeight,_ := dsp.GetCurrentBlockHeight()
-	//2.进入提现流程
 	tx, err := dsp.CashUserSpace(walletAddr)
 
 	if err != nil {
@@ -2459,11 +2456,10 @@ func (this *Endpoint) CashUserSpace(walletAddr string) (
 		return "", &DspErr{Code: CHAIN_WAIT_TX_COMFIRMED_TIMEOUT, Error: err}
 	}
 	event, err := dsp.GetSmartContractEvent(tx)
-	log.Debug("插入交易数据前")
 	if err != nil || event == nil {
 		log.Debugf("get event err %s, event :%v", err, event)
 		if err := dsp.InsertUserspaceRecord(tx, walletAddr, oldUserSpace.Used+oldUserSpace.Remain, store.UserspaceOperationCash,
-			(oldUserSpace.ExpiredHeight - uint64(currentBlockHeight))*config.BlockTime(), store.UserspaceOperationCash, 0, store.TransferTypeNone); err != nil {
+			(oldUserSpace.ExpiredHeight-uint64(currentBlockHeight))*config.BlockTime(), store.UserspaceOperationCash, 0, store.TransferTypeNone); err != nil {
 			log.Errorf("insert userspace record err %s", err)
 			return "", &DspErr{Code: DB_ADD_USER_SPACE_RECORD_FAILED, Error: err}
 		}
@@ -2489,16 +2485,16 @@ func (this *Endpoint) CashUserSpace(walletAddr string) (
 		if to == walletAddr {
 			transferType = store.TransferTypeOut
 		}
-		if err := dsp.InsertUserspaceRecord(tx, walletAddr,  oldUserSpace.Used+oldUserSpace.Remain, store.UserspaceOperationCash,
-			(oldUserSpace.ExpiredHeight - uint64(currentBlockHeight))*config.BlockTime(), store.UserspaceOperationCash, amount,
+		if err := dsp.InsertUserspaceRecord(tx, walletAddr, oldUserSpace.Used+oldUserSpace.Remain, store.UserspaceOperationCash,
+			(oldUserSpace.ExpiredHeight-uint64(currentBlockHeight))*config.BlockTime(), store.UserspaceOperationCash, amount,
 			transferType); err != nil {
 			log.Errorf("insert userspace record err %s", err)
 		}
 		log.Debugf("from %s to %s amount %d", from, to, amount)
 	}
 	if len(event.Notify) == 0 || !hasTransfer {
-		if err := dsp.InsertUserspaceRecord(tx, walletAddr, oldUserSpace.Used+oldUserSpace.Remain,  store.UserspaceOperationCash,
-			(oldUserSpace.ExpiredHeight - uint64(currentBlockHeight))*config.BlockTime(), store.UserspaceOperationCash,
+		if err := dsp.InsertUserspaceRecord(tx, walletAddr, oldUserSpace.Used+oldUserSpace.Remain, store.UserspaceOperationCash,
+			(oldUserSpace.ExpiredHeight-uint64(currentBlockHeight))*config.BlockTime(), store.UserspaceOperationCash,
 			0, store.TransferTypeNone); err != nil {
 			log.Errorf("insert userspace record err %s", err)
 			return "", &DspErr{Code: DB_ADD_USER_SPACE_RECORD_FAILED, Error: err}
