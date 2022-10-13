@@ -2047,6 +2047,11 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit, cr
 				}
 				for i, wallet := range unprovedNodeWallets {
 					nodeDetail := primaryNodeM[wallet]
+					// if use ont addr query host addr in evm contract, it will return empty string
+					if len(hostAddrs[i]) == 0 {
+						delete(primaryNodeM, wallet)
+						continue
+					}
 					nodeDetail.HostAddr = hostAddrs[i]
 					nodeDetail.WalletAddr = wallet.ToBase58()
 					uploadSize, _ := dsp.GetFileUploadSize(fileHashStr, string(nodeDetail.HostAddr))
