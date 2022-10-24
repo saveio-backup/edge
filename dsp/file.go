@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	ethCom "github.com/ethereum/go-ethereum/common"
 	"io"
 	"io/ioutil"
 	"math"
@@ -673,7 +674,8 @@ func (this *Endpoint) DeleteUploadFile(fileHash string, gasLimit uint64) (*Delet
 		log.Debugf("file info is deleted: %v, %s", fi, err)
 		return nil, nil
 	}
-	if fi != nil && err == nil && fi.FileOwner.ToBase58() == dsp.WalletAddress() {
+	if fi != nil && err == nil && fi.FileOwner.ToBase58() == dsp.WalletAddress() ||
+		ethCom.BytesToAddress(fi.FileOwner[:]) == dsp.CurrentAccount().EthAddress {
 		taskId := dsp.GetUploadTaskId(fileHash)
 		if len(taskId) == 0 {
 			tx, _, deletErr := dsp.DeleteUploadFilesFromChain([]string{fileHash}, gasLimit)
