@@ -2542,13 +2542,13 @@ func (this *Endpoint) GetUserSpaceCost(walletAddr string, size, sizeOpType, bloc
 	if err != nil {
 		return nil, ParseContractError(err)
 	}
-	if cost.From.ToBase58() == dsp.WalletAddress() {
+	if cost.From.ToBase58() == dsp.WalletAddress() || ethCom.BytesToAddress(cost.From[:]) == dsp.CurrentAccount().EthAddress {
 		return &UserspaceCostResp{
 			Fee:          cost.Value,
 			FeeFormat:    utils.FormatUsdt(cost.Value),
 			TransferType: common.TransferTypeIn,
 		}, nil
-	} else if cost.To.ToBase58() == dsp.WalletAddress() {
+	} else if cost.To.ToBase58() == dsp.WalletAddress() || ethCom.BytesToAddress(cost.To[:]) == dsp.CurrentAccount().EthAddress {
 		return &UserspaceCostResp{
 			Refund:       cost.Value,
 			RefundFormat: utils.FormatUsdt(cost.Value),
