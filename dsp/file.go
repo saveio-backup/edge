@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	ethCom "github.com/ethereum/go-ethereum/common"
 	"io"
 	"io/ioutil"
 	"math"
@@ -15,6 +14,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	ethCom "github.com/ethereum/go-ethereum/common"
 
 	dspConsts "github.com/saveio/dsp-go-sdk/consts"
 	"github.com/saveio/dsp-go-sdk/store"
@@ -1514,6 +1515,7 @@ func (this *Endpoint) GetDownloadFileInfo(url string) (*DownloadFileInfo, *DspEr
 	}
 	info := &DownloadFileInfo{}
 	var fileLink string
+	log.Debugf("GetDownloadFileInfo  url %s", url)
 	if strings.HasPrefix(url, dspConsts.FILE_URL_CUSTOM_HEADER) ||
 		strings.HasPrefix(url, dspConsts.FILE_URL_CUSTOM_HEADER_PROTOCOL) {
 		fileLink = dsp.GetLinkFromUrl(url)
@@ -2537,8 +2539,11 @@ func (this *Endpoint) GetUserSpaceCost(walletAddr string, size, sizeOpType, bloc
 		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
 	blockCount = blockCount / config.BlockTime()
+	if walletAddr == this.account.Address.ToBase58() {
+		walletAddr = this.getDspWalletAddress()
+	}
 	cost, err := dsp.GetUpdateUserSpaceCost(walletAddr, size, sizeOpType, blockCount, countOpType)
-	log.Debugf("cost %d %v %v %v %v %v, err %s", cost, walletAddr, size, sizeOpType, blockCount, countOpType, err)
+	log.Debugf("walletAddr %s cost %d %v %v %v %v %v, err %s", walletAddr, cost, walletAddr, size, sizeOpType, blockCount, countOpType, err)
 	if err != nil {
 		return nil, ParseContractError(err)
 	}

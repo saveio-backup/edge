@@ -3,7 +3,6 @@ package dsp
 import (
 	"errors"
 	"fmt"
-	"github.com/saveio/dsp-go-sdk/consts"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -11,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/saveio/dsp-go-sdk/consts"
 
 	"github.com/gogo/protobuf/proto"
 	carNet "github.com/saveio/carrier/network"
@@ -446,7 +447,7 @@ func (this *Endpoint) updateStorageNodeHost() {
 		return
 	}
 	nodeInfo, err := this.NodeQuery(walletAddr)
-	if err != nil || nodeInfo == nil {
+	if err != nil || nodeInfo == nil || len(nodeInfo.NodeAddr) == 0 {
 		return
 	}
 	publicAddr := dspActorClient.P2PGetPublicAddr()
@@ -541,7 +542,7 @@ func (this *Endpoint) stateChangeService() {
 	for {
 		select {
 		case <-ti.C:
-			log.Debugf("channel service....")
+			log.Debugf("change service....")
 			// check log file size
 			go this.checkGoRoutineNum()
 			go this.checkLogFileSize()
@@ -610,4 +611,15 @@ func (this *Endpoint) GetChain() *chain.Chain {
 }
 func (this *Endpoint) GetNodeState() state.ModuleState {
 	return this.dsp.State()
+}
+
+func (this *Endpoint) IsEvmChain() bool {
+	return config.Parameters.DspConfig.Mode == consts.DspModeOp
+}
+
+func (this *Endpoint) GetAssetPrecision() int {
+	if this.IsEvmChain() {
+		return 18
+	}
+	return 9
 }

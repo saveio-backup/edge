@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"strconv"
 	"strings"
 	"sync"
@@ -278,10 +279,13 @@ type BalanceResp struct {
 
 //get balance of address
 func (this *Endpoint) GetBalance(address string) ([]*BalanceResp, *DspErr) {
-	if len(address) == 0 {
+	if len(address) == 0 || address == this.account.Address.ToBase58() {
 		address = this.getDspWalletAddress()
 	}
-	addr, err := common.AddressFromBase58(address)
+
+	balanceDecimals := this.GetAssetPrecision()
+	addr, err := GetBase58Addr(address)
+	log.Debugf("get balance of %s addr %s", address, addr)
 	if err != nil {
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
 	}
@@ -298,9 +302,9 @@ func (this *Endpoint) GetBalance(address string) ([]*BalanceResp, *DspErr) {
 		Address:       address,
 		Name:          "Save Power",
 		Symbol:        "SAVE",
-		Decimals:      9,
+		Decimals:      balanceDecimals,
 		Balance:       usdt,
-		BalanceFormat: utils.FormatUsdt(usdt),
+		BalanceFormat: FormatAsset(usdt, balanceDecimals),
 	}, &BalanceResp{
 		Address:       address,
 		Name:          "NEO",
@@ -331,7 +335,7 @@ type BalanceHistoryResp struct {
 
 //get balance history of address
 func (this *Endpoint) GetBalanceHistory(address, limitStr string) ([]*BalanceHistoryResp, *DspErr) {
-	addr, err := common.AddressFromBase58(address)
+	addr, err := GetBase58Addr(address)
 	if err != nil {
 		return nil, &DspErr{Code: INVALID_PARAMS, Error: ErrMaps[INVALID_PARAMS]}
 	}
@@ -859,21 +863,24 @@ func (this *Endpoint) AssetTransferDirect(to, asset, amountStr string) (string, 
 		return "", &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: err}
 	}
 	amount = temp
-	realAmount := uint64(amount * 1000000000)
+	precision := this.GetAssetPrecision()
+	realAmount := uint64(amount * math.Pow10(precision))
 	log.Debugf("transfer amount :%v", realAmount)
 	dsp := this.getDsp()
 	if dsp == nil {
 		return "", &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
 	if asset == "usdt" {
-		toAddr, err := common.AddressFromBase58(to)
+		toAddr, err := GetBase58Addr(to)
 		if err != nil {
 			return "", &DspErr{Code: INVALID_WALLET_ADDRESS, Error: err}
 		}
-		balance, err := dsp.BalanceOf(acc.Address)
+		log.Infof("current wallet %s", this.getDspWalletAddr())
+		balance, err := dsp.BalanceOf(this.getDspWalletAddr())
 		if err != nil {
 			return "", &DspErr{Code: CHAIN_TRANSFER_ERROR, Error: err}
 		}
+		log.Infof("balance %v, transfer amount %v", balance, realAmount)
 		if balance < realAmount+chainCfg.DEFAULT_GAS_PRICE*chainCfg.DEFAULT_GAS_LIMIT {
 			return "", &DspErr{Code: INSUFFICIENT_BALANCE, Error: ErrMaps[INSUFFICIENT_BALANCE]}
 		}
