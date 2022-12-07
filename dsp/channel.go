@@ -61,8 +61,11 @@ func (this *Endpoint) ResetChannelProgress() {
 }
 
 func (this *Endpoint) IsChannelProcessBlocks() (bool, *DspErr) {
+	if this.IsEvmChain() {
+		return false, nil
+	}
 	dsp := this.getDsp()
-	if dsp == nil || !dsp.HasChannelInstance() {
+	if !dsp.HasChannelInstance() {
 		return false, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
 	if dsp.ChannelFirstSyncing() {
@@ -86,6 +89,7 @@ func (this *Endpoint) IsChannelProcessBlocks() (bool, *DspErr) {
 
 func (this *Endpoint) GetFilterBlockProgress() (*FilterBlockProgress, *DspErr) {
 	progress := &FilterBlockProgress{}
+
 	dsp := this.getDsp()
 	if dsp == nil {
 		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
@@ -95,6 +99,15 @@ func (this *Endpoint) GetFilterBlockProgress() (*FilterBlockProgress, *DspErr) {
 		log.Debugf("get channel err %s", err)
 		return progress, &DspErr{Code: CHAIN_INTERNAL_ERROR, Error: ErrMaps[CHAIN_INTERNAL_ERROR]}
 	}
+	if this.IsEvmChain() {
+		return &FilterBlockProgress{
+			Progress: 1,
+			Start:    endChannelHeight,
+			End:      endChannelHeight,
+			Now:      endChannelHeight,
+		}, nil
+	}
+
 	if endChannelHeight == 0 {
 		return progress, nil
 	}

@@ -95,6 +95,7 @@ func dspInit(ctx *cli.Context) {
 	config.SetDspConfig(ctx)
 	initLog(ctx)
 	log.Debugf("set dsp config, config %v", config.Parameters)
+	log.Debugf("current chain mode %s", config.Parameters.DspConfig.Mode)
 
 	eventActorServer, _ := server.NewEventActorServer()
 	client.SetEventPid(eventActorServer.GetLocalPID())

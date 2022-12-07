@@ -4,10 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
+	"math/big"
 	"os"
 	"strconv"
 	"strings"
 
+	ethCom "github.com/ethereum/go-ethereum/common"
+	"github.com/saveio/themis/common"
 	"github.com/saveio/themis/common/log"
 	sUtils "github.com/saveio/themis/smartcontract/service/native/utils"
 )
@@ -180,4 +184,29 @@ func IsDirEmpty(name string) (bool, error) {
 		return true, nil
 	}
 	return false, err // Either not empty or error, suits both cases
+}
+
+func FormatAsset(amount uint64, precision int) string {
+	if precision == 0 {
+		return fmt.Sprintf("%d", amount)
+	}
+	divisor := math.Pow10(int(precision))
+	intPart := amount / uint64(divisor)
+	fracPart := amount - intPart*uint64(divisor)
+	if fracPart == 0 {
+		return fmt.Sprintf("%d", intPart)
+	}
+	bf := new(big.Float).SetUint64(fracPart)
+	bf.Quo(bf, new(big.Float).SetFloat64(math.Pow10(int(precision))))
+	bf.Add(bf, new(big.Float).SetUint64(intPart))
+	return bf.Text('f', -1)
+}
+
+func GetBase58Addr(addr string) (common.Address, error) {
+	decoded, err := common.AddressFromBase58(addr)
+	if err == nil {
+		return decoded, nil
+	}
+	ethAddr := ethCom.HexToAddress(addr)
+	return common.AddressParseFromBytes(ethAddr.Bytes())
 }

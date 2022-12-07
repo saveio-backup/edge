@@ -8,11 +8,14 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"time"
+
+	ethCom "github.com/ethereum/go-ethereum/common"
 
 	dspConsts "github.com/saveio/dsp-go-sdk/consts"
 	"github.com/saveio/dsp-go-sdk/store"
@@ -672,7 +675,8 @@ func (this *Endpoint) DeleteUploadFile(fileHash string, gasLimit uint64) (*Delet
 		log.Debugf("file info is deleted: %v, %s", fi, err)
 		return nil, nil
 	}
-	if fi != nil && err == nil && fi.FileOwner.ToBase58() == dsp.WalletAddress() {
+	if fi != nil && err == nil && fi.FileOwner.ToBase58() == dsp.WalletAddress() ||
+		ethCom.BytesToAddress(fi.FileOwner[:]) == dsp.CurrentAccount().EthAddress {
 		taskId := dsp.GetUploadTaskId(fileHash)
 		if len(taskId) == 0 {
 			tx, _, deletErr := dsp.DeleteUploadFilesFromChain([]string{fileHash}, gasLimit)
@@ -836,12 +840,15 @@ func (this *Endpoint) DownloadFile(taskId, fileHash, url, linkStr, password stri
 		return &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
 	log.Debugf("downlaod task id %s", taskId)
-	// if balance of current channel is not enough, reject
-	if !dsp.HasDNS() {
-		return &DspErr{Code: DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST, Error: ErrMaps[DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST]}
-	}
-	if !this.channelNet.IsConnReachable(dsp.CurrentDNSWallet()) {
-		return &DspErr{Code: DSP_CHANNEL_DNS_OFFLINE, Error: ErrMaps[DSP_CHANNEL_DNS_OFFLINE]}
+
+	if this.dsp.Mode != dspConsts.DspModeOp {
+		// if balance of current channel is not enough, reject
+		if !dsp.HasDNS() {
+			return &DspErr{Code: DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST, Error: ErrMaps[DSP_CHANNEL_DOWNLOAD_DNS_NOT_EXIST]}
+		}
+		if !this.channelNet.IsConnReachable(dsp.CurrentDNSWallet()) {
+			return &DspErr{Code: DSP_CHANNEL_DNS_OFFLINE, Error: ErrMaps[DSP_CHANNEL_DNS_OFFLINE]}
+		}
 	}
 
 	if len(this.dspNet.GetProxyServer().PeerID) > 0 &&
@@ -850,17 +857,24 @@ func (this *Endpoint) DownloadFile(taskId, fileHash, url, linkStr, password stri
 			Error: fmt.Errorf("proxy %s is unreachable", this.dspNet.GetProxyServer())}
 	}
 
-	syncing, syncErr := this.IsChannelProcessBlocks()
-	if syncErr != nil {
-		return syncErr
+	var minChannelBalance uint64
+	var err *DspErr
+	// TODO wangyu get current account balance
+	minChannelBalance = math.MaxUint64
+	if this.dsp.Mode != dspConsts.DspModeOp {
+		syncing, syncErr := this.IsChannelProcessBlocks()
+		if syncErr != nil {
+			return syncErr
+		}
+		if syncing {
+			return &DspErr{Code: DSP_CHANNEL_SYNCING, Error: ErrMaps[DSP_CHANNEL_SYNCING]}
+		}
+		minChannelBalance, err = this.getChannelMinBalance()
+		if err != nil {
+			return err
+		}
 	}
-	if syncing {
-		return &DspErr{Code: DSP_CHANNEL_SYNCING, Error: ErrMaps[DSP_CHANNEL_SYNCING]}
-	}
-	minChannelBalance, err := this.getChannelMinBalance()
-	if err != nil {
-		return err
-	}
+
 	if len(url) > 0 {
 		fileInfoFromUrl, err := this.GetDownloadFileInfo(url)
 		if err != nil {
@@ -908,7 +922,7 @@ func (this *Endpoint) DownloadFile(taskId, fileHash, url, linkStr, password stri
 				Error: fmt.Errorf("user %s has no privilege to download this file", dsp.WalletAddress())}
 		}
 		if info != nil {
-			fmt.Printf("info.FileBlockNum*info.FileBlockSize %v\n", info.FileBlockNum*info.FileBlockSize)
+			log.Debugf("fileBlockSize %v, minChannelBalance: %d", info.FileBlockNum*info.FileBlockSize, minChannelBalance)
 			if info.FileBlockNum*info.FileBlockSize*1024 > minChannelBalance {
 				return &DspErr{Code: DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH, Error: ErrMaps[DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH]}
 			}
@@ -1501,6 +1515,7 @@ func (this *Endpoint) GetDownloadFileInfo(url string) (*DownloadFileInfo, *DspEr
 	}
 	info := &DownloadFileInfo{}
 	var fileLink string
+	log.Debugf("GetDownloadFileInfo  url %s", url)
 	if strings.HasPrefix(url, dspConsts.FILE_URL_CUSTOM_HEADER) ||
 		strings.HasPrefix(url, dspConsts.FILE_URL_CUSTOM_HEADER_PROTOCOL) {
 		fileLink = dsp.GetLinkFromUrl(url)
@@ -2036,6 +2051,11 @@ func (this *Endpoint) GetUploadFiles(fileType DspFileListType, offset, limit, cr
 				}
 				for i, wallet := range unprovedNodeWallets {
 					nodeDetail := primaryNodeM[wallet]
+					// if use ont addr query host addr in evm contract, it will return empty string
+					if len(hostAddrs[i]) == 0 {
+						delete(primaryNodeM, wallet)
+						continue
+					}
 					nodeDetail.HostAddr = hostAddrs[i]
 					nodeDetail.WalletAddr = wallet.ToBase58()
 					uploadSize, _ := dsp.GetFileUploadSize(fileHashStr, string(nodeDetail.HostAddr))
@@ -2519,18 +2539,21 @@ func (this *Endpoint) GetUserSpaceCost(walletAddr string, size, sizeOpType, bloc
 		return nil, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
 	}
 	blockCount = blockCount / config.BlockTime()
+	if walletAddr == this.account.Address.ToBase58() {
+		walletAddr = this.getDspWalletAddress()
+	}
 	cost, err := dsp.GetUpdateUserSpaceCost(walletAddr, size, sizeOpType, blockCount, countOpType)
-	log.Debugf("cost %d %v %v %v %v %v, err %s", cost, walletAddr, size, sizeOpType, blockCount, countOpType, err)
+	log.Debugf("walletAddr %s cost %d %v %v %v %v %v, err %s", walletAddr, cost, walletAddr, size, sizeOpType, blockCount, countOpType, err)
 	if err != nil {
 		return nil, ParseContractError(err)
 	}
-	if cost.From.ToBase58() == dsp.WalletAddress() {
+	if cost.From.ToBase58() == dsp.WalletAddress() || ethCom.BytesToAddress(cost.From[:]) == dsp.CurrentAccount().EthAddress {
 		return &UserspaceCostResp{
 			Fee:          cost.Value,
 			FeeFormat:    utils.FormatUsdt(cost.Value),
 			TransferType: common.TransferTypeIn,
 		}, nil
-	} else if cost.To.ToBase58() == dsp.WalletAddress() {
+	} else if cost.To.ToBase58() == dsp.WalletAddress() || ethCom.BytesToAddress(cost.To[:]) == dsp.CurrentAccount().EthAddress {
 		return &UserspaceCostResp{
 			Refund:       cost.Value,
 			RefundFormat: utils.FormatUsdt(cost.Value),

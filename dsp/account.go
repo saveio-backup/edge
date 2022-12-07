@@ -488,6 +488,10 @@ func (this *Endpoint) getDspWalletAddr() chainCom.Address {
 	if this.account == nil {
 		return chainCom.ADDRESS_EMPTY
 	}
+	if this.IsEvmChain() {
+		ethAddr, _ := GetBase58Addr(this.account.EthAddress.String())
+		return ethAddr
+	}
 	return this.account.Address
 }
 
@@ -499,6 +503,9 @@ func (this *Endpoint) getDspWalletAddress() string {
 	defer this.dspAccLock.Unlock()
 	if this.account == nil {
 		return ""
+	}
+	if this.IsEvmChain() {
+		return this.account.EthAddress.String()
 	}
 	return this.account.Address.ToBase58()
 }
