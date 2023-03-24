@@ -9,13 +9,13 @@ require (
 	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d
 	github.com/ontio/ontology-eventbus v0.9.1
 	github.com/pborman/uuid v1.2.1
-	github.com/saveio/carrier v0.0.0-20210802055929-7567cc29dfc9
-	github.com/saveio/dsp-go-sdk v0.0.0-20221129101740-684879440b10
-	github.com/saveio/max v0.0.0-20221129101302-27e288224dfc
-	github.com/saveio/pylons v0.0.0-20220905072935-f04c0c332956
-	github.com/saveio/scan v1.0.99-0.20221129102325-4f07d1cf7fe5
-	github.com/saveio/themis v1.0.175-0.20221129100116-4008d4b1ba7e
-	github.com/saveio/themis-go-sdk v0.0.0-20221129100912-6c2788e7f5ac
+	github.com/saveio/carrier v0.0.0-20230324093158-806a340eae8d
+	github.com/saveio/dsp-go-sdk v0.0.0-20230324091417-e6c799a2b962
+	github.com/saveio/max v0.0.0-20230324091118-889c76b11561
+	github.com/saveio/pylons v0.0.0-20230322094600-b5981ca8ed91
+	github.com/saveio/scan v1.0.100-0.20230324091940-89dc4cd86b07
+	github.com/saveio/themis v1.0.175
+	github.com/saveio/themis-go-sdk v0.0.0-20230314033227-3033a22d3bcd
 	github.com/tjfoc/gmtls v1.2.1 // indirect
 	github.com/urfave/cli v1.22.5
 )
