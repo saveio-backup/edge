@@ -2163,6 +2163,9 @@ func (this *Endpoint) GetFileInfo(fileHashStr string) (*fileInfoResp, *DspErr) {
 		encrypt = tsk.Encrypt
 	}
 	url := dsp.GetLinkFromUrl(info.Url)
+	if url == "" {
+		info.Url = ""
+	}
 	result := &fileInfoResp{
 		FileHash:        string(info.FileHash),
 		CopyNum:         info.CopyNum,
@@ -2181,7 +2184,7 @@ func (this *Endpoint) GetFileInfo(fileHashStr string) (*fileInfoResp, *DspErr) {
 		BlocksRoot:      string(info.BlocksRoot),
 		Encrypt:         encrypt,
 		TotalBlockCount: info.FileBlockNum,
-		Url:             url,
+		Url:             info.Url,
 	}
 	block, _ := dsp.GetBlockByHeight(uint32(info.BlockHeight))
 	if block == nil {
