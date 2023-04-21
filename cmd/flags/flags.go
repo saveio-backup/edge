@@ -101,7 +101,7 @@ var (
 	}
 	DspVolumeFlag = cli.StringFlag{
 		Name:  "volume",
-		Usage: "DSP node storage volume. [string]",
+		Usage: "DSP node storage volume(Byte). [string]",
 	}
 	DspServiceTimeFlag = cli.StringFlag{
 		Name:  "serviceTime",
@@ -403,7 +403,7 @@ var (
 	}
 	DspSectorSizeFlag = cli.Uint64Flag{
 		Name:  "sectorSize",
-		Usage: "Sector size. (KB). Minimum sector size is 1GB. [uint64]",
+		Usage: "Sector size. (Byte). Minimum sector size is 1GB. [uint64]",
 		Value: 1048576,
 	}
 	DspSectorPlotFlag = cli.BoolFlag{
@@ -454,7 +454,7 @@ var (
 	}
 )
 
-//GetFlagName deal with short flag, and return the flag name whether flag name have short name
+// GetFlagName deal with short flag, and return the flag name whether flag name have short name
 func GetFlagName(flag cli.Flag) string {
 	name := flag.GetName()
 	if name == "" {

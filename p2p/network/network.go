@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	ethCommon "github.com/ethereum/go-ethereum/common"
 	"runtime/debug"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	ethCommon "github.com/ethereum/go-ethereum/common"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/ontio/ontology-eventbus/actor"
@@ -700,7 +701,7 @@ func (this *Network) Broadcast(addrs []string, msg proto.Message, sessionId, msg
 	}
 }
 
-//P2P network msg receive. transfer to actor_channel
+// P2P network msg receive. transfer to actor_channel
 func (this *Network) Receive(ctx *network.ComponentContext, message proto.Message, hostAddr, peerId string) error {
 	// TODO check message is nil
 	walletAddr := this.walletAddrFromPeerId(peerId)
@@ -898,8 +899,8 @@ func (this *Network) addProxyComponents(builder *network.Builder) {
 			builder.AddComponent(new(proxy.UDPProxyComponent))
 		case "kcp":
 			builder.AddComponent(new(proxy.KCPProxyComponent))
-		case "quic":
-			builder.AddComponent(new(proxy.QuicProxyComponent))
+		// case "quic":
+		// 	builder.AddComponent(new(proxy.QuicProxyComponent))
 		case "tcp":
 			builder.AddComponent(new(proxy.TcpProxyComponent))
 		}
@@ -1053,8 +1054,8 @@ func (this *Network) startProxy(builder *network.Builder) error {
 				this.P2p.BlockUntilUDPProxyFinish()
 			case "kcp":
 				this.P2p.BlockUntilKCPProxyFinish()
-			case "quic":
-				this.P2p.BlockUntilQuicProxyFinish()
+			// case "quic":
+			// 	this.P2p.BlockUntilQuicProxyFinish()
 			case "tcp":
 				this.P2p.BlockUntilTcpProxyFinish()
 			}

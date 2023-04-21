@@ -2152,7 +2152,6 @@ func (this *Endpoint) GetFileInfo(fileHashStr string) (*fileInfoResp, *DspErr) {
 	if err != nil {
 		return nil, &DspErr{Code: DSP_FILE_INFO_NOT_FOUND, Error: ErrMaps[DSP_FILE_INFO_NOT_FOUND]}
 	}
-
 	now, err := dsp.GetCurrentBlockHeight()
 	if err != nil {
 		return nil, &DspErr{Code: CHAIN_GET_HEIGHT_FAILED, Error: err}
@@ -2162,6 +2161,10 @@ func (this *Endpoint) GetFileInfo(fileHashStr string) (*fileInfoResp, *DspErr) {
 	encrypt := false
 	if tsk != nil {
 		encrypt = tsk.Encrypt
+	}
+	url := dsp.GetLinkFromUrl(info.Url)
+	if url == "" {
+		info.Url = ""
 	}
 	result := &fileInfoResp{
 		FileHash:        string(info.FileHash),

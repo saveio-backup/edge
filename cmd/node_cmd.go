@@ -68,7 +68,7 @@ var NodeCommand = cli.Command{
 	Description: `./dsp node --help command to view help information.`,
 }
 
-//node command
+// node command
 func registerNode(ctx *cli.Context) error {
 	if !ctx.IsSet(flags.GetFlagName(flags.DspVolumeFlag)) {
 		PrintErrorMsg("Missing argument.")
@@ -125,8 +125,8 @@ func queryNode(ctx *cli.Context) error {
 		return err
 	}
 	info["Pledge"] = utils.ParseAssets(info["Pledge"])
-	info["RestVol"] = utils.ParserByteSizeToKB(info["RestVol"])
-	info["Volume"] = utils.ParserByteSizeToKB(info["Volume"])
+	// info["RestVol"] = utils.ParserByteSizeToKB(info["RestVol"])
+	// info["Volume"] = utils.ParserByteSizeToKB(info["Volume"])
 	info["WalletAddr"] = addr.ToBase58()
 	PrintJsonObject(m)
 	return nil
