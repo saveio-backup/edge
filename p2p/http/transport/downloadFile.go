@@ -11,13 +11,13 @@ import (
 )
 
 type DownloadFile struct {
-	DownloadTaskId int32 //本次下载id
+	DownloadTaskId int32
 	PeerAddr       string
-	TxHashs        []string //分块下载 分块付费的txhash
+	TxHashs        []string
 	Hashs          []string //file block hash
 	NodeListMap    map[string][]string
-	Indexs         []uint64 //文件已经上传后的下标合集
-	Status         int64    // 0 下载中 1 下载完成 2 已经删除 3 已损坏
+	Indexs         []uint64 //downloaded index
+	Status         int64    // 0 downloading 1 downloaded 2 delete 3 corrupt
 	CreateTime     time.Time
 }
 type DownloadFileDetail struct {
@@ -26,19 +26,19 @@ type DownloadFileDetail struct {
 	TxHash         string
 	Hash           string //file block hash
 	NodeList       []string
-	Index          uint64 //文件已经上传后的下标合集
+	Index          uint64
 }
 
-//存储已下载过的
 type Payment struct {
+	//downloaded hash
 	Hashs []string
 }
 
 func CreateDownloadTask(peerAddr string) (int32, error) {
-	//生成一个downloadTaskId
+	//create downloadTaskId
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	downloadTaskId := r.Int31()
-	//创建下载对象 存储到levelDb
+
 	downloadFile := DownloadFile{
 		PeerAddr:       peerAddr,
 		DownloadTaskId: downloadTaskId,
@@ -47,6 +47,7 @@ func CreateDownloadTask(peerAddr string) (int32, error) {
 		CreateTime:     time.Now(),
 	}
 	fileByte := downloadFile.Serialize()
+	//store download file
 	err := LevelDBStore.Put([]byte(downloadFile.PeerAddr+"_down_doing_"+fmt.Sprint(downloadFile.DownloadTaskId)), fileByte)
 	if err != nil {
 		return 0, err
@@ -55,30 +56,25 @@ func CreateDownloadTask(peerAddr string) (int32, error) {
 	return downloadTaskId, nil
 }
 
-//创建paymetId 和 amount
 func GetPaymentId(hashs []string) (int32, int, error) {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	paymentId := r.Int31()
-	//保存paymenId 到数据库  下载前去查询本地有没有该PaymenId 否则不提供服务
 	payment := Payment{
 		Hashs: hashs,
 	}
 	paymentBytes := payment.Serialize()
-	fmt.Println("GetPaymentId:" + fmt.Sprint(paymentId))
-	fmt.Println(paymentId)
-	err := LevelDBPaymedIDStore.Put([]byte(fmt.Sprint(paymentId)), paymentBytes)
+
+	err := LevelDBPaymentIDStore.Put([]byte(fmt.Sprint(paymentId)), paymentBytes)
 	if err != nil {
 		return 0, 0, err
 	}
-	ammount := len(hashs) * 256 * 1024
-	//paymentId, downloadId, txhash  只允许 下载一次
-
-	return paymentId, ammount, nil
+	amount := len(hashs) * 256 * 1024
+	return paymentId, amount, nil
 }
 
 func FilterDownloadHash(paymentId int32, hashs []string) ([]int, []string) {
-	paymentBytes, err := LevelDBPaymedIDStore.Get([]byte(fmt.Sprint(paymentId)))
+	paymentBytes, err := LevelDBPaymentIDStore.Get([]byte(fmt.Sprint(paymentId)))
 	if err != nil {
 		log.Error("get payment error:%s", err)
 	}
@@ -101,7 +97,6 @@ func FilterDownloadHash(paymentId int32, hashs []string) ([]int, []string) {
 	return haveHashIndexs, unHaveHashs
 }
 
-//下载
 func GetDownloadFile(peerAddr string, downloadTaskId int32) (*DownloadFile, error) {
 	fileByte, err := LevelDBStore.Get([]byte(peerAddr + "_down_doing_" + fmt.Sprint(downloadTaskId)))
 	if err != nil {
@@ -121,15 +116,15 @@ func (downloadFile *DownloadFile) DownloadPutBlocks(blocks []*DownloadFileDetail
 	if err != nil {
 		return err
 	}
-	//修改paymen storage 中数据为空
-	paymentBytes, err := LevelDBPaymedIDStore.Get([]byte(fmt.Sprint(paymentId)))
+
+	paymentBytes, err := LevelDBPaymentIDStore.Get([]byte(fmt.Sprint(paymentId)))
 	if err != nil {
 		return err
 	}
 	payment := DeserializePayment(paymentBytes)
 	payment.Hashs = nil
 	paymentBytes = payment.Serialize()
-	err = LevelDBPaymedIDStore.Put([]byte(fmt.Sprint(paymentId)), paymentBytes)
+	err = LevelDBPaymentIDStore.Put([]byte(fmt.Sprint(paymentId)), paymentBytes)
 	if err != nil {
 		return err
 	}
@@ -149,7 +144,6 @@ func (downloadFile *DownloadFile) Serialize() []byte {
 	return result.Bytes()
 }
 
-//反序列化
 func DeserializeDownLoadFile(blockBytes []byte) *DownloadFile {
 	var downloadFile DownloadFile
 	decoder := gob.NewDecoder(bytes.NewReader(blockBytes))
@@ -170,7 +164,6 @@ func (payment *Payment) Serialize() []byte {
 	return result.Bytes()
 }
 
-//反序列化
 func DeserializePayment(blockBytes []byte) *Payment {
 	var payment Payment
 	decoder := gob.NewDecoder(bytes.NewReader(blockBytes))

@@ -701,6 +701,7 @@ func CashUserSpace(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 func SetUserSpace(cmd map[string]interface{}) map[string]interface{} {
+	log.Debug("SetUserSpace")
 	resp := ResponsePack(dsp.SUCCESS)
 	addr, _ := cmd["Addr"].(string)
 	size, sizeOp, second, secondOp := float64(0), float64(0), float64(0), float64(0)
