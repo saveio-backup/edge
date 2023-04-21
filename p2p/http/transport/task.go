@@ -2,7 +2,6 @@ package transport
 
 import (
 	"errors"
-	"fmt"
 	"path/filepath"
 	"sync"
 
@@ -14,23 +13,20 @@ import (
 // var DB *leveldb.DB
 var LevelDBStore *store.LevelDBStore
 
-//保证一笔交易只能下载一次
-var LevelDBPaymedIDStore *store.LevelDBStore
+var LevelDBPaymentIDStore *store.LevelDBStore
 
 func InitDB() {
-
 	dbStore, err := store.NewLevelDBStore(filepath.Join(config.DEFAULT_FILE_DB_PATH, "http_file.db"))
 	if err != nil {
 		panic(err)
 	}
 	LevelDBStore = dbStore
-	fmt.Println("db init success")
-	levelDBPaymedIDStore, err := store.NewLevelDBStore(filepath.Join(config.DEFAULT_FILE_DB_PATH, "http_paymentId.db"))
+	levelDBPaymentIDStore, err := store.NewLevelDBStore(filepath.Join(config.DEFAULT_FILE_DB_PATH, "http_paymentId.db"))
 	if err != nil {
 		panic(err)
 	}
-	LevelDBPaymedIDStore = levelDBPaymedIDStore
-	fmt.Println("LevelDBPaymedIDStore init success")
+	LevelDBPaymentIDStore = levelDBPaymentIDStore
+	log.Debug("init http_file 、http_paymentId db success")
 }
 
 type Task struct {
@@ -43,7 +39,7 @@ func NewTask() *Task {
 	}
 }
 
-//query upload task record
+// query upload task record
 func (task *Task) UploadTaskRecord(peerAddr string, taskState string) []*UploadFile {
 	var uploadFileList []*UploadFile
 	t := "_up"
@@ -62,7 +58,7 @@ func (task *Task) UploadTaskRecord(peerAddr string, taskState string) []*UploadF
 	return uploadFileList
 }
 
-//query download task record
+// query download task record
 func (task *Task) DownloadTaskRecord(peerAddr string, taskState string) []*DownloadFile {
 	var downloadFileList []*DownloadFile
 	t := "_down"
@@ -81,22 +77,23 @@ func (task *Task) DownloadTaskRecord(peerAddr string, taskState string) []*Downl
 	return downloadFileList
 }
 
-//create uoload transport task
+// create upload transport task
 func (task *Task) CreateUploadTask(peerAddr string, fileHash string, prefix string) error {
 	return CreateUploadFile(peerAddr, fileHash, prefix)
 }
 
-//create download transport task
+// create download transport task
 func (task *Task) CreateDownloadTask(peerAddr string, fileHash string) (int32, error) {
 	task.Lock.Lock()
 	defer task.Lock.Unlock()
 
-	downlaodTaskId, err := CreateDownloadTask(peerAddr)
+	downloadTaskId, err := CreateDownloadTask(peerAddr)
 	if err != nil {
 		log.Errorf("peerAddr:%s  get fileHash: %s create download task err: %s", peerAddr, fileHash, err)
 		return 0, err
 	}
-	return downlaodTaskId, nil
+	log.Debugf("create download task success peerAddr:%s , fileHash:%s ,taskId:%v", peerAddr, fileHash, downloadTaskId)
+	return downloadTaskId, nil
 }
 func (task *Task) GetPaymentId(hashs []string) (int32, int, error) {
 	task.Lock.Lock()
@@ -167,13 +164,10 @@ func (task *Task) DownloadPutBlocks(blkInfos []*DownloadFileDetail, paymentId in
 	}
 }
 
-//transport Completed
+// transport Completed
 func (task *Task) TransportCompleted(taskType string, peerAddr string, taskId string) error {
-	//	修改任务状态 由传输中 修改为传输完毕
 	t := "_down"
-
 	s := "_doing_"
-	//上传完毕
 	if taskType == "0" {
 		t = "_up"
 	}
@@ -184,7 +178,6 @@ func (task *Task) TransportCompleted(taskType string, peerAddr string, taskId st
 		return err
 	}
 	if taskType == "1" {
-		//下载
 		downloadFile := DeserializeDownLoadFile(fileByte)
 		downloadFile.Status = 1
 		newKey := []byte(peerAddr + t + "_done_" + taskId)
@@ -201,25 +194,21 @@ func (task *Task) TransportCompleted(taskType string, peerAddr string, taskId st
 		}
 		return nil
 	} else {
-		//上传
-		fmt.Println("上传")
 		uploadFile := DeserializeUploadFile(fileByte)
 		uploadFile.Status = 1
 		newKey := []byte(peerAddr + t + "_done_" + taskId)
-		fmt.Println("1")
 		newFileByte := uploadFile.Serialize()
 		err := LevelDBStore.Put(newKey, newFileByte)
 		if err != nil {
 			log.Errorf("put peerAddr:%s taskId:%s  state is over new data err:%s", peerAddr, taskId, err)
 			return err
 		}
-		fmt.Println("2")
 		err = LevelDBStore.Delete(key)
-		fmt.Println("3")
 		if err != nil {
 			log.Errorf("delete peerAddr:%s taskId:%s old data  err:%s", peerAddr, taskId, err)
 			return err
 		}
+		log.Debugf("taskId: %s TransportCompleted success", taskId)
 		return nil
 	}
 
@@ -227,7 +216,6 @@ func (task *Task) TransportCompleted(taskType string, peerAddr string, taskId st
 
 func (task *Task) DeleteTransportTask(taskTypes []string, transportState string, peerAddr string, taskIds []string) []bool {
 	var isDeletes []bool
-	//	修改任务状态 由传输中 修改为传输完毕
 	t := "_up"
 	s := "_doing_"
 	if transportState == "1" {
@@ -247,11 +235,11 @@ func (task *Task) DeleteTransportTask(taskTypes []string, transportState string,
 			isDeletes = append(isDeletes, true)
 		}
 	}
-
+	log.Debug("delete transport task success ")
 	return isDeletes
 }
 
-//task upload detail
+// task upload detail
 func (task *Task) GetUploadTaskDetail(peerAddr string, taskId string, taskState string) (*UploadFile, error) {
 	s := "_doing_"
 	if taskState == "1" {
@@ -267,7 +255,7 @@ func (task *Task) GetUploadTaskDetail(peerAddr string, taskId string, taskState 
 
 }
 
-//task download detail
+// task download detail
 func (task *Task) GetDownloadTaskDetail(peerAddr string, taskId string, taskState string) (*DownloadFile, error) {
 	s := "_doing_"
 	if taskState == "1" {
@@ -282,7 +270,7 @@ func (task *Task) GetDownloadTaskDetail(peerAddr string, taskId string, taskStat
 	return DeserializeDownLoadFile(fileByte), nil
 }
 
-//get downloadFile list
+// get downloadFile list
 func (task *Task) GetDownloadFileListByStringKeys(keys []string) []*DownloadFile {
 	var downloadFileList []*DownloadFile
 	for _, key := range keys {
@@ -295,7 +283,7 @@ func (task *Task) GetDownloadFileListByStringKeys(keys []string) []*DownloadFile
 	return downloadFileList
 }
 
-//get uploadFile list
+// get uploadFile list
 func (task *Task) GetUploadFileListByStringKeys(keys []string) []*UploadFile {
 	var uploadFileList []*UploadFile
 	for _, key := range keys {

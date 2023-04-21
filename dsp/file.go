@@ -2433,7 +2433,6 @@ func (this *Endpoint) SetUserSpace(walletAddr string, size, sizeOpType, blockCou
 
 func (this *Endpoint) CashUserSpace(walletAddr string) (
 	string, *DspErr) {
-	log.Debug("CashUserSpace")
 	if len(walletAddr) == 0 {
 		walletAddr = this.getDspWalletAddress()
 	}
@@ -2442,13 +2441,15 @@ func (this *Endpoint) CashUserSpace(walletAddr string) (
 	if dspErr != nil {
 		return "", dspErr
 	}
-	if oldUserSpace.Remain <= 0 {
-		return "", &DspErr{Code: DB_USER_SPACE_NOT_BALANCE, Error: ErrMaps[DB_USER_SPACE_NOT_BALANCE]}
-	}
 
 	dsp := this.getDsp()
 	if dsp == nil {
 		return "", &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+
+	currentBlockHeight, _ := dsp.GetCurrentBlockHeight()
+	if oldUserSpace.Remain <= 0 || oldUserSpace.ExpiredHeight <= uint64(currentBlockHeight) {
+		return "", &DspErr{Code: DB_USER_SPACE_NOT_BALANCE, Error: ErrMaps[DB_USER_SPACE_NOT_BALANCE]}
 	}
 
 	taskInfos, err := dsp.GetUploadTaskInfos()
@@ -2466,8 +2467,6 @@ func (this *Endpoint) CashUserSpace(walletAddr string) (
 	if userSpaceHaveFile {
 		return "", &DspErr{Code: DB_USER_SPACE_HAVE_FILE_NOT_CASH, Error: ErrMaps[DB_USER_SPACE_HAVE_FILE_NOT_CASH]}
 	}
-
-	currentBlockHeight, _ := dsp.GetCurrentBlockHeight()
 
 	tx, err := dsp.CashUserSpace(walletAddr)
 

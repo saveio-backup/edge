@@ -65,13 +65,11 @@ type DeleteRespanseData struct {
 	TaskIds        []string `json:"taskIds"`
 }
 
-//获取存储节点状态
 func NodeState(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		w.WriteHeader(405)
 		return
 	}
-	//获取Node节点状态
 	moduleState := dsp.DspService.GetNodeState()
 	w.Header().Set("content-type", "application/json;charset=utf-8")
 	m := make(map[string]state.ModuleState)
@@ -80,8 +78,6 @@ func NodeState(w http.ResponseWriter, r *http.Request) {
 	w.Write(res)
 }
 
-/*********上传************/
-//创建上传任务
 func CreateUploadTask(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		w.WriteHeader(405)
@@ -114,7 +110,6 @@ func CreateUploadTask(w http.ResponseWriter, r *http.Request) {
 	w.Write(res)
 }
 
-//验证要上传文件是否已付费
 func NodeVerification(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		w.WriteHeader(405)
@@ -134,7 +129,6 @@ func NodeVerification(w http.ResponseWriter, r *http.Request) {
 	}
 	m := make(map[string]string)
 
-	//验证上传文件交易是否有效
 	err := dsp.DspService.GetChain().WaitForTxConfirmed(blockHeight)
 	if err != nil {
 		log.Errorf("get block height err %s", err)
@@ -164,7 +158,6 @@ func NodeVerification(w http.ResponseWriter, r *http.Request) {
 	w.Write(res)
 }
 
-//开始上传
 func FileUpload(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		w.WriteHeader(405)
@@ -189,7 +182,7 @@ func FileUpload(w http.ResponseWriter, r *http.Request) {
 	}
 	//result data
 	uploadResultData := UploadResultData{}
-	//过滤 查询 已经上传过的块
+
 	if len(resp.Hashs) < 1 {
 		res, _ := json.Marshal(JsonResult{
 			Code: 200,
@@ -200,7 +193,6 @@ func FileUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	notContainIndexs, containIndexs := transport.FilterUploadHashs(resp.PeerAddr, resp.FileHash, resp.Hashs)
-	//包含已经存在的块
 	if len(containIndexs) > 0 {
 		containMap := make(map[string]interface{})
 		var hashs []string
@@ -235,7 +227,6 @@ func FileUpload(w http.ResponseWriter, r *http.Request) {
 	var errorInfos []string
 	for _, i := range notContainIndexs {
 		block, _ := hex.DecodeString(resp.Blocks[i])
-		//添加block 到链
 		blk := fs.EncodedToBlockWithCid(block, resp.Hashs[i])
 		if blk.Cid().String() != resp.Hashs[i] {
 			log.Errorf("receive a wrong block: %s, expected: %s", blk.Cid().String(), resp.Hashs[i])
@@ -252,7 +243,7 @@ func FileUpload(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		log.Debugf("put block success %v-%s-%d", resp.Blocks[i], resp.Hashs[i], resp.Indexs[i])
-		//添加tag到链
+
 		tag, _ := hex.DecodeString(resp.Tags[i])
 		if err := fs.PutTag(resp.Hashs[i], resp.FileHash, resp.Indexs[i], tag); err != nil {
 			errorHashs = append(errorHashs, resp.Hashs[i])
@@ -261,7 +252,7 @@ func FileUpload(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		log.Debugf(" put tag or done %s-%s-%d", resp.FileHash, resp.Hashs[i], resp.Indexs[i])
-		//保存其余信息到本地
+
 		blkInfos = append(blkInfos, &transport.UploadFileDetail{
 			PeerAddr: resp.PeerAddr,
 			FileHash: resp.FileHash,
@@ -275,7 +266,6 @@ func FileUpload(w http.ResponseWriter, r *http.Request) {
 		unknowStateErrors = append(unknowStateErrors, "save put info to loacl error")
 	}
 	if len(blkInfos) > 0 {
-		//剩余信息 存入本地
 		task := transport.NewTask()
 
 		err := task.UploadPutBlocks(blkInfos)
@@ -307,7 +297,6 @@ func FileUpload(w http.ResponseWriter, r *http.Request) {
 	w.Write(res)
 }
 
-//文件上传完毕验证 以及修改 本地存储状态
 func UploadCompleted(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		w.WriteHeader(405)
@@ -324,7 +313,7 @@ func UploadCompleted(w http.ResponseWriter, r *http.Request) {
 		w.Write(res)
 		return
 	}
-	//上传文件完毕后调用start
+
 	fs := dsp.DspService.GetFS()
 	err := fs.StartPDPVerify(fileHash)
 	m := make(map[string]string)
@@ -336,7 +325,6 @@ func UploadCompleted(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	task := transport.NewTask()
-	//
 	err = task.TransportCompleted("0", peerAddr, fileHash)
 	if err != nil {
 		if err.Error() == "leveldb: not found" {
@@ -359,7 +347,7 @@ func UploadCompleted(w http.ResponseWriter, r *http.Request) {
 	w.Write(res)
 }
 
-//上传记录
+//local upload record
 func UploadRecord(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		w.WriteHeader(405)
@@ -386,14 +374,12 @@ func UploadRecord(w http.ResponseWriter, r *http.Request) {
 	w.Write(res)
 }
 
-//上传详情
 func UploadRecordDetail(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		w.WriteHeader(405)
 		return
 	}
 	query := r.URL.Query()
-
 	peerAddr := query.Get("peerAddr")
 	fileHash := query.Get("fileHash")
 	taskState := query.Get("taskState")
@@ -413,12 +399,7 @@ func UploadRecordDetail(w http.ResponseWriter, r *http.Request) {
 	w.Write(res)
 }
 
-/*********上传完毕************/
-
-/*********下载************/
-//创建下载任务 返回downloadTaskId、prefix、hashs
 func CreateDownloadTask(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("CreateDownloadTask")
 	if r.Method != "GET" {
 		w.WriteHeader(405)
 		return
@@ -460,7 +441,6 @@ func CreateDownloadTask(w http.ResponseWriter, r *http.Request) {
 	w.Write(res)
 }
 
-//根据块 获取支付id 和 金额
 func GetPaymentId(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		w.WriteHeader(405)
@@ -489,9 +469,8 @@ func GetPaymentId(w http.ResponseWriter, r *http.Request) {
 	w.Write(res)
 }
 
-//开始下载
 func FileDownload(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("fileDownload")
+	log.Debug("enter FileDownload")
 	if r.Method != "POST" {
 		w.WriteHeader(405)
 		return
@@ -504,6 +483,7 @@ func FileDownload(w http.ResponseWriter, r *http.Request) {
 	}
 	var resp DownloadRespanseData
 	json.Unmarshal([]byte(body), &resp)
+	log.Debugf(" start download file , peerAddr:%s ,fileHash:%s, txHash:%s ,paymentId:%v, downloadTaskId:%v, indexs:%v ", resp.PeerAddr, resp.FileHash, resp.TxHash, resp.PaymentId, resp.DownloadTaskId, resp.Indexs)
 	w.Header().Set("content-type", "application/json;charset=utf-8")
 	if resp.FileHash == "" || resp.PeerAddr == "" || resp.TxHash == "" || len(resp.Hashs) <= 0 || resp.DownloadTaskId <= 0 || resp.PaymentId <= 0 || len(resp.Indexs) < 0 {
 		m := make(map[string]string)
@@ -518,28 +498,26 @@ func FileDownload(w http.ResponseWriter, r *http.Request) {
 		w.Write(res)
 		return
 	}
-	//过滤 查询 已经下载过的块 现在逻辑 如果下载那就全部下载该panymentid支付的所有块 只能一次使用
+
 	haveHashIndexs, _ := transport.FilterDownloadHash(resp.PaymentId, resp.Hashs)
 	if len(haveHashIndexs) != len(resp.Hashs) {
-		//paymeni支付的块和下载要下载的块不一致
 		m := make(map[string]interface{})
 		m["err"] = "ready download hashs is not equal to paymentId hashs "
 		res, _ := json.Marshal(JsonResult{Code: 200, Msg: "success", Data: m})
 		w.Write(res)
 	} else {
 		resultMap := make(map[string]interface{})
-		//从数据库中获取数据
 		fs := dsp.DspService.GetFS()
 
 		downloadResultData := DownloadResultData{}
 		var errorHashs []string
 		var errorInfos []string
 		downloadFileBlockInfos := make([]*transport.DownloadFileDetail, 0)
-		//1.验证是否已收费
 		event, err := dsp.DspService.GetChain().GetSmartContractEvent(resp.TxHash)
 		if err != nil {
 			log.Errorf("handle payment msg, get smart contract event err %s for tx %s", err, resp.TxHash)
 		}
+
 		valid := false
 		for _, n := range event.Notify {
 			if n == nil || n.States == nil {
@@ -573,7 +551,6 @@ func FileDownload(w http.ResponseWriter, r *http.Request) {
 				block := hex.EncodeToString(data)
 				downloadResultData.Blocks = append(downloadResultData.Blocks, block)
 				downloadResultData.Hashs = append(downloadResultData.Hashs, hash)
-				//获取tag
 				tagBytes, err := fs.GetTag(hash, resp.FileHash, resp.Indexs[i])
 				tag := hex.EncodeToString(tagBytes)
 				if err != nil {
@@ -583,7 +560,6 @@ func FileDownload(w http.ResponseWriter, r *http.Request) {
 
 					downloadResultData.Tags = append(downloadResultData.Tags, tag)
 				}
-				//将下载信息存入level db
 				downloadFileBlockInfos = append(downloadFileBlockInfos, &transport.DownloadFileDetail{
 					DownloadTaskId: resp.DownloadTaskId,
 					Hash:           hash,
@@ -607,13 +583,12 @@ func FileDownload(w http.ResponseWriter, r *http.Request) {
 			task.DownloadPutBlocks(downloadFileBlockInfos, resp.PaymentId)
 		}
 		resultMap["downloadData"] = downloadResultData
-		log.Debug("save download info to local success")
+		log.Debugf("save download info to local success , peerAddr:%s ,fileHash:%s, txHash:%s ,paymentId:%v, downloadTaskId:%v , indexs:%v ", resp.PeerAddr, resp.FileHash, resp.TxHash, resp.PaymentId, resp.DownloadTaskId, resp.Indexs)
 		res, _ := json.Marshal(JsonResult{Code: 200, Msg: "success", Data: resultMap})
 		w.Write(res)
 	}
 }
 
-//下载完毕状态修改
 func DownloadCompleted(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		w.WriteHeader(405)
@@ -655,7 +630,6 @@ func DownloadCompleted(w http.ResponseWriter, r *http.Request) {
 	w.Write(res)
 }
 
-//下载记录
 func DownloadRecord(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		w.WriteHeader(405)
@@ -681,7 +655,6 @@ func DownloadRecord(w http.ResponseWriter, r *http.Request) {
 	w.Write(res)
 }
 
-//下载详情
 func DownloadRecordDetail(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		w.WriteHeader(405)
@@ -709,15 +682,11 @@ func DownloadRecordDetail(w http.ResponseWriter, r *http.Request) {
 
 }
 
-/*********下载完毕************/
-
-//删除下载
 func DeleteTask(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		w.WriteHeader(405)
 		return
 	}
-	//支持多条删除
 	body, err := ioutil.ReadAll(r.Body)
 
 	if err != nil {
@@ -750,11 +719,10 @@ type HttpServer struct {
 }
 
 func InitHttpServer() HttpServer {
-	fmt.Println("InitHttpServer")
 	hs := HttpServer{}
 	hs.router = NewRouter()
-	hs.initGetHandler()  //初始化get回调
-	hs.initPostHandler() //初始化post回调
+	hs.initGetHandler()
+	hs.initPostHandler()
 	transport.InitDB()
 	return hs
 }
@@ -763,7 +731,7 @@ func test(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("tdrfsd"))
 }
 
-//init get handler
+// init get handler
 func (hs *HttpServer) initGetHandler() {
 	// add get to router
 	hs.router.Get("/api/v1/p2p/http/file/nodeState", NodeState)

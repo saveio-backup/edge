@@ -15,9 +15,9 @@ type UploadFile struct {
 	Hashs       []string //file block hash
 	Prefix      string
 	NodeListMap map[string][]string
-	Indexs      []uint64 //文件已经上传后的下标合集
+	Indexs      []uint64
 	CreatTime   time.Time
-	Status      int64 // 0 上传中 1 上传完成 2 已经删除 3 已损坏
+	Status      int64 // 0 uploading 1 uploaded 2 delete 3 corrupt
 	// Payment    int64
 	IsSort bool
 }
@@ -26,7 +26,7 @@ type UploadFileDetail struct {
 	FileHash string
 	Hash     string //file block hash
 	NodeList []string
-	Index    uint64 //文件已经上传后的下标合集
+	Index    uint64
 }
 
 func CreateUploadFile(peerAddr string, fileHash string, prefix string) error {
@@ -45,7 +45,6 @@ func CreateUploadFile(peerAddr string, fileHash string, prefix string) error {
 }
 
 func GetUploadFile(peerAddr string, fileHash string) (*UploadFile, error) {
-	// 获取
 	fileByte, err := LevelDBStore.Get([]byte(peerAddr + "_up_doing_" + fileHash))
 	if err != nil {
 
@@ -98,7 +97,6 @@ func (uploadFile *UploadFile) PutBlock(block *UploadFileDetail) error {
 	return uploadFile.UploadPutBlocks([]*UploadFileDetail{block})
 }
 func (uploadFile *UploadFile) HashsSort() bool {
-	//对hash进行排序
 	hashs := uploadFile.Hashs
 	indexs := uploadFile.Indexs
 	var newHashs []string
@@ -135,7 +133,6 @@ func (uploadFile *UploadFile) Serialize() []byte {
 	return result.Bytes()
 }
 
-//反序列化
 func DeserializeUploadFile(blockBytes []byte) *UploadFile {
 	var uploadFile UploadFile
 	decoder := gob.NewDecoder(bytes.NewReader(blockBytes))
