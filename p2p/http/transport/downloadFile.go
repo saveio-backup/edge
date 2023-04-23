@@ -69,7 +69,7 @@ func GetPaymentId(hashs []string) (int32, int, error) {
 	if err != nil {
 		return 0, 0, err
 	}
-	amount := len(hashs) * 256 * 1024
+	amount := len(hashs) * 256
 	return paymentId, amount, nil
 }
 
