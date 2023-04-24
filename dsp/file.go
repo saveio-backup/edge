@@ -2790,9 +2790,9 @@ func (this *Endpoint) getTransferDetail(pType TransferType, info *dspTypes.Progr
 		CreatedAt:    info.CreatedAt,
 		UpdatedAt:    info.UpdatedAt,
 	}
-	fee := info.FileSize * 1024
+	fee := info.FileSize
 	if pInfo.RealFileSize > 0 {
-		fee = info.RealFileSize * 1024
+		fee = info.RealFileSize
 	}
 	feeFormat := utils.FormatUsdt(fee)
 	pInfo.Fee = fee
