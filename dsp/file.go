@@ -1548,6 +1548,10 @@ func (this *Endpoint) GetDownloadFileInfo(url string) (*DownloadFileInfo, *DspEr
 		// mediate node' size calculate by children max
 		info.Fee += link.BlockNum / 11 * 50
 	}
+	info.Fee = info.Fee / 1024
+	if info.Fee == 0 {
+		info.Fee = 1
+	}
 	info.FeeFormat = utils.FormatUsdt(info.Fee)
 	info.Path = this.getDownloadFilePath(info.Name)
 	info.DownloadDir = this.getDownloadFilePath("")
