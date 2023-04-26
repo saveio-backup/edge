@@ -70,15 +70,17 @@ type Endpoint struct {
 	eventHub          *EventHub
 	state             *LifeCycle
 	cache             *cache.EdgeCache
+	uploadFileLock    *sync.Mutex
 }
 
 func Init(walletDir, pwd string) (*Endpoint, error) {
 	e := &Endpoint{
-		closeCh:    make(chan struct{}, 1),
-		eventHub:   NewEventHub(),
-		state:      NewLifeCycle(),
-		dspAccLock: new(sync.Mutex),
-		cache:      cache.NewEdgeCache(),
+		closeCh:        make(chan struct{}, 1),
+		eventHub:       NewEventHub(),
+		state:          NewLifeCycle(),
+		dspAccLock:     new(sync.Mutex),
+		cache:          cache.NewEdgeCache(),
+		uploadFileLock: new(sync.Mutex),
 	}
 	DspService = e
 	log.Debugf("walletDir: %s, %d", walletDir, len(walletDir))

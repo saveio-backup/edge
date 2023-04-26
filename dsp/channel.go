@@ -65,8 +65,11 @@ func (this *Endpoint) IsChannelProcessBlocks() (bool, *DspErr) {
 		return false, nil
 	}
 	dsp := this.getDsp()
-	if !dsp.HasChannelInstance() {
+	if dsp == nil {
 		return false, &DspErr{Code: NO_DSP, Error: ErrMaps[NO_DSP]}
+	}
+	if !dsp.HasChannelInstance() {
+		return false, &DspErr{Code: NO_CHANNEL, Error: ErrMaps[NO_CHANNEL]}
 	}
 	if dsp.ChannelFirstSyncing() {
 		return true, nil

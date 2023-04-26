@@ -15,6 +15,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/saveio/dsp-go-sdk/dsp"
+	"github.com/saveio/dsp-go-sdk/task/base"
+	"github.com/saveio/dsp-go-sdk/utils/crypto"
+
 	ethCom "github.com/ethereum/go-ethereum/common"
 
 	dspConsts "github.com/saveio/dsp-go-sdk/consts"
@@ -442,29 +446,54 @@ func (this *Endpoint) UploadFile(taskId, path, desc string, durationVal, proveLe
 	opt.EncryptNodeAddr = []byte(encryptNodeAddr)
 	optBuf, _ := json.Marshal(opt)
 	log.Debugf("path %s, UploadOption :%s\n", path, optBuf)
-	taskExist, err := dsp.UploadTaskExist(path)
+	taskExisted, taskId, err := this.CheckUploadFileTask(path, dsp)
 	if err != nil {
 		return nil, &DspErr{Code: INTERNAL_ERROR, Error: err}
 	}
-	if taskExist {
+	if taskExisted {
 		return nil, &DspErr{Code: DSP_UPLOAD_FILE_EXIST, Error: fmt.Errorf("file %s %s", path, ErrMaps[DSP_UPLOAD_FILE_EXIST])}
 	}
-	go func() {
-		// defer func() {
-		// 	if e := recover(); e != nil {
-		// 		log.Errorf("panic recover err %v", e)
-		// 	}
-		// }()
+	go func(taskId string) {
 		log.Debugf("upload file path %s, this.Dsp: %t", path, dsp == nil)
 		ret, err := dsp.UploadFile(true, taskId, path, opt)
 		if err != nil {
 			log.Errorf("upload failed err %s", err)
-			return
 		} else {
 			log.Infof("upload file success: %v", ret)
 		}
-	}()
+	}(taskId)
 	return opt, nil
+}
+
+func (this *Endpoint) CheckUploadFileTask(filePath string, dsp *dsp.Dsp) (bool, string, error) {
+	this.uploadFileLock.Lock()
+	defer this.uploadFileLock.Unlock()
+	taskExisted, err := dsp.UploadTaskExist(filePath)
+	if err != nil {
+		return taskExisted, "", err
+	}
+	if taskExisted {
+		return taskExisted, "", nil
+	}
+	task, err := dsp.TaskMgr.NewUploadTask("")
+	if err != nil {
+		return false, "", err
+	}
+	checksum := ""
+	stat, err := os.Stat(filePath)
+	if err != nil {
+		return false, "", err
+	}
+	if stat.IsDir() {
+		checksum, err = crypto.GetSimpleChecksumOfDir(filePath)
+	} else {
+		checksum, err = crypto.GetSimpleChecksumOfFile(filePath)
+	}
+	task.SetInfoWithOptions(
+		base.FilePath(filePath),
+		base.SimpleCheckSum(checksum))
+	taskId := task.GetId()
+	return false, taskId, nil
 }
 
 func (this *Endpoint) PauseUploadFile(taskIds []string) (*FileTaskResp, *DspErr) {
