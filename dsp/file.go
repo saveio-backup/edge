@@ -952,7 +952,7 @@ func (this *Endpoint) DownloadFile(taskId, fileHash, url, linkStr, password stri
 		}
 		if info != nil {
 			log.Debugf("fileBlockSize %v, minChannelBalance: %d", info.FileBlockNum*info.FileBlockSize, minChannelBalance)
-			if info.FileBlockNum*info.FileBlockSize*1024 > minChannelBalance {
+			if info.FileBlockNum*info.FileBlockSize > minChannelBalance {
 				return &DspErr{Code: DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH, Error: ErrMaps[DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH]}
 			}
 		}
@@ -984,7 +984,7 @@ func (this *Endpoint) DownloadFile(taskId, fileHash, url, linkStr, password stri
 			return &DspErr{Code: DSP_NO_PRIVILEGE_TO_DOWNLOAD,
 				Error: fmt.Errorf("user %s has no privilege to download this file", dsp.WalletAddress())}
 		}
-		if info != nil && info.FileBlockNum*info.FileBlockSize*1024 > minChannelBalance {
+		if info != nil && info.FileBlockNum*info.FileBlockSize > minChannelBalance {
 			return &DspErr{Code: DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH, Error: ErrMaps[DSP_CHANNEL_BALANCE_DNS_NOT_ENOUGH]}
 		}
 		go func() {
