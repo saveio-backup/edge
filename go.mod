@@ -19,3 +19,13 @@ require (
 	github.com/tjfoc/gmtls v1.2.1 // indirect
 	github.com/urfave/cli v1.22.5
 )
+
+replace (
+	github.com/saveio/carrier => ../carrier
+	github.com/saveio/dsp-go-sdk => ../dsp-go-sdk
+	github.com/saveio/max => ../max
+	github.com/saveio/pylons => ../pylons
+	github.com/saveio/scan => ../scan
+	github.com/saveio/themis => ../themis
+	github.com/saveio/themis-go-sdk => ../themis-go-sdk
+)
